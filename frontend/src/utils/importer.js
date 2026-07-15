@@ -406,31 +406,47 @@ function str(v) {
 function dateStr(v) {
   if (v === undefined || v === null || v === '') return null;
   const s = String(v).trim();
-  // ISO format already
+
+  // 1. Already ISO: 2024-03-15 or 2024-03-15T00:00:00
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  // Excel serial number (numeric string 4-5 digits)
+
+  // 2. Excel serial number (integer 5 digits, SheetJS raw:true)
   if (/^\d{4,5}$/.test(s)) {
     const d = new Date(Date.UTC(1899, 11, 30) + Number(s) * 86400000);
     return d.toISOString().slice(0, 10);
   }
-  // dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+
+  // 3. Split by / - . separators
   const parts = s.split(/[\/\-\.]/);
   if (parts.length === 3) {
-    const [a, b, c] = parts;
-    if (c.length === 4) {
-      // Assume dd/mm/yyyy (Indonesian convention)
-      return `${c}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
-    }
-    if (a.length === 4) {
-      // yyyy/mm/dd
+    const [a, b, c] = parts.map(p => p.trim());
+    const numA = Number(a), numB = Number(b), numC = Number(c);
+
+    // yyyy/mm/dd (year first, 4-digit)
+    if (a.length === 4 && numA > 1900) {
       return `${a}-${b.padStart(2, '0')}-${c.padStart(2, '0')}`;
     }
+
+    // dd/mm/yyyy Indonesian convention (year last, 4-digit)
+    if (c.length === 4 && numC > 1900) {
+      // If a > 12, definitely day; otherwise assume Indonesian dd/mm
+      return `${c}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+    }
+
+    // dd/mm/yy (2-digit year) — e.g. 15/03/24
+    if (c.length === 2 && !isNaN(numC)) {
+      const year = numC >= 50 ? `19${c}` : `20${c}`;
+      return `${year}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+    }
   }
-  // Try native Date parse as last resort
+
+  // 4. Last resort: native Date parse (handles "15 Mar 2024", "March 15, 2024")
   const d = new Date(s);
-  if (!isNaN(d)) return d.toISOString().slice(0, 10);
-  return s;
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+
+  return s; // Return as-is, isValidDate will flag it
 }
+
 
 function readDate(row, aliasKey) {
   return dateStr(readField(row, aliasKey));
