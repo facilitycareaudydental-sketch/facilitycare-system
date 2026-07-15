@@ -27,11 +27,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install root deps
+      - name: Install root deps (includes esbuild)
         run: npm install
-
-      - name: Install esbuild (needed for build)
-        run: npm install -g esbuild
 
       - name: Check required files
         run: |

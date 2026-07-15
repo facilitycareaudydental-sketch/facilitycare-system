@@ -40,18 +40,43 @@ formHtml = formHtml.replace('https://fm-operations-api.YOUR_SUBDOMAIN.workers.de
 fs.writeFileSync(path.join(distDir, 'form.html'), formHtml);
 
 // Bundle JS with esbuild
+let esbuildCmd = null;
 try {
-  execSync('npx esbuild --version', { stdio: 'ignore' });
-  console.log('Bundling with esbuild...');
-  execSync(
-    `npx esbuild ${path.join(srcDir, 'app.js')} --bundle --outfile=${path.join(distDir, 'assets', 'app.js')} --format=esm --minify`,
-    { stdio: 'inherit' }
-  );
+  execSync('esbuild --version', { stdio: 'ignore' });
+  esbuildCmd = 'esbuild'; // globally installed
 } catch {
-  console.log('esbuild not found, copying source files...');
-  // Copy src files as-is for development (works with native ESM in modern browsers)
+  try {
+    execSync('npx --no esbuild --version', { stdio: 'ignore' });
+    esbuildCmd = 'npx --no esbuild'; // via npx
+  } catch {
+    // Install esbuild locally
+    console.log('Installing esbuild locally...');
+    try {
+      execSync('npm install --save-dev esbuild', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+      esbuildCmd = 'npx esbuild';
+    } catch {
+      esbuildCmd = null;
+    }
+  }
+}
+
+if (esbuildCmd) {
+  console.log(`Bundling with esbuild (${esbuildCmd})...`);
+  try {
+    execSync(
+      `${esbuildCmd} ${path.join(srcDir, 'app.js')} --bundle --outfile=${path.join(distDir, 'assets', 'app.js')} --format=esm --minify --platform=browser`,
+      { stdio: 'inherit' }
+    );
+    console.log('✅ Bundle created at dist/assets/app.js');
+  } catch (err) {
+    console.error('esbuild bundle failed, falling back to source copy:', err.message);
+    esbuildCmd = null; // trigger fallback
+  }
+}
+
+if (!esbuildCmd) {
+  console.log('Falling back: copying source files (native ESM mode)...');
   copyDir(srcDir, path.join(distDir, 'src'));
-  // Update script tag to point to src
   let html2 = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
   html2 = html2.replace('/assets/app.js', '/src/app.js');
   fs.writeFileSync(path.join(distDir, 'index.html'), html2);

@@ -16,6 +16,8 @@
     "db:migrate:remote": "wrangler d1 execute fm-operations-db --remote --file=schema/migrations.sql"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "wrangler": "^3.78.0"
   }
 }
+
