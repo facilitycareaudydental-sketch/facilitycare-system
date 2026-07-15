@@ -63,14 +63,27 @@ try {
 if (esbuildCmd) {
   console.log(`Bundling with esbuild (${esbuildCmd})...`);
   try {
+    // Use content hash in filename so Cloudflare CDN always serves fresh file
+    const metafile = path.join(distDir, 'assets', 'meta.json');
     execSync(
-      `${esbuildCmd} ${path.join(srcDir, 'app.js')} --bundle --outfile=${path.join(distDir, 'assets', 'app.js')} --format=esm --minify --platform=browser`,
+      `${esbuildCmd} ${path.join(srcDir, 'app.js')} --bundle --outdir=${path.join(distDir, 'assets')} --entry-names=[name]-[hash] --format=esm --minify --platform=browser --metafile=${metafile}`,
       { stdio: 'inherit' }
     );
-    console.log('✅ Bundle created at dist/assets/app.js');
+
+    // Read metafile to find actual output filename
+    const meta = JSON.parse(fs.readFileSync(metafile, 'utf8'));
+    const outputs = Object.keys(meta.outputs).filter(f => f.endsWith('.js') && !f.endsWith('.css'));
+    const outFilename = outputs.length ? path.basename(outputs[0]) : 'app.js';
+    console.log(`✅ Bundle created: dist/assets/${outFilename}`);
+
+    // Patch index.html to reference the hashed filename
+    let htmlContent = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
+    htmlContent = htmlContent.replace(/\/assets\/app(?:-[a-z0-9]+)?\.js/, `/assets/${outFilename}`);
+    fs.writeFileSync(path.join(distDir, 'index.html'), htmlContent);
+    console.log(`✅ index.html patched: /assets/${outFilename}`);
   } catch (err) {
     console.error('esbuild bundle failed, falling back to source copy:', err.message);
-    esbuildCmd = null; // trigger fallback
+    esbuildCmd = null;
   }
 }
 
@@ -97,7 +110,13 @@ fs.writeFileSync(path.join(distDir, '_headers'), `/*
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
-/assets/*
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.css
   Cache-Control: public, max-age=31536000, immutable
 `);
 
