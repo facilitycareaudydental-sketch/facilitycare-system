@@ -12,6 +12,10 @@ export async function handleUsers(request, env, origin) {
   const idMatch = path.match(/^\/(\d+)$/);
 
   if (request.method === 'GET' && path === '') return listUsers(request, env, origin);
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'users', 'admin')) return forbidden(origin);
+    return importUsers(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') return createUser(request, env, user, origin);
   if (idMatch) {
     const id = idMatch[1];
@@ -112,4 +116,44 @@ async function deleteUser(id, env, currentUser, origin) {
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
   return ok({ message: 'User deleted' }, 200, origin);
+}
+
+async function importUsers(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const stmts = [];
+  for (const item of body) {
+    if (!item.username || !item.email || !item.password || !item.full_name) continue;
+    
+    // Hash password sequentially
+    const hash = await hashPassword(item.password);
+
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO users (username, email, password_hash, full_name, role) 
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(username) DO UPDATE SET
+           email = excluded.email,
+           full_name = excluded.full_name,
+           role = excluded.role,
+           password_hash = excluded.password_hash`
+      ).bind(
+        item.username,
+        item.email,
+        hash,
+        item.full_name,
+        item.role || 'viewer'
+      )
+    );
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ message: `Berhasil mengimport ${stmts.length} user` }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
 }
