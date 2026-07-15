@@ -146,3 +146,14 @@ jobs:
             --file=schema/migration_v2.sql \
             --yes
         continue-on-error: true
+
+      - name: Run Schema v3 Migrations (Performance Indexes — IF NOT EXISTS)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler d1 execute fm-operations-db \
+            --remote \
+            --file=schema/migration_v3_indexes.sql \
+            --yes
+        continue-on-error: true
