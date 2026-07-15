@@ -12,6 +12,10 @@ export async function handleRelievers(request, env, origin) {
   const idMatch = path.match(/^\/(\d+)$/);
 
   if (request.method === 'GET' && path === '') return list(request, env, origin);
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'relievers', 'write')) return forbidden(origin);
+    return importRelievers(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'relievers', 'write')) return forbidden(origin);
     return create(request, env, origin);
@@ -109,4 +113,39 @@ async function remove(id, env, origin) {
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM relievers WHERE id = ?').bind(id).run();
   return ok({ message: 'Deleted' }, 200, origin);
+}
+
+async function importRelievers(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const stmts = [];
+  for (const item of body) {
+    if (!item.reliever_name || !item.backup_date) continue;
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        item.branch_id || null,
+        item.original_fc_name || null,
+        item.period || null,
+        item.reliever_name,
+        item.backup_date,
+        item.completion_date || null,
+        item.reason || null,
+        item.shift || null,
+        item.status || 'Pending'
+      )
+    );
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ message: `Berhasil mengimport ${stmts.length} reliefer` }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
 }

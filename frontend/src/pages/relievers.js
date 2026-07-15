@@ -1,6 +1,7 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
+import { downloadExcel } from '../utils/excel.js';
 
 export async function renderRelievers(container) {
   const bRes = await apiFetch('/api/branches?all=1');
@@ -55,5 +56,60 @@ export async function renderRelievers(container) {
       },
       { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done', 'Tidak Datang'], value: data?.status || 'Pending' },
     ],
+    exportOptions: {
+      moduleName: 'relievers',
+      onExport: async () => {
+        const res = await apiFetch('/api/relievers?limit=10000');
+        if (res.ok) {
+          const data = res.data.data.map(d => ({
+            'Tanggal Backup': d.backup_date || '',
+            'Cabang': d.branch_name || '',
+            'FC Digantikan': d.original_fc_name || '',
+            'Periode': d.period || '',
+            'Reliefer': d.reliever_name || '',
+            'Keterangan': d.reason || '',
+            'Shift': d.shift || '',
+            'Tanggal Selesai': d.completion_date || '',
+            'Status': d.status || ''
+          }));
+          downloadExcel(data, 'Data_Reliefer');
+        } else throw new Error('Gagal mengambil data');
+      },
+      onTemplate: () => {
+        const template = [
+          { 'Tanggal Backup': '2024-03-10', 'Cabang': '001. Pondok Bambu', 'FC Digantikan': 'Budi Santoso', 'Periode': 'Q1', 'Reliefer': 'Andi', 'Keterangan': 'Sakit', 'Shift': 'Pagi', 'Tanggal Selesai': '2024-03-10', 'Status': 'Done' }
+        ];
+        downloadExcel(template, 'Template_Import_Reliefer');
+      },
+      onImport: async (json) => {
+        const bRes = await apiFetch('/api/branches?all=1');
+        const rawBranches = bRes.data?.data || [];
+        
+        const matchBranch = (str) => {
+          if (!str) return null;
+          const s = str.toLowerCase();
+          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
+          return b ? b.id : null;
+        };
+
+        const payload = json.map(row => ({
+          branch_id: matchBranch(String(row['Cabang'] || '').trim()),
+          backup_date: String(row['Tanggal Backup'] || '').trim(),
+          original_fc_name: String(row['FC Digantikan'] || '').trim(),
+          reliever_name: String(row['Reliefer'] || '').trim(),
+          period: String(row['Periode'] || '').trim(),
+          reason: String(row['Keterangan'] || '').trim(),
+          shift: String(row['Shift'] || '').trim(),
+          completion_date: String(row['Tanggal Selesai'] || '').trim(),
+          status: String(row['Status'] || '').trim() || 'Pending',
+        })).filter(row => row.reliever_name && row.backup_date);
+        
+        const res = await apiFetch('/api/relievers/import', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+      }
+    }
   });
 }
