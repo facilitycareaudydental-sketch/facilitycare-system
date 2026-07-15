@@ -135,20 +135,27 @@ async function importEmployees(rows, onDuplicate, env, origin) {
 }
 
 // ─── Contracts ────────────────────────────────────────────────────────────────
-// v2: Store employee_name as string — no FK enforcement during import
 async function importContracts(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  // Try to match employee by name (best effort — not required)
   const eRows = await env.DB.prepare('SELECT id, full_name FROM employees').all();
   const matchEmployee = (str) => {
     if (!str) return null;
     const s = str.toLowerCase().trim();
-    const emp = eRows.results.find(r => r.full_name.toLowerCase() === s ||
-      r.full_name.toLowerCase().includes(s) || s.includes(r.full_name.toLowerCase().split(' ')[0]));
+    const emp = eRows.results.find(r =>
+      r.full_name.toLowerCase() === s ||
+      r.full_name.toLowerCase().includes(s.split(' ')[0])
+    );
     return emp ? emp.id : null;
   };
+
+  // Detect if employee_name column has been migrated
+  let hasEmployeeNameCol = false;
+  try {
+    await env.DB.prepare('SELECT employee_name FROM contracts LIMIT 1').first();
+    hasEmployeeNameCol = true;
+  } catch { hasEmployeeNameCol = false; }
 
   const stmts = [];
   let skipped = 0;
@@ -156,25 +163,38 @@ async function importContracts(rows, onDuplicate, env, origin) {
     const employee_name = safeStr(row.employee_name);
     if (!employee_name) { skipped++; continue; }
 
-    // Try to get employee_id — optional, not blocking
     const employee_id = matchEmployee(employee_name);
+    const start_date  = safeDate(row.start_date) || today();
+    const end_date    = safeDate(row.end_date)   || today();
 
-    stmts.push(env.DB.prepare(
-      `INSERT INTO contracts (employee_id, employee_name, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      employee_id,
-      employee_name,
-      matchBranch(row.branch_name),
-      safeStr(row.division) || 'FACILITY CARE',
-      safeDate(row.start_date), safeDate(row.end_date),
-      safeStr(row.contract_type), safeStr(row.pkwt_number),
-      safeStr(row.status) || 'Aktif', safeStr(row.notes)
-    ));
+    if (hasEmployeeNameCol) {
+      stmts.push(env.DB.prepare(
+        `INSERT INTO contracts (employee_id, employee_name, branch_id, start_date, end_date, contract_type, pkwt_number, status, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        employee_id, employee_name, matchBranch(row.branch_name),
+        start_date, end_date,
+        safeStr(row.contract_type), safeStr(row.pkwt_number),
+        safeStr(row.status) || 'Aktif', safeStr(row.notes)
+      ));
+    } else {
+      // Old schema without employee_name column — need employee_id
+      if (!employee_id) { skipped++; continue; }
+      stmts.push(env.DB.prepare(
+        `INSERT INTO contracts (employee_id, branch_id, start_date, end_date, contract_type, pkwt_number, status, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        employee_id, matchBranch(row.branch_name),
+        start_date, end_date,
+        safeStr(row.contract_type), safeStr(row.pkwt_number),
+        safeStr(row.status) || 'Aktif', safeStr(row.notes)
+      ));
+    }
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
+
 
 // ─── Relievers ────────────────────────────────────────────────────────────────
 async function importRelievers(rows, onDuplicate, env, origin) {
