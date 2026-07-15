@@ -1,6 +1,7 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
 import { statusBadge, daysRemainingBadge, divisionBadge } from '../components/badges.js';
+import { downloadExcel } from '../utils/excel.js';
 
 let branchOptions = [];
 let employeeOptions = [];
@@ -72,5 +73,70 @@ export async function renderContracts(container) {
       },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],
+    exportOptions: {
+      moduleName: 'contracts',
+      onExport: async () => {
+        const res = await apiFetch('/api/contracts?limit=10000');
+        if (res.ok) {
+          const data = res.data.data.map(d => ({
+            'Nama Karyawan': d.employee_name,
+            'Cabang': d.branch_name || '',
+            'Divisi': d.division || '',
+            'Tgl Mulai': d.start_date || '',
+            'Tgl Selesai': d.end_date || '',
+            'Tipe Kontrak': d.contract_type || '',
+            'PKWT': d.pkwt_number || '',
+            'Status': d.status || '',
+            'Catatan': d.notes || ''
+          }));
+          downloadExcel(data, 'Data_Kontrak');
+        } else throw new Error('Gagal mengambil data');
+      },
+      onTemplate: () => {
+        const template = [
+          { 'Nama Karyawan': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Divisi': 'FACILITY CARE', 'Tgl Mulai': '2024-01-01', 'Tgl Selesai': '2024-12-31', 'Tipe Kontrak': 'KONTRAK 1 TAHUN', 'PKWT': 'PKWT 1', 'Status': 'Aktif', 'Catatan': '' }
+        ];
+        downloadExcel(template, 'Template_Import_Kontrak');
+      },
+      onImport: async (json) => {
+        const [bRes, eRes] = await Promise.all([
+          apiFetch('/api/branches?all=1'),
+          apiFetch('/api/employees?limit=10000')
+        ]);
+        const rawBranches = bRes.data?.data || [];
+        const rawEmployees = eRes.data?.data || [];
+        
+        const matchBranch = (str) => {
+          if (!str) return null;
+          const s = str.toLowerCase();
+          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
+          return b ? b.id : null;
+        };
+        const matchEmployee = (str) => {
+          if (!str) return null;
+          const s = str.toLowerCase();
+          const e = rawEmployees.find(r => r.full_name.toLowerCase() === s);
+          return e ? e.id : null;
+        };
+
+        const payload = json.map(row => ({
+          employee_id: matchEmployee(String(row['Nama Karyawan'] || '').trim()),
+          branch_id: matchBranch(String(row['Cabang'] || '').trim()),
+          division: String(row['Divisi'] || '').trim() || 'FACILITY CARE',
+          start_date: String(row['Tgl Mulai'] || '').trim(),
+          end_date: String(row['Tgl Selesai'] || '').trim(),
+          contract_type: String(row['Tipe Kontrak'] || '').trim(),
+          pkwt_number: String(row['PKWT'] || '').trim(),
+          status: String(row['Status'] || '').trim() || 'Aktif',
+          notes: String(row['Catatan'] || '').trim(),
+        })).filter(row => row.employee_id && row.start_date && row.end_date); // require these fields
+        
+        const res = await apiFetch('/api/contracts/import', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+      }
+    }
   });
 }

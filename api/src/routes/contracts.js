@@ -12,6 +12,10 @@ export async function handleContracts(request, env, origin) {
   const idMatch = path.match(/^\/(\d+)$/);
 
   if (request.method === 'GET' && path === '') return listContracts(request, env, origin);
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'contracts', 'write')) return forbidden(origin);
+    return importContracts(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'contracts', 'write')) return forbidden(origin);
     return createContract(request, env, origin);
@@ -126,4 +130,39 @@ async function deleteContract(id, env, origin) {
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM contracts WHERE id = ?').bind(id).run();
   return ok({ message: 'Contract deleted' }, 200, origin);
+}
+
+async function importContracts(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const stmts = [];
+  for (const item of body) {
+    if (!item.employee_id || !item.start_date || !item.end_date) continue;
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        item.employee_id,
+        item.branch_id || null,
+        item.division || 'FACILITY CARE',
+        item.start_date,
+        item.end_date,
+        item.contract_type || null,
+        item.pkwt_number || null,
+        item.status || 'Aktif',
+        item.notes || null
+      )
+    );
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ message: `Berhasil mengimport ${stmts.length} kontrak` }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
 }
