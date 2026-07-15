@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
 
 jobs:
   # ============================================================
@@ -76,10 +76,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: api
           command: deploy
-          secrets: |
-            JWT_SECRET
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
   # ============================================================
   # Migrasi Database D1
