@@ -1,0 +1,21 @@
+name = "fm-operations-api"
+main = "api/src/index.js"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fm-operations-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "YOUR_KV_NAMESPACE_ID"
+
+[vars]
+JWT_SECRET = "change-this-to-a-secure-random-string-in-production"
+CORS_ORIGIN = "https://fm-operations.pages.dev"
+
+[dev]
+port = 8787
+local_protocol = "http"
