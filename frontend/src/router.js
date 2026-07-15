@@ -30,8 +30,10 @@ export function initRouter() {
     if (currentCleanup) { currentCleanup(); currentCleanup = null; }
 
     const main = document.getElementById('main-content');
-    if (!main) return;
-    main.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    
+    if (main) {
+      main.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    }
 
     if (handler) {
       const params = new URLSearchParams(rest.join('?'));
@@ -39,7 +41,8 @@ export function initRouter() {
       const cleanup = await handler({ path: base, params, segments, main });
       if (cleanup) currentCleanup = cleanup;
     } else {
-      main.innerHTML = '<div class="empty-state"><h2>404 - Halaman tidak ditemukan</h2></div>';
+      const target = main || document.getElementById('app');
+      if (target) target.innerHTML = '<div class="empty-state"><h2>404 - Halaman tidak ditemukan</h2></div>';
     }
   }
 
