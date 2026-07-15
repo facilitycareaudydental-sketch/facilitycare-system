@@ -1,6 +1,7 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
 import { statusBadge, activityTypeBadge, periodBadge } from '../components/badges.js';
+import { downloadExcel } from '../utils/excel.js';
 
 let branchOptions = [];
 let picOptions = [];
@@ -67,5 +68,60 @@ export async function renderSchedule(container) {
       },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],
+    exportOptions: {
+      moduleName: 'schedule',
+      onExport: async () => {
+        const res = await apiFetch('/api/schedule?limit=10000');
+        if (res.ok) {
+          const data = res.data.data.map(d => ({
+            'Cabang': d.branch_name || '',
+            'Kegiatan': d.activity_type || '',
+            'Periode': d.period || '',
+            'PIC': d.pic || '',
+            'Tgl Opening': d.opening_date || '',
+            'Tgl Target': d.target_date || '',
+            'Tgl Selesai': d.completion_date || '',
+            'Status': d.status || '',
+            'Catatan': d.notes || ''
+          }));
+          downloadExcel(data, 'Data_Jadwal_Kegiatan');
+        } else throw new Error('Gagal mengambil data');
+      },
+      onTemplate: () => {
+        const template = [
+          { 'Cabang': '001. Pondok Bambu', 'Kegiatan': 'General Cleaning', 'Periode': 'Q1', 'PIC': 'Fajar', 'Tgl Opening': '2024-02-01', 'Tgl Target': '2024-02-15', 'Tgl Selesai': '2024-02-14', 'Status': 'Done', 'Catatan': '' }
+        ];
+        downloadExcel(template, 'Template_Import_Jadwal');
+      },
+      onImport: async (json) => {
+        const bRes = await apiFetch('/api/branches?all=1');
+        const rawBranches = bRes.data?.data || [];
+        
+        const matchBranch = (str) => {
+          if (!str) return null;
+          const s = str.toLowerCase();
+          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
+          return b ? b.id : null;
+        };
+
+        const payload = json.map(row => ({
+          branch_id: matchBranch(String(row['Cabang'] || '').trim()),
+          activity_type: String(row['Kegiatan'] || '').trim(),
+          period: String(row['Periode'] || '').trim(),
+          pic: String(row['PIC'] || '').trim(),
+          opening_date: String(row['Tgl Opening'] || '').trim(),
+          target_date: String(row['Tgl Target'] || '').trim(),
+          completion_date: String(row['Tgl Selesai'] || '').trim(),
+          status: String(row['Status'] || '').trim() || 'Pending',
+          notes: String(row['Catatan'] || '').trim(),
+        })).filter(row => row.activity_type && row.period);
+        
+        const res = await apiFetch('/api/schedule/import', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+      }
+    }
   });
 }

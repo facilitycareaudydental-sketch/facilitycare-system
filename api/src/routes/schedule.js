@@ -12,6 +12,10 @@ export async function handleSchedule(request, env, origin) {
   const idMatch = path.match(/^\/(\d+)$/);
 
   if (request.method === 'GET' && path === '') return listSchedule(request, env, origin);
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'schedule', 'write')) return forbidden(origin);
+    return importSchedule(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'schedule', 'write')) return forbidden(origin);
     return createSchedule(request, env, origin);
@@ -111,4 +115,39 @@ async function deleteSchedule(id, env, origin) {
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM activity_schedule WHERE id = ?').bind(id).run();
   return ok({ message: 'Schedule deleted' }, 200, origin);
+}
+
+async function importSchedule(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const stmts = [];
+  for (const item of body) {
+    if (!item.activity_type || !item.period) continue;
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO activity_schedule (branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        item.branch_id || null,
+        item.activity_type,
+        item.period,
+        item.pic || null,
+        item.opening_date || null,
+        item.target_date || null,
+        item.completion_date || null,
+        item.status || 'Pending',
+        item.notes || null
+      )
+    );
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ message: `Berhasil mengimport ${stmts.length} jadwal kegiatan` }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
 }
