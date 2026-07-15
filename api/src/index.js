@@ -19,6 +19,7 @@ import { handleRelievers } from './routes/relievers.js';
 import { handleReports } from './routes/reports.js';
 import { handleMisc } from './routes/misc.js';
 import { handleDashboard } from './routes/dashboard.js';
+import { handleImport } from './routes/import.js';
 import { options, error } from './utils/response.js';
 
 export default {
@@ -54,6 +55,7 @@ export default {
       if (path.startsWith('/api/relievers')) return handleRelievers(request, env, origin);
       if (path.startsWith('/api/reports')) return handleReports(request, env, origin);
       if (path.startsWith('/api/dashboard')) return handleDashboard(request, env, origin);
+      if (path.startsWith('/api/import')) return handleImport(request, env, origin);
       if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') ||
           path.startsWith('/api/forms') || path.startsWith('/api/pic')) {
         return handleMisc(request, env, origin);

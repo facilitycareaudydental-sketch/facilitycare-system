@@ -23,6 +23,7 @@ import { renderUsers } from './pages/users.js';
 import { renderBranches } from './pages/branches.js';
 import { renderCalendar } from './pages/calendar.js';
 import { renderProfile } from './pages/profile.js';
+import { renderImportPage } from './pages/import.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
@@ -126,6 +127,12 @@ function renderLayout() {
             <a href="#/branches" class="nav-item" data-route="/branches">
               <span class="nav-icon">🏢</span><span class="nav-label">Cabang</span>
             </a>
+          </div>
+          <div class="nav-section">
+            <span class="nav-section-label">Settings</span>
+            <a href="#/settings/import" class="nav-item" data-route="/settings/import">
+              <span class="nav-icon">📥</span><span class="nav-label">Import Data Awal</span>
+            </a>
           </div>` : ''}
         </nav>
 
@@ -224,6 +231,7 @@ async function init() {
   registerRoute('/users', requireAuth(({ main }) => renderUsers(main)));
   registerRoute('/branches', requireAuth(({ main }) => renderBranches(main)));
   registerRoute('/profile', requireAuth(({ main }) => renderProfile(main)));
+  registerRoute('/settings/import', requireAuth(({ main }) => renderImportPage(main)));
 
   // Redirect to public form page (no login needed)
   registerRoute('/form/chemical', () => { window.location.href = '/form.html'; });
