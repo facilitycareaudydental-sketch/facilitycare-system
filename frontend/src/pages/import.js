@@ -184,7 +184,10 @@ export function renderImportPage(container) {
   const fileInput  = document.getElementById('file-input');
   const uploadZone = document.getElementById('upload-zone');
 
-  document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+  document.getElementById('btn-browse').addEventListener('click', (e) => {
+    e.stopPropagation(); // prevent bubbling to upload-zone
+    fileInput.click();
+  });
 
   fileInput.addEventListener('change', (e) => {
     if (e.target.files[0]) handleFileSelected(e.target.files[0]);

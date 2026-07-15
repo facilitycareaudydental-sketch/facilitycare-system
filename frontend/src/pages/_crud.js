@@ -93,11 +93,10 @@ export function buildCrudPage({
   document.getElementById('btn-bulk-delete')?.addEventListener('click', () => {
     if (selectedIds.size === 0) return;
     const ids = [...selectedIds];
-    const { confirmDialog } = require ? null : null; // handled inline below
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
     overlay.innerHTML = `
-      <div style="background:var(--bg-card);border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <div style="background:var(--bg-primary);border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
         <h3 style="margin:0 0 8px;color:var(--text-primary)">⚠️ Hapus ${ids.length} ${itemLabel}?</h3>
         <p style="margin:0 0 20px;color:var(--text-secondary)">Data yang dihapus tidak dapat dikembalikan.</p>
         <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -115,14 +114,12 @@ export function buildCrudPage({
       const res = await apiFetch(`${apiPath}/bulk`, { method: 'DELETE', body: JSON.stringify({ ids }) });
       overlay.remove();
       if (res.ok) {
-        const { toastSuccess: ts } = await import('../components/toast.js');
-        ts(`${ids.length} ${itemLabel} berhasil dihapus.`);
+        toastSuccess(`${ids.length} ${itemLabel} berhasil dihapus.`);
         selectedIds.clear();
         updateBulkToolbar();
         load();
       } else {
-        const { toastError: te } = await import('../components/toast.js');
-        te(res.data?.error || 'Gagal menghapus data.');
+        toastError(res.data?.error || 'Gagal menghapus data.');
       }
     });
   });
