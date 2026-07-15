@@ -274,7 +274,7 @@ export function renderImportPage(container) {
 
     // Summary badges
     document.getElementById('preview-summary-badges').innerHTML = `
-      <span class="badge badge-info">${totalSheets} sheet</span>
+      <span class="badge badge-info">${totalSheets} sheet dikenali</span>
       <span class="badge badge-secondary">${totalRows} baris</span>
       <span class="badge badge-success">${totalValid} valid</span>
       ${hasErrors ? `<span class="badge badge-danger">${totalErrors} error</span>` : ''}
