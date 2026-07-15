@@ -105,8 +105,8 @@ CREATE INDEX IF NOT EXISTS idx_fogging_created
 CREATE INDEX IF NOT EXISTS idx_supply_status
   ON supply_requests(status);
 
-CREATE INDEX IF NOT EXISTS idx_supply_created
-  ON supply_requests(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_supply_submitted
+  ON supply_requests(submitted_at DESC);
 
 -- ── relievers ────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_relievers_backup_date

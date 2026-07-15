@@ -365,9 +365,9 @@ async function getActivityLog(env, origin) {
          FROM training ORDER BY created_at DESC LIMIT 4`
       ).all(),
       env.DB.prepare(
-        `SELECT 'supply' type, COALESCE(submitter_name,'Pemohon') label, created_at,
-         NULL branch_id, status info
-         FROM supply_requests ORDER BY created_at DESC LIMIT 4`
+        `SELECT 'supply' type, COALESCE(submitter_name,'Pemohon') label,
+         submitted_at created_at, NULL branch_id, status info
+         FROM supply_requests ORDER BY submitted_at DESC LIMIT 4`
       ).all(),
       env.DB.prepare(
         `SELECT 'reliever' type, COALESCE(reliever_name,'Reliefer') label, created_at,
