@@ -1,0 +1,205 @@
+// Generic CRUD page builder - used by all modules
+import { apiFetch } from '../config.js';
+import { createTable, createPagination } from '../components/table.js';
+import { createModal, confirmDialog } from '../components/modal.js';
+import { buildFormHTML, getFormData, populateForm } from '../components/form.js';
+import { toastSuccess, toastError } from '../components/toast.js';
+
+export function buildCrudPage({
+  container,
+  title,
+  icon,
+  apiPath,
+  columns,
+  formFields,
+  filterFields,
+  defaultFilters = {},
+  itemLabel = 'Data',
+  canCreate = true,
+  canEdit = true,
+  canDelete = true,
+  onBeforeSubmit,
+  onAfterLoad,
+  extraActions = [],
+  initialSearch = '',
+}) {
+  let page = 1;
+  let filters = { ...defaultFilters };
+  if (initialSearch) filters.search = initialSearch;
+
+  container.innerHTML = `
+    <div class="page-header">
+      <h1 class="page-title">${icon} ${title}</h1>
+      <div class="page-actions">
+        ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${itemLabel}</button>` : ''}
+      </div>
+    </div>
+
+    ${filterFields && filterFields.length > 0 ? `
+    <div class="filter-bar card">
+      <div class="filter-bar-inner">
+        ${filterFields.map(f => {
+          if (f.type === 'search') return `<div class="filter-search"><input type="search" class="form-control" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"></div>`;
+          if (f.type === 'select') return `<select class="form-control filter-select" name="${f.name}" id="filter-${f.name}"><option value="">-- ${f.label} --</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
+          return '';
+        }).join('')}
+        <button class="btn btn-ghost btn-sm" id="btn-reset-filter">Reset</button>
+      </div>
+    </div>` : ''}
+
+    <div class="card">
+      <div class="card-body p-0" id="table-container">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+      <div class="card-footer" id="pagination-container"></div>
+    </div>
+  `;
+
+  // Filter events
+  const searchInput = document.getElementById('filter-search');
+  let searchTimer;
+  searchInput?.addEventListener('input', (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      filters.search = e.target.value;
+      page = 1;
+      load();
+    }, 400);
+  });
+
+  filterFields?.forEach(f => {
+    if (f.type === 'select') {
+      document.getElementById(`filter-${f.name}`)?.addEventListener('change', (e) => {
+        filters[f.name] = e.target.value;
+        page = 1;
+        load();
+      });
+    }
+  });
+
+  document.getElementById('btn-reset-filter')?.addEventListener('click', () => {
+    filters = { ...defaultFilters };
+    if (searchInput) searchInput.value = '';
+    filterFields?.forEach(f => {
+      const el = document.getElementById(`filter-${f.name}`);
+      if (el) el.value = '';
+    });
+    page = 1;
+    load();
+  });
+
+  // Create button
+  document.getElementById('btn-create')?.addEventListener('click', () => openForm(null));
+
+  async function load() {
+    const tableContainer = document.getElementById('table-container');
+    if (!tableContainer) return;
+    tableContainer.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+    const params = new URLSearchParams({ page, limit: 20, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
+    const res = await apiFetch(`${apiPath}?${params}`);
+
+    if (!res.ok) {
+      tableContainer.innerHTML = `<div class="empty-state"><p class="text-danger">Gagal memuat data: ${res.data?.error || 'Error'}</p></div>`;
+      return;
+    }
+
+    const items = res.data?.data || [];
+    const pagination = res.data?.pagination;
+
+    if (onAfterLoad) onAfterLoad(items);
+
+    const table = createTable({
+      columns,
+      data: items,
+      onEdit: canEdit ? (row) => openForm(row) : null,
+      onDelete: canDelete ? (row) => handleDelete(row) : null,
+      actions: extraActions.map(a => ({ ...a, handler: (row) => a.handler(row, load) })),
+      emptyText: `Tidak ada ${itemLabel.toLowerCase()}`,
+    });
+
+    tableContainer.innerHTML = '';
+    tableContainer.appendChild(table);
+
+    // Pagination
+    const pagEl = document.getElementById('pagination-container');
+    if (pagEl) {
+      pagEl.innerHTML = '';
+      if (pagination && pagination.pages > 1) {
+        const pag = createPagination({
+          page: pagination.page,
+          pages: pagination.pages,
+          total: pagination.total,
+          limit: pagination.limit,
+          onPage: (p) => { page = p; load(); },
+        });
+        if (pag) pagEl.appendChild(pag);
+      }
+    }
+  }
+
+  function buildForm(data) {
+    const fields = typeof formFields === 'function' ? formFields(data) : formFields;
+    return buildFormHTML(fields);
+  }
+
+  function openForm(data) {
+    const isEdit = !!data;
+    const formEl = document.createElement('form');
+    formEl.noValidate = true;
+    formEl.innerHTML = buildForm(data);
+
+    if (isEdit) {
+      const fields = typeof formFields === 'function' ? formFields(data) : formFields;
+      populateForm(formEl, data);
+    }
+
+    const { close } = createModal({
+      title: isEdit ? `Edit ${itemLabel}` : `Tambah ${itemLabel}`,
+      content: formEl,
+      size: 'lg',
+      confirmText: isEdit ? 'Simpan Perubahan' : `Tambah ${itemLabel}`,
+      onConfirm: async (overlay, closeModal) => {
+        const confirmBtn = overlay.querySelector('.modal-confirm');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Menyimpan...';
+
+        let body = getFormData(formEl);
+        if (onBeforeSubmit) body = await onBeforeSubmit(body, data);
+
+        const method = isEdit ? 'PUT' : 'POST';
+        const url = isEdit ? `${apiPath}/${data.id}` : apiPath;
+        const res = await apiFetch(url, { method, body: JSON.stringify(body) });
+
+        if (res.ok) {
+          toastSuccess(isEdit ? `${itemLabel} berhasil diperbarui.` : `${itemLabel} berhasil ditambahkan.`);
+          closeModal();
+          load();
+        } else {
+          toastError(res.data?.error || 'Gagal menyimpan data.');
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = isEdit ? 'Simpan Perubahan' : `Tambah ${itemLabel}`;
+        }
+      },
+    });
+  }
+
+  function handleDelete(row) {
+    confirmDialog(
+      `Hapus ${itemLabel} ini? Tindakan tidak dapat dibatalkan.`,
+      async () => {
+        const res = await apiFetch(`${apiPath}/${row.id}`, { method: 'DELETE' });
+        if (res.ok) {
+          toastSuccess(`${itemLabel} berhasil dihapus.`);
+          load();
+        } else {
+          toastError(res.data?.error || 'Gagal menghapus.');
+        }
+      },
+      `Hapus ${itemLabel}`
+    );
+  }
+
+  load();
+  return load; // expose reload function
+}

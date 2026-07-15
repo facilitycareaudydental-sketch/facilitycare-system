@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.npm
+
+# Build output
+frontend/dist/
+*.min.js
+
+# Wrangler
+.wrangler/
+.dev.vars
+wrangler.toml.bak
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# D1 local database
+*.sqlite
+*.db

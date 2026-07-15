@@ -1,0 +1,20 @@
+{
+  "name": "fm-operations",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "api",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=api",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "deploy:api": "npm run deploy --workspace=api",
+    "deploy:frontend": "npm run deploy --workspace=frontend",
+    "db:migrate": "wrangler d1 execute fm-operations-db --file=schema/migrations.sql",
+    "db:migrate:remote": "wrangler d1 execute fm-operations-db --remote --file=schema/migrations.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.78.0"
+  }
+}

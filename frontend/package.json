@@ -1,0 +1,14 @@
+{
+  "name": "fm-operations-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve dist -p 3000",
+    "build": "node build.js",
+    "deploy": "wrangler pages deploy dist --project-name=fm-operations"
+  },
+  "devDependencies": {
+    "wrangler": "^3.78.0",
+    "serve": "^14.2.3"
+  }
+}

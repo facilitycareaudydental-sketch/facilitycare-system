@@ -1,0 +1,6 @@
+name = "fm-operations-frontend"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-10-22"
+
+[vars]
+API_BASE_URL = "https://fm-operations-api.YOUR_SUBDOMAIN.workers.dev"

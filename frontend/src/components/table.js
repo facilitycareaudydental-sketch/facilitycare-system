@@ -1,0 +1,132 @@
+// Reusable data table with pagination
+export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data' }) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'table-wrapper';
+
+  if (!data || data.length === 0) {
+    wrapper.innerHTML = `<div class="empty-state"><p>${emptyText}</p></div>`;
+    return wrapper;
+  }
+
+  const table = document.createElement('table');
+  table.className = 'data-table';
+
+  // Header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  columns.forEach(col => {
+    const th = document.createElement('th');
+    th.textContent = col.label;
+    if (col.width) th.style.width = col.width;
+    headerRow.appendChild(th);
+  });
+  if (onEdit || onDelete || onView || actions.length > 0) {
+    const th = document.createElement('th');
+    th.textContent = 'Aksi';
+    th.style.width = '120px';
+    headerRow.appendChild(th);
+  }
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // Body
+  const tbody = document.createElement('tbody');
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+    columns.forEach(col => {
+      const td = document.createElement('td');
+      if (col.render) {
+        const rendered = col.render(row[col.key], row);
+        if (rendered instanceof HTMLElement) td.appendChild(rendered);
+        else td.innerHTML = rendered || '';
+      } else {
+        td.textContent = row[col.key] !== null && row[col.key] !== undefined ? row[col.key] : '-';
+      }
+      if (col.nowrap) td.style.whiteSpace = 'nowrap';
+      tr.appendChild(td);
+    });
+
+    // Actions column
+    if (onEdit || onDelete || onView || actions.length > 0) {
+      const td = document.createElement('td');
+      td.className = 'actions-cell';
+      const btnGroup = document.createElement('div');
+      btnGroup.className = 'btn-group';
+
+      if (onView) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-xs btn-ghost';
+        btn.innerHTML = '👁';
+        btn.title = 'Lihat';
+        btn.addEventListener('click', () => onView(row));
+        btnGroup.appendChild(btn);
+      }
+      if (onEdit) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-xs btn-secondary';
+        btn.innerHTML = '✏️';
+        btn.title = 'Edit';
+        btn.addEventListener('click', () => onEdit(row));
+        btnGroup.appendChild(btn);
+      }
+      actions.forEach(action => {
+        const btn = document.createElement('button');
+        btn.className = `btn btn-xs ${action.class || 'btn-ghost'}`;
+        btn.innerHTML = action.icon || action.label;
+        btn.title = action.label;
+        btn.addEventListener('click', () => action.handler(row));
+        btnGroup.appendChild(btn);
+      });
+      if (onDelete) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-xs btn-danger';
+        btn.innerHTML = '🗑️';
+        btn.title = 'Hapus';
+        btn.addEventListener('click', () => onDelete(row));
+        btnGroup.appendChild(btn);
+      }
+      td.appendChild(btnGroup);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+  return wrapper;
+}
+
+export function createPagination({ page, pages, total, limit, onPage }) {
+  if (pages <= 1) return null;
+  const nav = document.createElement('div');
+  nav.className = 'pagination';
+
+  const info = document.createElement('span');
+  info.className = 'pagination-info';
+  info.textContent = `Total: ${total} data`;
+  nav.appendChild(info);
+
+  const btns = document.createElement('div');
+  btns.className = 'pagination-btns';
+
+  const addBtn = (label, targetPage, disabled = false, active = false) => {
+    const btn = document.createElement('button');
+    btn.className = `btn btn-sm ${active ? 'btn-primary' : 'btn-ghost'} pagination-btn`;
+    btn.textContent = label;
+    btn.disabled = disabled;
+    btn.addEventListener('click', () => onPage(targetPage));
+    btns.appendChild(btn);
+  };
+
+  addBtn('«', 1, page === 1);
+  addBtn('‹', page - 1, page === 1);
+
+  const start = Math.max(1, page - 2);
+  const end = Math.min(pages, page + 2);
+  for (let i = start; i <= end; i++) addBtn(i, i, false, i === page);
+
+  addBtn('›', page + 1, page === pages);
+  addBtn('»', pages, page === pages);
+
+  nav.appendChild(btns);
+  return nav;
+}

@@ -1,0 +1,197 @@
+name: Deploy FM Operations
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================
+  # Lint & validate on every push/PR
+  # ============================================================
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install root deps
+        run: npm install
+
+      - name: Install API deps
+        run: npm install
+        working-directory: api
+
+      - name: Install Frontend deps
+        run: npm install
+        working-directory: frontend
+
+      - name: Check API files exist
+        run: |
+          test -f api/src/index.js
+          test -f api/wrangler.toml
+          echo "✅ API files OK"
+
+      - name: Check Frontend files exist
+        run: |
+          test -f frontend/public/index.html
+          test -f frontend/public/assets/style.css
+          test -f frontend/src/app.js
+          echo "✅ Frontend files OK"
+
+      - name: Check Schema file exists
+        run: |
+          test -f schema/migrations.sql
+          echo "✅ Schema file OK"
+
+  # ============================================================
+  # Deploy Worker API (only on push to main)
+  # ============================================================
+  deploy-api:
+    name: Deploy API (Cloudflare Workers)
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm install
+        working-directory: api
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: api
+          command: deploy
+
+  # ============================================================
+  # Run DB Migration (only on push to main, after API deploy)
+  # ============================================================
+  migrate-db:
+    name: Run DB Migration
+    runs-on: ubuntu-latest
+    needs: deploy-api
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@3
+
+      - name: Run DB Migrations (remote)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler d1 execute fm-operations-db \
+            --remote \
+            --file=schema/migrations.sql \
+            --yes
+        continue-on-error: true
+        # continue-on-error because re-running CREATE IF NOT EXISTS is safe
+
+  # ============================================================
+  # Build & Deploy Frontend (Cloudflare Pages)
+  # ============================================================
+  deploy-frontend:
+    name: Deploy Frontend (Cloudflare Pages)
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm install
+        working-directory: frontend
+
+      - name: Install esbuild
+        run: npm install -g esbuild
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: node build.js
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: frontend
+          command: pages deploy dist --project-name=fm-operations --commit-dirty=true
+
+  # ============================================================
+  # Preview deployment for PRs
+  # ============================================================
+  preview-frontend:
+    name: Preview Frontend (PR)
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install deps
+        run: npm install
+        working-directory: frontend
+
+      - name: Install esbuild
+        run: npm install -g esbuild
+
+      - name: Build frontend (preview)
+        working-directory: frontend
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: node build.js
+
+      - name: Deploy preview to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: frontend
+          command: pages deploy dist --project-name=fm-operations --branch=pr-${{ github.event.pull_request.number }}
