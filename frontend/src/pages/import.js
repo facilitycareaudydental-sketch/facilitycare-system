@@ -270,32 +270,33 @@ export function renderImportPage(container) {
     const totalRows   = validationResults.reduce((s, r) => s + r.total, 0);
     const totalValid  = validationResults.reduce((s, r) => s + r.valid, 0);
     const totalErrors = validationResults.reduce((s, r) => s + r.errorCount, 0);
-    const hasErrors   = totalErrors > 0;
+    const pct         = totalRows > 0 ? Math.round(totalValid / totalRows * 100) : 0;
 
     // Summary badges
     document.getElementById('preview-summary-badges').innerHTML = `
-      <span class="badge badge-info">${totalSheets} sheet dikenali</span>
+      <span class="badge badge-info">${totalSheets} sheet</span>
       <span class="badge badge-secondary">${totalRows} baris</span>
-      <span class="badge badge-success">${totalValid} valid</span>
-      ${hasErrors ? `<span class="badge badge-danger">${totalErrors} error</span>` : ''}
+      <span class="badge badge-success">${totalValid} valid (${pct}%)</span>
+      ${totalErrors > 0 ? `<span class="badge badge-danger">${totalErrors} error</span>` : ''}
     `;
 
-    // Main preview table
+    // Main preview table — dengan tombol Detail Error per baris
     const tableContainer = document.getElementById('preview-table-container');
     tableContainer.innerHTML = `
       <table class="data-table">
         <thead>
           <tr>
-            <th>Sheet</th>
-            <th>Modul Tujuan</th>
+            <th>Sheet (Excel)</th>
+            <th>Modul</th>
             <th style="text-align:center">Total</th>
             <th style="text-align:center">Valid</th>
             <th style="text-align:center">Error</th>
             <th style="text-align:center">Status</th>
+            <th style="text-align:center">Detail</th>
           </tr>
         </thead>
         <tbody>
-          ${validationResults.map(r => `
+          ${validationResults.map((r, idx) => `
             <tr class="${r.errorCount > 0 ? 'row-error' : r.skipped ? 'row-skipped' : 'row-ok'}">
               <td><strong>${r.sheetName}</strong></td>
               <td>${r.label}</td>
@@ -303,10 +304,20 @@ export function renderImportPage(container) {
               <td style="text-align:center"><span class="badge badge-success">${r.valid}</span></td>
               <td style="text-align:center">${r.errorCount > 0 ? `<span class="badge badge-danger">${r.errorCount}</span>` : '<span class="text-muted">–</span>'}</td>
               <td style="text-align:center">
-                ${r.skipped ? '<span class="badge badge-neutral">Dilewati</span>'
-                  : r.errorCount > 0 ? '<span class="badge badge-danger">❌ Ada Error</span>'
-                  : r.valid === 0 ? '<span class="badge badge-neutral">Kosong</span>'
-                  : '<span class="badge badge-success">✅ Siap</span>'}
+                ${r.skipped
+                  ? '<span class="badge badge-neutral">Dilewati</span>'
+                  : r.errorCount > 0 && r.valid === 0
+                    ? '<span class="badge badge-danger">❌ 0 Valid</span>'
+                    : r.errorCount > 0
+                      ? '<span class="badge badge-warning">⚠️ Sebagian</span>'
+                      : r.valid === 0
+                        ? '<span class="badge badge-neutral">Kosong</span>'
+                        : '<span class="badge badge-success">✅ Siap</span>'}
+              </td>
+              <td style="text-align:center">
+                ${r.errorCount > 0
+                  ? `<button class="btn btn-ghost btn-sm btn-detail-error" data-idx="${idx}">🔍 ${r.errorCount} Error</button>`
+                  : '<span class="text-muted">–</span>'}
               </td>
             </tr>
           `).join('')}
@@ -314,49 +325,92 @@ export function renderImportPage(container) {
       </table>
     `;
 
-    // Error detail
-    const errorSection = document.getElementById('error-detail-section');
+    // Bind detail error buttons
+    tableContainer.querySelectorAll('.btn-detail-error').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = validationResults[Number(btn.dataset.idx)];
+        showErrorDetail(r);
+      });
+    });
+
+    // Error detail section (collapsible per sheet)
+    const errorSection   = document.getElementById('error-detail-section');
     const errorContainer = document.getElementById('error-detail-container');
-    const sheetsWithErrors = validationResults.filter(r => r.errorCount > 0);
+    errorContainer.innerHTML = '';
+    errorSection.style.display = 'none';
 
-    if (sheetsWithErrors.length > 0) {
-      errorSection.style.display = '';
-      errorContainer.innerHTML = sheetsWithErrors.map(r => `
-        <div class="error-sheet-block">
-          <div class="error-sheet-title">📄 ${r.sheetName} — ${r.errorCount} baris error</div>
-          <table class="data-table error-table">
-            <thead><tr><th>Baris</th><th>Penyebab Error</th><th>Data</th></tr></thead>
-            <tbody>
-              ${r.errors.slice(0, 20).map(e => `
-                <tr>
-                  <td><span class="badge badge-danger">Baris ${e.row}</span></td>
-                  <td>${e.errors.map(msg => `<div class="error-msg">• ${msg}</div>`).join('')}</td>
-                  <td><small>${Object.entries(e.data || {}).filter(([,v]) => v != null).slice(0,4).map(([k,v]) => `<b>${k}:</b> ${v}`).join(' | ')}</small></td>
-                </tr>
-              `).join('')}
-              ${r.errors.length > 20 ? `<tr><td colspan="3" class="text-muted" style="text-align:center">... dan ${r.errors.length - 20} error lainnya (lihat Log Error)</td></tr>` : ''}
-            </tbody>
-          </table>
-        </div>
-      `).join('');
-    } else {
-      errorSection.style.display = 'none';
-    }
-
-    // Enable/disable Import button
+    // Enable Import button (even with errors — import valid rows)
     const importBtn = document.getElementById('btn-start-import');
-    if (hasErrors) {
-      importBtn.disabled = true;
-      importBtn.title = 'Perbaiki semua error terlebih dahulu sebelum import';
-      importBtn.innerHTML = '⚠️ Ada Error — Perbaiki Dulu';
-    } else if (totalValid === 0) {
+    if (totalValid === 0) {
       importBtn.disabled = true;
       importBtn.innerHTML = '⚠️ Tidak Ada Data Valid';
     } else {
       importBtn.disabled = false;
-      importBtn.innerHTML = `🚀 Mulai Import ${totalValid} Data`;
+      if (totalErrors > 0) {
+        importBtn.innerHTML = `🚀 Import ${totalValid} Data Valid (${totalErrors} dilewati)`;
+        importBtn.title = 'Baris error akan dilewati, baris valid tetap diimport';
+      } else {
+        importBtn.innerHTML = `🚀 Mulai Import ${totalValid} Data`;
+      }
     }
   }
+
+  // ── Detail Error Modal ─────────────────────────────────────────────────────
+  function showErrorDetail(r) {
+    const errorSection   = document.getElementById('error-detail-section');
+    const errorContainer = document.getElementById('error-detail-container');
+    errorSection.style.display = '';
+
+    // Build detailed error table
+    const detailRows = r.errors.slice(0, 100).map(e => {
+      const errList = Array.isArray(e.errors) ? e.errors : [];
+      return errList.map(err => {
+        const isObj = typeof err === 'object';
+        return `
+          <tr>
+            <td style="text-align:center"><span class="badge badge-danger">Baris ${e.row}</span></td>
+            <td><strong>${isObj ? err.column : '—'}</strong></td>
+            <td><code style="font-size:.78rem;color:var(--text-secondary)">${isObj && err.originalValue !== undefined ? (err.originalValue || '(kosong)') : '—'}</code></td>
+            <td class="error-msg">${isObj ? err.reason : err}</td>
+            <td style="font-size:.78rem;color:var(--success)">
+              ${isObj && err.aliases ? `Gunakan salah satu nama kolom:<br><em>${err.aliases}</em>` : isObj && err.hint ? err.hint : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }).join('');
+
+    errorContainer.innerHTML = `
+      <div class="error-sheet-block">
+        <div class="error-sheet-title">
+          📄 ${r.sheetName} — ${r.errorCount} baris error dari ${r.total} total
+          ${r.errors.length > 100 ? `<span style="font-weight:400">(menampilkan 100 pertama)</span>` : ''}
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table error-table" style="min-width:700px">
+            <thead>
+              <tr>
+                <th style="width:80px">Baris</th>
+                <th style="width:140px">Kolom Gagal</th>
+                <th style="width:140px">Nilai di Excel</th>
+                <th>Alasan Error</th>
+                <th style="width:220px">💡 Cara Memperbaiki</th>
+              </tr>
+            </thead>
+            <tbody>${detailRows || '<tr><td colspan="5" class="text-muted" style="text-align:center">Tidak ada detail error</td></tr>'}</tbody>
+          </table>
+        </div>
+        ${r.errors.length > 100 ? `
+          <div style="padding:10px 20px;font-size:.8rem;color:var(--text-muted)">
+            Hanya menampilkan 100 error pertama. Download Log Error untuk melihat semua.
+          </div>` : ''}
+      </div>
+    `;
+
+    // Scroll ke error section
+    errorSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
 
   // ── Back to upload ──────────────────────────────────────────────────────────
   document.getElementById('btn-back-to-upload').addEventListener('click', () => {
