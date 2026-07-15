@@ -1,5 +1,5 @@
 // Reusable data table with pagination
-export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data' }) {
+export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data', bulkSelect = null }) {
   const wrapper = document.createElement('div');
   wrapper.className = 'table-wrapper';
 
@@ -14,6 +14,28 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
   // Header
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
+
+  // Checkbox "select all" header cell
+  if (bulkSelect) {
+    const thCheck = document.createElement('th');
+    thCheck.style.width = '40px';
+    thCheck.style.textAlign = 'center';
+    const selectAll = document.createElement('input');
+    selectAll.type = 'checkbox';
+    selectAll.id = 'select-all-checkbox';
+    selectAll.title = 'Pilih semua';
+    selectAll.addEventListener('change', () => {
+      data.forEach(row => {
+        if (selectAll.checked) bulkSelect.selectedIds.add(row.id);
+        else bulkSelect.selectedIds.delete(row.id);
+      });
+      wrapper.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = selectAll.checked);
+      bulkSelect.onToggle();
+    });
+    thCheck.appendChild(selectAll);
+    headerRow.appendChild(thCheck);
+  }
+
   columns.forEach(col => {
     const th = document.createElement('th');
     th.textContent = col.label;
@@ -33,6 +55,30 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
   const tbody = document.createElement('tbody');
   data.forEach(row => {
     const tr = document.createElement('tr');
+
+    // Checkbox cell per row
+    if (bulkSelect) {
+      const tdCheck = document.createElement('td');
+      tdCheck.style.textAlign = 'center';
+      tdCheck.style.width = '40px';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'row-checkbox';
+      cb.checked = bulkSelect.selectedIds.has(row.id);
+      cb.addEventListener('change', () => {
+        if (cb.checked) bulkSelect.selectedIds.add(row.id);
+        else {
+          bulkSelect.selectedIds.delete(row.id);
+          // uncheck select-all if any deselected
+          const selectAll = document.getElementById('select-all-checkbox');
+          if (selectAll) selectAll.checked = false;
+        }
+        bulkSelect.onToggle();
+      });
+      tdCheck.appendChild(cb);
+      tr.appendChild(tdCheck);
+    }
+
     columns.forEach(col => {
       const td = document.createElement('td');
       if (col.render) {

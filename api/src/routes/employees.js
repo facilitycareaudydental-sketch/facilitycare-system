@@ -16,6 +16,10 @@ export async function handleEmployees(request, env, origin) {
     if (!hasPermission(user, 'employees', 'write')) return forbidden(origin);
     return importEmployees(request, env, origin);
   }
+  if (request.method === 'DELETE' && path === '/bulk') {
+    if (!hasPermission(user, 'employees', 'delete')) return forbidden(origin);
+    return bulkDeleteEmployees(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'employees', 'write')) return forbidden(origin);
     return createEmployee(request, env, origin);
@@ -155,5 +159,28 @@ async function importEmployees(request, env, origin) {
     return ok({ message: `Berhasil mengimport ${stmts.length} karyawan` }, 200, origin);
   } catch (err) {
     return error('Gagal import data: ' + err.message, 500, origin);
+  }
+}
+
+async function bulkDeleteEmployees(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  const { ids } = body;
+  if (!Array.isArray(ids) || ids.length === 0) return error('ids array required', 400, origin);
+
+  // Validate all are numbers
+  const validIds = ids.filter(id => Number.isInteger(Number(id))).map(Number);
+  if (validIds.length === 0) return error('No valid IDs provided', 400, origin);
+
+  // Build parameterized placeholders: ?,?,?
+  const placeholders = validIds.map(() => '?').join(',');
+
+  try {
+    const result = await env.DB.prepare(
+      `DELETE FROM employees WHERE id IN (${placeholders})`
+    ).bind(...validIds).run();
+    return ok({ message: `Berhasil menghapus ${result.meta.changes} karyawan`, deleted: result.meta.changes }, 200, origin);
+  } catch (err) {
+    return error('Gagal hapus data: ' + err.message, 500, origin);
   }
 }

@@ -24,10 +24,12 @@ export function buildCrudPage({
   extraActions = [],
   initialSearch = '',
   exportOptions = null, // { moduleName, onExport, onImport, onTemplate }
+  bulkDelete = false,   // true => enable checkbox bulk-delete using DELETE apiPath/bulk
 }) {
   let page = 1;
   let filters = { ...defaultFilters };
   if (initialSearch) filters.search = initialSearch;
+  let selectedIds = new Set();
 
   container.innerHTML = `
     <div class="page-header">
@@ -36,6 +38,13 @@ export function buildCrudPage({
         ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${itemLabel}</button>` : ''}
       </div>
     </div>
+
+    ${bulkDelete ? `
+    <div class="bulk-toolbar" id="bulk-toolbar" style="display:none">
+      <span id="bulk-count">0 dipilih</span>
+      <button class="btn btn-danger btn-sm" id="btn-bulk-delete">🗑️ Hapus Terpilih</button>
+      <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel">Batalkan</button>
+    </div>` : ''}
     
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
@@ -58,6 +67,65 @@ export function buildCrudPage({
       <div class="card-footer" id="pagination-container"></div>
     </div>
   `;
+
+  // Bulk toolbar logic
+  function updateBulkToolbar() {
+    const toolbar = document.getElementById('bulk-toolbar');
+    if (!toolbar) return;
+    const countEl = document.getElementById('bulk-count');
+    if (selectedIds.size > 0) {
+      toolbar.style.display = 'flex';
+      countEl.textContent = `${selectedIds.size} item dipilih`;
+    } else {
+      toolbar.style.display = 'none';
+    }
+  }
+
+  document.getElementById('btn-bulk-cancel')?.addEventListener('click', () => {
+    selectedIds.clear();
+    // uncheck all
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    const selectAll = document.getElementById('select-all-checkbox');
+    if (selectAll) selectAll.checked = false;
+    updateBulkToolbar();
+  });
+
+  document.getElementById('btn-bulk-delete')?.addEventListener('click', () => {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    const { confirmDialog } = require ? null : null; // handled inline below
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card);border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+        <h3 style="margin:0 0 8px;color:var(--text-primary)">⚠️ Hapus ${ids.length} ${itemLabel}?</h3>
+        <p style="margin:0 0 20px;color:var(--text-secondary)">Data yang dihapus tidak dapat dikembalikan.</p>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button id="bulk-cancel-btn" class="btn btn-ghost">Batal</button>
+          <button id="bulk-confirm-btn" class="btn btn-danger">Hapus ${ids.length} Data</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#bulk-cancel-btn').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#bulk-confirm-btn').addEventListener('click', async () => {
+      const confirmBtn = overlay.querySelector('#bulk-confirm-btn');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Menghapus...';
+      const res = await apiFetch(`${apiPath}/bulk`, { method: 'DELETE', body: JSON.stringify({ ids }) });
+      overlay.remove();
+      if (res.ok) {
+        const { toastSuccess: ts } = await import('../components/toast.js');
+        ts(`${ids.length} ${itemLabel} berhasil dihapus.`);
+        selectedIds.clear();
+        updateBulkToolbar();
+        load();
+      } else {
+        const { toastError: te } = await import('../components/toast.js');
+        te(res.data?.error || 'Gagal menghapus data.');
+      }
+    });
+  });
 
   // Filter events
   const searchInput = document.getElementById('filter-search');
@@ -166,6 +234,7 @@ export function buildCrudPage({
       onDelete: canDelete ? (row) => handleDelete(row) : null,
       actions: extraActions.map(a => ({ ...a, handler: (row) => a.handler(row, load) })),
       emptyText: `Tidak ada ${itemLabel.toLowerCase()}`,
+      bulkSelect: bulkDelete ? { selectedIds, onToggle: updateBulkToolbar } : null,
     });
 
     tableContainer.innerHTML = '';

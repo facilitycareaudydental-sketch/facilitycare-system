@@ -21,6 +21,7 @@ export async function renderEmployees(container) {
     icon: '👥',
     apiPath: '/api/employees',
     itemLabel: 'Karyawan',
+    bulkDelete: true,
     columns: [
       { key: 'full_name', label: 'Nama Lengkap' },
       { key: 'branch_name', label: 'Cabang' },

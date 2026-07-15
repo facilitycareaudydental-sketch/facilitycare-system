@@ -467,3 +467,46 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .main-content { padding: 0; }
   .card { box-shadow: none; border: 1px solid #ccc; }
 }
+
+/* ---------- Bulk Select & Toolbar ---------- */
+.bulk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+  border-radius: var(--radius);
+  border: 1px solid rgba(59,130,246,.4);
+  box-shadow: 0 4px 16px rgba(59,130,246,.25);
+  animation: slideDown .2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#bulk-count {
+  font-weight: 600;
+  color: #fff;
+  font-size: .9rem;
+  flex: 1;
+}
+
+/* Checkbox style in table */
+.row-checkbox,
+#select-all-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.data-table th:first-child:has(input[type="checkbox"]),
+.data-table td:first-child:has(input[type="checkbox"]) {
+  width: 44px;
+  text-align: center;
+  padding: 8px 4px;
+}
+
