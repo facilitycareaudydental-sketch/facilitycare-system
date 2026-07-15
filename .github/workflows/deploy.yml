@@ -27,21 +27,26 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install API deps
+      - name: Install root deps
         run: npm install
-        working-directory: api
 
-      - name: Install Frontend deps
-        run: npm install
-        working-directory: frontend
+      - name: Install esbuild (needed for build)
+        run: npm install -g esbuild
 
       - name: Check required files
         run: |
-          test -f api/src/index.js         && echo "✅ api/src/index.js"
-          test -f api/wrangler.toml        && echo "✅ api/wrangler.toml"
-          test -f frontend/src/app.js      && echo "✅ frontend/src/app.js"
+          test -f api/src/index.js          && echo "✅ api/src/index.js"
+          test -f api/wrangler.toml         && echo "✅ api/wrangler.toml"
+          test -f wrangler.toml             && echo "✅ wrangler.toml (root)"
+          test -f frontend/src/app.js       && echo "✅ frontend/src/app.js"
           test -f frontend/public/index.html && echo "✅ frontend/public/index.html"
-          test -f schema/migrations.sql    && echo "✅ schema/migrations.sql"
+          test -f schema/migrations.sql     && echo "✅ schema/migrations.sql"
+          test -f build-root.js             && echo "✅ build-root.js"
+
+      - name: Test frontend build
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://fm-operations-api.placeholder.workers.dev' }}
+        run: node build-root.js
 
   # ============================================================
   # Deploy API ke Cloudflare Workers
@@ -103,9 +108,8 @@ jobs:
         run: |
           wrangler d1 execute fm-operations-db \
             --remote \
-            --file=schema/migrations.sql \
+            --file=schema/migrations_clean.sql \
             --yes
-        # continue-on-error: true karena CREATE IF NOT EXISTS aman dijalankan ulang
         continue-on-error: true
 
   # ============================================================
@@ -125,25 +129,22 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Frontend deps
+      - name: Install root deps
         run: npm install
-        working-directory: frontend
 
       - name: Install esbuild
         run: npm install -g esbuild
 
       - name: Build frontend
-        working-directory: frontend
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: node build.js
+        run: node build-root.js
 
       - name: Deploy ke Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: frontend
           command: pages deploy dist --project-name=fm-operations --commit-dirty=true
 
   # ============================================================
@@ -163,23 +164,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Frontend deps
+      - name: Install root deps
         run: npm install
-        working-directory: frontend
 
       - name: Install esbuild
         run: npm install -g esbuild
 
       - name: Build frontend (preview)
-        working-directory: frontend
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: node build.js
+        run: node build-root.js
 
       - name: Deploy Preview ke Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: frontend
           command: pages deploy dist --project-name=fm-operations --branch=pr-${{ github.event.pull_request.number }}
