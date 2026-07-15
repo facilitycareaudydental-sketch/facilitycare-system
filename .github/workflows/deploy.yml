@@ -37,7 +37,6 @@ jobs:
         run: |
           test -f api/src/index.js          && echo "✅ api/src/index.js"
           test -f api/wrangler.toml         && echo "✅ api/wrangler.toml"
-          test -f wrangler.toml             && echo "✅ wrangler.toml (root)"
           test -f frontend/src/app.js       && echo "✅ frontend/src/app.js"
           test -f frontend/public/index.html && echo "✅ frontend/public/index.html"
           test -f schema/migrations.sql     && echo "✅ schema/migrations.sql"
@@ -135,9 +134,6 @@ jobs:
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: node build-root.js
-
-      - name: Remove root wrangler.toml to prevent Pages conflict
-        run: rm -f wrangler.toml
 
       - name: Deploy ke Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
