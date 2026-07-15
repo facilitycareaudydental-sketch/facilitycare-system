@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    FCMS — Facility Care Management System
    Enterprise Design System v2.0
    ============================================================ */
@@ -86,9 +86,9 @@ img { max-width: 100%; }
 strong { font-weight: 600; }
 
 /* ── App Layout ─────────────────────────────────────────────── */
-.app-layout    { display: flex; min-height: 100vh; }
-.main-wrapper  { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-x: hidden; }
-.main-content  { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 24px; }
+.app-layout    { display: flex; flex-direction: row; min-height: 100vh; }   /* row LOCKED */
+.main-wrapper  { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-x: clip; }
+.main-content  { flex: 1; overflow-y: auto; overflow-x: clip; padding: 24px; }
 
 /* ── Sidebar ────────────────────────────────────────────────── */
 .sidebar {

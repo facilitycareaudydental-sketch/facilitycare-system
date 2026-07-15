@@ -123,13 +123,30 @@ const FONT  = { family:'Inter', size:11 };
 const TICK  = '#94A3B8';
 const GRID  = '#F1F5F9';
 const COLORS= ['#2563EB','#10B981','#F59E0B','#EF4444','#8B5CF6','#0EA5E9','#F97316','#14B8A6','#6366F1','#EC4899'];
+
+// Detect mobile for chart legend positioning
+const isMobile = () => window.innerWidth < 768;
+
 function chartOpts(extra={}) {
   return {
-    responsive:true, maintainAspectRatio:false, animation:{ duration:700, easing:'easeOutQuart' },
-    plugins:{ legend:{ labels:{ font:FONT, color:'#64748B', usePointStyle:true, padding:12 } },
-              tooltip:{ mode:'index', intersect:false, bodyFont:FONT, titleFont:{...FONT,weight:'700'} } },
-    scales:{ x:{ grid:{ color:GRID }, ticks:{ font:FONT, color:TICK } },
-             y:{ grid:{ color:GRID }, ticks:{ font:FONT, color:TICK }, beginAtZero:true } },
+    responsive:true,
+    maintainAspectRatio:false,
+    animation:{ duration:700, easing:'easeOutQuart' },
+    plugins:{
+      legend:{
+        position: isMobile() ? 'bottom' : 'top',
+        labels:{
+          font:FONT, color:'#64748B',
+          usePointStyle:true, padding:10,
+          boxWidth:8, boxHeight:8,
+        },
+      },
+      tooltip:{ mode:'index', intersect:false, bodyFont:FONT, titleFont:{...FONT,weight:'700'} },
+    },
+    scales:{
+      x:{ grid:{ color:GRID }, ticks:{ font:FONT, color:TICK, maxRotation:0 } },
+      y:{ grid:{ color:GRID }, ticks:{ font:FONT, color:TICK }, beginAtZero:true },
+    },
     ...extra,
   };
 }
@@ -489,15 +506,23 @@ function renderDonut(categories) {
   destroyChart('donut');
   const data = (categories||[]).filter(c => safeNum(c.count)>0);
   if (!data.length) { showEmpty(canvas,'Belum ada data permasalahan'); return; }
+  const labels = data.map(c=>safeStr(c.category,'Lainnya'));
+  const values = data.map(c=>safeNum(c.count));
   _charts.donut = new Chart(canvas, {
     type:'doughnut',
-    data:{
-      labels: data.map(c=>safeStr(c.category,'Lainnya')),
-      datasets:[{ data:data.map(c=>safeNum(c.count)), backgroundColor:COLORS.slice(0,data.length), borderWidth:2, borderColor:'#fff', hoverOffset:8 }],
+    data: { labels, datasets:[{ data:values, backgroundColor:COLORS.slice(0,data.length), borderWidth:2, borderColor:'#fff', hoverBorderColor:'#fff' }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      animation:{ duration:700 },
+      plugins:{
+        legend:{
+          position: window.innerWidth < 768 ? 'bottom' : 'right',
+          labels:{ font:FONT, color:'#475569', usePointStyle:true, padding:10, boxWidth:8, boxHeight:8 },
+        },
+        tooltip:{ bodyFont:FONT, titleFont:{...FONT,weight:'700'}, callbacks:{ label:ctx=>` ${ctx.label}: ${ctx.parsed} kasus` } },
+      },
+      cutout:'65%',
     },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%', animation:{duration:800},
-      plugins:{ legend:{ position:'right', labels:{ font:FONT, color:'#475569', usePointStyle:true, padding:14 } },
-                tooltip:{ callbacks:{ label:ctx=>` ${ctx.label}: ${ctx.parsed} kasus` } } } },
   });
 }
 
