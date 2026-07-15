@@ -1,322 +1,124 @@
-# 🚀 Panduan Deploy FM Operations ke Cloudflare
+# 🚀 Panduan Deploy FM Operations via Cloudflare Web Dashboard
 
-**Repo GitHub:** https://github.com/facilitycareaudydental-sketch/facilitycare-system
-
----
-
-## Prasyarat
-
-| Kebutuhan | Link Download |
-|---|---|
-| Node.js 18+ (LTS) | https://nodejs.org |
-| Git | https://git-scm.com |
-| Akun Cloudflare (gratis) | https://cloudflare.com |
+Panduan ini menjelaskan cara mendeploy seluruh sistem **FM Operations** secara langsung melalui antarmuka web (Cloudflare Dashboard & GitHub Web), tanpa memerlukan penggunaan terminal (CLI/Wrangler) sama sekali di komputer Anda.
 
 ---
 
-## LANGKAH 1 — Buat Akun Cloudflare
+## 📋 Prasyarat & Kebutuhan
 
-1. Buka https://cloudflare.com → **Sign Up**
-2. Daftar dengan email `facilitycare.audydental@gmail.com`
-3. Verifikasi email
-4. Setelah login, catat **Account ID** di pojok kanan bawah dashboard
-
----
-
-## LANGKAH 2 — Install Wrangler
-
-Buka **PowerShell** atau **Command Prompt**, jalankan:
-
-```bash
-npm install -g wrangler@3
-wrangler --version
-```
+Sebelum memulai, pastikan Anda memiliki:
+1.  Akun **GitHub** yang berisi repository proyek ini.
+2.  Akun **Cloudflare** (gratis).
 
 ---
 
-## LANGKAH 3 — Login Wrangler ke Cloudflare
+## 🗄️ LANGKAH 1 — Membuat & Menginisialisasi D1 Database
 
-```bash
-wrangler login
-```
+D1 adalah database relasional SQLite serverless dari Cloudflare. Anda bisa membuatnya langsung dari dashboard:
 
-Browser terbuka → klik **Allow**. Selesai.
-
----
-
-## LANGKAH 4 — Clone Repo dari GitHub
-
-```bash
-git clone https://github.com/facilitycareaudydental-sketch/facilitycare-system.git
-cd facilitycare-system
-```
+1.  Login ke [Cloudflare Dashboard](https://dash.cloudflare.com).
+2.  Pada menu navigasi sebelah kiri, klik **Workers & Pages** → **D1**.
+3.  Klik tombol **Create Database** (atau **Create** lalu pilih **D1**).
+4.  Masukkan nama database: `fm-operations-db`
+5.  Klik **Create**.
+6.  Setelah database dibuat, masuk ke tab **Console** di dalam halaman database tersebut.
+7.  Buka file [migrations.sql](file:///C:/Users/Facility%20Care/.gemini/antigravity/scratch/facilitycare-system/schema/migrations.sql), **salin seluruh isi kode SQL** di dalamnya, lalu **tempel (paste)** ke dalam kolom input D1 Console di dashboard web.
+8.  Klik **Execute** untuk membuat semua tabel dan memasukkan data awal (cabang, SOP, roles, PIC list).
 
 ---
 
-## LANGKAH 5 — Buat D1 Database
+## 🔑 LANGKAH 2 — Membuat KV Namespace (Session Store)
 
-```bash
-wrangler d1 create fm-operations-db
-```
+KV Namespace digunakan untuk melacak sesi pengguna yang aktif:
 
-Output contoh:
-```
-✅ Successfully created DB 'fm-operations-db'
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-```
-
-Buka file `api/wrangler.toml`, ganti `database_id`:
-
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "fm-operations-db"
-database_id = "PASTE_ID_DISINI"
-```
+1.  Di menu navigasi kiri, masuk ke **Workers & Pages** → **KV**.
+2.  Klik tombol **Create Namespace**.
+3.  Masukkan nama namespace: `SESSIONS`
+4.  Klik **Add**.
 
 ---
 
-## LANGKAH 6 — Jalankan Migrasi Database
+## 🔌 LANGKAH 3 — Mendeploy Worker (Backend API) via GitHub Integration
 
-```bash
-wrangler d1 execute fm-operations-db --remote --file=schema/migrations.sql
-```
+Cloudflare dapat terhubung langsung ke GitHub Anda untuk mendeploy Workers secara otomatis:
 
-Ketik `Y` jika diminta konfirmasi.
-
-> Perintah ini membuat semua tabel + mengisi data awal:
-> 70+ cabang, roles, SOP, PIC list, dll.
-
----
-
-## LANGKAH 7 — Set JWT Secret
-
-```bash
-cd api
-wrangler secret put JWT_SECRET
-```
-
-Ketik secret yang kuat (min. 32 karakter), contoh:
-```
-fm-ops-audy-dental-secret-2026-secure-key
-```
-Tekan **Enter**.
+1.  Kembali ke menu **Workers & Pages** → click **Create** → pilih **Worker**.
+2.  Beri nama Worker Anda (misal: `fm-operations-api`), lalu klik **Deploy**. (Ini akan membuat Worker kosong sementara).
+3.  Setelah selesai dideploy, masuk ke halaman Worker tersebut, pilih tab **Settings** → **Build & deployments**.
+4.  Di bagian **Integrations**, klik **Connect GitHub**.
+5.  Otorisasi Cloudflare ke akun GitHub Anda, lalu pilih repository `facilitycare-system`.
+6.  Atur konfigurasi deployment:
+    *   **Production Branch**: `main`
+    *   **Root Directory**: `api`
+7.  Klik **Save and Deploy**. Cloudflare akan mulai menarik kode dari subfolder `api` repository Anda dan mendeploynya.
 
 ---
 
-## LANGKAH 8 — Deploy Worker API
+## 🔗 LANGKAH 4 — Mengonfigurasi Environment Variables & Bindings Worker
 
-```bash
-# Masih di folder api
-wrangler deploy
-```
+Worker API membutuhkan akses ke database D1, KV, dan JWT Secret. Mari kita sambungkan:
 
-Catat URL yang muncul:
-```
-✅ Deployed: https://fm-operations-api.NAMAKAMU.workers.dev
-```
-
----
-
-## LANGKAH 9 — Update URL API di Frontend
-
-Buka `frontend/wrangler.toml`, ganti URL:
-
-```toml
-[vars]
-API_BASE_URL = "https://fm-operations-api.NAMAKAMU.workers.dev"
-```
-
-Buka `frontend/public/form.html`, ganti baris ini (sekitar baris 110):
-
-```js
-const API = window.__FM_CONFIG?.API_BASE_URL
-  || 'https://fm-operations-api.NAMAKAMU.workers.dev';
-```
+1.  Buka Worker `fm-operations-api` yang telah dibuat.
+2.  Masuk ke tab **Settings** → **Variables**.
+3.  Di bagian **Environment Variables**, klik **Add variable**:
+    *   **Name**: `JWT_SECRET`
+    *   **Type**: Pilih **Secret** (supaya aman/terenkripsi).
+    *   **Value**: Masukkan teks rahasia acak yang panjang (misalnya: `fm-ops-audy-dental-secret-2026-secure-key`).
+4.  Di bagian **Bindings**, klik **Add binding**:
+    *   Pilih **D1 database binding**:
+        *   **Variable name**: `DB` (harus huruf besar semua).
+        *   **D1 database**: Pilih `fm-operations-db` dari dropdown.
+    *   Klik **Add binding** lagi, lalu pilih **KV namespace binding**:
+        *   **Variable name**: `SESSIONS` (harus huruf besar semua).
+        *   **KV namespace**: Pilih `SESSIONS` dari dropdown.
+5.  Klik **Save and Deploy** di bagian bawah halaman untuk menerapkan perubahan konfigurasi.
 
 ---
 
-## LANGKAH 10 — Build & Deploy Frontend
+## 🌐 LANGKAH 5 — Mendeploy Frontend via Cloudflare Pages (Git Integration)
 
-```bash
-cd frontend
-npm install
-npm install -g esbuild
-```
+Untuk frontend (antarmuka web), kita akan menghubungkannya langsung ke GitHub dan mengatur proses kompilasi otomatis:
 
-**Windows PowerShell:**
-```powershell
-$env:API_BASE_URL="https://fm-operations-api.NAMAKAMU.workers.dev"
-node build.js
-```
-
-**Mac / Linux:**
-```bash
-API_BASE_URL="https://fm-operations-api.NAMAKAMU.workers.dev" node build.js
-```
-
-Kemudian deploy:
-```bash
-wrangler pages deploy dist --project-name=fm-operations
-```
-
-Saat pertama kali → ketik `Y` untuk buat project baru.
-
-URL frontend setelah deploy:
-```
-https://fm-operations.pages.dev
-```
+1.  Masuk ke **Workers & Pages** → klik **Create** → pilih tab **Pages** (bukan Workers).
+2.  Klik **Connect to Git**.
+3.  Pilih repository `facilitycare-system` dari akun GitHub Anda, lalu klik **Begin setup**.
+4.  Atur konfigurasi build berikut:
+    *   **Project name**: `fm-operations` (ini akan menjadi bagian dari URL Anda, misal `fm-operations.pages.dev`).
+    *   **Production branch**: `main`
+    *   **Framework preset**: Pilih **None** (atau biarkan default).
+    *   **Root directory**: `frontend` (sangat penting agar Cloudflare masuk ke subfolder frontend).
+    *   **Build command**: `node build.js`
+    *   **Build output directory**: `dist`
+5.  Di bagian **Environment variables (advanced)**, tambahkan variabel berikut:
+    *   **Variable name**: `API_BASE_URL`
+    *   **Value**: URL Worker API Anda (didapatkan dari Langkah 3, contoh: `https://fm-operations-api.username.workers.dev`).
+6.  Klik **Save and Deploy**. Cloudflare Pages akan mem-build kode JavaScript dan mempublikasikan situs web Anda.
 
 ---
 
-## LANGKAH 11 — Setup GitHub Actions (CI/CD Otomatis)
+## 🔐 LANGKAH 6 — Pengaturan CORS Origin (Opsional tapi Direkomendasikan)
 
-Setiap push ke `main` akan otomatis deploy. Setup secret dulu:
+Agar API Worker Anda aman dan hanya bisa diakses oleh frontend resmi Anda:
 
-1. Buka: https://github.com/facilitycareaudydental-sketch/facilitycare-system
-2. Klik **Settings** → **Secrets and variables** → **Actions**
-3. Klik **New repository secret**, tambahkan 3 secret berikut:
-
-| Nama Secret | Cara Mendapatkan |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare Dashboard → My Profile → API Tokens → **Create Token** → pilih template **"Edit Cloudflare Workers"** |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Dashboard → pojok kanan bawah halaman |
-| `API_BASE_URL` | URL dari Langkah 8, contoh: `https://fm-operations-api.NAMAKAMU.workers.dev` |
-
-Setelah 3 secret disimpan, workflow `deploy.yml` akan otomatis berjalan setiap push ke `main`.
+1.  Buka Worker `fm-operations-api` di dashboard.
+2.  Masuk ke **Settings** → **Variables**.
+3.  Tambahkan satu **Environment Variable** baru:
+    *   **Name**: `CORS_ORIGIN`
+    *   **Value**: URL Cloudflare Pages Anda (didapatkan dari Langkah 5, contoh: `https://fm-operations.pages.dev`).
+4.  Klik **Save and Deploy**.
 
 ---
 
-## LANGKAH 12 — Login Pertama ke Aplikasi
+## 🚪 LANGKAH 7 — Login Pertama Kali
 
-Buka: **https://fm-operations.pages.dev**
+Setelah deployment frontend selesai, buka URL Pages Anda (misalnya: `https://fm-operations.pages.dev`):
 
-```
-Username : superadmin
-Password : Admin@123
-```
-
-> ⚠️ Segera ganti password di **Profil → Ganti Password** setelah login pertama!
+1.  Gunakan kredensial administrator awal berikut untuk masuk:
+    *   **Username**: `superadmin`
+    *   **Password**: `Admin@123`
+2.  ⚠️ **PENTING:** Segera setelah berhasil masuk, klik menu **Profil** di pojok kanan atas, pilih **Ganti Password**, dan ubah password bawaan tersebut demi keamanan sistem Anda.
 
 ---
 
-## Akses Form Publik (Tanpa Login)
-
-Bagikan link ini ke karyawan cabang untuk request barang & chemical:
-
-```
-https://fm-operations.pages.dev/form.html
-```
-
-Tidak perlu username/password.
-
----
-
-## Struktur URL Aplikasi
-
-| Halaman | URL |
-|---|---|
-| Login | `https://fm-operations.pages.dev` |
-| Dashboard | `https://fm-operations.pages.dev/#/dashboard` |
-| Karyawan | `https://fm-operations.pages.dev/#/employees` |
-| Kontrak | `https://fm-operations.pages.dev/#/contracts` |
-| Jadwal | `https://fm-operations.pages.dev/#/schedule` |
-| Permasalahan | `https://fm-operations.pages.dev/#/issues` |
-| One on One | `https://fm-operations.pages.dev/#/one-on-one` |
-| Training | `https://fm-operations.pages.dev/#/training` |
-| Reliefer | `https://fm-operations.pages.dev/#/relievers` |
-| Laporan Inspeksi | `https://fm-operations.pages.dev/#/reports/inspection` |
-| Laporan GC/DC | `https://fm-operations.pages.dev/#/reports/cleaning` |
-| Rekap Fogging | `https://fm-operations.pages.dev/#/reports/fogging` |
-| Laporan Basecamp | `https://fm-operations.pages.dev/#/reports/basecamp` |
-| Permintaan Barang | `https://fm-operations.pages.dev/#/reports/supply` |
-| SOP | `https://fm-operations.pages.dev/#/sop` |
-| Master Checklist | `https://fm-operations.pages.dev/#/checklist` |
-| Master Form | `https://fm-operations.pages.dev/#/forms` |
-| Manajemen User | `https://fm-operations.pages.dev/#/users` |
-| Cabang | `https://fm-operations.pages.dev/#/branches` |
-| Kalender | `https://fm-operations.pages.dev/#/calendar` |
-| Form Publik | `https://fm-operations.pages.dev/form.html` |
-
----
-
-## Role & Hak Akses
-
-| Role | Hak Akses |
-|---|---|
-| `superadmin` | Semua akses + admin user |
-| `admin` | CRUD semua modul + manajemen user |
-| `manager` | Read semua + write operasional |
-| `spv` | Read semua + write issues & one-on-one |
-| `viewer` | Read only |
-
----
-
-## Perintah Sehari-hari
-
-```bash
-# Push update kode → CI/CD otomatis deploy
-git add .
-git commit -m "update: keterangan perubahan"
-git push
-
-# Deploy manual API
-cd api && wrangler deploy
-
-# Deploy manual frontend
-cd frontend
-node build.js
-wrangler pages deploy dist --project-name=fm-operations
-
-# Lihat log API real-time
-cd api && wrangler tail
-
-# Cek data database
-wrangler d1 execute fm-operations-db --remote --command "SELECT COUNT(*) FROM employees"
-wrangler d1 execute fm-operations-db --remote --command "SELECT COUNT(*) FROM contracts"
-
-# Tambah user baru via database langsung
-wrangler d1 execute fm-operations-db --remote --command \
-  "INSERT INTO users (username,email,password_hash,full_name,role) VALUES ('berlin','berlin@fm.com','HASH','Berlin Manager','manager')"
-```
-
----
-
-## Troubleshooting
-
-**❌ Error: YOUR_D1_DATABASE_ID**
-→ Belum diisi `database_id` di `api/wrangler.toml`. Ikuti Langkah 5.
-
-**❌ CORS error di browser**
-→ Pastikan URL frontend sudah benar di `api/wrangler.toml`:
-```toml
-[vars]
-CORS_ORIGIN = "https://fm-operations.pages.dev"
-```
-Lalu `wrangler deploy` ulang di folder `api`.
-
-**❌ Login gagal (credentials default tidak bisa)**
-→ Migrasi belum dijalankan. Ulang Langkah 6.
-
-**❌ GitHub Actions gagal**
-→ Cek 3 secret sudah ditambahkan (Langkah 11).
-
-**❌ Kontrak sisa hari tampil -46217**
-→ Ada data kontrak tanpa tanggal. Edit data tersebut, isi tanggal mulai & selesai.
-
-**❌ Frontend tampil blank / loading terus**
-→ Periksa `API_BASE_URL` di `frontend/public/index.html` sudah benar, bukan masih `__API_BASE_URL__`.
-
----
-
-## ⚠️ Keamanan — Wajib Dilakukan
-
-1. **Ganti password superadmin** setelah login pertama
-2. **Revoke token GitHub lama** di https://github.com/settings/tokens (token yang dipakai saat setup)
-3. **Buat token GitHub baru** jika perlu CI/CD
-4. **Jangan commit** file `.dev.vars` atau file yang berisi token/secret ke GitHub
-
----
-
-*Dibuat untuk: FM Operations - Facility Care Audy Dental*
-*Stack: Cloudflare Workers + D1 + Pages | Repo: facilitycareaudydental-sketch/facilitycare-system*
+*Panduan ini disesuaikan khusus untuk sistem operasional Facility Care Audy Dental.*
+*Teknologi: Cloudflare Workers (API) + Pages (Frontend SPA) + D1 (SQLite Database) + KV (Sessions).*
