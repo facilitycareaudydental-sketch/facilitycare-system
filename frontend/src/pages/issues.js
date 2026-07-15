@@ -1,6 +1,7 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
 import { statusBadge } from '../components/badges.js';
+import { downloadExcel } from '../utils/excel.js';
 
 let branchOptions = [];
 
@@ -65,5 +66,62 @@ export async function renderIssues(container) {
         ]
       },
     ],
+    exportOptions: {
+      moduleName: 'issues',
+      onExport: async () => {
+        const res = await apiFetch('/api/issues?limit=10000');
+        if (res.ok) {
+          const data = res.data.data.map(d => ({
+            'Tanggal': d.report_date || '',
+            'Cabang': d.branch_name || '',
+            'Kategori': d.category || '',
+            'Sumber': d.source || '',
+            'Keluhan': d.complaint || '',
+            'Nama FC': d.employee_name || '',
+            'FC Spesialis': d.fc_specialist || '',
+            'Solusi': d.solution || '',
+            'Tgl Selesai': d.completion_date || '',
+            'Status': d.status || ''
+          }));
+          downloadExcel(data, 'Data_Permasalahan');
+        } else throw new Error('Gagal mengambil data');
+      },
+      onTemplate: () => {
+        const template = [
+          { 'Tanggal': '2024-03-01', 'Cabang': '001. Pondok Bambu', 'Kategori': 'Cleaning', 'Sumber': 'SPV', 'Keluhan': 'Lantai kotor', 'Nama FC': 'Budi Santoso', 'FC Spesialis': 'Fajar', 'Solusi': 'Teguran lisan', 'Tgl Selesai': '2024-03-02', 'Status': 'Done' }
+        ];
+        downloadExcel(template, 'Template_Import_Permasalahan');
+      },
+      onImport: async (json) => {
+        const bRes = await apiFetch('/api/branches?all=1');
+        const rawBranches = bRes.data?.data || [];
+        
+        const matchBranch = (str) => {
+          if (!str) return null;
+          const s = str.toLowerCase();
+          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
+          return b ? b.id : null;
+        };
+
+        const payload = json.map(row => ({
+          branch_id: matchBranch(String(row['Cabang'] || '').trim()),
+          report_date: String(row['Tanggal'] || '').trim(),
+          category: String(row['Kategori'] || '').trim(),
+          source: String(row['Sumber'] || '').trim(),
+          complaint: String(row['Keluhan'] || '').trim(),
+          employee_name: String(row['Nama FC'] || '').trim(),
+          fc_specialist: String(row['FC Spesialis'] || '').trim(),
+          solution: String(row['Solusi'] || '').trim(),
+          completion_date: String(row['Tgl Selesai'] || '').trim(),
+          status: String(row['Status'] || '').trim() || 'Open',
+        })).filter(row => row.report_date && row.complaint && row.category);
+        
+        const res = await apiFetch('/api/issues/import', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+      }
+    }
   });
 }
