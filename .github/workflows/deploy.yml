@@ -136,6 +136,9 @@ jobs:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: node build-root.js
 
+      - name: Remove root wrangler.toml to prevent Pages conflict
+        run: rm -f wrangler.toml
+
       - name: Deploy ke Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
