@@ -4,6 +4,7 @@ import { createTable, createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { buildFormHTML, getFormData, populateForm } from '../components/form.js';
 import { toastSuccess, toastError } from '../components/toast.js';
+import { renderExcelButtons, parseExcel } from '../utils/excel.js';
 
 export function buildCrudPage({
   container,
@@ -22,6 +23,7 @@ export function buildCrudPage({
   onAfterLoad,
   extraActions = [],
   initialSearch = '',
+  exportOptions = null, // { moduleName, onExport, onImport, onTemplate }
 }) {
   let page = 1;
   let filters = { ...defaultFilters };
@@ -34,6 +36,8 @@ export function buildCrudPage({
         ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${itemLabel}</button>` : ''}
       </div>
     </div>
+    
+    ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
     ${filterFields && filterFields.length > 0 ? `
     <div class="filter-bar card">
@@ -90,6 +94,52 @@ export function buildCrudPage({
 
   // Create button
   document.getElementById('btn-create')?.addEventListener('click', () => openForm(null));
+
+  // Export/Import buttons
+  if (exportOptions) {
+    document.getElementById(`btn-export-${exportOptions.moduleName}`)?.addEventListener('click', async (e) => {
+      const btn = e.target;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '⏳ Loading...';
+      btn.disabled = true;
+      try {
+        await exportOptions.onExport();
+      } catch (err) {
+        toastError('Gagal export data');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById(`btn-template-${exportOptions.moduleName}`)?.addEventListener('click', () => {
+      exportOptions.onTemplate();
+    });
+
+    const fileInput = document.getElementById(`input-import-${exportOptions.moduleName}`);
+    fileInput?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const label = fileInput.parentElement;
+      const originalText = label.innerHTML;
+      label.innerHTML = '⏳ Memproses...';
+      label.style.pointerEvents = 'none';
+      
+      try {
+        const json = await parseExcel(file);
+        if (json.length === 0) throw new Error('File kosong atau format salah');
+        await exportOptions.onImport(json);
+        toastSuccess('Import berhasil!');
+        load();
+      } catch (err) {
+        toastError(err.message || 'Gagal import data');
+      } finally {
+        label.innerHTML = originalText;
+        label.style.pointerEvents = 'auto';
+        fileInput.value = ''; // reset
+      }
+    });
+  }
 
   async function load() {
     const tableContainer = document.getElementById('table-container');

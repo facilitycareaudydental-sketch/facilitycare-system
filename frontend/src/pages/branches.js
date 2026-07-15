@@ -1,4 +1,6 @@
 import { buildCrudPage } from './_crud.js';
+import { apiFetch } from '../config.js';
+import { downloadExcel } from '../utils/excel.js';
 
 export async function renderBranches(container) {
   buildCrudPage({
@@ -31,5 +33,34 @@ export async function renderBranches(container) {
         ]
       },
     ],
+    exportOptions: {
+      moduleName: 'branches',
+      onExport: async () => {
+        const res = await apiFetch('/api/branches?limit=10000');
+        if (res.ok) downloadExcel(res.data.data, 'Data_Cabang');
+        else throw new Error('Gagal mengambil data');
+      },
+      onTemplate: () => {
+        const template = [
+          { 'Kode Cabang': '001', 'Nama Pendek': 'Pondok Bambu', 'Nama Lengkap': '001. Pondok Bambu', 'Kota': 'Jakarta Timur' },
+          { 'Kode Cabang': '002', 'Nama Pendek': 'Bintaro', 'Nama Lengkap': '002. Bintaro', 'Kota': 'Tangerang Selatan' }
+        ];
+        downloadExcel(template, 'Template_Import_Cabang');
+      },
+      onImport: async (json) => {
+        const payload = json.map(row => ({
+          code: String(row['Kode Cabang'] || '').trim(),
+          name: String(row['Nama Pendek'] || '').trim(),
+          full_name: String(row['Nama Lengkap'] || '').trim(),
+          city: String(row['Kota'] || '').trim(),
+        })).filter(row => row.code && row.name);
+        
+        const res = await apiFetch('/api/branches/import', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+      }
+    }
   });
 }
