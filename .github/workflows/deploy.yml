@@ -13,10 +13,10 @@ env:
 
 jobs:
   # ============================================================
-  # Lint & validate on every push/PR
+  # Validate — jalankan di setiap push & PR
   # ============================================================
   validate:
-    name: Validate
+    name: ✅ Validate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,10 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install root deps
-        run: npm install
 
       - name: Install API deps
         run: npm install
@@ -39,29 +35,19 @@ jobs:
         run: npm install
         working-directory: frontend
 
-      - name: Check API files exist
+      - name: Check required files
         run: |
-          test -f api/src/index.js
-          test -f api/wrangler.toml
-          echo "✅ API files OK"
-
-      - name: Check Frontend files exist
-        run: |
-          test -f frontend/public/index.html
-          test -f frontend/public/assets/style.css
-          test -f frontend/src/app.js
-          echo "✅ Frontend files OK"
-
-      - name: Check Schema file exists
-        run: |
-          test -f schema/migrations.sql
-          echo "✅ Schema file OK"
+          test -f api/src/index.js         && echo "✅ api/src/index.js"
+          test -f api/wrangler.toml        && echo "✅ api/wrangler.toml"
+          test -f frontend/src/app.js      && echo "✅ frontend/src/app.js"
+          test -f frontend/public/index.html && echo "✅ frontend/public/index.html"
+          test -f schema/migrations.sql    && echo "✅ schema/migrations.sql"
 
   # ============================================================
-  # Deploy Worker API (only on push to main)
+  # Deploy API ke Cloudflare Workers
   # ============================================================
   deploy-api:
-    name: Deploy API (Cloudflare Workers)
+    name: 🚀 Deploy API (Workers)
     runs-on: ubuntu-latest
     needs: validate
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -73,25 +59,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
-      - name: Install deps
+      - name: Install API deps
         run: npm install
         working-directory: api
 
-      - name: Deploy Worker
+      - name: Deploy Worker ke Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: api
           command: deploy
+          secrets: |
+            JWT_SECRET
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
   # ============================================================
-  # Run DB Migration (only on push to main, after API deploy)
+  # Migrasi Database D1
   # ============================================================
   migrate-db:
-    name: Run DB Migration
+    name: 🗄️ Migrate D1 Database
     runs-on: ubuntu-latest
     needs: deploy-api
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -107,7 +96,7 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler@3
 
-      - name: Run DB Migrations (remote)
+      - name: Run DB Migrations (remote D1)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -116,14 +105,14 @@ jobs:
             --remote \
             --file=schema/migrations.sql \
             --yes
+        # continue-on-error: true karena CREATE IF NOT EXISTS aman dijalankan ulang
         continue-on-error: true
-        # continue-on-error because re-running CREATE IF NOT EXISTS is safe
 
   # ============================================================
-  # Build & Deploy Frontend (Cloudflare Pages)
+  # Build & Deploy Frontend ke Cloudflare Pages
   # ============================================================
   deploy-frontend:
-    name: Deploy Frontend (Cloudflare Pages)
+    name: 🌐 Deploy Frontend (Pages)
     runs-on: ubuntu-latest
     needs: validate
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -135,9 +124,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
-      - name: Install deps
+      - name: Install Frontend deps
         run: npm install
         working-directory: frontend
 
@@ -150,7 +138,7 @@ jobs:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: node build.js
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy ke Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -159,10 +147,10 @@ jobs:
           command: pages deploy dist --project-name=fm-operations --commit-dirty=true
 
   # ============================================================
-  # Preview deployment for PRs
+  # Preview Deploy untuk Pull Request
   # ============================================================
   preview-frontend:
-    name: Preview Frontend (PR)
+    name: 👁️ Preview (PR)
     runs-on: ubuntu-latest
     needs: validate
     if: github.event_name == 'pull_request'
@@ -175,7 +163,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install deps
+      - name: Install Frontend deps
         run: npm install
         working-directory: frontend
 
@@ -188,7 +176,7 @@ jobs:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: node build.js
 
-      - name: Deploy preview to Cloudflare Pages
+      - name: Deploy Preview ke Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
