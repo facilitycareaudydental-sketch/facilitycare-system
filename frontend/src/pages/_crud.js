@@ -96,9 +96,9 @@ export function buildCrudPage({
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
     overlay.innerHTML = `
-      <div style="background:var(--bg-primary);border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
-        <h3 style="margin:0 0 8px;color:var(--text-primary)">⚠️ Hapus ${ids.length} ${itemLabel}?</h3>
-        <p style="margin:0 0 20px;color:var(--text-secondary)">Data yang dihapus tidak dapat dikembalikan.</p>
+      <div style="background:var(--bg-card);border-radius:var(--radius-xl);padding:28px;max-width:420px;width:90%;box-shadow:var(--shadow-lg);animation:fadeInUp .2s ease">
+        <h3 style="margin:0 0 8px;color:var(--text-1);font-size:1rem;font-weight:700">⚠️ Hapus ${ids.length} ${itemLabel}?</h3>
+        <p style="margin:0 0 24px;color:var(--text-2);font-size:.875rem">Data yang dihapus tidak dapat dikembalikan.</p>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button id="bulk-cancel-btn" class="btn btn-ghost">Batal</button>
           <button id="bulk-confirm-btn" class="btn btn-danger">Hapus ${ids.length} Data</button>
