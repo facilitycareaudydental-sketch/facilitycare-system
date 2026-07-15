@@ -12,6 +12,10 @@ export async function handleEmployees(request, env, origin) {
   const idMatch = path.match(/^\/(\d+)$/);
 
   if (request.method === 'GET' && path === '') return listEmployees(request, env, origin);
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'employees', 'write')) return forbidden(origin);
+    return importEmployees(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'employees', 'write')) return forbidden(origin);
     return createEmployee(request, env, origin);
@@ -119,4 +123,37 @@ async function deleteEmployee(id, env, origin) {
   if (!existing) return notFound(origin);
   await env.DB.prepare("UPDATE employees SET status = 'Tidak Aktif', updated_at = datetime('now') WHERE id = ?").bind(id).run();
   return ok({ message: 'Employee deactivated' }, 200, origin);
+}
+
+async function importEmployees(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const stmts = [];
+  for (const item of body) {
+    if (!item.full_name) continue;
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        item.full_name, 
+        item.branch_id || null, 
+        item.division || 'FACILITY CARE', 
+        item.phone || null, 
+        item.join_date || null, 
+        item.status || 'Aktif', 
+        item.notes || null
+      )
+    );
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ message: `Berhasil mengimport ${stmts.length} karyawan` }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
 }
