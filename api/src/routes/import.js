@@ -42,52 +42,70 @@ export async function handleImport(request, env, origin) {
   }
 }
 
-// ─── Helper ────────────────────────────────────────────────────────────────
-function safeStr(v)  { return v !== undefined && v !== null && v !== '' ? String(v).trim() : null; }
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function safeStr(v)  { return v !== undefined && v !== null && String(v).trim() !== '' ? String(v).trim() : null; }
 function safeDate(v) {
   if (!v) return null;
   const s = String(v).trim();
-  // Accept YYYY-MM-DD or Excel serial number
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  if (/^\d+$/.test(s)) {
-    // Excel date serial: days since 1900-01-01 (with Lotus bug +1)
+  // Excel serial number
+  if (/^\d{4,5}$/.test(s)) {
     const d = new Date(Date.UTC(1899, 11, 30) + Number(s) * 86400000);
     return d.toISOString().slice(0, 10);
   }
-  // Try parsing ambiguous formats dd/mm/yyyy or mm/dd/yyyy
+  // dd/mm/yyyy or yyyy/mm/dd
   const parts = s.split(/[\/\-\.]/);
   if (parts.length === 3) {
     const [a, b, c] = parts;
-    if (c.length === 4) return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
-    return s;
+    if (a.length === 4 && Number(a) > 1900) return `${a}-${b.padStart(2,'0')}-${c.padStart(2,'0')}`;
+    if (c.length === 4 && Number(c) > 1900) return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+    if (c.length === 2) {
+      const yr = Number(c) >= 50 ? `19${c}` : `20${c}`;
+      return `${yr}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+    }
   }
-  return s;
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  return null;
+}
+function today() { return new Date().toISOString().slice(0, 10); }
+
+// Fuzzy branch match: by full_name, code, or partial name
+function makeBranchMatcher(branches) {
+  return (str) => {
+    if (!str) return null;
+    const s = String(str).toLowerCase().trim();
+    // Exact match first
+    const exact = branches.find(r =>
+      r.full_name?.toLowerCase() === s ||
+      r.code?.toLowerCase() === s ||
+      r.name?.toLowerCase() === s
+    );
+    if (exact) return exact.id;
+    // Partial: branch name contains the search string OR vice versa
+    const partial = branches.find(r =>
+      r.full_name?.toLowerCase().includes(s) ||
+      s.includes(r.code?.toLowerCase() || '~~~')
+    );
+    return partial ? partial.id : null;
+  };
 }
 
 async function batchInsert(db, stmts) {
   if (stmts.length === 0) return 0;
-  // D1 batch max 1000 statements
   const chunkSize = 100;
   let total = 0;
   for (let i = 0; i < stmts.length; i += chunkSize) {
-    const chunk = stmts.slice(i, i + chunkSize);
-    await db.batch(chunk);
-    total += chunk.length;
+    await db.batch(stmts.slice(i, i + chunkSize));
+    total += stmts.slice(i, i + chunkSize).length;
   }
   return total;
 }
 
-// ─── Employees ─────────────────────────────────────────────────────────────
+// ─── Employees ───────────────────────────────────────────────────────────────
 async function importEmployees(rows, onDuplicate, env, origin) {
-  // Load branches for name→id mapping
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-
-  const matchBranch = (str) => {
-    if (!str) return null;
-    const s = String(str).toLowerCase().trim();
-    return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s) || {}).id || null;
-  };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
@@ -95,115 +113,127 @@ async function importEmployees(rows, onDuplicate, env, origin) {
     const full_name = safeStr(row.full_name);
     if (!full_name) { skipped++; continue; }
 
-    if (onDuplicate === 'skip') {
-      stmts.push(env.DB.prepare(
-        `INSERT OR IGNORE INTO employees (full_name, branch_id, division, phone, join_date, status, notes)
+    const sql = onDuplicate === 'skip'
+      ? `INSERT OR IGNORE INTO employees (full_name, branch_id, division, phone, join_date, status, notes)
          VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).bind(full_name, matchBranch(row.branch_name), safeStr(row.division) || 'FACILITY CARE',
-        safeStr(row.phone), safeDate(row.join_date), safeStr(row.status) || 'Aktif', safeStr(row.notes)));
-    } else {
-      stmts.push(env.DB.prepare(
-        `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes)
+      : `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            branch_id=excluded.branch_id, division=excluded.division,
            phone=excluded.phone, join_date=excluded.join_date,
-           status=excluded.status, notes=excluded.notes, updated_at=datetime('now')`
-      ).bind(full_name, matchBranch(row.branch_name), safeStr(row.division) || 'FACILITY CARE',
-        safeStr(row.phone), safeDate(row.join_date), safeStr(row.status) || 'Aktif', safeStr(row.notes)));
-    }
-  }
+           status=excluded.status, notes=excluded.notes, updated_at=datetime('now')`;
 
+    stmts.push(env.DB.prepare(sql).bind(
+      full_name, matchBranch(row.branch_name),
+      safeStr(row.division) || 'FACILITY CARE',
+      safeStr(row.phone), safeDate(row.join_date),
+      safeStr(row.status) || 'Aktif', safeStr(row.notes)
+    ));
+  }
   const inserted = await batchInsert(env.DB, stmts);
-  return ok({ inserted, skipped, message: `Import karyawan: ${inserted} berhasil, ${skipped} dilewati` }, 200, origin);
+  return ok({ inserted, skipped, message: `Karyawan: ${inserted} berhasil, ${skipped} dilewati` }, 200, origin);
 }
 
-// ─── Contracts ─────────────────────────────────────────────────────────────
+// ─── Contracts ────────────────────────────────────────────────────────────────
+// v2: Store employee_name as string — no FK enforcement during import
 async function importContracts(rows, onDuplicate, env, origin) {
-  const [bRows, eRows] = await Promise.all([
-    env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all(),
-    env.DB.prepare('SELECT id, full_name FROM employees').all()
-  ]);
-  const branches  = bRows.results;
-  const employees = eRows.results;
+  const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
+  const matchBranch = makeBranchMatcher(bRows.results);
 
-  const matchBranch   = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
-  const matchEmployee = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (employees.find(r => r.full_name.toLowerCase() === s) || {}).id || null; };
+  // Try to match employee by name (best effort — not required)
+  const eRows = await env.DB.prepare('SELECT id, full_name FROM employees').all();
+  const matchEmployee = (str) => {
+    if (!str) return null;
+    const s = str.toLowerCase().trim();
+    const emp = eRows.results.find(r => r.full_name.toLowerCase() === s ||
+      r.full_name.toLowerCase().includes(s) || s.includes(r.full_name.toLowerCase().split(' ')[0]));
+    return emp ? emp.id : null;
+  };
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    const employee_id = matchEmployee(row.employee_name);
-    const start_date  = safeDate(row.start_date);
-    const end_date    = safeDate(row.end_date);
-    if (!employee_id || !start_date || !end_date) { skipped++; continue; }
+    const employee_name = safeStr(row.employee_name);
+    if (!employee_name) { skipped++; continue; }
+
+    // Try to get employee_id — optional, not blocking
+    const employee_id = matchEmployee(employee_name);
 
     stmts.push(env.DB.prepare(
-      `INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(employee_id, matchBranch(row.branch_name), safeStr(row.division) || 'FACILITY CARE',
-      start_date, end_date, safeStr(row.contract_type), safeStr(row.pkwt_number),
-      safeStr(row.status) || 'Aktif', safeStr(row.notes)));
+      `INSERT INTO contracts (employee_id, employee_name, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      employee_id,
+      employee_name,
+      matchBranch(row.branch_name),
+      safeStr(row.division) || 'FACILITY CARE',
+      safeDate(row.start_date), safeDate(row.end_date),
+      safeStr(row.contract_type), safeStr(row.pkwt_number),
+      safeStr(row.status) || 'Aktif', safeStr(row.notes)
+    ));
   }
-
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Relievers ─────────────────────────────────────────────────────────────
+// ─── Relievers ────────────────────────────────────────────────────────────────
 async function importRelievers(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    if (!safeStr(row.reliever_name) || !safeDate(row.backup_date)) { skipped++; continue; }
+    const reliever_name = safeStr(row.reliever_name);
+    if (!reliever_name) { skipped++; continue; }
     stmts.push(env.DB.prepare(
       `INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(matchBranch(row.branch_name), safeStr(row.original_fc_name), safeStr(row.period),
-      safeStr(row.reliever_name), safeDate(row.backup_date), safeDate(row.completion_date),
-      safeStr(row.reason), safeStr(row.shift), safeStr(row.status) || 'Pending'));
+    ).bind(
+      matchBranch(row.branch_name), safeStr(row.original_fc_name), safeStr(row.period),
+      reliever_name, safeDate(row.backup_date), safeDate(row.completion_date),
+      safeStr(row.reason), safeStr(row.shift), safeStr(row.status) || 'Pending'
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Schedule ──────────────────────────────────────────────────────────────
+// ─── Schedule ─────────────────────────────────────────────────────────────────
 async function importSchedule(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    if (!safeStr(row.activity_type) || !safeStr(row.period)) { skipped++; continue; }
+    const activity_type = safeStr(row.activity_type);
+    if (!activity_type) { skipped++; continue; }
     stmts.push(env.DB.prepare(
       `INSERT INTO activity_schedule (branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(matchBranch(row.branch_name), safeStr(row.activity_type), safeStr(row.period),
+    ).bind(
+      matchBranch(row.branch_name), activity_type, safeStr(row.period),
       safeStr(row.pic), safeDate(row.opening_date), safeDate(row.target_date),
-      safeDate(row.completion_date), safeStr(row.status) || 'Pending', safeStr(row.notes)));
+      safeDate(row.completion_date), safeStr(row.status) || 'Pending', safeStr(row.notes)
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Issues ────────────────────────────────────────────────────────────────
+// ─── Issues ───────────────────────────────────────────────────────────────────
 async function importIssues(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    const report_date = safeDate(row.report_date);
-    if (!report_date || !safeStr(row.complaint) || !safeStr(row.category)) { skipped++; continue; }
+    const complaint = safeStr(row.complaint);
+    if (!complaint) { skipped++; continue; }
 
+    const report_date = safeDate(row.report_date) || today();
     let day_count = null;
     if (row.completion_date && report_date) {
       const d1 = new Date(report_date), d2 = new Date(safeDate(row.completion_date));
@@ -212,26 +242,30 @@ async function importIssues(rows, onDuplicate, env, origin) {
     stmts.push(env.DB.prepare(
       `INSERT INTO issues (report_date, branch_id, category, source, complaint, employee_name, fc_specialist, solution, status, completion_date, day_count)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(report_date, matchBranch(row.branch_name), safeStr(row.category), safeStr(row.source),
-      safeStr(row.complaint), safeStr(row.employee_name), safeStr(row.fc_specialist),
-      safeStr(row.solution), safeStr(row.status) || 'Open', safeDate(row.completion_date), day_count));
+    ).bind(
+      report_date, matchBranch(row.branch_name),
+      safeStr(row.category) || 'Lainnya', safeStr(row.source),
+      complaint, safeStr(row.employee_name), safeStr(row.fc_specialist),
+      safeStr(row.solution), safeStr(row.status) || 'Open',
+      safeDate(row.completion_date), day_count
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── One on One ────────────────────────────────────────────────────────────
+// ─── One on One ───────────────────────────────────────────────────────────────
 async function importOneOnOne(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    const meeting_date = safeDate(row.meeting_date);
-    if (!meeting_date || !safeStr(row.employee_name) || !safeStr(row.problem)) { skipped++; continue; }
+    const employee_name = safeStr(row.employee_name);
+    if (!employee_name) { skipped++; continue; }
 
+    const meeting_date = safeDate(row.meeting_date) || today();
     let day_count = null;
     if (row.completion_date && meeting_date) {
       const d1 = new Date(meeting_date), d2 = new Date(safeDate(row.completion_date));
@@ -240,205 +274,222 @@ async function importOneOnOne(rows, onDuplicate, env, origin) {
     stmts.push(env.DB.prepare(
       `INSERT INTO one_on_one (meeting_date, branch_id, employee_name, pic, problem, solution, status, completion_date, day_count)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(meeting_date, matchBranch(row.branch_name), safeStr(row.employee_name),
-      safeStr(row.pic), safeStr(row.problem), safeStr(row.solution),
-      safeStr(row.status) || 'Open', safeDate(row.completion_date), day_count));
+    ).bind(
+      meeting_date, matchBranch(row.branch_name), employee_name,
+      safeStr(row.pic), safeStr(row.problem) || '-', safeStr(row.solution),
+      safeStr(row.status) || 'Open', safeDate(row.completion_date), day_count
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Training ──────────────────────────────────────────────────────────────
+// ─── Training ─────────────────────────────────────────────────────────────────
 async function importTraining(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    const training_date = safeDate(row.training_date);
-    if (!training_date || !safeStr(row.subject)) { skipped++; continue; }
-
+    const subject = safeStr(row.subject);
+    if (!subject) { skipped++; continue; }
     stmts.push(env.DB.prepare(
       `INSERT INTO training (training_date, batch, subject, participants, branch_id, trainer, score, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(training_date, safeStr(row.batch), safeStr(row.subject),
-      safeStr(row.participants), matchBranch(row.branch_name),
-      safeStr(row.trainer), row.score != null ? parseFloat(row.score) : null, safeStr(row.notes)));
+    ).bind(
+      safeDate(row.training_date) || today(),
+      safeStr(row.batch), subject, safeStr(row.participants),
+      matchBranch(row.branch_name), safeStr(row.trainer),
+      row.score != null ? parseFloat(row.score) : null,
+      safeStr(row.notes)
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Checklist ─────────────────────────────────────────────────────────────
+// ─── Checklist ────────────────────────────────────────────────────────────────
 async function importChecklist(rows, onDuplicate, env, origin) {
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    if (!safeStr(row.name)) { skipped++; continue; }
-    if (onDuplicate === 'skip') {
-      stmts.push(env.DB.prepare(
-        `INSERT OR IGNORE INTO master_checklist (name, category, document_link, description) VALUES (?, ?, ?, ?)`
-      ).bind(safeStr(row.name), safeStr(row.category), safeStr(row.document_link), safeStr(row.description)));
-    } else {
-      stmts.push(env.DB.prepare(
-        `INSERT INTO master_checklist (name, category, document_link, description) VALUES (?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, document_link=excluded.document_link`
-      ).bind(safeStr(row.name), safeStr(row.category), safeStr(row.document_link), safeStr(row.description)));
-    }
+    const name = safeStr(row.name);
+    if (!name) { skipped++; continue; }
+    const sql = onDuplicate === 'skip'
+      ? `INSERT OR IGNORE INTO master_checklist (name, category, document_link, description) VALUES (?, ?, ?, ?)`
+      : `INSERT INTO master_checklist (name, category, document_link, description) VALUES (?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, document_link=excluded.document_link`;
+    stmts.push(env.DB.prepare(sql).bind(name, safeStr(row.category), safeStr(row.document_link), safeStr(row.description)));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Forms ─────────────────────────────────────────────────────────────────
+// ─── Forms ────────────────────────────────────────────────────────────────────
 async function importForms(rows, onDuplicate, env, origin) {
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    if (!safeStr(row.name)) { skipped++; continue; }
+    const name = safeStr(row.name);
+    if (!name) { skipped++; continue; }
     stmts.push(env.DB.prepare(
       `INSERT OR IGNORE INTO master_forms (name, category, document_link, description) VALUES (?, ?, ?, ?)`
-    ).bind(safeStr(row.name), safeStr(row.category), safeStr(row.document_link), safeStr(row.description)));
+    ).bind(name, safeStr(row.category), safeStr(row.document_link), safeStr(row.description)));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── SOP ───────────────────────────────────────────────────────────────────
+// ─── SOP ──────────────────────────────────────────────────────────────────────
 async function importSop(rows, onDuplicate, env, origin) {
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    if (!safeStr(row.name) || !safeStr(row.category)) { skipped++; continue; }
-    if (onDuplicate === 'skip') {
-      stmts.push(env.DB.prepare(
-        `INSERT OR IGNORE INTO sop (name, category, document_link, version, effective_date, notes) VALUES (?, ?, ?, ?, ?, ?)`
-      ).bind(safeStr(row.name), safeStr(row.category), safeStr(row.document_link),
-        safeStr(row.version), safeDate(row.effective_date), safeStr(row.notes)));
-    } else {
-      stmts.push(env.DB.prepare(
-        `INSERT INTO sop (name, category, document_link, version, effective_date, notes) VALUES (?, ?, ?, ?, ?, ?)
+    const name = safeStr(row.name);
+    if (!name) { skipped++; continue; } // only name is required
+    const sql = onDuplicate === 'skip'
+      ? `INSERT OR IGNORE INTO sop (name, category, document_link, version, effective_date, notes) VALUES (?, ?, ?, ?, ?, ?)`
+      : `INSERT INTO sop (name, category, document_link, version, effective_date, notes) VALUES (?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category,
-           document_link=excluded.document_link, version=excluded.version`
-      ).bind(safeStr(row.name), safeStr(row.category), safeStr(row.document_link),
-        safeStr(row.version), safeDate(row.effective_date), safeStr(row.notes)));
-    }
+           document_link=excluded.document_link, version=excluded.version`;
+    stmts.push(env.DB.prepare(sql).bind(
+      name, safeStr(row.category) || 'Umum',
+      safeStr(row.document_link), safeStr(row.version),
+      safeDate(row.effective_date), safeStr(row.notes)
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Inspection Reports ────────────────────────────────────────────────────
+// ─── Inspection ───────────────────────────────────────────────────────────────
 async function importInspection(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    const inspection_date = safeDate(row.inspection_date);
-    if (!inspection_date || !safeStr(row.period)) { skipped++; continue; }
+    const branch_name = safeStr(row.branch_name);
+    if (!branch_name) { skipped++; continue; }
     stmts.push(env.DB.prepare(
       `INSERT INTO inspection_reports (branch_id, period, inspection_date, status, fc_score, spv_score, document_link, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(matchBranch(row.branch_name), safeStr(row.period), inspection_date,
+    ).bind(
+      matchBranch(branch_name), safeStr(row.period) || '-',
+      safeDate(row.inspection_date) || today(),
       safeStr(row.status) || 'Pending',
       row.fc_score != null ? parseFloat(row.fc_score) : null,
       row.spv_score != null ? parseFloat(row.spv_score) : null,
-      safeStr(row.document_link), safeStr(row.notes)));
+      safeStr(row.document_link), safeStr(row.notes)
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Cleaning Reports (GC/DC) ──────────────────────────────────────────────
+// ─── Cleaning (GC/DC) ─────────────────────────────────────────────────────────
 async function importCleaning(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    const activity_date = safeDate(row.activity_date);
-    if (!activity_date || !safeStr(row.period)) { skipped++; continue; }
+    const branch_name = safeStr(row.branch_name);
+    if (!branch_name) { skipped++; continue; }
     stmts.push(env.DB.prepare(
       `INSERT INTO cleaning_reports (branch_id, activity_type, period, activity_date, status, document_link, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(matchBranch(row.branch_name), safeStr(row.activity_type) || 'General Cleaning',
-      safeStr(row.period), activity_date, safeStr(row.status) || 'Pending',
-      safeStr(row.document_link), safeStr(row.notes)));
+    ).bind(
+      matchBranch(branch_name),
+      safeStr(row.activity_type) || 'General Cleaning',
+      safeStr(row.period) || '-',
+      safeDate(row.activity_date) || today(),
+      safeStr(row.status) || 'Pending',
+      safeStr(row.document_link), safeStr(row.notes)
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Fogging Reports ───────────────────────────────────────────────────────
+// ─── Fogging ──────────────────────────────────────────────────────────────────
 async function importFogging(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    if (!safeStr(row.period)) { skipped++; continue; }
+    // Accept any non-empty row — at least branch OR date should be present
+    const branch_name  = safeStr(row.branch_name);
+    const activity_date = safeDate(row.activity_date);
+    if (!branch_name && !activity_date) { skipped++; continue; }
+
     stmts.push(env.DB.prepare(
       `INSERT INTO fogging_reports (branch_id, activity_type, period, activity_date, status, document_link, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(matchBranch(row.branch_name), 'Fogging', safeStr(row.period),
-      safeDate(row.activity_date), safeStr(row.status) || 'Pending',
-      safeStr(row.document_link), safeStr(row.notes)));
+    ).bind(
+      matchBranch(branch_name), 'Fogging',
+      safeStr(row.period) || '-',
+      activity_date || today(),
+      safeStr(row.status) || 'Pending',
+      safeStr(row.document_link), safeStr(row.notes)
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Basecamp Reports ──────────────────────────────────────────────────────
+// ─── Basecamp ─────────────────────────────────────────────────────────────────
 async function importBasecamp(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    const info_date = safeDate(row.info_date);
-    if (!info_date || !safeStr(row.problem)) { skipped++; continue; }
+    const problem = safeStr(row.problem);
+    if (!problem) { skipped++; continue; }
     stmts.push(env.DB.prepare(
       `INSERT INTO basecamp_reports (branch_id, problem, pic, info_date, done_date, status, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(matchBranch(row.branch_name), safeStr(row.problem), safeStr(row.pic),
-      info_date, safeDate(row.done_date), safeStr(row.status) || 'Open', safeStr(row.notes)));
+    ).bind(
+      matchBranch(row.branch_name), problem, safeStr(row.pic),
+      safeDate(row.info_date) || today(),
+      safeDate(row.done_date),
+      safeStr(row.status) || 'Open', safeStr(row.notes)
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);
 }
 
-// ─── Supply / Chemical Requests ────────────────────────────────────────────
+// ─── Supply / Chemical ────────────────────────────────────────────────────────
 async function importSupply(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
-  const branches = bRows.results;
-  const matchBranch = (str) => { if (!str) return null; const s = String(str).toLowerCase().trim(); return (branches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s) || {}).id || null; };
+  const matchBranch = makeBranchMatcher(bRows.results);
 
   const stmts = [];
   let skipped = 0;
   for (const row of rows) {
-    const submitted_at = safeDate(row.submitted_at) || new Date().toISOString().slice(0, 10);
-    if (!safeStr(row.submitter_name)) { skipped++; continue; }
+    const submitter_name = safeStr(row.submitter_name);
+    if (!submitter_name) { skipped++; continue; }
     const branch_id = matchBranch(row.branch_name);
-    const branchObj = branch_id ? branches.find(b => b.id === branch_id) : null;
+    const branchObj = branch_id ? bRows.results.find(b => b.id === branch_id) : null;
     stmts.push(env.DB.prepare(
       `INSERT INTO supply_requests (submitted_at, submitter_name, branch_id, branch_name, tools_items, tools_quantity, chemical_items, chemical_quantity, additional_notes, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(submitted_at, safeStr(row.submitter_name), branch_id,
+    ).bind(
+      safeDate(row.submitted_at) || today(),
+      submitter_name, branch_id,
       branchObj ? branchObj.full_name : safeStr(row.branch_name),
       safeStr(row.tools_items), safeStr(row.tools_quantity),
       safeStr(row.chemical_items), safeStr(row.chemical_quantity),
-      safeStr(row.additional_notes), safeStr(row.status) || 'Pending'));
+      safeStr(row.additional_notes), safeStr(row.status) || 'Pending'
+    ));
   }
   const inserted = await batchInsert(env.DB, stmts);
   return ok({ inserted, skipped }, 200, origin);

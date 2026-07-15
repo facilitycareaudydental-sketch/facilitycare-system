@@ -77,20 +77,19 @@ CREATE TABLE IF NOT EXISTS employees (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS contracts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  employee_id INTEGER NOT NULL,
+  employee_id INTEGER,
+  employee_name TEXT,
   branch_id INTEGER,
   division TEXT NOT NULL DEFAULT 'FACILITY CARE',
-  start_date TEXT NOT NULL,
-  end_date TEXT NOT NULL,
+  start_date TEXT,
+  end_date TEXT,
   contract_type TEXT,
-  -- KONTRAK 6 BULAN, KONTRAK 1 TAHUN, etc.
   pkwt_number TEXT,
-  -- PKWT 1, PKWT 2, etc.
   status TEXT NOT NULL DEFAULT 'Aktif',
   notes TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL,
   FOREIGN KEY (branch_id) REFERENCES branches(id)
 );
 
@@ -101,15 +100,12 @@ CREATE TABLE IF NOT EXISTS activity_schedule (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   branch_id INTEGER,
   activity_type TEXT NOT NULL,
-  -- Inspeksi Hygiene & Aset Bangunan, General Cleaning, Deep Cleaning, Fogging
-  period TEXT NOT NULL,
-  -- Q1, Q2, Q3, Q4
+  period TEXT,
   pic TEXT,
   opening_date TEXT,
   target_date TEXT,
   completion_date TEXT,
   status TEXT NOT NULL DEFAULT 'Pending',
-  -- Pending, In Progress, Done
   notes TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -469,3 +465,12 @@ INSERT OR IGNORE INTO sop (name, category, document_link) VALUES
 -- Master Checklist seed
 INSERT OR IGNORE INTO master_checklist (name, category, document_link) VALUES 
   ('Master Cleaning Program - Toilet', 'Master Cleaning Program', 'https://docs.google.com/spreadsheets/d/1euLGRgPPJMueZhnx_gDKCJQ2LPPVyDtb/edit?gid=1966419973#gid=1966419973');
+
+-- ============================================================
+-- SCHEMA MIGRATIONS (v2) — run-safe with IF NOT EXISTS guards
+-- ============================================================
+-- Add employee_name column to contracts (if not exists)
+-- SQLite does not support IF NOT EXISTS on ALTER TABLE, so we use a try-catch at runtime.
+-- The wrangler d1 execute script is run with --yes and continue-on-error=true.
+ALTER TABLE contracts ADD COLUMN employee_name TEXT;
+ALTER TABLE contracts ADD COLUMN division TEXT DEFAULT 'FACILITY CARE';
