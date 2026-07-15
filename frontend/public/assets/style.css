@@ -1958,3 +1958,478 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .alert-warning { background: var(--warning-light); color: #92400E; border: 1px solid #FDE68A; }
 .alert-danger  { background: var(--danger-light); color: #991B1B; border: 1px solid #FECACA; }
 
+
+/* ================================================================
+   FCMS MOBILE RESPONSIVE v4 — Complete Rewrite
+   Covers: Dashboard, Calendar, All CRUD Pages, Sidebar Drawer
+   ================================================================ */
+
+/* ── 0. Global mobile safety ──────────────────────────────────── */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+* { box-sizing: border-box; }
+img, svg, canvas, video { max-width: 100%; }
+
+/* ── Desktop: topbar-menu-btn only on mobile (hidden by default) */
+@media (min-width: 769px) {
+  .topbar-menu-btn { display: none; }
+}
+
+/* ── 1. 1280px — large laptop ─────────────────────────────────── */
+@media (max-width: 1280px) {
+  .kpi-row        { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .mini-stats-row { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+
+/* ── 2. 1024px — laptop / small tablet landscape ─────────────── */
+@media (max-width: 1024px) {
+  .kpi-row        { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .mini-stats-row { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .charts-row, .tables-row { grid-template-columns: 1fr; }
+  .topbar-center  { display: none; }
+}
+
+/* ── 3. 900px — tablet portrait ──────────────────────────────── */
+@media (max-width: 900px) {
+  .kpi-row        { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .mini-stats-row { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .charts-row, .tables-row { grid-template-columns: 1fr; }
+  .profile-layout { grid-template-columns: 1fr; }
+}
+
+/* ── 4. 768px — MOBILE : everything below here is phone layout ─ */
+@media (max-width: 768px) {
+
+  /* 4.1 Root overrides */
+  :root {
+    --sb-width: 280px;
+    --topbar-h: 56px;
+  }
+  html { font-size: 14px; }
+
+  /* 4.2 Sidebar → off-canvas drawer */
+  .sidebar {
+    position: fixed !important;
+    top: 0; left: 0;
+    width: var(--sb-width) !important;
+    height: 100dvh !important;
+    height: 100vh !important;
+    transform: translateX(-100%) !important;
+    transition: transform 230ms cubic-bezier(.4,0,.2,1) !important;
+    box-shadow: 0 0 40px rgba(0,0,0,.35) !important;
+    z-index: 900 !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sidebar.open {
+    transform: translateX(0) !important;
+  }
+  .sidebar-overlay {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 899;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 230ms, visibility 230ms;
+  }
+  .sidebar-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+  .sidebar-close { display: flex !important; }
+  .topbar-menu-btn { display: flex !important; }
+
+  /* 4.3 Layout */
+  .main-content { padding: 12px; }
+  .topbar       { padding: 0 12px; }
+  .topbar-center { display: none; }
+  .topbar-user-name { display: none; }
+  .topbar-page-title { font-size: 0.9rem; font-weight: 700; }
+
+  /* 4.4 Dashboard grid */
+  .dashboard-wrap { gap: 12px; }
+  .kpi-row        { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 10px; }
+  .mini-stats-row { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 8px; }
+  .charts-row, .tables-row { grid-template-columns: 1fr !important; gap: 12px; }
+
+  /* 4.5 KPI Cards — must stay visible */
+  .kpi-card {
+    padding: 14px 12px;
+    border-radius: 12px;
+    min-height: unset;
+    min-width: 0;
+  }
+  .kpi-card-top   { margin-bottom: 6px; }
+  .kpi-value      { font-size: 1.6rem !important; line-height: 1.1; }
+  .kpi-label      { font-size: 0.75rem; }
+  .kpi-subtitle   { font-size: 0.68rem; }
+  .kpi-icon-wrap  { width: 36px; height: 36px; border-radius: 10px; }
+  .kpi-icon-emoji { font-size: 1.1rem; }
+  .kpi-trend      { font-size: 0.65rem; padding: 2px 6px; }
+
+  /* 4.6 Mini stats */
+  .mini-stat       { padding: 10px; gap: 8px; }
+  .mini-stat-icon  { width: 34px; height: 34px; border-radius: 8px; font-size: 0.95rem; }
+  .mini-stat-value { font-size: 1.2rem !important; }
+  .mini-stat-label { font-size: 0.67rem; }
+
+  /* 4.7 Chart cards */
+  .chart-card       { padding: 12px; border-radius: 12px; }
+  .chart-card-title { font-size: 0.82rem; }
+  .chart-card-subtitle { font-size: 0.72rem; }
+  .chart-canvas-wrap { height: 200px !important; }
+
+  /* 4.8 All tables — horizontal scroll wrapper */
+  .dash-table-wrap,
+  .table-wrapper,
+  .data-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .dash-table  { min-width: 520px; font-size: 0.75rem; }
+  .data-table  { min-width: 520px; font-size: 0.75rem; }
+
+  /* 4.9 Page headers & actions */
+  .page-header  { flex-direction: column !important; align-items: flex-start; gap: 10px; }
+  .page-actions { width: 100%; flex-wrap: wrap; }
+  .section-header { flex-direction: column !important; align-items: flex-start; gap: 8px; }
+
+  /* 4.10 Filter bars — stack vertically */
+  .filter-bar-inner {
+    flex-direction: column !important;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .filter-search  { min-width: unset; width: 100%; }
+  .filter-select  { min-width: unset; width: 100%; max-width: 100%; }
+  .excel-btns     { flex-wrap: wrap; gap: 6px; }
+
+  /* 4.11 Calendar — full width, compact cells */
+  .card-header.calendar-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+  }
+  .calendar-nav      { flex-wrap: wrap; gap: 6px; }
+  .calendar-filters  { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+  .calendar-grid {
+    grid-template-columns: repeat(7, minmax(0,1fr)) !important;
+    gap: 1px;
+    overflow: hidden;
+  }
+  .cal-day-header { padding: 6px 2px; font-size: 0.65rem; }
+  .cal-cell {
+    min-height: 52px !important;
+    padding: 3px !important;
+    font-size: 0.7rem;
+  }
+  .cal-day-num { font-size: 0.7rem; margin-bottom: 2px; }
+  .cal-events-preview { display: flex; flex-direction: column; gap: 1px; }
+  .cal-event-dot {
+    display: flex;
+    align-items: center;
+    font-size: 0.58rem;
+    padding: 1px 3px;
+    border-radius: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cal-event-dot-label { display: none; } /* tiny screen: just dot */
+  .cal-more { font-size: 0.58rem; color: var(--text-3); }
+  /* Event sidebar panel */
+  .cal-event-sidebar {
+    position: fixed !important;
+    bottom: 0; left: 0; right: 0;
+    width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -4px 30px rgba(0,0,0,.15) !important;
+    max-height: 60dvh !important;
+    max-height: 60vh !important;
+    overflow-y: auto;
+    z-index: 800;
+  }
+
+  /* 4.12 Modals */
+  .modal {
+    width: calc(100vw - 20px) !important;
+    max-width: unset !important;
+    margin: 10px !important;
+    max-height: calc(100dvh - 20px) !important;
+    max-height: calc(100vh - 20px) !important;
+    overflow-y: auto;
+  }
+  .modal-header, .modal-body, .modal-footer { padding: 16px; }
+
+  /* 4.13 Forms */
+  .form-row       { grid-template-columns: 1fr !important; gap: 12px; }
+  .form-group     { margin-bottom: 12px; }
+  .input-with-icon input { font-size: 0.9rem; }
+
+  /* 4.14 Profile */
+  .profile-layout     { grid-template-columns: 1fr !important; }
+  .profile-avatar-xl  { width: 68px; height: 68px; font-size: 1.7rem; border-radius: 16px; }
+  .profile-card       { padding: 20px; }
+  .info-key           { min-width: 110px; }
+
+  /* 4.15 Login */
+  .login-card       { padding: 24px 20px; }
+  .login-title      { font-size: 1.35rem; }
+  .login-blob       { display: none; } /* performance on low-end */
+
+  /* 4.16 Pagination */
+  .pagination       { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+  /* 4.17 Bulk toolbar */
+  .bulk-toolbar     { flex-wrap: wrap; gap: 8px; }
+
+  /* 4.18 Toasts */
+  #toast-container  { left: 10px !important; right: 10px !important; bottom: 10px !important; }
+  .toast            { width: 100% !important; min-width: unset !important; }
+
+  /* 4.19 Card general */
+  .card { border-radius: 12px; }
+  .card-body { padding: 14px; }
+  .card-header { padding: 12px 14px; }
+
+  /* 4.20 Import stepper */
+  .import-steps { flex-wrap: wrap; gap: 6px; }
+  .import-step  { font-size: 0.75rem; padding: 6px 10px; }
+
+  /* 4.21 Stat boxes */
+  .stat-boxes { flex-wrap: wrap; gap: 8px; }
+  .stat-box   { min-width: 100px; }
+}
+
+/* ── 5. 480px — small phone ───────────────────────────────────── */
+@media (max-width: 480px) {
+  :root { --topbar-h: 52px; }
+  .main-content   { padding: 8px; }
+  .dashboard-wrap { gap: 8px; }
+
+  /* 2-col KPI always */
+  .kpi-row        { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 8px; }
+  .mini-stats-row { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 6px; }
+
+  .kpi-card       { padding: 10px; }
+  .kpi-value      { font-size: 1.4rem !important; }
+  .kpi-icon-wrap  { width: 30px; height: 30px; font-size: 1rem; }
+
+  .mini-stat      { padding: 8px; gap: 6px; }
+  .mini-stat-icon { width: 30px; height: 30px; font-size: 0.85rem; }
+  .mini-stat-value { font-size: 1rem !important; }
+
+  .chart-canvas-wrap { height: 170px !important; }
+  .chart-card     { padding: 10px; }
+
+  .topbar-icon-btn { width: 32px; height: 32px; }
+
+  /* Calendar: very compact on small phones */
+  .cal-cell       { min-height: 42px !important; }
+  .cal-day-header { padding: 4px 1px; font-size: 0.6rem; }
+}
+
+/* ── 6. 360px — very small phone (extreme fallback) ──────────── */
+@media (max-width: 360px) {
+  .kpi-row        { grid-template-columns: 1fr !important; }
+  .kpi-card       { padding: 10px; }
+  .mini-stats-row { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+}
+
+/* ── 7. Touch targets (min 44px) ─────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  .btn, .nav-item, .topbar-icon-btn, .topbar-menu-btn,
+  .sidebar-logout, button, [role="button"] {
+    min-height: 44px;
+  }
+  .nav-item { padding: 10px 20px; }
+  .cal-cell { cursor: default; }
+}
+
+/* ── 8. Print — hide sidebar/topbar ─────────────────────────── */
+@media print {
+  .sidebar, .topbar, .sidebar-overlay, .toast, .btn { display: none !important; }
+  .main-content { padding: 0 !important; }
+  .dashboard-wrap { gap: 12px; }
+  .kpi-row { grid-template-columns: repeat(4, 1fr) !important; }
+}
+
+/* ================================================================
+   CALENDAR PAGE — Component CSS (cal-cell, cal-event-dot, etc.)
+   Matches classes rendered by calendar.js
+   ================================================================ */
+
+/* Calendar page header nav */
+.card-header.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.calendar-month-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-1);
+  min-width: 150px;
+  text-align: center;
+  flex: 1;
+}
+.calendar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-left: auto;
+}
+.filter-check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+.filter-check input[type="checkbox"] {
+  width: 14px; height: 14px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* Calendar grid — same as .calendar-grid but uses .cal-cell (new) */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+}
+.cal-day-header {
+  background: var(--gray-50);
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Each day cell */
+.cal-cell {
+  background: var(--bg-card);
+  min-height: 80px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background var(--transition);
+  overflow: hidden;
+}
+.cal-cell:hover    { background: var(--gray-50); }
+.cal-today         { background: #EFF6FF !important; }
+.cal-cell-empty    { background: var(--gray-50); opacity: .5; }
+.cal-has-events    { /* indicator handled in events-preview */ }
+
+.cal-day-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-2);
+  margin-bottom: 3px;
+  line-height: 1;
+}
+.today-num { color: var(--primary) !important; }
+
+/* Events preview inside each cell */
+.cal-events-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.cal-event-dot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.cal-event-dot-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.cal-more {
+  font-size: 0.62rem;
+  color: var(--text-3);
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+/* Color variants for cal-event-dot */
+.cal-color-blue   { background: #DBEAFE; color: #1D4ED8; }
+.cal-color-green  { background: #D1FAE5; color: #065F46; }
+.cal-color-red    { background: #FEE2E2; color: #991B1B; }
+.cal-color-orange { background: #FED7AA; color: #C2410C; }
+.cal-color-purple { background: #EDE9FE; color: #5B21B6; }
+.cal-color-teal   { background: #CCFBF1; color: #0F766E; }
+.cal-color-yellow { background: #FEF3C7; color: #92400E; }
+.cal-color-gray   { background: var(--gray-100); color: var(--gray-600); }
+
+/* Event detail sidebar (click on day) */
+.cal-event-sidebar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0;
+  width: 320px;
+  position: fixed;
+  right: 24px;
+  top: calc(var(--topbar-h) + 24px);
+  z-index: 400;
+  overflow: hidden;
+  animation: fadeInUp .2s ease;
+}
+.cal-event-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  color: var(--text-1);
+  font-size: 0.875rem;
+}
+.cal-event-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+}
+.cal-event-item:last-child { border-bottom: none; }
+.cal-event-type  { font-size: 0.72rem; color: var(--text-3); margin-bottom: 3px; }
+.cal-event-title { font-weight: 600; color: var(--text-1); font-size: 0.875rem; }
+.cal-event-branch { font-size: 0.72rem; color: var(--text-2); margin-top: 2px; }
+.cal-event-status { font-size: 0.7rem; color: var(--text-3); margin-top: 4px; }
+.cal-event-extra  { font-size: 0.7rem; color: var(--primary); margin-top: 2px; }
+
+/* Border color variants */
+.cal-color-border-blue   { border-left-color: #2563EB; }
+.cal-color-border-green  { border-left-color: #10B981; }
+.cal-color-border-red    { border-left-color: #EF4444; }
+.cal-color-border-orange { border-left-color: #F97316; }
+.cal-color-border-purple { border-left-color: #8B5CF6; }
+.cal-color-border-teal   { border-left-color: #14B8A6; }
+.cal-color-border-yellow { border-left-color: #F59E0B; }
+.cal-color-border-gray   { border-left-color: var(--gray-400); }
