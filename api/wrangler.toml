@@ -13,7 +13,7 @@ binding = "SESSIONS"
 id = "4acb3038c5b042b8ad3c87473d02a434"
 
 [vars]
-JWT_SECRET = "change-this-to-a-secure-random-string-in-production"
+JWT_SECRET = "FacilityCare-AudyDental-FM-Ops-S3cr3t-K3y-2026!@#$"
 CORS_ORIGIN = "https://fm-operations.pages.dev"
 
 [dev]
