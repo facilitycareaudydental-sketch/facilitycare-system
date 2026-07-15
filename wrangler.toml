@@ -6,11 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "fm-operations-db"
-database_id = "YOUR_D1_DATABASE_ID"
+database_id = "9ba97b16-a1ad-4751-b948-d35eb1204a84"
 
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = "YOUR_KV_NAMESPACE_ID"
+id = "4acb3038c5b042b8ad3c87473d02a434"
 
 [vars]
 JWT_SECRET = "change-this-to-a-secure-random-string-in-production"
