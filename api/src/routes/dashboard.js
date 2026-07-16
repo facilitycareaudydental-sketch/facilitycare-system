@@ -29,6 +29,7 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/calendar')          return getCalendarEvents(request, env, origin);
   if (path === '/activity-by-period') return getActivityByPeriod(env, origin);
   if (path === '/inspection-scores') return getInspectionScores(request, env, origin);
+  if (path === '/notifications')      return getNotifications(request, env, origin);
 
   return ok({}, 200, origin);
 }
@@ -414,7 +415,9 @@ async function getCalendarEvents(request, env, origin) {
 
   const dateFilter = (col) => `strftime('%Y-%m',${col})=?`;
 
-  const [sched, issR, relR, trainR, contrR] = await Promise.all([
+  const [
+    sched, issR, relR, trainR, oneR, cleanR, inspR, fogR, baseR, supplyR, contrList
+  ] = await Promise.all([
     env.DB.prepare(
       `SELECT s.id,'schedule' type,s.target_date event_date,s.activity_type title,
        s.status,s.pic,b.full_name branch_name,
@@ -445,18 +448,88 @@ async function getCalendarEvents(request, env, origin) {
        FROM training t WHERE ${dateFilter('t.training_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
-      `SELECT c.id,'contract_expiry' type,c.end_date event_date,
-       COALESCE(e.full_name,c.employee_name,'?') title,c.status,'' branch_name,
-       CAST(julianday(c.end_date)-julianday('now') AS INTEGER) days_remaining,'yellow' color
-       FROM contracts c LEFT JOIN employees e ON c.employee_id=e.id
-       WHERE c.status='Aktif' AND ${dateFilter('c.end_date')}`
+      `SELECT o.id,'one_on_one' type,o.meeting_date event_date,'One on One: ' || o.employee_name title,
+       o.status,b.full_name branch_name,'pink' color
+       FROM one_on_one o LEFT JOIN branches b ON o.branch_id=b.id
+       WHERE ${dateFilter('o.meeting_date')}`
     ).bind(...bind).all(),
+    env.DB.prepare(
+      `SELECT c.id,'cleaning' type,c.activity_date event_date,c.activity_type || ': ' || b.full_name title,
+       c.status,b.full_name branch_name,'green' color
+       FROM cleaning_reports c LEFT JOIN branches b ON c.branch_id=b.id
+       WHERE ${dateFilter('c.activity_date')}`
+    ).bind(...bind).all(),
+    env.DB.prepare(
+      `SELECT r.id,'inspection' type,r.inspection_date event_date,'Inspeksi: ' || b.full_name title,
+       r.status,b.full_name branch_name,'blue' color
+       FROM inspection_reports r LEFT JOIN branches b ON r.branch_id=b.id
+       WHERE ${dateFilter('r.inspection_date')}`
+    ).bind(...bind).all(),
+    env.DB.prepare(
+      `SELECT f.id,'fogging' type,f.activity_date event_date,'Fogging: ' || b.full_name title,
+       f.status,b.full_name branch_name,'orange' color
+       FROM fogging_reports f LEFT JOIN branches b ON f.branch_id=b.id
+       WHERE ${dateFilter('f.activity_date')}`
+    ).bind(...bind).all(),
+    env.DB.prepare(
+      `SELECT bp.id,'basecamp' type,bp.info_date event_date,'Basecamp: ' || bp.problem title,
+       bp.status,b.full_name branch_name,'purple' color
+       FROM basecamp_reports bp LEFT JOIN branches b ON bp.branch_id=b.id
+       WHERE ${dateFilter('bp.info_date')}`
+    ).bind(...bind).all(),
+    env.DB.prepare(
+      `SELECT s.id,'supply' type,strftime('%Y-%m-%d',s.submitted_at) event_date,'Permintaan: ' || s.submitter_name title,
+       s.status,COALESCE(b.full_name,s.branch_name) branch_name,'brown' color
+       FROM supply_requests s LEFT JOIN branches b ON s.branch_id=b.id
+       WHERE strftime('%Y-%m',s.submitted_at)=?`
+    ).bind(...bind).all(),
+    env.DB.prepare(
+      `SELECT c.id, c.end_date, COALESCE(e.full_name,c.employee_name,'?') emp_name
+       FROM contracts c LEFT JOIN employees e ON c.employee_id=e.id
+       WHERE c.status='Aktif'`
+    ).all()
   ]);
+
+  // Generate virtual contract reminder events dynamically (H-90, H-60, H-30, H-14, H-7, H-1, H-0)
+  const contractEvents = [];
+  const intervals = [90, 60, 30, 14, 7, 1, 0];
+  (contrList.results || []).forEach(c => {
+    if (!c.end_date) return;
+    const end = new Date(c.end_date + 'T00:00:00');
+    if (isNaN(end.getTime())) return;
+    
+    intervals.forEach(days => {
+      const remDate = new Date(end.getTime());
+      remDate.setDate(end.getDate() - days);
+      const remStr = remDate.toISOString().slice(0, 10);
+      
+      if (remStr.startsWith(curM)) {
+        const daysRemaining = Math.ceil((end.getTime() - Date.now()) / 86400000);
+        const title = days === 0 
+          ? `Hari H: Kontrak ${c.emp_name} Berakhir`
+          : `Reminder H-${days}: Kontrak ${c.emp_name} Berakhir`;
+        
+        contractEvents.push({
+          id: c.id,
+          type: 'contract_expiry',
+          event_date: remStr,
+          title: title,
+          status: 'Aktif',
+          branch_name: '',
+          days_remaining: daysRemaining,
+          color: days <= 7 ? 'red' : days <= 30 ? 'orange' : 'yellow'
+        });
+      }
+    });
+  });
 
   const events = [
     ...(sched.results||[]), ...(issR.results||[]),
     ...(relR.results||[]),  ...(trainR.results||[]),
-    ...(contrR.results||[]),
+    ...(oneR.results||[]),  ...(cleanR.results||[]),
+    ...(inspR.results||[]),  ...(fogR.results||[]),
+    ...(baseR.results||[]),  ...(supplyR.results||[]),
+    ...contractEvents
   ].sort((a,b)=>(a.event_date||'').localeCompare(b.event_date||''));
 
   return ok(events, 200, origin);
@@ -483,4 +556,96 @@ async function getInspectionScores(request, env, origin) {
      ${where} ORDER BY r.inspection_date ASC LIMIT 500`
   ).bind(...bind).all();
   return ok(rows.results||[], 200, origin);
+}
+
+async function getNotifications(request, env, origin) {
+  const [contracts, pendingSched, openIssues, pendingSupply] = await Promise.all([
+    env.DB.prepare(
+      `SELECT c.id, c.end_date, COALESCE(e.full_name, c.employee_name, '?') as emp_name
+       FROM contracts c LEFT JOIN employees e ON c.employee_id = e.id
+       WHERE c.status = 'Aktif'`
+    ).all(),
+    env.DB.prepare(
+      `SELECT id, activity_type, target_date FROM activity_schedule WHERE status = 'Pending' LIMIT 50`
+    ).all(),
+    env.DB.prepare(
+      `SELECT id, category, report_date FROM issues WHERE status != 'Done' LIMIT 50`
+    ).all(),
+    env.DB.prepare(
+      `SELECT id, submitter_name, submitted_at FROM supply_requests WHERE status = 'Pending' LIMIT 50`
+    ).all()
+  ]);
+
+  const list = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 1. Contract reminders
+  const intervals = [90, 60, 30, 14, 7, 1, 0];
+  (contracts.results || []).forEach(c => {
+    if (!c.end_date) return;
+    const end = new Date(c.end_date + 'T00:00:00');
+    if (isNaN(end.getTime())) return;
+
+    intervals.forEach(days => {
+      const remDate = new Date(end.getTime());
+      remDate.setDate(end.getDate() - days);
+      remDate.setHours(0, 0, 0, 0);
+
+      // Trigger reminder if today is within [remDate, remDate + 7 days]
+      const diffTime = today.getTime() - remDate.getTime();
+      const diffDays = diffTime / 86400000;
+      if (diffDays >= 0 && diffDays <= 7) {
+        const severity = days <= 7 ? 'danger' : days <= 30 ? 'warning' : 'info';
+        const title = days === 0
+          ? `Hari H: Kontrak ${c.emp_name} Berakhir!`
+          : `Reminder H-${days}: Kontrak ${c.emp_name} Berakhir`;
+        list.push({
+          id: `contract-${c.id}-${days}`,
+          title,
+          type: 'contract',
+          date: remDate.toISOString().slice(0, 10),
+          severity
+        });
+      }
+    });
+  });
+
+  // 2. Pending Schedule
+  (pendingSched.results || []).forEach(s => {
+    list.push({
+      id: `schedule-${s.id}`,
+      title: `Jadwal Pending: ${s.activity_type}`,
+      type: 'schedule',
+      date: s.target_date,
+      severity: 'warning'
+    });
+  });
+
+  // 3. Open Issues
+  (openIssues.results || []).forEach(i => {
+    list.push({
+      id: `issue-${i.id}`,
+      title: `Permasalahan Baru: ${i.category}`,
+      type: 'issue',
+      date: i.report_date,
+      severity: 'danger'
+    });
+  });
+
+  // 4. Pending Supply Requests
+  (pendingSupply.results || []).forEach(s => {
+    list.push({
+      id: `supply-${s.id}`,
+      title: `Permintaan Barang pending: ${s.submitter_name}`,
+      type: 'supply',
+      date: String(s.submitted_at).slice(0, 10),
+      severity: 'info'
+    });
+  });
+
+  // Sort by date descending
+  list.sort((a, b) => b.date.localeCompare(a.date));
+
+  return ok(list, 200, origin);
 }

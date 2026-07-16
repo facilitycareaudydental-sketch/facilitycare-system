@@ -1,6 +1,7 @@
 import { getToken, getUser, clearToken, apiFetch, setUser, setToken } from './config.js';
 import { initRouter, registerRoute, navigate } from './router.js';
 import { toastError } from './components/toast.js';
+import { createModal } from './components/modal.js';
 
 // Page imports
 import { renderDashboard } from './pages/dashboard.js';
@@ -68,6 +69,54 @@ async function loadSidebarBadges() {
     setBadge('badge-schedule',    d.schedule?.current    || 0);
     setBadge('badge-supply',      d.supply?.current      || 0);
   } catch { /* silent */ }
+}
+
+// ── Notifications System (load from API) ─────────────────────────────────────
+let _notifications = [];
+async function loadNotifications() {
+  try {
+    const res = await apiFetch('/api/dashboard/notifications');
+    if (!res.ok) return;
+    _notifications = res.data?.data || res.data || [];
+    const dot = document.getElementById('notif-dot');
+    if (dot) {
+      dot.style.display = _notifications.length > 0 ? 'block' : 'none';
+      dot.textContent = _notifications.length;
+    }
+  } catch { /* silent */ }
+}
+
+function showNotificationsModal() {
+  if (!_notifications.length) {
+    createModal({
+      title: 'Notifikasi',
+      content: '<div class="empty-state"><p>Tidak ada notifikasi baru.</p></div>',
+      confirmText: 'Tutup',
+      onConfirm: (_, close) => close()
+    });
+    return;
+  }
+
+  const contentHtml = `
+    <div class="notif-list" style="max-height: 400px; overflow-y: auto;">
+      ${_notifications.map(n => `
+        <div class="notif-item notif-severity-${n.severity || 'info'}" style="padding: 12px; border-bottom: 1px solid var(--border); border-left: 4px solid var(--${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'primary'}); margin-bottom: 8px; border-radius: 4px; background: #fff;">
+          <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-1);">${n.title}</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.75rem; color: var(--text-3);">
+            <span>📅 ${n.date}</span>
+            <span class="badge badge-${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'info'}">${n.type.toUpperCase()}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  createModal({
+    title: `Notifikasi (${_notifications.length})`,
+    content: contentHtml,
+    confirmText: 'Tutup',
+    onConfirm: (_, close) => close()
+  });
 }
 
 // ── Render Layout ────────────────────────────────────────────────────────────
@@ -347,6 +396,13 @@ function renderLayout() {
 
   // ── Sidebar badges ───────────────────────────────────────────────────────
   loadSidebarBadges();
+  loadNotifications();
+
+  // ── Click notif button ───────────────────────────────────────────────────
+  document.getElementById('btn-notif')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showNotificationsModal();
+  });
 }
 
 // ── Routes ───────────────────────────────────────────────────────────────────
