@@ -4,8 +4,19 @@ import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
 export async function renderRelievers(container) {
-  const bRes = await apiFetch('/api/branches?all=1');
+  const [bRes, eRes] = await Promise.all([
+    apiFetch('/api/branches?all=1'),
+    apiFetch('/api/employees?limit=10000')
+  ]);
   const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+
+  const getEmpOptions = (val) => {
+    if (val && !employeeOptions.find(o => o.value === val)) {
+      return [...employeeOptions, { value: val, label: val }];
+    }
+    return employeeOptions;
+  };
 
   buildCrudPage({
     container,
@@ -38,8 +49,8 @@ export async function renderRelievers(container) {
       },
       {
         type: 'row', fields: [
-          { name: 'original_fc_name', label: 'FC yang Digantikan', placeholder: 'Nama FC / BELUM ADA FC', value: data?.original_fc_name },
-          { name: 'reliever_name', label: 'Nama Reliefer', required: true, placeholder: 'Nama yang menggantikan', value: data?.reliever_name },
+          { name: 'original_fc_name', label: 'FC yang Digantikan', type: 'select', options: [{value:'', label:'BELUM ADA FC'}, ...getEmpOptions(data?.original_fc_name)], value: data?.original_fc_name },
+          { name: 'reliever_name', label: 'Nama Reliefer', type: 'select', required: true, options: getEmpOptions(data?.reliever_name), value: data?.reliever_name },
         ]
       },
       {

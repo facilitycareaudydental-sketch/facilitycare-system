@@ -2,8 +2,19 @@ import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
 
 export async function renderTraining(container) {
-  const bRes = await apiFetch('/api/branches?all=1');
+  const [bRes, eRes] = await Promise.all([
+    apiFetch('/api/branches?all=1'),
+    apiFetch('/api/employees?limit=10000')
+  ]);
   const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+
+  const getEmpOptions = (val) => {
+    if (val && !employeeOptions.find(o => o.value === val)) {
+      return [...employeeOptions, { value: val, label: val }];
+    }
+    return employeeOptions;
+  };
   const years = Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - i));
 
   buildCrudPage({
@@ -39,7 +50,7 @@ export async function renderTraining(container) {
       {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
-          { name: 'trainer', label: 'Trainer', placeholder: 'Nama trainer', value: data?.trainer },
+          { name: 'trainer', label: 'Trainer', type: 'select', options: getEmpOptions(data?.trainer), value: data?.trainer },
         ]
       },
       { name: 'participants', label: 'Peserta (pisahkan dengan koma)', type: 'textarea', rows: 3, placeholder: 'Nama Peserta 1, Nama Peserta 2, ...', value: (() => { try { const arr = JSON.parse(data?.participants); return Array.isArray(arr) ? arr.join(', ') : (data?.participants || ''); } catch { return data?.participants || ''; } })() },

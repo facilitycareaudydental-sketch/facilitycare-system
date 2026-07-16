@@ -4,10 +4,23 @@ import { statusBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
 let branchOptions = [];
+let employeeOptions = [];
 
 export async function renderIssues(container) {
-  const [bRes] = await Promise.all([apiFetch('/api/branches?all=1')]);
+  const [bRes, eRes] = await Promise.all([
+    apiFetch('/api/branches?all=1'),
+    apiFetch('/api/employees?limit=10000')
+  ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+
+  // Helper to ensure existing value is in options (prevents blank selects on old data)
+  const getEmpOptions = (val) => {
+    if (val && !employeeOptions.find(o => o.value === val)) {
+      return [...employeeOptions, { value: val, label: val }];
+    }
+    return employeeOptions;
+  };
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
@@ -48,14 +61,14 @@ export async function renderIssues(container) {
       {
         type: 'row', fields: [
           { name: 'category', label: 'Kategori', type: 'select', required: true, options: ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'], value: data?.category },
-          { name: 'source', label: 'Sumber Laporan', type: 'select', options: ['SPV', 'AM', 'Berlin', 'Ade', 'Miswar', 'Pattrel', 'Perawat', 'FC', 'RCP', 'Lainnya'], value: data?.source },
+          { name: 'source', label: 'Sumber Laporan', type: 'select', options: ['SPV', 'AM', 'Perawat', 'FC', 'RCP', 'Lainnya', ...getEmpOptions(data?.source)], value: data?.source },
         ]
       },
       { name: 'complaint', label: 'Keluhan', type: 'textarea', required: true, rows: 3, value: data?.complaint },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama FC / Security', placeholder: 'Nama yang bermasalah', value: data?.employee_name },
-          { name: 'fc_specialist', label: 'FC Spesialis', type: 'select', options: ['Fajar', 'Miswar', 'Ade', 'Berlin', 'Pattrel', 'Lainnya'], value: data?.fc_specialist },
+          { name: 'employee_name', label: 'Nama FC / Security', type: 'select', options: getEmpOptions(data?.employee_name), value: data?.employee_name },
+          { name: 'fc_specialist', label: 'FC Spesialis', type: 'select', options: getEmpOptions(data?.fc_specialist), value: data?.fc_specialist },
         ]
       },
       { name: 'solution', label: 'Solusi / Tindakan', type: 'textarea', rows: 3, value: data?.solution },

@@ -7,12 +7,20 @@ let branchOptions = [];
 let picOptions = [];
 
 export async function renderSchedule(container) {
-  const [bRes, pRes] = await Promise.all([
+  const [bRes, eRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch('/api/pic'),
+    apiFetch('/api/employees?limit=10000')
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  picOptions = (pRes.data?.data || []).map(p => p.name);
+  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+
+  const getEmpOptions = (val) => {
+    if (val && !employeeOptions.find(o => o.value === val)) {
+      return [...employeeOptions, { value: val, label: val }];
+    }
+    return employeeOptions;
+  };
+  picOptions = employeeOptions;
 
   buildCrudPage({
     container,
