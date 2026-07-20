@@ -1,6 +1,7 @@
 // API configuration - update this to your deployed Worker URL
-const API_BASE_URL = window.__FM_CONFIG?.API_BASE_URL 
-  || 'https://fm-operations-api.facilitycare-audydental.workers.dev';
+const API_BASE_URL = window.__FM_CONFIG?.API_BASE_URL && window.__FM_CONFIG?.API_BASE_URL !== '__API_BASE_URL__' 
+  ? window.__FM_CONFIG.API_BASE_URL 
+  : '';
 
 export const API = API_BASE_URL;
 
@@ -38,7 +39,11 @@ export async function apiFetch(path, options = {}) {
   };
   
   try {
-    const res = await fetch(`${API}${path}`, { ...options, headers });
+    const cacheBuster = `cb=${Date.now()}`;
+    const separator = path.includes('?') ? '&' : '?';
+    const finalUrl = `${API}${path}${separator}${cacheBuster}`;
+    
+    const res = await fetch(finalUrl, { ...options, headers });
     let data;
     try {
       data = await res.json();
