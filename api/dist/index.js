@@ -2062,7 +2062,7 @@ init_performance2();
 function getPagination(url) {
   const params = new URL(url).searchParams;
   const page = Math.max(1, parseInt(params.get("page") || "1"));
-  const limit = Math.min(100, Math.max(1, parseInt(params.get("limit") || "20")));
+  const limit = Math.min(1e4, Math.max(1, parseInt(params.get("limit") || "20")));
   const offset = (page - 1) * limit;
   return { page, limit, offset };
 }
@@ -6343,6 +6343,163 @@ async function triggerCalendarSync(env2, origin) {
 }
 __name(triggerCalendarSync, "triggerCalendarSync");
 
+// src/routes/sp.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+init_auth();
+async function handleSP(request, env2, origin) {
+  const user = await authenticate(request, env2);
+  if (!user)
+    return new Response("Unauthorized", { status: 401, headers: { "Access-Control-Allow-Origin": origin } });
+  if (!hasPermission(user, "sp", "read"))
+    return forbidden(origin);
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/sp", "");
+  const idMatch = path.match(/^\/(\d+)$/);
+  if (request.method === "GET" && (path === "" || path === "/")) {
+    try {
+      const { results } = await env2.DB.prepare(`
+        SELECT s.*, b.name as branch_name
+        FROM sp_data s
+        LEFT JOIN branches b ON s.branch_id = b.id
+        ORDER BY s.id DESC
+      `).all();
+      return ok({ data: results || [] }, origin);
+    } catch (e) {
+      return error3("Server error", 500, origin);
+    }
+  }
+  if (request.method === "POST" && (path === "" || path === "/")) {
+    if (!hasPermission(user, "sp", "write"))
+      return forbidden(origin);
+    try {
+      const body = await request.ok();
+      const { tanggal, employee_name, branch_id, sp_type, status, document_link } = body;
+      const { success } = await env2.DB.prepare(
+        "INSERT INTO sp_data (tanggal, employee_name, branch_id, sp_type, status, document_link) VALUES (?, ?, ?, ?, ?, ?)"
+      ).bind(tanggal || null, employee_name || "", branch_id || null, sp_type || "", status || "", document_link || "").run();
+      if (success)
+        return ok({ message: "SP added successfully" }, origin);
+      return error3("Bad request", 400, origin);
+    } catch (e) {
+      return error3("Server error", 500, origin);
+    }
+  }
+  if (idMatch) {
+    const id = idMatch[1];
+    if (request.method === "PUT") {
+      if (!hasPermission(user, "sp", "write"))
+        return forbidden(origin);
+      try {
+        const body = await request.ok();
+        const { tanggal, employee_name, branch_id, sp_type, status, document_link } = body;
+        const { success } = await env2.DB.prepare(
+          "UPDATE sp_data SET tanggal=?, employee_name=?, branch_id=?, sp_type=?, status=?, document_link=? WHERE id=?"
+        ).bind(tanggal || null, employee_name || "", branch_id || null, sp_type || "", status || "", document_link || "", id).run();
+        if (success)
+          return ok({ message: "SP updated" }, origin);
+        return error3("Bad request", 400, origin);
+      } catch (e) {
+        return error3("Server error", 500, origin);
+      }
+    }
+    if (request.method === "DELETE") {
+      if (!hasPermission(user, "sp", "write"))
+        return forbidden(origin);
+      try {
+        const { success } = await env2.DB.prepare("DELETE FROM sp_data WHERE id=?").bind(id).run();
+        if (success)
+          return ok({ message: "SP deleted" }, origin);
+        return error3("Bad request", 400, origin);
+      } catch (e) {
+        return error3("Server error", 500, origin);
+      }
+    }
+  }
+  return notFound(origin);
+}
+__name(handleSP, "handleSP");
+
+// src/routes/mutasi.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+init_auth();
+async function handleMutasi(request, env2, origin) {
+  const user = await authenticate(request, env2);
+  if (!user)
+    return new Response("Unauthorized", { status: 401, headers: { "Access-Control-Allow-Origin": origin } });
+  if (!hasPermission(user, "mutasi", "read"))
+    return forbidden(origin);
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/mutasi", "");
+  const idMatch = path.match(/^\/(\d+)$/);
+  if (request.method === "GET" && (path === "" || path === "/")) {
+    try {
+      const { results } = await env2.DB.prepare(`
+        SELECT m.*, b1.name as from_branch_name, b2.name as to_branch_name
+        FROM mutasi_data m
+        LEFT JOIN branches b1 ON m.from_branch_id = b1.id
+        LEFT JOIN branches b2 ON m.to_branch_id = b2.id
+        ORDER BY m.id DESC
+      `).all();
+      return ok({ data: results || [] }, origin);
+    } catch (e) {
+      return error3("Server error", 500, origin);
+    }
+  }
+  if (request.method === "POST" && (path === "" || path === "/")) {
+    if (!hasPermission(user, "mutasi", "write"))
+      return forbidden(origin);
+    try {
+      const body = await request.ok();
+      const { tanggal, employee_name, from_branch_id, to_branch_id, status, document_link } = body;
+      const { success } = await env2.DB.prepare(
+        "INSERT INTO mutasi_data (tanggal, employee_name, from_branch_id, to_branch_id, status, document_link) VALUES (?, ?, ?, ?, ?, ?)"
+      ).bind(tanggal || null, employee_name || "", from_branch_id || null, to_branch_id || null, status || "", document_link || "").run();
+      if (success)
+        return ok({ message: "Mutasi added successfully" }, origin);
+      return error3("Bad request", 400, origin);
+    } catch (e) {
+      return error3("Server error", 500, origin);
+    }
+  }
+  if (idMatch) {
+    const id = idMatch[1];
+    if (request.method === "PUT") {
+      if (!hasPermission(user, "mutasi", "write"))
+        return forbidden(origin);
+      try {
+        const body = await request.ok();
+        const { tanggal, employee_name, from_branch_id, to_branch_id, status, document_link } = body;
+        const { success } = await env2.DB.prepare(
+          "UPDATE mutasi_data SET tanggal=?, employee_name=?, from_branch_id=?, to_branch_id=?, status=?, document_link=? WHERE id=?"
+        ).bind(tanggal || null, employee_name || "", from_branch_id || null, to_branch_id || null, status || "", document_link || "", id).run();
+        if (success)
+          return ok({ message: "Mutasi updated" }, origin);
+        return error3("Bad request", 400, origin);
+      } catch (e) {
+        return error3("Server error", 500, origin);
+      }
+    }
+    if (request.method === "DELETE") {
+      if (!hasPermission(user, "mutasi", "write"))
+        return forbidden(origin);
+      try {
+        const { success } = await env2.DB.prepare("DELETE FROM mutasi_data WHERE id=?").bind(id).run();
+        if (success)
+          return ok({ message: "Mutasi deleted" }, origin);
+        return error3("Bad request", 400, origin);
+      } catch (e) {
+        return error3("Server error", 500, origin);
+      }
+    }
+  }
+  return notFound(origin);
+}
+__name(handleMutasi, "handleMutasi");
+
 // src/utils/google_sync.js
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
@@ -6418,22 +6575,22 @@ async function syncGoogleSheets(env2) {
       await env2.DB.batch(empStmts.slice(i, i + 100));
     }
     const picStmts = [];
-    const currentPics = (await env2.DB.prepare("SELECT id, name, role FROM pic_list").all()).results;
+    await env2.DB.prepare("DELETE FROM pic_list").run();
+    const currentPics = [];
     for (const row of valData) {
       const pic = (row["PIC"] || "").trim();
-      const role = (row["KEGIATAN"] || "").trim();
       if (pic) {
         const existing = currentPics.find((p) => p.name === pic);
         if (!existing) {
-          picStmts.push(env2.DB.prepare("INSERT INTO pic_list (name, role) VALUES (?, ?)").bind(pic, role));
-          currentPics.push({ name: pic, role });
+          picStmts.push(env2.DB.prepare("INSERT OR REPLACE INTO pic_list (name, role) VALUES (?, ?)").bind(pic, "FC Spesialis"));
+          currentPics.push({ name: pic, role: "FC Spesialis" });
         }
       }
       const picPelapor = (row["PIC PELAPOR"] || "").trim();
       if (picPelapor) {
         const existingPelapor = currentPics.find((p) => p.name === picPelapor);
         if (!existingPelapor) {
-          picStmts.push(env2.DB.prepare("INSERT INTO pic_list (name, role) VALUES (?, ?)").bind(picPelapor, "Pelapor"));
+          picStmts.push(env2.DB.prepare("INSERT OR REPLACE INTO pic_list (name, role) VALUES (?, ?)").bind(picPelapor, "Pelapor"));
           currentPics.push({ name: picPelapor, role: "Pelapor" });
         }
       }
@@ -6441,7 +6598,7 @@ async function syncGoogleSheets(env2) {
     for (let i = 0; i < picStmts.length; i += 100) {
       await env2.DB.batch(picStmts.slice(i, i + 100));
     }
-    console.log("Google Sheets Sync Complete!");
+    console.log("Google Sheets Sync process finished successfully!");
     return { success: true, message: `Berhasil sinkronisasi Google Sheets. (Ditambahkan/Diupdate: ${empStmts.length} Karyawan, ${picStmts.length} PIC). Data FCMS lama tetap aman.` };
   } catch (err) {
     console.error("Google Sheets Sync Error:", err);
@@ -6451,6 +6608,7 @@ async function syncGoogleSheets(env2) {
 __name(syncGoogleSheets, "syncGoogleSheets");
 
 // src/index.js
+init_auth();
 var src_default = {
   async fetch(request, env2, ctx) {
     const url = new URL(request.url);
@@ -6466,6 +6624,42 @@ var src_default = {
     }
     try {
       const path = url.pathname;
+      if (request.method === "DELETE" && path.endsWith("/bulk")) {
+        const user = await authenticate(request, env2);
+        if (!user)
+          return new Response("Unauthorized", { status: 401, headers: { "Access-Control-Allow-Origin": origin } });
+        const moduleMap = {
+          "/api/employees/bulk": { table: "employees", perm: "employees" },
+          "/api/issues/bulk": { table: "issues", perm: "issues" },
+          "/api/schedule/bulk": { table: "schedule", perm: "schedule" },
+          "/api/one-on-one/bulk": { table: "one_on_one", perm: "one_on_one" },
+          "/api/training/bulk": { table: "training", perm: "training" },
+          "/api/relievers/bulk": { table: "relievers", perm: "relievers" },
+          "/api/sp/bulk": { table: "sp_data", perm: "sp" },
+          "/api/mutasi/bulk": { table: "mutasi_data", perm: "mutasi" },
+          "/api/sop/bulk": { table: "sops", perm: "sop" },
+          "/api/checklist/bulk": { table: "master_checklists", perm: "checklist" },
+          "/api/forms/bulk": { table: "master_forms", perm: "forms" },
+          "/api/pic/bulk": { table: "pics", perm: "pic" },
+          "/api/users/bulk": { table: "users", perm: "users" },
+          "/api/contracts/bulk": { table: "contracts", perm: "contracts" }
+        };
+        const config2 = moduleMap[path];
+        if (!config2)
+          return error3("Invalid bulk delete module", 400, origin);
+        if (!hasPermission(user, config2.perm, "delete") && !hasPermission(user, config2.perm, "write"))
+          return forbidden(origin);
+        try {
+          const { ids } = await request.json();
+          if (!Array.isArray(ids) || ids.length === 0)
+            return error3("No IDs provided", 400, origin);
+          const placeholders = ids.map(() => "?").join(",");
+          await env2.DB.prepare(`DELETE FROM ${config2.table} WHERE id IN (${placeholders})`).bind(...ids).run();
+          return ok({ message: `Deleted ${ids.length} items` }, 200, origin);
+        } catch (e) {
+          return error3("Server Error: " + e.message, 500, origin);
+        }
+      }
       if (path.startsWith("/api/auth"))
         return handleAuth(request, env2, origin);
       if (path.startsWith("/api/users"))
@@ -6492,6 +6686,10 @@ var src_default = {
         return handleDashboard(request, env2, origin);
       if (path.startsWith("/api/import"))
         return handleImport(request, env2, origin);
+      if (path.startsWith("/api/sp"))
+        return handleSP(request, env2, origin);
+      if (path.startsWith("/api/mutasi"))
+        return handleMutasi(request, env2, origin);
       if (path === "/api/sync/google-sheets" && request.method === "POST") {
         const result = await syncGoogleSheets(env2);
         return new Response(JSON.stringify(result), {

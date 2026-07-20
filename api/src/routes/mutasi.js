@@ -1,4 +1,5 @@
-import { authenticate, hasPermission, json, created, badRequest, notFound, serverError, forbidden } from '../utils/auth.js';
+import { authenticate, hasPermission } from '../utils/auth.js';
+import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 
 export async function handleMutasi(request, env, origin) {
   const user = await authenticate(request, env);
@@ -18,26 +19,26 @@ export async function handleMutasi(request, env, origin) {
         LEFT JOIN branches b2 ON m.to_branch_id = b2.id
         ORDER BY m.id DESC
       `).all();
-      return json({ data: results || [] }, origin);
+      return ok({ data: results || [] }, origin);
     } catch (e) {
-      return serverError(e, origin);
+      return error('Server error', 500, origin);
     }
   }
 
   if (request.method === 'POST' && (path === '' || path === '/')) {
     if (!hasPermission(user, 'mutasi', 'write')) return forbidden(origin);
     try {
-      const body = await request.json();
+      const body = await request.ok();
       const { tanggal, employee_name, from_branch_id, to_branch_id, status, document_link } = body;
       
       const { success } = await env.DB.prepare(
         'INSERT INTO mutasi_data (tanggal, employee_name, from_branch_id, to_branch_id, status, document_link) VALUES (?, ?, ?, ?, ?, ?)'
       ).bind(tanggal || null, employee_name || '', from_branch_id || null, to_branch_id || null, status || '', document_link || '').run();
       
-      if (success) return created({ message: 'Mutasi added successfully' }, origin);
-      return badRequest('Failed to add Mutasi', origin);
+      if (success) return ok({ message: 'Mutasi added successfully' }, origin);
+      return error('Bad request', 400, origin);
     } catch (e) {
-      return serverError(e, origin);
+      return error('Server error', 500, origin);
     }
   }
 
@@ -46,16 +47,16 @@ export async function handleMutasi(request, env, origin) {
     if (request.method === 'PUT') {
       if (!hasPermission(user, 'mutasi', 'write')) return forbidden(origin);
       try {
-        const body = await request.json();
+        const body = await request.ok();
         const { tanggal, employee_name, from_branch_id, to_branch_id, status, document_link } = body;
         const { success } = await env.DB.prepare(
           'UPDATE mutasi_data SET tanggal=?, employee_name=?, from_branch_id=?, to_branch_id=?, status=?, document_link=? WHERE id=?'
         ).bind(tanggal || null, employee_name || '', from_branch_id || null, to_branch_id || null, status || '', document_link || '', id).run();
         
-        if (success) return json({ message: 'Mutasi updated' }, origin);
-        return badRequest('Failed to update Mutasi', origin);
+        if (success) return ok({ message: 'Mutasi updated' }, origin);
+        return error('Bad request', 400, origin);
       } catch (e) {
-        return serverError(e, origin);
+        return error('Server error', 500, origin);
       }
     }
 
@@ -63,10 +64,10 @@ export async function handleMutasi(request, env, origin) {
       if (!hasPermission(user, 'mutasi', 'write')) return forbidden(origin);
       try {
         const { success } = await env.DB.prepare('DELETE FROM mutasi_data WHERE id=?').bind(id).run();
-        if (success) return json({ message: 'Mutasi deleted' }, origin);
-        return badRequest('Failed to delete Mutasi', origin);
+        if (success) return ok({ message: 'Mutasi deleted' }, origin);
+        return error('Bad request', 400, origin);
       } catch (e) {
-        return serverError(e, origin);
+        return error('Server error', 500, origin);
       }
     }
   }

@@ -1,4 +1,5 @@
-import { authenticate, hasPermission, json, created, badRequest, notFound, serverError, forbidden } from '../utils/auth.js';
+import { authenticate, hasPermission } from '../utils/auth.js';
+import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 
 export async function handleSP(request, env, origin) {
   const user = await authenticate(request, env);
@@ -17,26 +18,26 @@ export async function handleSP(request, env, origin) {
         LEFT JOIN branches b ON s.branch_id = b.id
         ORDER BY s.id DESC
       `).all();
-      return json({ data: results || [] }, origin);
+      return ok({ data: results || [] }, origin);
     } catch (e) {
-      return serverError(e, origin);
+      return error('Server error', 500, origin);
     }
   }
 
   if (request.method === 'POST' && (path === '' || path === '/')) {
     if (!hasPermission(user, 'sp', 'write')) return forbidden(origin);
     try {
-      const body = await request.json();
+      const body = await request.ok();
       const { tanggal, employee_name, branch_id, sp_type, status, document_link } = body;
       
       const { success } = await env.DB.prepare(
         'INSERT INTO sp_data (tanggal, employee_name, branch_id, sp_type, status, document_link) VALUES (?, ?, ?, ?, ?, ?)'
       ).bind(tanggal || null, employee_name || '', branch_id || null, sp_type || '', status || '', document_link || '').run();
       
-      if (success) return created({ message: 'SP added successfully' }, origin);
-      return badRequest('Failed to add SP', origin);
+      if (success) return ok({ message: 'SP added successfully' }, origin);
+      return error('Bad request', 400, origin);
     } catch (e) {
-      return serverError(e, origin);
+      return error('Server error', 500, origin);
     }
   }
 
@@ -45,16 +46,16 @@ export async function handleSP(request, env, origin) {
     if (request.method === 'PUT') {
       if (!hasPermission(user, 'sp', 'write')) return forbidden(origin);
       try {
-        const body = await request.json();
+        const body = await request.ok();
         const { tanggal, employee_name, branch_id, sp_type, status, document_link } = body;
         const { success } = await env.DB.prepare(
           'UPDATE sp_data SET tanggal=?, employee_name=?, branch_id=?, sp_type=?, status=?, document_link=? WHERE id=?'
         ).bind(tanggal || null, employee_name || '', branch_id || null, sp_type || '', status || '', document_link || '', id).run();
         
-        if (success) return json({ message: 'SP updated' }, origin);
-        return badRequest('Failed to update SP', origin);
+        if (success) return ok({ message: 'SP updated' }, origin);
+        return error('Bad request', 400, origin);
       } catch (e) {
-        return serverError(e, origin);
+        return error('Server error', 500, origin);
       }
     }
 
@@ -62,10 +63,10 @@ export async function handleSP(request, env, origin) {
       if (!hasPermission(user, 'sp', 'write')) return forbidden(origin);
       try {
         const { success } = await env.DB.prepare('DELETE FROM sp_data WHERE id=?').bind(id).run();
-        if (success) return json({ message: 'SP deleted' }, origin);
-        return badRequest('Failed to delete SP', origin);
+        if (success) return ok({ message: 'SP deleted' }, origin);
+        return error('Bad request', 400, origin);
       } catch (e) {
-        return serverError(e, origin);
+        return error('Server error', 500, origin);
       }
     }
   }
