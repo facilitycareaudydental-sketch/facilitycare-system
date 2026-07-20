@@ -7,12 +7,19 @@ let branchOptions = [];
 let employeeOptions = [];
 
 export async function renderIssues(container) {
-  const [bRes, eRes] = await Promise.all([
+  const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000')
+    apiFetch('/api/employees?limit=10000'),
+    apiFetch('/api/pic')
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+  
+  const empNames = (eRes.data?.data || []).map(e => e.full_name);
+  const picNames = (pRes.data?.data || []).map(p => p.name);
+  
+  // Combine and deduplicate
+  const allNames = [...new Set([...empNames, ...picNames])].sort();
+  employeeOptions = allNames.map(name => ({ value: name, label: name }));
 
   // Helper to ensure existing value is in options (prevents blank selects on old data)
   const getEmpOptions = (val) => {

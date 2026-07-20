@@ -7,12 +7,19 @@ let branchOptions = [];
 let picOptions = [];
 
 export async function renderSchedule(container) {
-  const [bRes, eRes] = await Promise.all([
+  const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000')
+    apiFetch('/api/employees?limit=10000'),
+    apiFetch('/api/pic')
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+  
+  const empNames = (eRes.data?.data || []).map(e => e.full_name);
+  const picNames = (pRes.data?.data || []).map(p => p.name);
+  const allNames = [...new Set([...empNames, ...picNames])].sort();
+  
+  const employeeOptions = allNames.map(name => ({ value: name, label: name }));
+  picOptions = [...employeeOptions];
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -20,7 +27,6 @@ export async function renderSchedule(container) {
     }
     return employeeOptions;
   };
-  picOptions = employeeOptions;
 
   buildCrudPage({
     container,
