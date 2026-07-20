@@ -18,7 +18,8 @@ export async function onRequest(context) {
     method: request.method,
     headers: headers,
     body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null,
-    redirect: 'manual'
+    redirect: 'manual',
+    duplex: 'half'
   });
   
   // Fetch from the worker
