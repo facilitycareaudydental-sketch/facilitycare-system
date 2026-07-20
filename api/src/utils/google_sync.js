@@ -78,18 +78,25 @@ export async function syncGoogleSheets(env) {
 
     // 4. Process PICs (Insert Only)
     const picStmts = [];
-    const currentPics = (await env.DB.prepare('SELECT id, branch_id, name, pic_type FROM pic_list').all()).results;
+    const currentPics = (await env.DB.prepare('SELECT id, name, role FROM pic_list').all()).results;
     
     for (const row of valData) {
-       const bId = branchMap[(row['CABANG'] || '').trim()] || null;
        const pic = (row['PIC'] || '').trim();
-       const kegiatan = (row['KEGIATAN'] || '').trim();
-       if (bId && pic && kegiatan) {
-          const existing = currentPics.find(p => p.branch_id === bId && p.name === pic && p.pic_type === kegiatan);
+       const role = (row['KEGIATAN'] || '').trim(); // Mapping kegiatan as role just in case
+       if (pic) {
+          const existing = currentPics.find(p => p.name === pic);
           if (!existing) {
-             picStmts.push(env.DB.prepare('INSERT INTO pic_list (branch_id, name, pic_type) VALUES (?, ?, ?)').bind(bId, pic, kegiatan));
-             // add to array to prevent duplicate inserts in the same run
-             currentPics.push({ branch_id: bId, name: pic, pic_type: kegiatan });
+             picStmts.push(env.DB.prepare('INSERT INTO pic_list (name, role) VALUES (?, ?)').bind(pic, role));
+             currentPics.push({ name: pic, role: role });
+          }
+       }
+       
+       const picPelapor = (row['PIC PELAPOR'] || '').trim();
+       if (picPelapor) {
+          const existingPelapor = currentPics.find(p => p.name === picPelapor);
+          if (!existingPelapor) {
+             picStmts.push(env.DB.prepare('INSERT INTO pic_list (name, role) VALUES (?, ?)').bind(picPelapor, 'Pelapor'));
+             currentPics.push({ name: picPelapor, role: 'Pelapor' });
           }
        }
     }
