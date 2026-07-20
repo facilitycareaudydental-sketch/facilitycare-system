@@ -105,7 +105,7 @@ export async function syncGoogleSheets(env) {
       await env.DB.batch(picStmts.slice(i, i + 100));
     }
 
-    console.log('Google Sheets Sync Complete!');
+    console.log('Google Sheets Sync process finished successfully!');
     return { success: true, message: `Berhasil sinkronisasi Google Sheets. (Ditambahkan/Diupdate: ${empStmts.length} Karyawan, ${picStmts.length} PIC). Data FCMS lama tetap aman.` };
   } catch (err) {
     console.error('Google Sheets Sync Error:', err);
