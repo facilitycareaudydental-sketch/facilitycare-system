@@ -213,7 +213,7 @@ export function renderImportPage(container) {
   const btnSync = document.getElementById('btn-sync-google');
   if (btnSync) {
     btnSync.addEventListener('click', async () => {
-      if (!confirm('Peringatan: Mensinkronkan data dengan Google Sheets akan menimpa Master Data Karyawan, Cabang, dan PIC. Lanjutkan?')) return;
+      if (!confirm('Peringatan: Mensinkronkan data dengan Google Sheets akan memperbarui dan menambahkan data baru dari Google Sheets ke dalam FCMS. Data yang sudah Anda buat di FCMS TIDAK akan terhapus. Lanjutkan?')) return;
       
       const originalText = btnSync.innerHTML;
       btnSync.innerHTML = '<span class="spinner"></span> Menyinkronkan...';

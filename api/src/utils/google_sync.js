@@ -63,34 +63,34 @@ export async function syncGoogleSheets(env) {
           sheetEmpNames.add(name);
           const existing = currentEmp.find(e => e.full_name === name);
           if (!existing) {
-             empStmts.push(env.DB.prepare('INSERT INTO employees (full_name, branch_id, status) VALUES (?, ?, ?)').bind(name, branchMap[(row['CABANG']||'').trim()] || null, 'Aktif'));
+             empStmts.push(env.DB.prepare('INSERT INTO employees (full_name, branch_id, status) VALUES (?, ?, ?)')
+               .bind(name, branchMap[(row['CABANG']||'').trim()] || null, 'Aktif'));
           } else {
-             empStmts.push(env.DB.prepare('UPDATE employees SET status=?, updated_at=datetime("now") WHERE id=?').bind('Aktif', existing.id));
+             empStmts.push(env.DB.prepare('UPDATE employees SET status=?, updated_at=datetime("now") WHERE id=?')
+               .bind('Aktif', existing.id));
           }
        }
     });
-
-    // Deactivate employees not in sheets
-    for (const ce of currentEmp) {
-       if (!sheetEmpNames.has(ce.full_name)) {
-          empStmts.push(env.DB.prepare('UPDATE employees SET status="Tidak Aktif" WHERE id=?').bind(ce.id));
-       }
-    }
 
     for (let i = 0; i < empStmts.length; i += 100) {
       await env.DB.batch(empStmts.slice(i, i + 100));
     }
 
-    // 4. Process PICs
+    // 4. Process PICs (Insert Only)
     const picStmts = [];
-    picStmts.push(env.DB.prepare('DELETE FROM pic_list')); // Wipe clean before inserting
+    const currentPics = (await env.DB.prepare('SELECT id, branch_id, name, pic_type FROM pic_list').all()).results;
     
     for (const row of valData) {
        const bId = branchMap[(row['CABANG'] || '').trim()] || null;
        const pic = (row['PIC'] || '').trim();
        const kegiatan = (row['KEGIATAN'] || '').trim();
        if (bId && pic && kegiatan) {
-          picStmts.push(env.DB.prepare('INSERT INTO pic_list (branch_id, name, pic_type) VALUES (?, ?, ?)').bind(bId, pic, kegiatan));
+          const existing = currentPics.find(p => p.branch_id === bId && p.name === pic && p.pic_type === kegiatan);
+          if (!existing) {
+             picStmts.push(env.DB.prepare('INSERT INTO pic_list (branch_id, name, pic_type) VALUES (?, ?, ?)').bind(bId, pic, kegiatan));
+             // add to array to prevent duplicate inserts in the same run
+             currentPics.push({ branch_id: bId, name: pic, pic_type: kegiatan });
+          }
        }
     }
     
@@ -99,7 +99,7 @@ export async function syncGoogleSheets(env) {
     }
 
     console.log('Google Sheets Sync Complete!');
-    return { success: true, message: `Synced ${sheetEmpNames.size} employees and ${picStmts.length - 1} PICs.` };
+    return { success: true, message: `Berhasil sinkronisasi Google Sheets. (Ditambahkan/Diupdate: ${empStmts.length} Karyawan, ${picStmts.length} PIC). Data FCMS lama tetap aman.` };
   } catch (err) {
     console.error('Google Sheets Sync Error:', err);
     return { success: false, error: err.message };
