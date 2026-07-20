@@ -1,0 +1,42 @@
+name: Manual DB Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      sql:
+        description: 'SQL to execute'
+        required: false
+        default: 'SELECT 1'
+
+jobs:
+  run-migration:
+    name: 🗄️ Run SQL Migration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@3
+
+      - name: Run Migration v4 (sp_data + mutasi_data)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler d1 execute fm-operations-db \
+            --remote \
+            --file=schema/migration_v4_sp_mutasi.sql \
+            --config=api/wrangler.toml \
+            --yes
+
+      - name: Verify tables exist
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler d1 execute fm-operations-db \
+            --remote \
+            --command="SELECT name FROM sqlite_master WHERE type='table' AND name IN ('sp_data','mutasi_data');" \
+            --config=api/wrangler.toml \
+            --yes
