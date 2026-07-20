@@ -1,6 +1,6 @@
 // API configuration - update this to your deployed Worker URL
 const API_BASE_URL = window.__FM_CONFIG?.API_BASE_URL 
-  || 'https://fm-operations-api.YOUR_SUBDOMAIN.workers.dev';
+  || 'https://fm-operations-api.facilitycare-audydental.workers.dev';
 
 export const API = API_BASE_URL;
 

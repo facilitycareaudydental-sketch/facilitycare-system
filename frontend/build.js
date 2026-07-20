@@ -29,7 +29,7 @@ function copyDir(src, dest) {
 copyDir(publicDir, distDir);
 
 // Replace API URL placeholder in index.html
-const apiUrl = process.env.API_BASE_URL || 'https://fm-operations-api.YOUR_SUBDOMAIN.workers.dev';
+const apiUrl = process.env.API_BASE_URL || 'https://fm-operations-api.facilitycare-audydental.workers.dev';
 let html = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
 html = html.replace('__API_BASE_URL__', apiUrl);
 fs.writeFileSync(path.join(distDir, 'index.html'), html);
