@@ -9,7 +9,7 @@ let employeeOptions = [];
 async function loadOptions() {
   const [bRes, eRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=500&status=Aktif'),
+    apiFetch('/api/employees?limit=10000&status=Aktif'),
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.id, label: e.full_name }));
