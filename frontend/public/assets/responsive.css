@@ -83,6 +83,32 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .topbar-center  { display: none; }
 }
 
+/* ── Tablet & Mobile Tables (Global fix for scroll) ──────────── */
+@media (max-width: 1023px) {
+  .dash-table-wrap,
+  .table-wrapper,
+  .data-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    display: block !important;
+  }
+  .dash-table, .data-table {
+    width: max-content !important;
+    min-width: 100% !important;
+  }
+  .dash-table th, .dash-table td,
+  .data-table th, .data-table td,
+  .td-branch, .td-complaint {
+    white-space: nowrap !important;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+}
+
 /* ── 3. 768–1023px Tablet ──────────────────────────────────────── */
 @media (max-width: 1023px) and (min-width: 768px) {
   :root {
@@ -199,20 +225,6 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   /* 4.6 Chart cards */
   .chart-card      { padding: 12px !important; min-width: 0 !important; }
   .chart-canvas-wrap { height: 200px !important; }
-
-  /* 4.7 Tables */
-  .dash-table-wrap,
-  .table-wrapper,
-  .data-table-wrapper {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    display: block !important;
-  }
-  .dash-table  { min-width: 580px !important; font-size: 0.75rem; }
-  .data-table  { min-width: 600px !important; font-size: 0.75rem; }
 
   /* 4.8 Page headers */
   .page-header {
