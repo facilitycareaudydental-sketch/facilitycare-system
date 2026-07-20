@@ -275,8 +275,33 @@ async function handleSupply(request, env, origin, path) {
     if (request.method === 'PUT') {
       if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
       let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-      const { status, processed_by } = body;
-      await env.DB.prepare(`UPDATE supply_requests SET status = COALESCE(?, status), processed_by = COALESCE(?, processed_by), processed_at = CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE processed_at END WHERE id = ?`).bind(status || null, processed_by || null, status || null, id).run();
+      const { status, processed_by, submitter_name, branch_id, branch_name, tools_items, tools_quantity, chemical_items, chemical_quantity, additional_notes } = body;
+      
+      const t_items = tools_items ? (typeof tools_items === 'string' ? tools_items.split(',').map(s=>s.trim()) : tools_items) : null;
+      const c_items = chemical_items ? (typeof chemical_items === 'string' ? chemical_items.split(',').map(s=>s.trim()) : chemical_items) : null;
+
+      await env.DB.prepare(`
+        UPDATE supply_requests SET 
+          status = COALESCE(?, status), 
+          processed_by = COALESCE(?, processed_by), 
+          processed_at = CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE processed_at END,
+          submitter_name = COALESCE(?, submitter_name),
+          branch_id = COALESCE(?, branch_id),
+          branch_name = COALESCE(?, branch_name),
+          tools_items = COALESCE(?, tools_items),
+          tools_quantity = COALESCE(?, tools_quantity),
+          chemical_items = COALESCE(?, chemical_items),
+          chemical_quantity = COALESCE(?, chemical_quantity),
+          additional_notes = COALESCE(?, additional_notes)
+        WHERE id = ?
+      `).bind(
+        status || null, processed_by || null, status || null,
+        submitter_name || null, branch_id || null, branch_name || null,
+        t_items ? JSON.stringify(t_items) : null, tools_quantity || null,
+        c_items ? JSON.stringify(c_items) : null, chemical_quantity || null,
+        additional_notes || null,
+        id
+      ).run();
       return ok({ message: 'Updated' }, 200, origin);
     }
     if (request.method === 'DELETE') {

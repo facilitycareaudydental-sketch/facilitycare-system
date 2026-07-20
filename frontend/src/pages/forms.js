@@ -48,7 +48,7 @@ async function renderSupplyRequests(container) {
     icon: '📦',
     apiPath: '/api/reports/supply',
     itemLabel: 'Permintaan',
-    canCreate: false, // Created via public form
+    canCreate: true, // Now fully editable
     columns: [
       { key: 'submitted_at', label: 'Waktu', nowrap: true, render: v => v ? new Date(v).toLocaleString('id-ID') : '-' },
       { key: 'submitter_name', label: 'Pengirim' },
@@ -62,6 +62,35 @@ async function renderSupplyRequests(container) {
     filterFields: [
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Diproses', 'Selesai'] },
     ],
+    formFields: (data) => {
+      let tools = data?.tools_items;
+      try { tools = Array.isArray(JSON.parse(tools)) ? JSON.parse(tools).join(', ') : tools; } catch {}
+      let chems = data?.chemical_items;
+      try { chems = Array.isArray(JSON.parse(chems)) ? JSON.parse(chems).join(', ') : chems; } catch {}
+      return [
+        {
+          type: 'row', fields: [
+            { name: 'submitter_name', label: 'Nama Pengirim', required: true, value: data?.submitter_name },
+            { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
+          ]
+        },
+        {
+          type: 'row', fields: [
+            { name: 'tools_items', label: 'Alat / Barang', placeholder: 'Pisahkan dengan koma (Sapu, Mop)', value: tools },
+            { name: 'tools_quantity', label: 'Jumlah Alat', type: 'number', value: data?.tools_quantity },
+          ]
+        },
+        {
+          type: 'row', fields: [
+            { name: 'chemical_items', label: 'Chemical', placeholder: 'Pisahkan dengan koma', value: chems },
+            { name: 'chemical_quantity', label: 'Jumlah Chemical', type: 'number', value: data?.chemical_quantity },
+          ]
+        },
+        { name: 'additional_notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.additional_notes },
+        { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Diproses', 'Selesai'], value: data?.status || 'Pending' },
+        { name: 'processed_by', label: 'Diproses Oleh', value: data?.processed_by },
+      ];
+    },
     extraActions: [
       {
         label: 'Update Status',
