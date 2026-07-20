@@ -3,7 +3,7 @@
 export function getPagination(url) {
   const params = new URL(url).searchParams;
   const page = Math.max(1, parseInt(params.get('page') || '1'));
-  const limit = Math.min(100, Math.max(1, parseInt(params.get('limit') || '20')));
+  const limit = Math.min(10000, Math.max(1, parseInt(params.get('limit') || '20')));
   const offset = (page - 1) * limit;
   return { page, limit, offset };
 }
