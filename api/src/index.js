@@ -23,7 +23,7 @@ import { handleImport } from './routes/import.js';
 import { handleSP } from './routes/sp.js';
 import { handleMutasi } from './routes/mutasi.js';
 import { syncGoogleSheets } from './utils/google_sync.js';
-import { options, error, badRequest, ok, serverError, forbidden } from './utils/response.js';
+import { options, error, ok, forbidden } from './utils/response.js';
 import { authenticate, hasPermission } from './utils/auth.js';
 
 export default {
@@ -70,17 +70,17 @@ export default {
         };
 
         const config = moduleMap[path];
-        if (!config) return badRequest('Invalid bulk delete module', origin);
+        if (!config) return error('Invalid bulk delete module', 400, origin);
         if (!hasPermission(user, config.perm, 'delete') && !hasPermission(user, config.perm, 'write')) return forbidden(origin);
 
         try {
           const { ids } = await request.json();
-          if (!Array.isArray(ids) || ids.length === 0) return badRequest('No IDs provided', origin);
+          if (!Array.isArray(ids) || ids.length === 0) return error('No IDs provided', 400, origin);
           const placeholders = ids.map(() => '?').join(',');
           await env.DB.prepare(`DELETE FROM ${config.table} WHERE id IN (${placeholders})`).bind(...ids).run();
           return ok({ message: `Deleted ${ids.length} items` }, 200, origin);
         } catch (e) {
-          return serverError(e, origin);
+          return error('Server Error: ' + e.message, 500, origin);
         }
       }
 

@@ -276,6 +276,8 @@ export function buildCrudPage({
       size: 'lg',
       confirmText: isEdit ? 'Simpan Perubahan' : `Tambah ${itemLabel}`,
       onConfirm: async (overlay, closeModal) => {
+        if (!formEl.reportValidity()) return;
+
         const confirmBtn = overlay.querySelector('.modal-confirm');
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Menyimpan...';
