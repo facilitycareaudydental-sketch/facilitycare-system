@@ -1,0 +1,112 @@
+import { buildCrudPage } from './_crud.js';
+import { apiFetch } from '../config.js';
+import { statusBadge } from '../components/badges.js';
+import { createModal } from '../components/modal.js';
+import { toastSuccess, toastError } from '../components/toast.js';
+
+export async function renderForms(container, mode = 'forms') {
+  if (mode === 'supply') {
+    return renderSupplyRequests(container);
+  }
+  renderMasterForms(container);
+}
+
+function renderMasterForms(container) {
+  buildCrudPage({
+    container,
+    title: 'Master Form',
+    icon: '📄',
+    apiPath: '/api/forms',
+    itemLabel: 'Form',
+    columns: [
+      { key: 'name', label: 'Nama Form' },
+      { key: 'category', label: 'Kategori' },
+      { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">📄 Buka</a>` : '-' },
+      { key: 'is_public', label: 'Publik', render: v => v ? '<span class="badge badge-success">Ya</span>' : '<span class="badge badge-neutral">Tidak</span>' },
+      { key: 'description', label: 'Deskripsi' },
+    ],
+    filterFields: [
+      { type: 'search', placeholder: 'Cari form...' },
+    ],
+    formFields: (data) => [
+      { name: 'name', label: 'Nama Form', required: true, placeholder: 'Nama form', value: data?.name },
+      { name: 'category', label: 'Kategori', placeholder: 'Permintaan Barang, Penilaian, dll.', value: data?.category },
+      { name: 'document_link', label: 'Link Dokumen', type: 'url', placeholder: 'https://...', value: data?.document_link },
+      { name: 'description', label: 'Deskripsi', type: 'textarea', rows: 2, value: data?.description },
+      { name: 'is_public', label: 'Akses Publik', type: 'checkbox', checkLabel: 'Form dapat diakses tanpa login', value: data?.is_public },
+    ],
+  });
+}
+
+async function renderSupplyRequests(container) {
+  const bRes = await apiFetch('/api/branches?all=1');
+  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+
+  buildCrudPage({
+    container,
+    title: 'Permintaan Barang & Chemical',
+    icon: '📦',
+    apiPath: '/api/reports/supply',
+    itemLabel: 'Permintaan',
+    canCreate: false, // Created via public form
+    columns: [
+      { key: 'submitted_at', label: 'Waktu', nowrap: true, render: v => v ? new Date(v).toLocaleString('id-ID') : '-' },
+      { key: 'submitter_name', label: 'Pengirim' },
+      { key: 'branch_name', label: 'Cabang', render: (v, row) => row.branch_name_ref || row.branch_name || '-' },
+      { key: 'tools_items', label: 'Alat/Barang', render: v => { try { const a = JSON.parse(v); return Array.isArray(a) ? a.join(', ') : v; } catch { return v || '-'; } } },
+      { key: 'chemical_items', label: 'Chemical', render: v => { try { const a = JSON.parse(v); return Array.isArray(a) ? a.join(', ') : v; } catch { return v || '-'; } } },
+      { key: 'additional_notes', label: 'Catatan', render: v => v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-') },
+      { key: 'status', label: 'Status', render: v => statusBadge(v) },
+      { key: 'processed_by', label: 'Diproses Oleh' },
+    ],
+    filterFields: [
+      { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Diproses', 'Selesai'] },
+    ],
+    extraActions: [
+      {
+        label: 'Update Status',
+        icon: '🔄',
+        class: 'btn-secondary',
+        handler: (row, reload) => {
+          const modal = createModal({
+            title: 'Update Status Permintaan',
+            content: `
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-control" id="supply-status">
+                  <option value="Pending" ${row.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                  <option value="Diproses" ${row.status === 'Diproses' ? 'selected' : ''}>Diproses</option>
+                  <option value="Selesai" ${row.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Diproses Oleh</label>
+                <input type="text" class="form-control" id="supply-processed-by" value="${row.processed_by || ''}" placeholder="Nama">
+              </div>
+            `,
+            onConfirm: async (overlay, close) => {
+              const status = overlay.querySelector('#supply-status').value;
+              const processed_by = overlay.querySelector('#supply-processed-by').value;
+              const res = await apiFetch(`/api/reports/supply/${row.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status, processed_by }),
+              });
+              if (res.ok) { toastSuccess('Status diperbarui.'); close(); reload(); }
+              else toastError('Gagal update status.');
+            },
+          });
+        },
+      },
+    ],
+  });
+
+  // Add link to public form
+  const header = container.querySelector('.page-header .page-actions');
+  if (header) {
+    const link = document.createElement('a');
+    link.href = '#/form/chemical';
+    link.className = 'btn btn-ghost btn-sm';
+    link.textContent = '🔗 Form Publik';
+    header.prepend(link);
+  }
+}

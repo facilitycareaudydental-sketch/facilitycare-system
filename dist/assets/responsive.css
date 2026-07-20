@@ -1,0 +1,448 @@
+/* ================================================================
+   FCMS RESPONSIVE SYSTEM v6 — FINAL PRODUCTION
+   ================================================================
+   ROOT CAUSES FIXED:
+   1. `overflow-x:hidden` on body/html breaks `position:sticky`
+      → Fixed: only use on .main-content (sibling, not ancestor)
+   2. `.app-layout` missing explicit `flex-direction:row` guard
+      → Fixed: always enforce row layout on desktop
+   3. Calendar API fail stops grid render
+      → Fixed in calendar.js (separate fix)
+   ================================================================ */
+
+/* ── 0. Global box-sizing (safe, no overflow on body) ──────────── */
+*, *::before, *::after { box-sizing: border-box; }
+img, svg, canvas, video, iframe { max-width: 100%; }
+
+/* ── 0.1 App layout — ALWAYS row on desktop ─────────────────────
+   CRITICAL: Never add flex-direction:column to .app-layout!
+   The sidebar (left) + main-wrapper (right) must always be a row.
+   ─────────────────────────────────────────────────────────────── */
+.app-layout {
+  display: flex !important;
+  flex-direction: row !important;   /* ← LOCKED to row */
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: visible;                /* ← do NOT set overflow:hidden here */
+}
+
+/* Sidebar — always left, fixed width, sticky */
+.sidebar {
+  flex-shrink: 0;
+  width: var(--sb-width, 260px);
+}
+
+/* Main wrapper — takes remaining space */
+.main-wrapper {
+  flex: 1;
+  min-width: 0;
+  overflow-x: clip;       /* clip (not hidden) — doesn't break sticky */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main content scroll */
+.main-content {
+  overflow-y: auto;
+  overflow-x: clip;
+}
+
+/* Scrollable table/chart containers */
+.table-scroll,
+.dash-table-wrap,
+.table-wrapper,
+.data-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+/* Tables — allow horizontal scroll but never overflow page */
+.dash-table,
+.data-table {
+  white-space: nowrap;
+  width: 100%;
+}
+
+/* ── 1. ≥1280px Desktop — unchanged, sidebar always visible ────── */
+@media (min-width: 1280px) {
+  .kpi-row        { grid-template-columns: repeat(5, minmax(0,1fr)); }
+  .mini-stats-row { grid-template-columns: repeat(7, minmax(0,1fr)); }
+  .charts-row,
+  .tables-row     { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .topbar-menu-btn { display: none !important; }
+}
+
+/* ── 2. 1024–1279px Laptop ─────────────────────────────────────── */
+@media (max-width: 1279px) and (min-width: 1024px) {
+  .kpi-row        { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+  .mini-stats-row { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  .charts-row,
+  .tables-row     { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+  .topbar-menu-btn { display: none !important; }
+  .topbar-center  { display: none; }
+}
+
+/* ── 3. 768–1023px Tablet ──────────────────────────────────────── */
+@media (max-width: 1023px) and (min-width: 768px) {
+  :root {
+    --sb-width: 220px;
+    --topbar-h: 60px;
+  }
+  /* Sidebar stays LEFT in the row, just narrower */
+  .sidebar        { width: 220px; }
+  .kpi-row        { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+  .mini-stats-row { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+  .charts-row,
+  .tables-row     { grid-template-columns: 1fr; gap: 14px; }
+  .topbar-center  { display: none; }
+  .topbar-user-name { display: none; }
+  .topbar-menu-btn { display: none !important; }
+  .profile-layout { grid-template-columns: 1fr; }
+}
+
+/* ── 4. <768px Mobile — sidebar becomes drawer ──────────────────── */
+@media (max-width: 767px) {
+
+  /* 4.0 Root variables */
+  :root {
+    --sb-width: 280px;
+    --topbar-h: 56px;
+  }
+  html { font-size: 14px; }
+
+  /* 4.1 Sidebar — off-canvas drawer
+     CRITICAL: position:fixed removes it from flex flow,
+     so .main-wrapper naturally expands to full width.
+     Do NOT change .app-layout flex-direction here!        */
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    transform: translateX(-110%) !important;
+    transition: transform 240ms cubic-bezier(.4,0,.2,1) !important;
+    box-shadow: 4px 0 40px rgba(0,0,0,.3) !important;
+    z-index: 900 !important;
+    overflow-y: auto;
+  }
+  .sidebar.open {
+    transform: translateX(0) !important;
+  }
+  .sidebar-overlay {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(15,23,42,.55) !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+    z-index: 899 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 240ms, visibility 240ms !important;
+  }
+  .sidebar-overlay.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  .sidebar-close   { display: flex !important; }
+  .topbar-menu-btn { display: flex !important; }
+
+  /* 4.2 Content area expands to full width automatically
+     (sidebar is fixed/removed from flow)                  */
+  .main-content   { padding: 12px !important; }
+  .topbar         { padding: 0 12px !important; }
+  .topbar-center  { display: none !important; }
+  .topbar-user-name { display: none !important; }
+  .topbar-page-title { font-size: 0.9rem; }
+
+  /* 4.3 Dashboard grid */
+  .dashboard-wrap { gap: 12px; }
+  .kpi-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 10px !important;
+  }
+  .mini-stats-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 8px !important;
+  }
+  .charts-row,
+  .tables-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* 4.4 KPI cards */
+  .kpi-card {
+    padding: 14px 12px !important;
+    min-height: unset !important;
+    min-width: 0 !important;
+    border-radius: 12px !important;
+  }
+  .kpi-value      { font-size: 1.6rem !important; }
+  .kpi-label      { font-size: 0.75rem; }
+  .kpi-icon-wrap  { width: 36px; height: 36px; }
+  .kpi-trend      { font-size: 0.65rem; }
+
+  /* 4.5 Mini stats */
+  .mini-stat       { padding: 10px !important; gap: 8px !important; }
+  .mini-stat-icon  { width: 34px; height: 34px; font-size: 0.95rem; }
+  .mini-stat-value { font-size: 1.2rem !important; }
+  .mini-stat-label { font-size: 0.67rem; white-space: normal; }
+
+  /* 4.6 Chart cards */
+  .chart-card      { padding: 12px !important; }
+  .chart-canvas-wrap { height: 200px !important; }
+
+  /* 4.7 Tables */
+  .dash-table-wrap,
+  .table-wrapper,
+  .data-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dash-table  { min-width: 480px; font-size: 0.75rem; }
+  .data-table  { min-width: 520px; font-size: 0.75rem; }
+
+  /* 4.8 Page headers */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  .page-actions  { width: 100%; flex-wrap: wrap; gap: 6px; }
+  .section-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px;
+  }
+
+  /* 4.9 Filter bars */
+  .filter-bar-inner {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .filter-search { min-width: unset !important; width: 100% !important; }
+  .filter-select { min-width: unset !important; width: 100% !important; max-width: 100% !important; }
+  .excel-btns    { flex-wrap: wrap !important; gap: 6px !important; }
+
+  /* 4.10 Calendar */
+  .card-header.calendar-nav {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding: 12px 14px !important;
+  }
+  .calendar-filters { display: flex !important; flex-wrap: wrap !important; gap: 6px 12px !important; }
+  .calendar-grid { gap: 1px !important; }
+  .cal-day-header { padding: 5px 2px; font-size: 0.62rem; }
+  .cal-cell       { min-height: 52px !important; padding: 3px !important; }
+  .cal-event-dot-label { display: none !important; }
+  .cal-event-sidebar {
+    position: fixed !important;
+    bottom: 0 !important; left: 0 !important; right: 0 !important;
+    top: auto !important; width: 100% !important;
+    border-radius: 18px 18px 0 0 !important;
+    max-height: 65vh !important;
+    overflow-y: auto;
+    z-index: 850 !important;
+    animation: slideUp .25s ease !important;
+  }
+
+  /* 4.11 Modals — bottom sheet */
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important; left: 0 !important; right: 0 !important;
+    max-height: 92vh !important;
+    overflow-y: auto;
+    animation: slideUp .25s ease !important;
+  }
+  .modal-header  { padding: 16px 16px 12px; }
+  .modal-body    { padding: 0 16px 16px; }
+  .modal-footer  { padding: 12px 16px; }
+
+  /* 4.12 Forms */
+  .form-row { grid-template-columns: 1fr !important; }
+
+  /* 4.13 Cards */
+  .card        { border-radius: 12px; }
+  .card-body   { padding: 14px; }
+  .card-header { padding: 12px 14px; }
+
+  /* 4.14 Profile */
+  .profile-layout    { grid-template-columns: 1fr !important; }
+  .profile-avatar-xl { width: 68px; height: 68px; font-size: 1.7rem; }
+
+  /* 4.15 Login */
+  .login-card  { padding: 24px 18px !important; }
+  .login-blob  { display: none !important; }
+
+  /* 4.16 Pagination & toolbar */
+  .bulk-toolbar { flex-wrap: wrap !important; gap: 8px !important; }
+  .pagination   { flex-direction: column !important; align-items: flex-start !important; gap: 6px !important; }
+
+  /* 4.17 Toasts */
+  #toast-container { left: 8px !important; right: 8px !important; bottom: 8px !important; top: auto !important; }
+  .toast { width: 100% !important; min-width: unset !important; }
+}
+
+/* ── 5. <480px Small phone ─────────────────────────────────────── */
+@media (max-width: 479px) {
+  :root { --topbar-h: 52px; }
+  .main-content { padding: 8px !important; }
+  .kpi-row {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 8px !important;
+  }
+  .mini-stats-row {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 6px !important;
+  }
+  .kpi-card       { padding: 10px 8px !important; }
+  .kpi-value      { font-size: 1.4rem !important; }
+  .kpi-icon-wrap  { width: 30px; height: 30px; }
+  .mini-stat      { padding: 8px !important; }
+  .mini-stat-value { font-size: 1.1rem !important; }
+  .chart-canvas-wrap { height: 170px !important; }
+  .cal-cell       { min-height: 42px !important; }
+}
+
+/* ── 6. <360px Extreme fallback ────────────────────────────────── */
+@media (max-width: 359px) {
+  .kpi-row { grid-template-columns: 1fr !important; }
+}
+
+/* ── 7. Touch targets ───────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  .btn, .nav-item, .topbar-menu-btn, .topbar-icon-btn,
+  .topbar-user-btn, .sidebar-close, .sidebar-logout,
+  button, [role="button"], select { min-height: 44px; }
+  .nav-item { padding: 11px 20px; }
+  /* iOS: prevent auto-zoom on input focus */
+  .form-control, input, select, textarea { font-size: 16px !important; }
+}
+
+/* ── 8. Calendar component ─────────────────────────────────────── */
+.card-header.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.calendar-month-label {
+  font-size: 1rem; font-weight: 700; color: var(--text-1);
+  min-width: 150px; text-align: center; flex: 1;
+}
+.calendar-filters {
+  display: flex; flex-wrap: wrap; gap: 8px 16px;
+}
+.filter-check {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.78rem; color: var(--text-2);
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+.filter-check input[type="checkbox"] {
+  width: 14px; height: 14px;
+  accent-color: var(--primary); cursor: pointer;
+}
+.calendar-grid {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0,1fr)) !important;
+  gap: 1px;
+  background: var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  width: 100%;
+}
+.cal-day-header {
+  background: var(--gray-50); padding: 8px 4px; text-align: center;
+  font-size: 0.7rem; font-weight: 700; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.cal-cell {
+  background: var(--bg-card); min-height: 80px; padding: 6px;
+  cursor: pointer; transition: background var(--transition); overflow: hidden;
+}
+.cal-cell:hover  { background: var(--gray-50); }
+.cal-today       { background: #EFF6FF !important; }
+.cal-cell-empty  { background: var(--gray-50); opacity: .5; pointer-events: none; }
+.cal-day-num {
+  font-size: 0.8rem; font-weight: 700; color: var(--text-2);
+  margin-bottom: 3px; line-height: 1.2;
+}
+.today-num { color: var(--primary) !important; font-weight: 800 !important; }
+.cal-events-preview { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.cal-event-dot {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 0.63rem; font-weight: 600; padding: 1px 4px;
+  border-radius: 3px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 100%;
+}
+.cal-event-dot-label {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+}
+.cal-more { font-size: 0.6rem; color: var(--text-3); font-weight: 600; }
+.cal-color-blue   { background: #DBEAFE; color: #1D4ED8; }
+.cal-color-green  { background: #D1FAE5; color: #065F46; }
+.cal-color-red    { background: #FEE2E2; color: #991B1B; }
+.cal-color-orange { background: #FED7AA; color: #C2410C; }
+.cal-color-purple { background: #EDE9FE; color: #5B21B6; }
+.cal-color-teal   { background: #CCFBF1; color: #0F766E; }
+.cal-color-yellow { background: #FEF3C7; color: #92400E; }
+.cal-color-gray   { background: var(--gray-100); color: var(--gray-600); }
+.cal-event-sidebar {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  width: 300px; position: fixed; right: 24px;
+  top: calc(var(--topbar-h) + 24px); z-index: 400; overflow: hidden;
+  animation: fadeInUp .2s ease;
+}
+.cal-event-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  font-weight: 700; font-size: 0.875rem; background: var(--gray-50);
+}
+.cal-event-item {
+  padding: 12px 16px; border-bottom: 1px solid var(--gray-100);
+  border-left: 3px solid var(--primary);
+}
+.cal-event-item:last-child { border-bottom: none; }
+.cal-event-type   { font-size: 0.7rem; color: var(--text-3); margin-bottom: 2px; }
+.cal-event-title  { font-weight: 600; color: var(--text-1); font-size: 0.875rem; }
+.cal-event-branch { font-size: 0.72rem; color: var(--text-2); margin-top: 2px; }
+.cal-event-status { font-size: 0.7rem; color: var(--text-3); margin-top: 3px; }
+.cal-event-extra  { font-size: 0.7rem; color: var(--primary); margin-top: 2px; font-weight: 600; }
+.cal-color-border-blue   { border-left-color: #2563EB; }
+.cal-color-border-green  { border-left-color: #10B981; }
+.cal-color-border-red    { border-left-color: #EF4444; }
+.cal-color-border-orange { border-left-color: #F97316; }
+.cal-color-border-purple { border-left-color: #8B5CF6; }
+.cal-color-border-teal   { border-left-color: #14B8A6; }
+.cal-color-border-gray   { border-left-color: var(--gray-400); }
+
+/* ── 9. Animations ──────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── 10. Print ──────────────────────────────────────────────────── */
+@media print {
+  .sidebar, .topbar, .sidebar-overlay,
+  .toast, #toast-container, .btn, .page-actions,
+  .filter-bar, .bulk-toolbar, .excel-btns { display: none !important; }
+  .main-content { padding: 0 !important; }
+  .kpi-row { grid-template-columns: repeat(4, 1fr) !important; }
+}

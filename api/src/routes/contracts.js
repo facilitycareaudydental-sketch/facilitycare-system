@@ -1,6 +1,7 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { runSync } from '../utils/calendar.js';
 
 export async function handleContracts(request, env, origin) {
   const user = await authenticate(request, env);
@@ -96,7 +97,18 @@ async function createContract(request, env, origin) {
   ).bind(employee_id, branch_id || null, division || 'FACILITY CARE', start_date, end_date,
     contract_type || null, pkwt_number || null, status || 'Aktif', notes || null).run();
 
-  return ok({ id: result.meta.last_row_id }, 201, origin);
+  const newId = result.meta.last_row_id;
+  const emp = await env.DB.prepare('SELECT full_name FROM employees WHERE id = ?').bind(employee_id).first();
+  const empName = emp ? emp.full_name : 'Karyawan';
+  
+  await runSync(env.DB, 'contracts', newId, {
+    empName,
+    branchId: branch_id || null,
+    endDate: end_date,
+    status: status || 'Aktif'
+  });
+
+  return ok({ id: newId }, 201, origin);
 }
 
 async function updateContract(id, request, env, origin) {
@@ -122,6 +134,19 @@ async function updateContract(id, request, env, origin) {
   ).bind(employee_id || null, branch_id || null, division || null, start_date || null,
     end_date || null, contract_type || null, pkwt_number || null, status || null, notes || null, id).run();
 
+  // Sync updated values
+  const updatedContract = await env.DB.prepare('SELECT employee_id, branch_id, end_date, status FROM contracts WHERE id = ?').bind(id).first();
+  if (updatedContract) {
+    const emp = await env.DB.prepare('SELECT full_name FROM employees WHERE id = ?').bind(updatedContract.employee_id).first();
+    const empName = emp ? emp.full_name : 'Karyawan';
+    await runSync(env.DB, 'contracts', id, {
+      empName,
+      branchId: updatedContract.branch_id,
+      endDate: updatedContract.end_date,
+      status: updatedContract.status
+    });
+  }
+
   return ok({ message: 'Contract updated' }, 200, origin);
 }
 
@@ -129,6 +154,7 @@ async function deleteContract(id, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM contracts WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM contracts WHERE id = ?').bind(id).run();
+  await runSync(env.DB, 'contracts', id, null); // Delete event
   return ok({ message: 'Contract deleted' }, 200, origin);
 }
 

@@ -150,46 +150,41 @@ async function getKPI(env, origin) {
 // ─── /stats — backward-compat + expiring list + recent issues ────────────────
 async function getStats(env, origin) {
   const [
-    totalEmployees, activeContracts, expiringContracts, openIssues,
-    openOneOnOne, pendingSchedule, pendingSupply, totalBranches,
-    doneIssues, totalTraining
+    totalEmployees, totalBranches, activeContracts,
+    expiringContracts, openIssues, openOneOnOne,
+    pendingSchedule, pendingSupply, doneIssues, totalTraining
   ] = await Promise.all([
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date>=date('now')").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date BETWEEN date('now') AND date('now','+30 days')").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status!='Done'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE status='Pending'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status='Pending'").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM branches WHERE is_active=1").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status='Done'").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date >= date('now')").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date BETWEEN date('now') AND date('now','+30 days')").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status != 'Done'").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status != 'Done'").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE status = 'Pending'").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status = 'Pending'").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status = 'Done'").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM training").first(),
   ]);
 
-  // Uses idx_issues_created (only 5 rows returned)
   const recentIssues = await env.DB.prepare(
-    `SELECT i.id, i.report_date, i.category, i.complaint, i.status, i.employee_name,
+    `SELECT i.id, i.report_date, i.category, i.complaint, i.status,
      b.full_name as branch_name
      FROM issues i LEFT JOIN branches b ON i.branch_id = b.id
      ORDER BY i.created_at DESC LIMIT 5`
   ).all();
 
-  // Uses idx_contracts_status_end (only 10 rows)
   const expiringList = await env.DB.prepare(
-    `SELECT c.id, c.end_date, c.status, c.contract_type,
-     COALESCE(e.full_name, c.employee_name, '—') as emp_name,
+    `SELECT c.id, c.end_date, c.status, e.full_name as emp_name,
      b.full_name as branch_name,
      CAST(julianday(c.end_date) - julianday('now') AS INTEGER) as days_remaining
-     FROM contracts c
+     FROM contracts c LEFT JOIN branches b ON c.branch_id = b.id
      LEFT JOIN employees e ON c.employee_id = e.id
-     LEFT JOIN branches b ON c.branch_id = b.id
      WHERE c.status='Aktif' AND c.end_date BETWEEN date('now') AND date('now','+30 days')
      ORDER BY c.end_date ASC LIMIT 10`
   ).all();
 
-  // Uses idx_schedule_target_date (only 7 rows)
   const upcomingSchedule = await env.DB.prepare(
-    `SELECT s.id, s.activity_type, s.period, s.target_date, s.status, s.pic,
+    `SELECT s.id, s.activity_type, s.target_date, s.status,
      b.full_name as branch_name
      FROM activity_schedule s LEFT JOIN branches b ON s.branch_id = b.id
      WHERE s.status != 'Done' AND s.target_date >= date('now')
@@ -323,7 +318,7 @@ async function getInspectionBar(env, origin) {
 async function getContractsExpiring(env, origin) {
   const rows = await env.DB.prepare(
     `SELECT c.id, c.end_date, c.status, c.contract_type, c.pkwt_number,
-     COALESCE(e.full_name, c.employee_name, '—') emp_name,
+     COALESCE(e.full_name, '—') emp_name,
      b.full_name branch_name,
      CAST(julianday(c.end_date)-julianday('now') AS INTEGER) days_remaining
      FROM contracts c
@@ -346,7 +341,7 @@ async function getActivityLog(env, origin) {
          FROM issues ORDER BY created_at DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'contract' type, COALESCE(employee_name,'Karyawan') label, created_at,
+        `SELECT 'contract' type, COALESCE((SELECT full_name FROM employees WHERE id=contracts.employee_id),'Karyawan') label, created_at,
          branch_id, contract_type info
          FROM contracts ORDER BY created_at DESC LIMIT 5`
       ).all(),
@@ -484,7 +479,7 @@ async function getCalendarEvents(request, env, origin) {
        WHERE strftime('%Y-%m',s.submitted_at)=?`
     ).bind(...bind).all(),
     env.DB.prepare(
-      `SELECT c.id, c.end_date, COALESCE(e.full_name,c.employee_name,'?') emp_name
+      `SELECT c.id, c.end_date, COALESCE(e.full_name,'?') emp_name
        FROM contracts c LEFT JOIN employees e ON c.employee_id=e.id
        WHERE c.status='Aktif'`
     ).all()
@@ -561,7 +556,7 @@ async function getInspectionScores(request, env, origin) {
 async function getNotifications(request, env, origin) {
   const [contracts, pendingSched, openIssues, pendingSupply] = await Promise.all([
     env.DB.prepare(
-      `SELECT c.id, c.end_date, COALESCE(e.full_name, c.employee_name, '?') as emp_name
+      `SELECT c.id, c.end_date, COALESCE(e.full_name, '?') as emp_name
        FROM contracts c LEFT JOIN employees e ON c.employee_id = e.id
        WHERE c.status = 'Aktif'`
     ).all(),

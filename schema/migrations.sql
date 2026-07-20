@@ -474,3 +474,38 @@ INSERT OR IGNORE INTO master_checklist (name, category, document_link) VALUES
 -- The wrangler d1 execute script is run with --yes and continue-on-error=true.
 ALTER TABLE contracts ADD COLUMN employee_name TEXT;
 ALTER TABLE contracts ADD COLUMN division TEXT DEFAULT 'FACILITY CARE';
+
+-- ============================================================
+-- MASTER CALENDAR SSOT TABLE
+-- ============================================================
+CREATE TABLE IF NOT EXISTS calendar_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  module TEXT NOT NULL,
+  reference_id INTEGER NOT NULL,
+  event_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  employee_id INTEGER,
+  branch_id INTEGER,
+  start_date TEXT NOT NULL,
+  end_date TEXT,
+  status TEXT,
+  priority TEXT,
+  color TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(start_date);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_ref ON calendar_events(module, reference_id);
+
+-- ============================================================
+-- VALIDATION OPTIONS (Master References)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS validation_options (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL,
+  value TEXT NOT NULL,
+  UNIQUE(category, value)
+);
+

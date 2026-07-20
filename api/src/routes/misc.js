@@ -11,6 +11,7 @@ export async function handleMisc(request, env, origin) {
   if (path.startsWith('/api/checklist')) return handleTable(request, env, origin, 'master_checklist', path.replace('/api/checklist', ''));
   if (path.startsWith('/api/forms')) return handleForms(request, env, origin, path.replace('/api/forms', ''));
   if (path.startsWith('/api/pic')) return handlePic(request, env, origin);
+  if (path.startsWith('/api/options')) return handleOptions(request, env, origin);
 
   return error('Not found', 404, origin);
 }
@@ -152,3 +153,24 @@ async function handlePic(request, env, origin) {
   }
   return error('Not found', 404, origin);
 }
+
+async function handleOptions(request, env, origin) {
+  if (request.method !== 'GET') return error('Method not allowed', 405, origin);
+  const rows = await env.DB.prepare('SELECT category, value FROM validation_options ORDER BY value').all();
+  
+  const data = {
+    pic: [],
+    activity: [],
+    quarter: [],
+    pkwt: []
+  };
+  
+  (rows.results || []).forEach(r => {
+    if (data[r.category]) {
+      data[r.category].push(r.value);
+    }
+  });
+  
+  return ok(data, 200, origin);
+}
+

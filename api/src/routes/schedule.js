@@ -1,6 +1,7 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { runSync } from '../utils/calendar.js';
 
 export async function handleSchedule(request, env, origin) {
   const user = await authenticate(request, env);
@@ -85,7 +86,12 @@ async function createSchedule(request, env, origin) {
   ).bind(branch_id || null, activity_type, period, pic || null, opening_date || null,
     target_date || null, completion_date || null, status || 'Pending', notes || null).run();
 
-  return ok({ id: result.meta.last_row_id }, 201, origin);
+  const newId = result.meta.last_row_id;
+  await runSync(env.DB, 'schedule', newId, {
+    activity_type, period, pic, target_date, status: status || 'Pending', branch_id, notes
+  });
+
+  return ok({ id: newId }, 201, origin);
 }
 
 async function updateSchedule(id, request, env, origin) {
@@ -107,6 +113,11 @@ async function updateSchedule(id, request, env, origin) {
     opening_date || null, target_date || null, completion_date || null,
     status || null, notes || null, id).run();
 
+  const updated = await env.DB.prepare('SELECT * FROM activity_schedule WHERE id = ?').bind(id).first();
+  if (updated) {
+    await runSync(env.DB, 'schedule', id, updated);
+  }
+
   return ok({ message: 'Schedule updated' }, 200, origin);
 }
 
@@ -114,6 +125,7 @@ async function deleteSchedule(id, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM activity_schedule WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM activity_schedule WHERE id = ?').bind(id).run();
+  await runSync(env.DB, 'schedule', id, null);
   return ok({ message: 'Schedule deleted' }, 200, origin);
 }
 

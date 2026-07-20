@@ -1,6 +1,7 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { runSync } from '../utils/calendar.js';
 
 export async function handleRelievers(request, env, origin) {
   const user = await authenticate(request, env);
@@ -87,7 +88,12 @@ async function create(request, env, origin) {
   ).bind(branch_id || null, original_fc_name || null, period || null, reliever_name,
     backup_date, completion_date || null, reason || null, shift || null, status || 'Pending').run();
 
-  return ok({ id: result.meta.last_row_id }, 201, origin);
+  const newId = result.meta.last_row_id;
+  await runSync(env.DB, 'relievers', newId, {
+    reliever_name, backup_date, status: status || 'Pending', branch_id, original_fc_name, reason, shift
+  });
+
+  return ok({ id: newId }, 201, origin);
 }
 
 async function update(id, request, env, origin) {
@@ -105,6 +111,11 @@ async function update(id, request, env, origin) {
   ).bind(branch_id || null, original_fc_name || null, period || null, reliever_name || null,
     backup_date || null, completion_date || null, reason || null, shift || null, status || null, id).run();
 
+  const updated = await env.DB.prepare('SELECT * FROM relievers WHERE id = ?').bind(id).first();
+  if (updated) {
+    await runSync(env.DB, 'relievers', id, updated);
+  }
+
   return ok({ message: 'Updated' }, 200, origin);
 }
 
@@ -112,6 +123,7 @@ async function remove(id, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM relievers WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM relievers WHERE id = ?').bind(id).run();
+  await runSync(env.DB, 'relievers', id, null);
   return ok({ message: 'Deleted' }, 200, origin);
 }
 
