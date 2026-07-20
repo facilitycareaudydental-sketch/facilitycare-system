@@ -1,5 +1,24 @@
-import { apiFetch, showToast, formatDate, escapeHTML } from '../config.js';
+import { apiFetch } from '../config.js';
+import { toast, toastSuccess, toastError } from '../components/toast.js';
+
 export async function renderSP(container) {
+  function formatDate(d) {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.toString().replace(/[&<>'"]/g, 
+      tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag])
+    );
+  }
+
   container.innerHTML = `
     <div class="page-header">
       <div class="page-title-group">
@@ -179,8 +198,8 @@ export async function renderSP(container) {
       btn.addEventListener('click', async () => {
         if (confirm('Yakin ingin menghapus data SP ini?')) {
           const res = await apiFetch(`/api/sp/${btn.dataset.id}`, { method: 'DELETE' });
-          if (res.ok) { showToast('Data SP berhasil dihapus'); loadData(); }
-          else { showToast('Gagal menghapus data', 'danger'); }
+          if (res.ok) { toastSuccess('Data SP berhasil dihapus'); loadData(); }
+          else { toastError('Gagal menghapus data'); }
         }
       });
     });
@@ -202,14 +221,14 @@ export async function renderSP(container) {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        showToast(`Data SP berhasil ${isEdit ? 'diperbarui' : 'ditambahkan'}`);
+        toastSuccess(`Data SP berhasil ${isEdit ? 'diperbarui' : 'ditambahkan'}`);
         closeModal();
         loadData();
       } else {
-        showToast(res.data?.message || 'Terjadi kesalahan', 'danger');
+        toastError(res.data?.message || 'Terjadi kesalahan');
       }
     } catch (e) {
-      showToast('Gagal menyimpan data', 'danger');
+      toastError('Gagal menyimpan data');
     } finally {
       btnSave.disabled = false;
       btnSave.textContent = 'Simpan';
@@ -218,4 +237,4 @@ export async function renderSP(container) {
 
   await loadBranches();
   await loadData();
-};
+}
