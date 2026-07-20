@@ -23,7 +23,8 @@ import { handleImport } from './routes/import.js';
 import { handleSP } from './routes/sp.js';
 import { handleMutasi } from './routes/mutasi.js';
 import { syncGoogleSheets } from './utils/google_sync.js';
-import { options, error } from './utils/response.js';
+import { options, error, badRequest, ok, serverError, forbidden } from './utils/response.js';
+import { authenticate, hasPermission } from './utils/auth.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -45,7 +46,6 @@ export default {
 
     try {
       const path = url.pathname;
-      const { authenticate, hasPermission, forbidden, badRequest, ok, serverError } = await import('./utils/auth.js');
 
       // Generic Bulk Delete Handler
       if (request.method === 'DELETE' && path.endsWith('/bulk')) {
