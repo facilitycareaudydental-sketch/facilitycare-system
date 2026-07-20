@@ -4,19 +4,19 @@ import { getPagination } from '../utils/pagination.js';
 import { runSync } from '../utils/calendar.js';
 
 export async function handleRelievers(request, env, origin) {
-  const user = await authenticate(request, env);
-  if (!user) return unauthorized(origin);
-  if (!hasPermission(user, 'relievers', 'read')) return forbidden(origin);
-
   const url = new URL(request.url);
   const path = url.pathname.replace('/api/relievers', '');
   const idMatch = path.match(/^\/(\d+)$/);
 
-  if (request.method === 'GET' && path === '') return list(request, env, origin);
   if (request.method === 'POST' && path === '/import') {
-    if (!hasPermission(user, 'relievers', 'write')) return forbidden(origin);
     return importRelievers(request, env, origin);
   }
+
+  const user = await authenticate(request, env);
+  if (!user) return unauthorized(origin);
+  if (!hasPermission(user, 'relievers', 'read')) return forbidden(origin);
+
+  if (request.method === 'GET' && path === '') return list(request, env, origin);
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'relievers', 'write')) return forbidden(origin);
     return create(request, env, origin);

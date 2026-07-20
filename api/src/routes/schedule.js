@@ -4,19 +4,19 @@ import { getPagination } from '../utils/pagination.js';
 import { runSync } from '../utils/calendar.js';
 
 export async function handleSchedule(request, env, origin) {
-  const user = await authenticate(request, env);
-  if (!user) return unauthorized(origin);
-  if (!hasPermission(user, 'schedule', 'read')) return forbidden(origin);
-
   const url = new URL(request.url);
   const path = url.pathname.replace('/api/schedule', '');
   const idMatch = path.match(/^\/(\d+)$/);
 
-  if (request.method === 'GET' && path === '') return listSchedule(request, env, origin);
   if (request.method === 'POST' && path === '/import') {
-    if (!hasPermission(user, 'schedule', 'write')) return forbidden(origin);
     return importSchedule(request, env, origin);
   }
+
+  const user = await authenticate(request, env);
+  if (!user) return unauthorized(origin);
+  if (!hasPermission(user, 'schedule', 'read')) return forbidden(origin);
+
+  if (request.method === 'GET' && path === '') return listSchedule(request, env, origin);
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'schedule', 'write')) return forbidden(origin);
     return createSchedule(request, env, origin);

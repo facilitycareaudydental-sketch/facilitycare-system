@@ -18,6 +18,8 @@
   "devDependencies": {
     "esbuild": "^0.24.0",
     "wrangler": "^3.78.0"
+  },
+  "dependencies": {
+    "papaparse": "^5.5.4"
   }
 }
-
