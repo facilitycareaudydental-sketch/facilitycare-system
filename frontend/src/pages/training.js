@@ -9,7 +9,7 @@ export async function renderTraining(container) {
   ]);
   const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
-  const picOptions = (pRes.data?.data || []).map(p => ({ value: p.name, label: p.name }));
+  const picOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {

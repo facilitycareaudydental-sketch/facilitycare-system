@@ -85,18 +85,17 @@ export async function syncGoogleSheets(env) {
     
     for (const row of valData) {
        const pic = (row['PIC'] || '').trim();
-       const role = (row['KEGIATAN'] || '').trim(); // Mapping kegiatan as role just in case
        if (pic) {
-          const existing = currentPics.find(p => p.name === pic);
+          const existing = currentPics.find(p => p.name === pic && p.role === 'FC Spesialis');
           if (!existing) {
-             picStmts.push(env.DB.prepare('INSERT INTO pic_list (name, role) VALUES (?, ?)').bind(pic, role));
-             currentPics.push({ name: pic, role: role });
+             picStmts.push(env.DB.prepare('INSERT INTO pic_list (name, role) VALUES (?, ?)').bind(pic, 'FC Spesialis'));
+             currentPics.push({ name: pic, role: 'FC Spesialis' });
           }
        }
        
        const picPelapor = (row['PIC PELAPOR'] || '').trim();
        if (picPelapor) {
-          const existingPelapor = currentPics.find(p => p.name === picPelapor);
+          const existingPelapor = currentPics.find(p => p.name === picPelapor && p.role === 'Pelapor');
           if (!existingPelapor) {
              picStmts.push(env.DB.prepare('INSERT INTO pic_list (name, role) VALUES (?, ?)').bind(picPelapor, 'Pelapor'));
              currentPics.push({ name: picPelapor, role: 'Pelapor' });
