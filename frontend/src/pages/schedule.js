@@ -14,12 +14,10 @@ export async function renderSchedule(container) {
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   
-  const empNames = (eRes.data?.data || []).map(e => e.full_name);
-  const picNames = (pRes.data?.data || []).map(p => p.name);
-  const allNames = [...new Set([...empNames, ...picNames])].sort();
+  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+  const rawPicOptions = (pRes.data?.data || []).map(p => ({ value: p.name, label: p.name }));
   
-  const employeeOptions = allNames.map(name => ({ value: name, label: name }));
-  picOptions = [...employeeOptions];
+  picOptions = [...rawPicOptions];
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
