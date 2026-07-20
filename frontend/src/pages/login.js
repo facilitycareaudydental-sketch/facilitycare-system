@@ -70,13 +70,6 @@ export async function renderLogin(container) {
             <span class="btn-spinner" style="display:none">⏳ Memproses...</span>
           </button>
         </form>
-
-        <div class="login-footer">
-          <a href="#/form/chemical" class="link-subtle">
-            📦 Form Permintaan Barang (Tanpa Login)
-          </a>
-        </div>
-
         <div class="login-version">FCMS v2.0 · Facility Care Indonesia</div>
       </div>
 

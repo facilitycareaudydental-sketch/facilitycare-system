@@ -130,14 +130,4 @@ async function renderSupplyRequests(container) {
       },
     ],
   });
-
-  // Add link to public form
-  const header = container.querySelector('.page-header .page-actions');
-  if (header) {
-    const link = document.createElement('a');
-    link.href = '#/form/chemical';
-    link.className = 'btn btn-ghost btn-sm';
-    link.textContent = '🔗 Form Publik';
-    header.prepend(link);
-  }
 }

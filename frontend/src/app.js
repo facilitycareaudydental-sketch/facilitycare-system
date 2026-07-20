@@ -445,7 +445,6 @@ async function init() {
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));
   registerRoute('/profile',            requireAuth(({ main }) => renderProfile(main)));
   registerRoute('/settings/import',    requireAuth(({ main }) => renderImportPage(main)));
-  registerRoute('/form/chemical',      () => { window.location.href = '/form.html'; });
 
   const token = getToken();
   if (!token && window.location.hash !== '#/login') { navigate('/login'); }
