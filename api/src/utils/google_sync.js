@@ -76,21 +76,14 @@ export async function syncGoogleSheets(env) {
       await env.DB.batch(empStmts.slice(i, i + 100));
     }
 
-    // 4. Process PICs (Insert Only)
+    // 4. Process PICs (Insert Only from PIC PELAPOR)
     const picStmts = [];
-    const currentPics = (await env.DB.prepare('SELECT id, name, role FROM pic_list').all()).results;
+    
+    // Clear old pic list first to remove unwanted employee names
+    await env.DB.prepare('DELETE FROM pic_list').run();
+    const currentPics = [];
     
     for (const row of valData) {
-       const pic = (row['PIC'] || '').trim();
-       const role = (row['KEGIATAN'] || '').trim(); // Mapping kegiatan as role just in case
-       if (pic) {
-          const existing = currentPics.find(p => p.name === pic);
-          if (!existing) {
-             picStmts.push(env.DB.prepare('INSERT INTO pic_list (name, role) VALUES (?, ?)').bind(pic, role));
-             currentPics.push({ name: pic, role: role });
-          }
-       }
-       
        const picPelapor = (row['PIC PELAPOR'] || '').trim();
        if (picPelapor) {
           const existingPelapor = currentPics.find(p => p.name === picPelapor);
