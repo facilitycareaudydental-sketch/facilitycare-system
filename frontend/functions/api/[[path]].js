@@ -8,12 +8,18 @@ export async function onRequest(context) {
   // Rewrite the URL to point to the worker
   const targetUrl = new URL(url.pathname + url.search, API_BASE);
   
-  // Create a new request based on the original
-  const newRequest = new Request(targetUrl, request);
+  // Fetch from the worker
+  const headers = new Headers(request.headers);
+  headers.delete('Host');
+  headers.delete('Origin');
+  headers.delete('Referer');
   
-  // Set the original IP and Origin for logging/CORS if needed by the worker
-  newRequest.headers.set('X-Forwarded-For', request.headers.get('CF-Connecting-IP') || '');
-  newRequest.headers.set('X-Forwarded-Host', url.hostname);
+  const newRequest = new Request(targetUrl, {
+    method: request.method,
+    headers: headers,
+    body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null,
+    redirect: 'manual'
+  });
   
   // Fetch from the worker
   return fetch(newRequest);
