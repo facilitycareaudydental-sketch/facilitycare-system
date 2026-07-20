@@ -44,10 +44,14 @@ export async function apiFetch(path, options = {}) {
     const res = await fetch(finalUrl, { ...options, headers });
     let data;
     try {
-      data = await res.json();
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { error: `Server Error (${res.status}): ${text.substring(0, 80)}...` };
+      }
     } catch (e) {
-      // If response is not JSON (e.g. 500 HTML error from Cloudflare)
-      data = { error: 'Terjadi kesalahan pada server (Network/Server Error)' };
+      data = { error: 'Gagal membaca respon dari server' };
     }
     
     if (res.status === 401) {

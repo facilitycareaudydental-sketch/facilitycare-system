@@ -28,6 +28,12 @@ function copyDir(src, dest) {
 
 copyDir(publicDir, distDir);
 
+// Copy Pages Functions to dist so Wrangler deploys them
+const functionsDir = path.join(__dirname, '..', 'functions');
+if (fs.existsSync(functionsDir)) {
+  copyDir(functionsDir, path.join(distDir, 'functions'));
+}
+
 // Replace API URL placeholder in index.html
 const apiUrl = process.env.API_BASE_URL || '';
 let html = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
