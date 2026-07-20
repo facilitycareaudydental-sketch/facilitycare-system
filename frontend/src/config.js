@@ -54,6 +54,6 @@ export async function apiFetch(path, options = {}) {
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
     // Network errors (e.g. offline)
-    return { ok: false, status: 0, data: { error: 'Koneksi terputus. Periksa jaringan Anda.' } };
+    return { ok: false, status: 0, data: { error: `Koneksi terputus. Periksa jaringan Anda. (${err.message})` } };
   }
 }
