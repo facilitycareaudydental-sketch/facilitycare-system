@@ -25,6 +25,8 @@ import { renderBranches } from './pages/branches.js';
 import { renderCalendar } from './pages/calendar.js';
 import { renderProfile } from './pages/profile.js';
 import { renderImportPage } from './pages/import.js';
+import { renderSP } from './pages/sp.js';
+import { renderMutasi } from './pages/mutasi.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
