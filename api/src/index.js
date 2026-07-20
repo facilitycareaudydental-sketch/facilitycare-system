@@ -20,6 +20,7 @@ import { handleReports } from './routes/reports.js';
 import { handleMisc } from './routes/misc.js';
 import { handleDashboard } from './routes/dashboard.js';
 import { handleImport } from './routes/import.js';
+import { syncGoogleSheets } from './utils/google_sync.js';
 import { options, error } from './utils/response.js';
 
 export default {
@@ -56,6 +57,16 @@ export default {
       if (path.startsWith('/api/reports')) return handleReports(request, env, origin);
       if (path.startsWith('/api/dashboard')) return handleDashboard(request, env, origin);
       if (path.startsWith('/api/import')) return handleImport(request, env, origin);
+      
+      // Manual sync trigger
+      if (path === '/api/sync/google-sheets' && request.method === 'POST') {
+        const result = await syncGoogleSheets(env);
+        return new Response(JSON.stringify(result), {
+          status: result.success ? 200 : 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin }
+        });
+      }
+
       if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') ||
           path.startsWith('/api/forms') || path.startsWith('/api/pic')) {
         return handleMisc(request, env, origin);
@@ -66,5 +77,9 @@ export default {
       console.error('Worker error:', err);
       return error('Internal server error: ' + err.message, 500, origin);
     }
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(syncGoogleSheets(env));
   }
 };

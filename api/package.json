@@ -9,7 +9,10 @@
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {
-    "wrangler": "^3.78.0",
-    "@cloudflare/workers-types": "^4.20241022.0"
+    "@cloudflare/workers-types": "^4.20241022.0",
+    "wrangler": "^3.78.0"
+  },
+  "dependencies": {
+    "papaparse": "^5.5.4"
   }
 }

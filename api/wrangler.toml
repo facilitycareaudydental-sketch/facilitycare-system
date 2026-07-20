@@ -19,3 +19,6 @@ CORS_ORIGIN = "https://fm-operations.pages.dev"
 [dev]
 port = 8787
 local_protocol = "http"
+
+[triggers]
+crons = ["0 17 * * *"] # Runs at midnight UTC+7 (17:00 UTC)

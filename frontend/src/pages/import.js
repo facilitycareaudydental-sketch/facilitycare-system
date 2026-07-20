@@ -16,8 +16,14 @@ const IMPORT_ORDER = [
 export function renderImportPage(container) {
   container.innerHTML = `
     <div class="page-header">
-      <h1 class="page-title">📥 Import Data Awal</h1>
+      <div class="header-content">
+        <h1 class="page-title"><span class="title-icon">📥</span> Import Data Awal</h1>
+        <p class="page-subtitle">Unggah file Excel untuk mengisi data aplikasi, atau sinkronkan langsung dari Google Sheets.</p>
+      </div>
       <div class="page-actions" style="display:flex;gap:8px">
+        <button id="btn-sync-google" class="btn btn-secondary">
+          <span>🔄 Tarik Data dari Google Sheets</span>
+        </button>
         <button class="btn btn-warning" id="btn-backup-db">📦 Backup Database</button>
         <button class="btn btn-secondary" id="btn-download-template">⬇️ Download Template</button>
       </div>
@@ -203,6 +209,31 @@ export function renderImportPage(container) {
       btn.textContent = '📦 Backup Database';
     }
   });
+
+  const btnSync = document.getElementById('btn-sync-google');
+  if (btnSync) {
+    btnSync.addEventListener('click', async () => {
+      if (!confirm('Peringatan: Mensinkronkan data dengan Google Sheets akan menimpa Master Data Karyawan, Cabang, dan PIC. Lanjutkan?')) return;
+      
+      const originalText = btnSync.innerHTML;
+      btnSync.innerHTML = '<span class="spinner"></span> Menyinkronkan...';
+      btnSync.disabled = true;
+      
+      try {
+        const res = await apiFetch('/api/sync/google-sheets', { method: 'POST' });
+        if (res.ok) {
+          alert('Sinkronisasi Berhasil: ' + (res.data?.message || 'Data Karyawan & PIC telah diperbarui.'));
+        } else {
+          alert('Gagal Sinkronisasi: ' + (res.data?.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Terjadi kesalahan koneksi.');
+      } finally {
+        btnSync.innerHTML = originalText;
+        btnSync.disabled = false;
+      }
+    });
+  }
 
   document.getElementById('btn-download-template').addEventListener('click', () => {
     generateTemplate();
