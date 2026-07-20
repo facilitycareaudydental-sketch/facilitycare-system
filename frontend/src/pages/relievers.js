@@ -18,6 +18,22 @@ export async function renderRelievers(container) {
     return employeeOptions;
   };
 
+  const relieverOptions = [
+    'Krishna Aryaan Permana',
+    'Agung Septiadi',
+    'Indra Saputro',
+    'Wariskin',
+    'Iqbal'
+  ];
+
+  const getRelieverOptions = (val) => {
+    const opts = relieverOptions.map(name => ({ value: name, label: name }));
+    if (val && !opts.find(o => o.value === val)) {
+      return [...opts, { value: val, label: val }];
+    }
+    return opts;
+  };
+
   buildCrudPage({
     container,
     title: 'Jadwal Reliefer',
@@ -50,7 +66,7 @@ export async function renderRelievers(container) {
       {
         type: 'row', fields: [
           { name: 'original_fc_name', label: 'FC yang Digantikan', type: 'select', options: [{value:'', label:'BELUM ADA FC'}, ...getEmpOptions(data?.original_fc_name)], value: data?.original_fc_name },
-          { name: 'reliever_name', label: 'Nama Reliefer', type: 'select', required: true, options: getEmpOptions(data?.reliever_name), value: data?.reliever_name },
+          { name: 'reliever_name', label: 'Nama Reliefer', type: 'select', required: true, options: getRelieverOptions(data?.reliever_name), value: data?.reliever_name },
         ]
       },
       {
