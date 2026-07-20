@@ -5,7 +5,8 @@ export async function renderChecklist(container) {
     container,
     title: 'Master Checklist',
     icon: '✅',
-    apiPath: '/api/checklist',
+    apiPath:,
+    bulkDelete: true,
     itemLabel: 'Checklist',
     columns: [
       { key: 'name', label: 'Nama Checklist' },

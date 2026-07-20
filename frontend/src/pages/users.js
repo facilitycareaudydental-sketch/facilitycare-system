@@ -14,7 +14,8 @@ export async function renderUsers(container) {
     container,
     title: 'Manajemen User',
     icon: '🔐',
-    apiPath: '/api/users',
+    apiPath:,
+    bulkDelete: true,
     itemLabel: 'User',
     columns: [
       { key: 'full_name', label: 'Nama Lengkap' },

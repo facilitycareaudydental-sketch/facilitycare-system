@@ -16,7 +16,8 @@ function renderMasterForms(container) {
     container,
     title: 'Master Form',
     icon: '📄',
-    apiPath: '/api/forms',
+    apiPath:,
+    bulkDelete: true,
     itemLabel: 'Form',
     columns: [
       { key: 'name', label: 'Nama Form' },
@@ -46,7 +47,8 @@ async function renderSupplyRequests(container) {
     container,
     title: 'Permintaan Barang & Chemical',
     icon: '📦',
-    apiPath: '/api/reports/supply',
+    apiPath:,
+    bulkDelete: true,
     itemLabel: 'Permintaan',
     canCreate: true, // Now fully editable
     columns: [

@@ -30,7 +30,8 @@ export async function renderTraining(container) {
     container,
     title: 'Training',
     icon: '🎓',
-    apiPath: '/api/training',
+    apiPath:,
+    bulkDelete: true,
     itemLabel: 'Training',
     columns: [
       { key: 'training_date', label: 'Tanggal', nowrap: true },

@@ -48,7 +48,8 @@ export async function renderIssues(container) {
     container,
     title: 'Permasalahan',
     icon: '⚠️',
-    apiPath: '/api/issues',
+    apiPath:,
+    bulkDelete: true,
     itemLabel: 'Permasalahan',
     columns: [
       { key: 'report_date', label: 'Tanggal', nowrap: true },

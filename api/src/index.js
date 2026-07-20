@@ -45,6 +45,44 @@ export default {
 
     try {
       const path = url.pathname;
+      const { authenticate, hasPermission, forbidden, badRequest, ok, serverError } = await import('./utils/auth.js');
+
+      // Generic Bulk Delete Handler
+      if (request.method === 'DELETE' && path.endsWith('/bulk')) {
+        const user = await authenticate(request, env);
+        if (!user) return new Response('Unauthorized', { status: 401, headers: { 'Access-Control-Allow-Origin': origin } });
+        
+        const moduleMap = {
+          '/api/employees/bulk': { table: 'employees', perm: 'employees' },
+          '/api/issues/bulk': { table: 'issues', perm: 'issues' },
+          '/api/schedule/bulk': { table: 'schedule', perm: 'schedule' },
+          '/api/one-on-one/bulk': { table: 'one_on_one', perm: 'one_on_one' },
+          '/api/training/bulk': { table: 'training', perm: 'training' },
+          '/api/relievers/bulk': { table: 'relievers', perm: 'relievers' },
+          '/api/sp/bulk': { table: 'sp_data', perm: 'sp' },
+          '/api/mutasi/bulk': { table: 'mutasi_data', perm: 'mutasi' },
+          '/api/sop/bulk': { table: 'sops', perm: 'sop' },
+          '/api/checklist/bulk': { table: 'master_checklists', perm: 'checklist' },
+          '/api/forms/bulk': { table: 'master_forms', perm: 'forms' },
+          '/api/pic/bulk': { table: 'pics', perm: 'pic' },
+          '/api/users/bulk': { table: 'users', perm: 'users' },
+          '/api/contracts/bulk': { table: 'contracts', perm: 'contracts' }
+        };
+
+        const config = moduleMap[path];
+        if (!config) return badRequest('Invalid bulk delete module', origin);
+        if (!hasPermission(user, config.perm, 'delete') && !hasPermission(user, config.perm, 'write')) return forbidden(origin);
+
+        try {
+          const { ids } = await request.json();
+          if (!Array.isArray(ids) || ids.length === 0) return badRequest('No IDs provided', origin);
+          const placeholders = ids.map(() => '?').join(',');
+          await env.DB.prepare(`DELETE FROM ${config.table} WHERE id IN (${placeholders})`).bind(...ids).run();
+          return ok({ message: `Deleted ${ids.length} items` }, 200, origin);
+        } catch (e) {
+          return serverError(e, origin);
+        }
+      }
 
       if (path.startsWith('/api/auth')) return handleAuth(request, env, origin);
       if (path.startsWith('/api/users')) return handleUsers(request, env, origin);

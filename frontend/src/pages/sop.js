@@ -5,7 +5,8 @@ export async function renderSOP(container) {
     container,
     title: 'SOP',
     icon: '📖',
-    apiPath: '/api/sop',
+    apiPath:,
+    bulkDelete: true,
     itemLabel: 'SOP',
     columns: [
       { key: 'name', label: 'Nama SOP' },
