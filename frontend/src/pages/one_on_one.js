@@ -31,7 +31,7 @@ export async function renderOneOnOne(container) {
     container,
     title: 'One on One',
     icon: '🤝',
-    apiPath:,
+    apiPath: '/api/one-on-one',
     bulkDelete: true,
     itemLabel: 'One on One',
     columns: [

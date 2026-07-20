@@ -23,6 +23,7 @@ export async function renderContracts(container) {
     title: 'Data Kontrak',
     icon: '📋',
     apiPath: '/api/contracts',
+    bulkDelete: true,
     itemLabel: 'Kontrak',
     columns: [
       { key: 'employee_name', label: 'Nama Karyawan' },

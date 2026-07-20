@@ -38,7 +38,7 @@ export async function renderRelievers(container) {
     container,
     title: 'Jadwal Reliefer',
     icon: '🔄',
-    apiPath:,
+    apiPath: '/api/relievers',
     bulkDelete: true,
     itemLabel: 'Reliefer',
     columns: [

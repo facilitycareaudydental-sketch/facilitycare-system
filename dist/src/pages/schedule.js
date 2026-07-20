@@ -31,6 +31,7 @@ export async function renderSchedule(container) {
     title: 'Jadwal Kegiatan',
     icon: '🗓️',
     apiPath: '/api/schedule',
+    bulkDelete: true,
     itemLabel: 'Jadwal',
     columns: [
       { key: 'branch_name', label: 'Cabang' },

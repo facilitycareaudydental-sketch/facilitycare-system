@@ -48,7 +48,7 @@ export async function renderIssues(container) {
     container,
     title: 'Permasalahan',
     icon: '⚠️',
-    apiPath:,
+    apiPath: '/api/issues',
     bulkDelete: true,
     itemLabel: 'Permasalahan',
     columns: [

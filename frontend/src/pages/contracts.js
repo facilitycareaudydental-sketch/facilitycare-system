@@ -22,7 +22,7 @@ export async function renderContracts(container) {
     container,
     title: 'Data Kontrak',
     icon: '📋',
-    apiPath:,
+    apiPath: '/api/contracts',
     bulkDelete: true,
     itemLabel: 'Kontrak',
     columns: [

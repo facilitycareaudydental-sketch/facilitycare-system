@@ -32,6 +32,7 @@ export async function renderOneOnOne(container) {
     title: 'One on One',
     icon: '🤝',
     apiPath: '/api/one-on-one',
+    bulkDelete: true,
     itemLabel: 'One on One',
     columns: [
       { key: 'meeting_date', label: 'Tanggal', nowrap: true },

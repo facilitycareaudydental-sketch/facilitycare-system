@@ -14,7 +14,7 @@ export async function renderUsers(container) {
     container,
     title: 'Manajemen User',
     icon: '🔐',
-    apiPath:,
+    apiPath: '/api/users',
     bulkDelete: true,
     itemLabel: 'User',
     columns: [
