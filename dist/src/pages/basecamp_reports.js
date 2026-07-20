@@ -3,18 +3,28 @@ import { apiFetch } from '../config.js';
 import { statusBadge } from '../components/badges.js';
 
 export async function renderBasecampReports(container) {
-  const [bRes, eRes] = await Promise.all([
+  const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000')
+    apiFetch('/api/employees?limit=10000'),
+    apiFetch('/api/pic')
   ]);
   const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  
   const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+  const rawPicOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
       return [...employeeOptions, { value: val, label: val }];
     }
     return employeeOptions;
+  };
+  
+  const getPicOptions = (val) => {
+    if (val && !rawPicOptions.find(o => o.value === val)) {
+      return [...rawPicOptions, { value: val, label: val }];
+    }
+    return rawPicOptions;
   };
 
   buildCrudPage({
@@ -41,7 +51,7 @@ export async function renderBasecampReports(container) {
       {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
-          { name: 'pic', label: 'PIC', type: 'select', options: getEmpOptions(data?.pic), value: data?.pic },
+          { name: 'pic', label: 'PIC', type: 'select', options: getPicOptions(data?.pic), value: data?.pic },
         ]
       },
       { name: 'problem', label: 'Permasalahan', type: 'textarea', required: true, rows: 3, value: data?.problem },

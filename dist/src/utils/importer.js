@@ -164,7 +164,7 @@ const SCHEMAS = {
     }),
   },
   inspection: {
-    required: [{ key: 'Cabang', label: 'Cabang' }],
+    required: [],
     map: (row) => ({
       inspection_date: dateStr(row['Tanggal']),
       branch_name:     row['Cabang'],
@@ -177,7 +177,7 @@ const SCHEMAS = {
     }),
   },
   cleaning: {
-    required: [{ key: 'Cabang', label: 'Cabang' }],
+    required: [],
     map: (row) => ({
       activity_date: dateStr(row['Tanggal']),
       branch_name:   row['Cabang'],
@@ -189,7 +189,7 @@ const SCHEMAS = {
     }),
   },
   fogging: {
-    required: [{ key: 'Cabang', label: 'Cabang' }],
+    required: [],
     map: (row) => ({
       activity_date: dateStr(row['Tanggal']),
       branch_name:   row['Cabang'],

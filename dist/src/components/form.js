@@ -37,7 +37,7 @@ export function buildFormHTML(fields) {
         input = `<input type="url" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || 'https://...'}" ${required}>`;
         break;
       default:
-        input = `<input type="${field.type || 'text'}" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required}>`;
+        input = `<input type="${field.type || 'text'}" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required} autocomplete="off">`;
     }
 
     const hint = field.hint ? `<div class="form-hint">${field.hint}</div>` : '';

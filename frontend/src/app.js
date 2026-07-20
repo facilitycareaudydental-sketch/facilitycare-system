@@ -194,11 +194,11 @@ function renderLayout() {
           <!-- Operasional -->
           <div class="nav-section">
             <span class="nav-section-label">OPERASIONAL</span>
-            <a href="#/schedule" class="nav-item" data-route="/schedule">
+            <a href="#/timeline" class="nav-item" data-route="/timeline">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </span>
-              <span class="nav-label">Validasi</span>
+              <span class="nav-label">Time Line</span>
               <span class="nav-badge" id="badge-schedule"></span>
             </a>
             <a href="#/issues" class="nav-item" data-route="/issues">
@@ -267,12 +267,6 @@ function renderLayout() {
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
               </span>
               <span class="nav-label">SOP</span>
-            </a>
-            <a href="#/timeline" class="nav-item" data-route="/timeline">
-              <span class="nav-icon">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </span>
-              <span class="nav-label">Time Line</span>
             </a>
             <a href="#/checklist" class="nav-item" data-route="/checklist">
               <span class="nav-icon">
@@ -430,9 +424,9 @@ async function init() {
   registerRoute('/calendar',           requireAuth(({ main }) => renderCalendar(main)));
   registerRoute('/employees',          requireAuth(({ main }) => renderEmployees(main)));
   registerRoute('/contracts',          requireAuth(({ main }) => renderContracts(main)));
-  registerRoute('/sp',                 requireAuth(({ main }) => { main.innerHTML = '<div style="padding:2rem;"><h2>Data SP</h2><p>Modul dalam tahap pengembangan.</p></div>'; }));
-  registerRoute('/mutasi',             requireAuth(({ main }) => { main.innerHTML = '<div style="padding:2rem;"><h2>Data Mutasi</h2><p>Modul dalam tahap pengembangan.</p></div>'; }));
-  registerRoute('/schedule',           requireAuth(({ main }) => renderSchedule(main)));
+  registerRoute('/sp',                 requireAuth(({ main }) => renderSP(main)));
+  registerRoute('/mutasi',             requireAuth(({ main }) => renderMutasi(main)));
+  registerRoute('/timeline',           requireAuth(({ main }) => renderSchedule(main)));
   registerRoute('/issues',             requireAuth(({ main }) => renderIssues(main)));
   registerRoute('/one-on-one',         requireAuth(({ main }) => renderOneOnOne(main)));
   registerRoute('/training',           requireAuth(({ main }) => renderTraining(main)));
@@ -443,7 +437,6 @@ async function init() {
   registerRoute('/reports/basecamp',   requireAuth(({ main }) => renderBasecampReports(main)));
   registerRoute('/reports/supply',     requireAuth(({ main }) => renderForms(main, 'supply')));
   registerRoute('/sop',                requireAuth(({ main }) => renderSOP(main)));
-  registerRoute('/timeline',           requireAuth(({ main }) => { main.innerHTML = '<div style="padding:2rem;"><h2>Time Line</h2><p>Modul dalam tahap pengembangan.</p></div>'; }));
   registerRoute('/checklist',          requireAuth(({ main }) => renderChecklist(main)));
   registerRoute('/forms',              requireAuth(({ main }) => renderForms(main)));
   registerRoute('/users',              requireAuth(({ main }) => renderUsers(main)));

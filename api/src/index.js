@@ -3,7 +3,7 @@
  * Routes: /api/auth, /api/users, /api/branches, /api/employees, /api/contracts,
  *         /api/schedule, /api/issues, /api/one-on-one, /api/training,
  *         /api/relievers, /api/reports/*, /api/sop, /api/checklist,
- *         /api/forms, /api/pic, /api/dashboard
+ *         /api/forms, /api/pic, /api/dashboard, /api/sp, /api/mutasi
  */
 
 import { handleAuth } from './routes/auth.js';
@@ -20,6 +20,8 @@ import { handleReports } from './routes/reports.js';
 import { handleMisc } from './routes/misc.js';
 import { handleDashboard } from './routes/dashboard.js';
 import { handleImport } from './routes/import.js';
+import { handleSP } from './routes/sp.js';
+import { handleMutasi } from './routes/mutasi.js';
 import { syncGoogleSheets } from './utils/google_sync.js';
 import { options, error } from './utils/response.js';
 
@@ -57,6 +59,8 @@ export default {
       if (path.startsWith('/api/reports')) return handleReports(request, env, origin);
       if (path.startsWith('/api/dashboard')) return handleDashboard(request, env, origin);
       if (path.startsWith('/api/import')) return handleImport(request, env, origin);
+      if (path.startsWith('/api/sp')) return handleSP(request, env, origin);
+      if (path.startsWith('/api/mutasi')) return handleMutasi(request, env, origin);
       
       // Manual sync trigger
       if (path === '/api/sync/google-sheets' && request.method === 'POST') {

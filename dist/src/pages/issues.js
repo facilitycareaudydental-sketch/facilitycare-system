@@ -7,12 +7,17 @@ let branchOptions = [];
 let employeeOptions = [];
 
 export async function renderIssues(container) {
-  const [bRes, eRes] = await Promise.all([
+  const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000')
+    apiFetch('/api/employees?limit=10000'),
+    apiFetch('/api/pic')
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  
   employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+  
+  const fcOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
+  const pelaporOptions = (pRes.data?.data || []).filter(p => p.role === 'Pelapor').map(p => ({ value: p.name, label: p.name }));
 
   // Helper to ensure existing value is in options (prevents blank selects on old data)
   const getEmpOptions = (val) => {
@@ -20,6 +25,20 @@ export async function renderIssues(container) {
       return [...employeeOptions, { value: val, label: val }];
     }
     return employeeOptions;
+  };
+  
+  const getFcOptions = (val) => {
+    if (val && !fcOptions.find(o => o.value === val)) {
+      return [...fcOptions, { value: val, label: val }];
+    }
+    return fcOptions;
+  };
+
+  const getPelaporOptions = (val) => {
+    if (val && !pelaporOptions.find(o => o.value === val)) {
+      return [...pelaporOptions, { value: val, label: val }];
+    }
+    return pelaporOptions;
   };
 
   const currentYear = new Date().getFullYear();
@@ -61,14 +80,14 @@ export async function renderIssues(container) {
       {
         type: 'row', fields: [
           { name: 'category', label: 'Kategori', type: 'select', required: true, options: ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'], value: data?.category },
-          { name: 'source', label: 'Sumber Laporan', type: 'select', options: ['SPV', 'AM', 'Perawat', 'FC', 'RCP', 'Lainnya', ...getEmpOptions(data?.source)], value: data?.source },
+          { name: 'source', label: 'Sumber Laporan', type: 'select', options: [...getPelaporOptions(data?.source), {value: 'Lainnya', label: 'Lainnya'}], value: data?.source },
         ]
       },
       { name: 'complaint', label: 'Keluhan', type: 'textarea', required: true, rows: 3, value: data?.complaint },
       {
         type: 'row', fields: [
           { name: 'employee_name', label: 'Nama FC / Security', type: 'select', options: getEmpOptions(data?.employee_name), value: data?.employee_name },
-          { name: 'fc_specialist', label: 'FC Spesialis', type: 'select', options: getEmpOptions(data?.fc_specialist), value: data?.fc_specialist },
+          { name: 'fc_specialist', label: 'FC Spesialis', type: 'select', options: getFcOptions(data?.fc_specialist), value: data?.fc_specialist },
         ]
       },
       { name: 'solution', label: 'Solusi / Tindakan', type: 'textarea', rows: 3, value: data?.solution },
