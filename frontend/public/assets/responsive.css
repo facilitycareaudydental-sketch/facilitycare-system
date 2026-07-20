@@ -211,16 +211,16 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     min-width: 0 !important;
     border-radius: 12px !important;
   }
-  .kpi-value      { font-size: 1.6rem !important; }
-  .kpi-label      { font-size: 0.75rem; }
+  .kpi-value      { font-size: 1.7rem !important; }
+  .kpi-label      { font-size: 0.85rem !important; }
   .kpi-icon-wrap  { width: 36px; height: 36px; }
-  .kpi-trend      { font-size: 0.65rem; }
+  .kpi-trend      { font-size: 0.75rem !important; }
 
   /* 4.5 Mini stats */
   .mini-stat       { padding: 10px !important; gap: 8px !important; }
   .mini-stat-icon  { width: 34px; height: 34px; font-size: 0.95rem; }
-  .mini-stat-value { font-size: 1.2rem !important; }
-  .mini-stat-label { font-size: 0.67rem; white-space: normal; }
+  .mini-stat-value { font-size: 1.3rem !important; }
+  .mini-stat-label { font-size: 0.75rem !important; white-space: normal; }
 
   /* 4.6 Chart cards */
   .chart-card      { padding: 12px !important; min-width: 0 !important; }
