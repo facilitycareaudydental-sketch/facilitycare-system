@@ -50,7 +50,7 @@ export async function renderTraining(container) {
       {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
-          { name: 'trainer', label: 'Trainer', type: 'select', options: getEmpOptions(data?.trainer), value: data?.trainer },
+          { name: 'trainer', label: 'Trainer', type: 'text', placeholder: 'Nama Trainer', value: data?.trainer },
         ]
       },
       { name: 'participants', label: 'Peserta (pisahkan dengan koma)', type: 'textarea', rows: 3, placeholder: 'Nama Peserta 1, Nama Peserta 2, ...', value: (() => { try { const arr = JSON.parse(data?.participants); return Array.isArray(arr) ? arr.join(', ') : (data?.participants || ''); } catch { return data?.participants || ''; } })() },
