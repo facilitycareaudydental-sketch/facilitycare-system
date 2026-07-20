@@ -1,7 +1,5 @@
-// API configuration - update this to your deployed Worker URL
-const API_BASE_URL = window.__FM_CONFIG?.API_BASE_URL && window.__FM_CONFIG?.API_BASE_URL !== '__API_BASE_URL__' 
-  ? window.__FM_CONFIG.API_BASE_URL 
-  : '';
+// Force API calls through Same-Origin Pages Proxy to bypass strict CORS/Firewalls
+const API_BASE_URL = '';
 
 export const API = API_BASE_URL;
 
