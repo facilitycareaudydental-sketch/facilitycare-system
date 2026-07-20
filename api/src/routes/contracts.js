@@ -101,12 +101,16 @@ async function createContract(request, env, origin) {
   const emp = await env.DB.prepare('SELECT full_name FROM employees WHERE id = ?').bind(employee_id).first();
   const empName = emp ? emp.full_name : 'Karyawan';
   
-  await runSync(env.DB, 'contracts', newId, {
-    empName,
-    branchId: branch_id || null,
-    endDate: end_date,
-    status: status || 'Aktif'
-  });
+  try {
+    await runSync(env.DB, 'contracts', newId, {
+      empName,
+      branchId: branch_id || null,
+      endDate: end_date,
+      status: status || 'Aktif'
+    });
+  } catch (syncErr) {
+    console.error('Calendar sync error (non-fatal):', syncErr.message);
+  }
 
   return ok({ id: newId }, 201, origin);
 }
@@ -139,12 +143,16 @@ async function updateContract(id, request, env, origin) {
   if (updatedContract) {
     const emp = await env.DB.prepare('SELECT full_name FROM employees WHERE id = ?').bind(updatedContract.employee_id).first();
     const empName = emp ? emp.full_name : 'Karyawan';
-    await runSync(env.DB, 'contracts', id, {
-      empName,
-      branchId: updatedContract.branch_id,
-      endDate: updatedContract.end_date,
-      status: updatedContract.status
-    });
+    try {
+      await runSync(env.DB, 'contracts', id, {
+        empName,
+        branchId: updatedContract.branch_id,
+        endDate: updatedContract.end_date,
+        status: updatedContract.status
+      });
+    } catch (syncErr) {
+      console.error('Calendar sync error (non-fatal):', syncErr.message);
+    }
   }
 
   return ok({ message: 'Contract updated' }, 200, origin);
@@ -154,7 +162,7 @@ async function deleteContract(id, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM contracts WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM contracts WHERE id = ?').bind(id).run();
-  await runSync(env.DB, 'contracts', id, null); // Delete event
+  try { await runSync(env.DB, 'contracts', id, null); } catch (e) { /* non-fatal */ }
   return ok({ message: 'Contract deleted' }, 200, origin);
 }
 

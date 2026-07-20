@@ -87,9 +87,11 @@ async function createSchedule(request, env, origin) {
     target_date || null, completion_date || null, status || 'Pending', notes || null).run();
 
   const newId = result.meta.last_row_id;
-  await runSync(env.DB, 'schedule', newId, {
-    activity_type, period, pic, target_date, status: status || 'Pending', branch_id, notes
-  });
+  try {
+    await runSync(env.DB, 'schedule', newId, {
+      activity_type, period, pic, target_date, status: status || 'Pending', branch_id, notes
+    });
+  } catch (e) { console.error('sync error', e.message); }
 
   return ok({ id: newId }, 201, origin);
 }
@@ -115,7 +117,7 @@ async function updateSchedule(id, request, env, origin) {
 
   const updated = await env.DB.prepare('SELECT * FROM activity_schedule WHERE id = ?').bind(id).first();
   if (updated) {
-    await runSync(env.DB, 'schedule', id, updated);
+    try { await runSync(env.DB, 'schedule', id, updated); } catch (e) { console.error('sync error', e.message); }
   }
 
   return ok({ message: 'Schedule updated' }, 200, origin);
@@ -125,7 +127,7 @@ async function deleteSchedule(id, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM activity_schedule WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM activity_schedule WHERE id = ?').bind(id).run();
-  await runSync(env.DB, 'schedule', id, null);
+  try { await runSync(env.DB, 'schedule', id, null); } catch (e) { /* non-fatal */ }
   return ok({ message: 'Schedule deleted' }, 200, origin);
 }
 

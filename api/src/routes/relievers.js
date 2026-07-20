@@ -89,9 +89,11 @@ async function create(request, env, origin) {
     backup_date, completion_date || null, reason || null, shift || null, status || 'Pending').run();
 
   const newId = result.meta.last_row_id;
-  await runSync(env.DB, 'relievers', newId, {
-    reliever_name, backup_date, status: status || 'Pending', branch_id, original_fc_name, reason, shift
-  });
+  try {
+    await runSync(env.DB, 'relievers', newId, {
+      reliever_name, backup_date, status: status || 'Pending', branch_id, original_fc_name, reason, shift
+    });
+  } catch (e) { console.error('sync error', e.message); }
 
   return ok({ id: newId }, 201, origin);
 }
@@ -113,7 +115,7 @@ async function update(id, request, env, origin) {
 
   const updated = await env.DB.prepare('SELECT * FROM relievers WHERE id = ?').bind(id).first();
   if (updated) {
-    await runSync(env.DB, 'relievers', id, updated);
+    try { await runSync(env.DB, 'relievers', id, updated); } catch (e) { console.error('sync error', e.message); }
   }
 
   return ok({ message: 'Updated' }, 200, origin);
@@ -123,7 +125,7 @@ async function remove(id, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM relievers WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
   await env.DB.prepare('DELETE FROM relievers WHERE id = ?').bind(id).run();
-  await runSync(env.DB, 'relievers', id, null);
+  try { await runSync(env.DB, 'relievers', id, null); } catch (e) { /* non-fatal */ }
   return ok({ message: 'Deleted' }, 200, origin);
 }
 
