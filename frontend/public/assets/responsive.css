@@ -207,7 +207,61 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     -webkit-overflow-scrolling: touch;
   }
   .dash-table  { min-width: 480px; font-size: 0.75rem; }
-  .data-table  { min-width: 520px; font-size: 0.75rem; }
+  
+  /* Mobile Card Layout for responsive-table */
+  .table-wrapper { overflow-x: hidden !important; }
+  .data-table.responsive-table, 
+  .data-table.responsive-table tbody, 
+  .data-table.responsive-table tr, 
+  .data-table.responsive-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+  .data-table.responsive-table thead {
+    display: none !important;
+  }
+  .data-table.responsive-table tr {
+    margin-bottom: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .data-table.responsive-table td {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    text-align: right !important;
+    padding: 8px 10px !important;
+    border-bottom: 1px dashed var(--gray-200);
+    font-size: 0.85rem;
+    white-space: normal !important;
+  }
+  .data-table.responsive-table td:last-child {
+    border-bottom: none;
+  }
+  .data-table.responsive-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-2);
+    text-align: left;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+  .data-table.responsive-table .actions-cell {
+    justify-content: flex-end !important;
+    background: var(--gray-50);
+    border-radius: 0 0 6px 6px;
+    margin: -4px;
+    margin-top: 4px;
+    padding: 10px !important;
+  }
+  .data-table.responsive-table .actions-cell::before {
+    display: none;
+  }
+  
+  .data-table:not(.responsive-table) { min-width: 520px; font-size: 0.75rem; }
 
   /* 4.8 Page headers */
   .page-header {

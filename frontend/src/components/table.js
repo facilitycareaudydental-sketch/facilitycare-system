@@ -9,7 +9,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
   }
 
   const table = document.createElement('table');
-  table.className = 'data-table';
+  table.className = 'data-table responsive-table';
 
   // Header
   const thead = document.createElement('thead');
@@ -61,6 +61,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
       const tdCheck = document.createElement('td');
       tdCheck.style.textAlign = 'center';
       tdCheck.style.width = '40px';
+      tdCheck.setAttribute('data-label', 'Pilih');
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.className = 'row-checkbox';
@@ -81,6 +82,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
 
     columns.forEach(col => {
       const td = document.createElement('td');
+      td.setAttribute('data-label', col.label);
       if (col.render) {
         const rendered = col.render(row[col.key], row);
         if (rendered instanceof HTMLElement) td.appendChild(rendered);
@@ -96,6 +98,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
     if (onEdit || onDelete || onView || actions.length > 0) {
       const td = document.createElement('td');
       td.className = 'actions-cell';
+      td.setAttribute('data-label', 'Aksi');
       const btnGroup = document.createElement('div');
       btnGroup.className = 'btn-group';
 
