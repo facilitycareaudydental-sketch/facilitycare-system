@@ -123,15 +123,37 @@ export async function renderSchedule(container) {
           const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
           return b ? b.id : null;
         };
+        
+        const parseDate = (v) => {
+          if (v === undefined || v === null || v === '') return '';
+          if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+          const s = String(v).trim();
+          if (s === '' || s === '0') return '';
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+          if (/^\d{4,5}$/.test(s)) {
+            const n = Number(s);
+            if (n > 20000 && n < 99999) {
+              const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+              return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+            }
+          }
+          const parts = s.split(/[\/\-\.]/);
+          if (parts.length === 3) {
+            const [a, b, c] = parts.map(p => p.trim());
+            if (a.length === 4 && b.length <= 2 && c.length <= 2) return `${a}-${b.padStart(2, '0')}-${c.padStart(2, '0')}`;
+            if (c.length === 4 && b.length <= 2 && a.length <= 2) return `${c}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+          }
+          return s; // Fallback
+        };
 
         const payload = json.map(row => ({
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
           activity_type: String(row['Kegiatan'] || '').trim(),
           period: String(row['Periode'] || '').trim(),
           pic: String(row['PIC'] || row['Pic'] || '').trim(),
-          opening_date: String(row['Tgl Opening'] || row['Tanggal Opening'] || '').trim(),
-          target_date: String(row['Tgl Target'] || row['Tanggal Target'] || '').trim(),
-          completion_date: String(row['Tgl Selesai'] || row['Tanggal Selesai'] || '').trim(),
+          opening_date: parseDate(row['Tgl Opening'] || row['Tanggal Opening']),
+          target_date: parseDate(row['Tgl Target'] || row['Tanggal Target']),
+          completion_date: parseDate(row['Tgl Selesai'] || row['Tanggal Selesai']),
           status: String(row['Status'] || '').trim(),
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.activity_type && row.period);
