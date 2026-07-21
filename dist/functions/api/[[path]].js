@@ -13,14 +13,14 @@ export async function onRequest(context) {
   headers.delete('Host');
   headers.delete('Origin');
   headers.delete('Referer');
+  headers.delete('Content-Length');
   
-  const newRequest = new Request(targetUrl, {
+  // Fetch from the worker directly
+  return fetch(targetUrl, {
     method: request.method,
     headers: headers,
     body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null,
-    redirect: 'manual'
+    redirect: 'manual',
+    duplex: 'half'
   });
-  
-  // Fetch from the worker
-  return fetch(newRequest);
 }

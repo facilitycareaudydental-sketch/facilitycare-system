@@ -535,8 +535,3 @@ CREATE TABLE IF NOT EXISTS validation_options (
   value TEXT NOT NULL,
   UNIQUE(category, value)
 );
-
-- -   S C H E M A   M I G R A T I O N S   ( v 2 )      r u n - s a f e   w i t h   I F   N O T   E X I S T S   g u a r d s  
- A L T E R   T A B L E   c o n t r a c t s   A D D   C O L U M N   e m p l o y e e _ n a m e   T E X T ;  
- A L T E R   T A B L E   c o n t r a c t s   A D D   C O L U M N   d i v i s i o n   T E X T   D E F A U L T   ' F A C I L I T Y   C A R E ' ;  
- 
