@@ -54,19 +54,19 @@ export default {
         
         const moduleMap = {
           '/api/employees/bulk': { table: 'employees', perm: 'employees' },
-          '/api/issues/bulk': { table: 'issues', perm: 'issues' },
-          '/api/schedule/bulk': { table: 'schedule', perm: 'schedule' },
-          '/api/one-on-one/bulk': { table: 'one_on_one', perm: 'one_on_one' },
-          '/api/training/bulk': { table: 'training', perm: 'training' },
-          '/api/relievers/bulk': { table: 'relievers', perm: 'relievers' },
+          '/api/issues/bulk': { table: 'issues', perm: 'issues', calModule: 'issues' },
+          '/api/schedule/bulk': { table: 'activity_schedule', perm: 'schedule', calModule: 'schedule' },
+          '/api/one-on-one/bulk': { table: 'one_on_one', perm: 'one_on_one', calModule: 'one_on_one' },
+          '/api/training/bulk': { table: 'training', perm: 'training', calModule: 'training' },
+          '/api/relievers/bulk': { table: 'relievers', perm: 'relievers', calModule: 'relievers' },
           '/api/sp/bulk': { table: 'sp_data', perm: 'sp' },
           '/api/mutasi/bulk': { table: 'mutasi_data', perm: 'mutasi' },
-          '/api/sop/bulk': { table: 'sops', perm: 'sop' },
-          '/api/checklist/bulk': { table: 'master_checklists', perm: 'checklist' },
+          '/api/sop/bulk': { table: 'sop', perm: 'sop' },
+          '/api/checklist/bulk': { table: 'master_checklist', perm: 'checklist' },
           '/api/forms/bulk': { table: 'master_forms', perm: 'forms' },
-          '/api/pic/bulk': { table: 'pics', perm: 'pic' },
+          '/api/pic/bulk': { table: 'pic_list', perm: 'pic' },
           '/api/users/bulk': { table: 'users', perm: 'users' },
-          '/api/contracts/bulk': { table: 'contracts', perm: 'contracts' }
+          '/api/contracts/bulk': { table: 'contracts', perm: 'contracts', calModule: 'contracts' }
         };
 
         const config = moduleMap[path];
@@ -76,8 +76,19 @@ export default {
         try {
           const { ids } = await request.json();
           if (!Array.isArray(ids) || ids.length === 0) return error('No IDs provided', 400, origin);
-          const placeholders = ids.map(() => '?').join(',');
-          await env.DB.prepare(`DELETE FROM ${config.table} WHERE id IN (${placeholders})`).bind(...ids).run();
+          
+          const chunkSize = 50;
+          for (let i = 0; i < ids.length; i += chunkSize) {
+            const chunk = ids.slice(i, i + chunkSize);
+            const placeholders = chunk.map(() => '?').join(',');
+            await env.DB.prepare(`DELETE FROM ${config.table} WHERE id IN (${placeholders})`).bind(...chunk).run();
+            
+            // Delete associated calendar events if applicable
+            if (config.calModule) {
+              await env.DB.prepare(`DELETE FROM calendar_events WHERE module = ? AND reference_id IN (${placeholders})`)
+                .bind(config.calModule, ...chunk).run();
+            }
+          }
           return ok({ message: `Deleted ${ids.length} items` }, 200, origin);
         } catch (e) {
           return error('Server Error: ' + e.message, 500, origin);
