@@ -118,8 +118,18 @@ export default {
       
       // Manual sync trigger
       if (path === '/api/emergency-fix-dates' && request.method === 'GET') {
-        const result = await env.DB.prepare("DELETE FROM activity_schedule WHERE status = 'Pending'").run();
-        return new Response('Deleted pending records', { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } });
+        const schedules = await env.DB.prepare("SELECT id, opening_date FROM activity_schedule").all();
+        let fixed = 0;
+        for (const row of (schedules.results || [])) {
+          let oDate = row.opening_date;
+          if (oDate && !isNaN(Number(oDate)) && Number(oDate) > 40000) {
+             const d = new Date((Number(oDate) - 25569) * 86400 * 1000);
+             oDate = d.toISOString().slice(0, 10);
+             await env.DB.prepare("UPDATE activity_schedule SET opening_date = ? WHERE id = ?").bind(oDate, row.id).run();
+             fixed++;
+          }
+        }
+        return new Response('Fixed opening dates: ' + fixed, { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } });
       }
 
       if (path === '/api/sync/google-sheets' && request.method === 'POST') {
