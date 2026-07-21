@@ -106,8 +106,8 @@ async function getKPI(env, origin) {
     env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done'").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done' AND strftime('%Y-%m',meeting_date)=?").bind(prevM).first(),
 
-    // Uses idx_schedule_status
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE status='Pending'").first(),
+    // Matches total data in schedule table
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule").first(),
 
     // Uses idx_supply_status
     env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status='Pending'").first(),
