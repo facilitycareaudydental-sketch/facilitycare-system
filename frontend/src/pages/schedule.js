@@ -26,6 +26,13 @@ export async function renderSchedule(container) {
     return employeeOptions;
   };
 
+  const formatDate = (d) => {
+    if (!d || d === '-') return '-';
+    const p = d.split('-');
+    if (p.length === 3) return `${p[2]}-${p[1]}-${p[0]}`;
+    return d;
+  };
+
   buildCrudPage({
     container,
     title: 'Jadwal Kegiatan',
@@ -38,9 +45,9 @@ export async function renderSchedule(container) {
       { key: 'activity_type', label: 'Kegiatan', render: v => activityTypeBadge(v) },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },
       { key: 'pic', label: 'PIC' },
-      { key: 'opening_date', label: 'Tgl Opening', nowrap: true },
-      { key: 'target_date', label: 'Tgl Target', nowrap: true },
-      { key: 'completion_date', label: 'Tgl Selesai', nowrap: true },
+      { key: 'opening_date', label: 'Tgl Opening', nowrap: true, render: v => formatDate(v) },
+      { key: 'target_date', label: 'Tgl Target', nowrap: true, render: v => formatDate(v) },
+      { key: 'completion_date', label: 'Tgl Selesai', nowrap: true, render: v => formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
