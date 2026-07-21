@@ -423,11 +423,11 @@ async function importSchedule(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, activity_type, target_date, branch_id FROM activity_schedule').all();
+  const existing = await env.DB.prepare('SELECT id, activity_type, period, branch_id FROM activity_schedule').all();
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
-    if (s.activity_type && s.target_date) {
-      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.target_date + '_' + s.branch_id, s.id);
+    if (s.activity_type && s.period) {
+      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.branch_id, s.id);
     }
   });
 
@@ -443,10 +443,10 @@ async function importSchedule(rows, onDuplicate, env, origin) {
 
     const target_date = safeDate(row.target_date);
     const branch_id = matchBranch(row.branch_name);
-    const key = activity_type.toLowerCase().trim() + '_' + target_date + '_' + branch_id;
+    const period = safeStr(row.period);
+    const key = activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim() + '_' + branch_id;
     importedKeys.push(key);
 
-    const period = safeStr(row.period);
     const pic = safeStr(row.pic);
     const opening_date = safeDate(row.opening_date);
     const completion_date = safeDate(row.completion_date);
