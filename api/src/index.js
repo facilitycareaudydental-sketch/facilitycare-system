@@ -118,30 +118,8 @@ export default {
       
       // Manual sync trigger
       if (path === '/api/emergency-fix-dates' && request.method === 'GET') {
-        const schedules = await env.DB.prepare("SELECT id, target_date, completion_date FROM activity_schedule").all();
-        let fixed = 0;
-        for (const row of (schedules.results || [])) {
-          let updated = false;
-          let tDate = row.target_date;
-          let cDate = row.completion_date;
-          
-          if (tDate && !isNaN(Number(tDate)) && Number(tDate) > 40000) {
-             const d = new Date((Number(tDate) - 25569) * 86400 * 1000);
-             tDate = d.toISOString().slice(0, 10);
-             updated = true;
-          }
-          if (cDate && !isNaN(Number(cDate)) && Number(cDate) > 40000) {
-             const d = new Date((Number(cDate) - 25569) * 86400 * 1000);
-             cDate = d.toISOString().slice(0, 10);
-             updated = true;
-          }
-          
-          if (updated) {
-            await env.DB.prepare("UPDATE activity_schedule SET target_date = ?, completion_date = ? WHERE id = ?").bind(tDate, cDate, row.id).run();
-            fixed++;
-          }
-        }
-        return new Response('Fixed ' + fixed + ' records', { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } });
+        const result = await env.DB.prepare("DELETE FROM activity_schedule WHERE status = 'Pending'").run();
+        return new Response('Deleted pending records', { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } });
       }
 
       if (path === '/api/sync/google-sheets' && request.method === 'POST') {

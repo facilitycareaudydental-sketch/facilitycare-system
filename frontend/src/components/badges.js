@@ -13,7 +13,6 @@ export function statusBadge(status) {
     'Cut': 'badge-danger',
     'Tidak Datang': 'badge-danger',
   };
-  if (status === 'Pending') return '-';
   const cls = map[status] || 'badge-neutral';
   return `<span class="badge ${cls}">${status || '-'}</span>`;
 }
