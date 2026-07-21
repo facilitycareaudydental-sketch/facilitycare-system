@@ -251,19 +251,6 @@ async function importEmployees(rows, onDuplicate, env, origin) {
 
   await batchInsert(env.DB, stmts);
 
-  // Prune deleted
-  if (importedNames.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, full_name FROM employees').all();
-    const importedSet = new Set(importedNames.map(n => n.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(e => {
-      if (!importedSet.has(e.full_name.toLowerCase().trim())) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM employees WHERE id = ?').bind(e.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
-
   return ok({ inserted, skipped, updated }, 200, origin);
 }
 
@@ -332,20 +319,6 @@ async function importContracts(rows, onDuplicate, env, origin) {
 
   await batchInsert(env.DB, stmts);
 
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, employee_name, start_date FROM contracts').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(c => {
-      const key = (c.employee_name || '').toLowerCase().trim() + '_' + c.start_date;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM contracts WHERE id = ?').bind(c.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
-
   return ok({ inserted, skipped, updated }, 200, origin);
 }
 
@@ -403,20 +376,6 @@ async function importRelievers(rows, onDuplicate, env, origin) {
   }
 
   await batchInsert(env.DB, stmts);
-
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, reliever_name, backup_date FROM relievers').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(r => {
-      const key = (r.reliever_name || '').toLowerCase().trim() + '_' + r.backup_date;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM relievers WHERE id = ?').bind(r.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
 
   return ok({ inserted, skipped, updated }, 200, origin);
 }
@@ -476,20 +435,6 @@ async function importSchedule(rows, onDuplicate, env, origin) {
   }
 
   await batchInsert(env.DB, stmts);
-
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, activity_type, target_date, branch_id FROM activity_schedule').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(s => {
-      const key = (s.activity_type || '').toLowerCase().trim() + '_' + s.target_date + '_' + s.branch_id;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM activity_schedule WHERE id = ?').bind(s.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
 
   return ok({ inserted, skipped, updated }, 200, origin);
 }
@@ -557,20 +502,6 @@ async function importIssues(rows, onDuplicate, env, origin) {
 
   await batchInsert(env.DB, stmts);
 
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, complaint, report_date, branch_id FROM issues').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(i => {
-      const key = (i.complaint || '').toLowerCase().trim() + '_' + i.report_date + '_' + i.branch_id;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM issues WHERE id = ?').bind(i.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
-
   return ok({ inserted, skipped, updated }, 200, origin);
 }
 
@@ -635,20 +566,6 @@ async function importOneOnOne(rows, onDuplicate, env, origin) {
 
   await batchInsert(env.DB, stmts);
 
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, employee_name, meeting_date FROM one_on_one').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(o => {
-      const key = (o.employee_name || '').toLowerCase().trim() + '_' + o.meeting_date;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM one_on_one WHERE id = ?').bind(o.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
-
   return ok({ inserted, skipped, updated }, 200, origin);
 }
 
@@ -707,20 +624,6 @@ async function importTraining(rows, onDuplicate, env, origin) {
 
   await batchInsert(env.DB, stmts);
 
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, subject, training_date, batch FROM training').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(t => {
-      const key = (t.subject || '').toLowerCase().trim() + '_' + t.training_date + '_' + (t.batch || '').toLowerCase().trim();
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM training WHERE id = ?').bind(t.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
-
   return ok({ inserted, skipped, updated }, 200, origin);
 }
 
@@ -766,19 +669,6 @@ async function importChecklist(rows, onDuplicate, env, origin) {
   }
 
   await batchInsert(env.DB, stmts);
-
-  // Prune deleted
-  if (importedNames.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, name FROM master_checklist').all();
-    const importedSet = new Set(importedNames.map(n => n.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(c => {
-      if (!importedSet.has(c.name.toLowerCase().trim())) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM master_checklist WHERE id = ?').bind(c.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
 
   return ok({ inserted, skipped, updated }, 200, origin);
 }
@@ -826,19 +716,6 @@ async function importForms(rows, onDuplicate, env, origin) {
   }
 
   await batchInsert(env.DB, stmts);
-
-  // Prune deleted
-  if (importedNames.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, name FROM master_forms').all();
-    const importedSet = new Set(importedNames.map(n => n.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(f => {
-      if (!importedSet.has(f.name.toLowerCase().trim())) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM master_forms WHERE id = ?').bind(f.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
 
   return ok({ inserted, skipped, updated }, 200, origin);
 }
@@ -888,19 +765,6 @@ async function importSop(rows, onDuplicate, env, origin) {
   }
 
   await batchInsert(env.DB, stmts);
-
-  // Prune deleted
-  if (importedNames.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, name FROM sop').all();
-    const importedSet = new Set(importedNames.map(n => n.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(s => {
-      if (!importedSet.has(s.name.toLowerCase().trim())) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM sop WHERE id = ?').bind(s.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
 
   return ok({ inserted, skipped, updated }, 200, origin);
 }
@@ -961,20 +825,6 @@ async function importInspection(rows, onDuplicate, env, origin) {
 
   await batchInsert(env.DB, stmts);
 
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, branch_id, period, inspection_date FROM inspection_reports').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(i => {
-      const key = i.branch_id + '_' + (i.period || '').toLowerCase().trim() + '_' + i.inspection_date;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM inspection_reports WHERE id = ?').bind(i.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
-
   return ok({ inserted, skipped, updated }, 200, origin);
 }
 
@@ -1033,20 +883,6 @@ async function importCleaning(rows, onDuplicate, env, origin) {
 
   await batchInsert(env.DB, stmts);
 
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, branch_id, activity_type, period, activity_date FROM cleaning_reports').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(c => {
-      const key = c.branch_id + '_' + c.activity_type.toLowerCase().trim() + '_' + (c.period || '').toLowerCase().trim() + '_' + c.activity_date;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM cleaning_reports WHERE id = ?').bind(c.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
-
   return ok({ inserted, skipped, updated }, 200, origin);
 }
 
@@ -1104,20 +940,6 @@ async function importFogging(rows, onDuplicate, env, origin) {
 
   await batchInsert(env.DB, stmts);
 
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, branch_id, period, activity_date FROM fogging_reports').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(f => {
-      const key = f.branch_id + '_' + (f.period || '').toLowerCase().trim() + '_' + f.activity_date;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM fogging_reports WHERE id = ?').bind(f.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
-
   return ok({ inserted, skipped, updated }, 200, origin);
 }
 
@@ -1174,20 +996,6 @@ async function importBasecamp(rows, onDuplicate, env, origin) {
   }
 
   await batchInsert(env.DB, stmts);
-
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, branch_id, problem, info_date FROM basecamp_reports').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(b => {
-      const key = b.branch_id + '_' + b.problem.toLowerCase().trim() + '_' + b.info_date;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM basecamp_reports WHERE id = ?').bind(b.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
 
   return ok({ inserted, skipped, updated }, 200, origin);
 }
@@ -1248,20 +1056,6 @@ async function importSupply(rows, onDuplicate, env, origin) {
   }
 
   await batchInsert(env.DB, stmts);
-
-  // Prune deleted
-  if (importedKeys.length > 0) {
-    const currentAll = await env.DB.prepare('SELECT id, submitter_name, submitted_at FROM supply_requests').all();
-    const importedSet = new Set(importedKeys.map(k => k.toLowerCase().trim()));
-    const deleteStmts = [];
-    (currentAll.results || []).forEach(s => {
-      const key = (s.submitter_name || '').toLowerCase().trim() + '_' + s.submitted_at;
-      if (!importedSet.has(key)) {
-        deleteStmts.push(env.DB.prepare('DELETE FROM supply_requests WHERE id = ?').bind(s.id));
-      }
-    });
-    if (deleteStmts.length > 0) await batchInsert(env.DB, deleteStmts);
-  }
 
   return ok({ inserted, skipped, updated }, 200, origin);
 }

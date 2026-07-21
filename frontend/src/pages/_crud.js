@@ -189,6 +189,7 @@ export function buildCrudPage({
       const originalText = label.innerHTML;
       label.innerHTML = '⏳ Memproses...';
       label.style.pointerEvents = 'none';
+      fileInput.disabled = true;
       
       try {
         const json = await parseExcel(file);
@@ -201,6 +202,7 @@ export function buildCrudPage({
       } finally {
         label.innerHTML = originalText;
         label.style.pointerEvents = 'auto';
+        fileInput.disabled = false;
         fileInput.value = ''; // reset
       }
     });
