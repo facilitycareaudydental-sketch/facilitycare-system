@@ -2,7 +2,6 @@ import { getToken, getUser, clearToken, apiFetch, setUser, setToken } from './co
 import { initRouter, registerRoute, navigate } from './router.js';
 import { toastError } from './components/toast.js';
 import { createModal } from './components/modal.js';
-import { logout, initAuth } from './utils/auth.js';
 
 window.formatDate = (d) => {
   if (!d || d === '-') return '';
