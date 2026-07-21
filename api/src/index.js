@@ -85,8 +85,13 @@ export default {
             
             // Delete associated calendar events if applicable
             if (config.calModule) {
-              await env.DB.prepare(`DELETE FROM calendar_events WHERE module = ? AND reference_id IN (${placeholders})`)
-                .bind(config.calModule, ...chunk).run();
+              try {
+                await env.DB.prepare(`DELETE FROM calendar_events WHERE module = ? AND reference_id IN (${placeholders})`)
+                  .bind(config.calModule, ...chunk).run();
+              } catch (calError) {
+                // Ignore if calendar_events table does not exist
+                console.warn('Could not delete calendar events, table might not exist:', calError.message);
+              }
             }
           }
           return ok({ message: `Deleted ${ids.length} items` }, 200, origin);
