@@ -467,15 +467,6 @@ INSERT OR IGNORE INTO master_checklist (name, category, document_link) VALUES
   ('Master Cleaning Program - Toilet', 'Master Cleaning Program', 'https://docs.google.com/spreadsheets/d/1euLGRgPPJMueZhnx_gDKCJQ2LPPVyDtb/edit?gid=1966419973#gid=1966419973');
 
 -- ============================================================
--- SCHEMA MIGRATIONS (v2) — run-safe with IF NOT EXISTS guards
--- ============================================================
--- Add employee_name column to contracts (if not exists)
--- SQLite does not support IF NOT EXISTS on ALTER TABLE, so we use a try-catch at runtime.
--- The wrangler d1 execute script is run with --yes and continue-on-error=true.
-ALTER TABLE contracts ADD COLUMN employee_name TEXT;
-ALTER TABLE contracts ADD COLUMN division TEXT DEFAULT 'FACILITY CARE';
-
--- ============================================================
 -- MASTER CALENDAR SSOT TABLE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS inventory_transactions (
@@ -545,3 +536,7 @@ CREATE TABLE IF NOT EXISTS validation_options (
   UNIQUE(category, value)
 );
 
+- -   S C H E M A   M I G R A T I O N S   ( v 2 )      r u n - s a f e   w i t h   I F   N O T   E X I S T S   g u a r d s  
+ A L T E R   T A B L E   c o n t r a c t s   A D D   C O L U M N   e m p l o y e e _ n a m e   T E X T ;  
+ A L T E R   T A B L E   c o n t r a c t s   A D D   C O L U M N   d i v i s i o n   T E X T   D E F A U L T   ' F A C I L I T Y   C A R E ' ;  
+ 
