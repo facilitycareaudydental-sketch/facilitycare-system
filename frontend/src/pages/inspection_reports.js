@@ -16,7 +16,7 @@ export async function renderInspectionReports(container) {
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },
-      { key: 'inspection_date', label: 'Tanggal', nowrap: true },
+      { key: 'inspection_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'fc_score', label: 'Point FC', render: v => v !== null && v !== undefined ? `<strong class="${v >= 80 ? 'text-success' : v >= 60 ? 'text-warning' : 'text-danger'}">${v}</strong>` : '-' },
       { key: 'spv_score', label: 'Point SPV', render: v => v !== null && v !== undefined ? `<strong>${v}</strong>` : '-' },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
@@ -38,7 +38,7 @@ export async function renderInspectionReports(container) {
       {
         type: 'row', fields: [
           { name: 'inspection_date', label: 'Tanggal Inspeksi', type: 'date', required: true, value: data?.inspection_date },
-          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done'], value: data?.status || 'Pending' },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done'], value: data?.status || '' },
         ]
       },
       {

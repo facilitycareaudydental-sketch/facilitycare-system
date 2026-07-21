@@ -34,7 +34,7 @@ export async function renderTraining(container) {
     bulkDelete: true,
     itemLabel: 'Training',
     columns: [
-      { key: 'training_date', label: 'Tanggal', nowrap: true },
+      { key: 'training_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'batch', label: 'Batch' },
       { key: 'subject', label: 'Materi' },
       { key: 'branch_name', label: 'Cabang' },

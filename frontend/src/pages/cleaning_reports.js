@@ -17,7 +17,7 @@ export async function renderCleaningReports(container) {
       { key: 'branch_name', label: 'Cabang' },
       { key: 'activity_type', label: 'Jenis', render: v => `<span class="badge ${v === 'Deep Cleaning' ? 'badge-purple' : 'badge-success'}">${v}</span>` },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },
-      { key: 'activity_date', label: 'Tanggal', nowrap: true },
+      { key: 'activity_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
@@ -41,7 +41,7 @@ export async function renderCleaningReports(container) {
           { name: 'activity_date', label: 'Tanggal', type: 'date', required: true, value: data?.activity_date },
         ]
       },
-      { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done'], value: data?.status || 'Pending' },
+      { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done'], value: data?.status || '' },
       { name: 'document_link', label: 'Link Dokumen', type: 'url', placeholder: 'https://drive.google.com/...', value: data?.document_link },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],

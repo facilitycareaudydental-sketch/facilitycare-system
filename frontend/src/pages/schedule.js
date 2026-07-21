@@ -83,7 +83,7 @@ export async function renderSchedule(container) {
       {
         type: 'row', fields: [
           { name: 'completion_date', label: 'Tanggal Selesai', type: 'date', value: data?.completion_date },
-          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'In Progress', 'Done'], value: data?.status || 'Pending' },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'In Progress', 'Done'], value: data?.status || '' },
         ]
       },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },

@@ -86,7 +86,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
         if (rendered instanceof HTMLElement) td.appendChild(rendered);
         else td.innerHTML = rendered || '';
       } else {
-        td.textContent = row[col.key] !== null && row[col.key] !== undefined ? row[col.key] : '-';
+        td.textContent = row[col.key] !== null && row[col.key] !== undefined && row[col.key] !== '' ? row[col.key] : '';
       }
       if (col.nowrap) td.style.whiteSpace = 'nowrap';
       tr.appendChild(td);

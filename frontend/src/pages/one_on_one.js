@@ -35,14 +35,14 @@ export async function renderOneOnOne(container) {
     bulkDelete: true,
     itemLabel: 'One on One',
     columns: [
-      { key: 'meeting_date', label: 'Tanggal', nowrap: true },
+      { key: 'meeting_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
       { key: 'employee_name', label: 'Nama Karyawan' },
       { key: 'pic', label: 'PIC' },
       { key: 'problem', label: 'Masalah', render: v => `<span title="${v || ''}">${v?.length > 50 ? v.slice(0, 50) + '…' : (v || '-')}</span>` },
       { key: 'solution', label: 'Solusi', render: v => `<span title="${v || ''}">${v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-')}</span>` },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
-      { key: 'completion_date', label: 'Tgl Selesai', nowrap: true },
+      { key: 'completion_date', label: 'Tgl Selesai', nowrap: true , render: v => window.formatDate(v) },
       { key: 'day_count', label: 'Hari' },
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
@@ -68,7 +68,7 @@ export async function renderOneOnOne(container) {
       { name: 'solution', label: 'Solusi', type: 'textarea', rows: 3, value: data?.solution },
       {
         type: 'row', fields: [
-          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Open', 'Done'], value: data?.status || 'Open' },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Open', 'Done'], value: data?.status || '' },
           { name: 'completion_date', label: 'Tanggal Selesai', type: 'date', value: data?.completion_date },
         ]
       },

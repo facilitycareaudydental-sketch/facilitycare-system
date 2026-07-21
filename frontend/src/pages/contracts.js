@@ -29,8 +29,8 @@ export async function renderContracts(container) {
       { key: 'employee_name', label: 'Nama Karyawan' },
       { key: 'branch_name', label: 'Cabang' },
       { key: 'division', label: 'Divisi', render: v => divisionBadge(v) },
-      { key: 'start_date', label: 'Tgl Mulai', nowrap: true },
-      { key: 'end_date', label: 'Tgl Selesai', nowrap: true },
+      { key: 'start_date', label: 'Tgl Mulai', nowrap: true , render: v => window.formatDate(v) },
+      { key: 'end_date', label: 'Tgl Selesai', nowrap: true , render: v => window.formatDate(v) },
       { key: 'days_remaining', label: 'Sisa', render: v => daysRemainingBadge(v) },
       { key: 'contract_type', label: 'Tipe Kontrak' },
       { key: 'pkwt_number', label: 'PKWT' },
@@ -57,7 +57,7 @@ export async function renderContracts(container) {
       {
         type: 'row', fields: [
           { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY'], value: data?.division || 'FACILITY CARE' },
-          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Aktif', 'Tidak Aktif'], value: data?.status || 'Aktif' },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Aktif', 'Tidak Aktif'], value: data?.status || '' },
         ]
       },
       {

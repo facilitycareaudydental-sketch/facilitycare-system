@@ -237,7 +237,7 @@ async function importEmployees(rows, onDuplicate, env, origin) {
     const division = safeStr(row.division) || 'FACILITY CARE';
     const phone = safeStr(row.phone);
     const join_date = safeDate(row.join_date);
-    const status = safeStr(row.status) || 'Aktif';
+    const status = safeStr(row.status);
     const notes = safeStr(row.notes);
 
     if (existingMap.has(key)) {
@@ -304,7 +304,7 @@ async function importContracts(rows, onDuplicate, env, origin) {
     const division = safeStr(row.division) || 'FACILITY CARE';
     const contract_type = safeStr(row.contract_type);
     const pkwt_number = safeStr(row.pkwt_number);
-    const status = safeStr(row.status) || 'Aktif';
+    const status = safeStr(row.status);
     const notes = safeStr(row.notes);
 
     if (existingMap.has(key)) {
@@ -363,7 +363,7 @@ async function importRelievers(rows, onDuplicate, env, origin) {
     const completion_date = safeDate(row.completion_date);
     const reason = safeStr(row.reason);
     const shift = safeStr(row.shift);
-    const status = safeStr(row.status) || 'Pending';
+    const status = safeStr(row.status);
 
     if (existingMap.has(key)) {
       const id = existingMap.get(key);
@@ -421,7 +421,7 @@ async function importSchedule(rows, onDuplicate, env, origin) {
     const pic = safeStr(row.pic);
     const opening_date = safeDate(row.opening_date);
     const completion_date = safeDate(row.completion_date);
-    const status = safeStr(row.status) || 'Pending';
+    const status = safeStr(row.status);
     const notes = safeStr(row.notes);
 
     if (existingMap.has(key)) {
@@ -481,7 +481,7 @@ async function importIssues(rows, onDuplicate, env, origin) {
     const employee_name = safeStr(row.employee_name);
     const fc_specialist = safeStr(row.fc_specialist);
     const solution = safeStr(row.solution);
-    const status = safeStr(row.status) || 'Open';
+    const status = safeStr(row.status);
     const completion_date = safeDate(row.completion_date);
 
     let day_count = null;
@@ -544,7 +544,7 @@ async function importOneOnOne(rows, onDuplicate, env, origin) {
     const pic = safeStr(row.pic);
     const problem = safeStr(row.problem) || '-';
     const solution = safeStr(row.solution);
-    const status = safeStr(row.status) || 'Open';
+    const status = safeStr(row.status);
     const completion_date = safeDate(row.completion_date);
     const document_link = safeStr(row.document_link);
 
@@ -807,7 +807,7 @@ async function importInspection(rows, onDuplicate, env, origin) {
     const key = branch_id + '_' + period.toLowerCase().trim() + '_' + inspection_date;
     importedKeys.push(key);
 
-    const status = safeStr(row.status) || 'Pending';
+    const status = safeStr(row.status);
     const fc_score = row.fc_score != null ? parseFloat(row.fc_score) : null;
     const spv_score = row.spv_score != null ? parseFloat(row.spv_score) : null;
     const document_link = safeStr(row.document_link);
@@ -867,7 +867,7 @@ async function importCleaning(rows, onDuplicate, env, origin) {
     const key = branch_id + '_' + activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim() + '_' + activity_date;
     importedKeys.push(key);
 
-    const status = safeStr(row.status) || 'Pending';
+    const status = safeStr(row.status);
     const document_link = safeStr(row.document_link);
     const notes = safeStr(row.notes);
 
@@ -924,7 +924,7 @@ async function importFogging(rows, onDuplicate, env, origin) {
     const key = branch_id + '_' + period.toLowerCase().trim() + '_' + activity_date;
     importedKeys.push(key);
 
-    const status = safeStr(row.status) || 'Pending';
+    const status = safeStr(row.status);
     const document_link = safeStr(row.document_link);
     const notes = safeStr(row.notes);
 
@@ -982,7 +982,7 @@ async function importBasecamp(rows, onDuplicate, env, origin) {
 
     const pic = safeStr(row.pic);
     const done_date = safeDate(row.done_date);
-    const status = safeStr(row.status) || 'Open';
+    const status = safeStr(row.status);
     const notes = safeStr(row.notes);
 
     if (existingMap.has(key)) {
@@ -1043,7 +1043,7 @@ async function importSupply(rows, onDuplicate, env, origin) {
     const chemical_items = safeStr(row.chemical_items);
     const chemical_quantity = safeStr(row.chemical_quantity);
     const additional_notes = safeStr(row.additional_notes);
-    const status = safeStr(row.status) || 'Pending';
+    const status = safeStr(row.status);
 
     if (existingMap.has(key)) {
       const id = existingMap.get(key);

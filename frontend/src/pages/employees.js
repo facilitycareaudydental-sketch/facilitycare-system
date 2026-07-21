@@ -27,7 +27,7 @@ export async function renderEmployees(container) {
       { key: 'branch_name', label: 'Cabang' },
       { key: 'division', label: 'Divisi', render: (v) => divisionBadge(v) },
       { key: 'phone', label: 'No. HP', render: v => v ? `<a href="tel:${v}">${v}</a>` : '-' },
-      { key: 'join_date', label: 'Tgl Masuk' },
+      { key: 'join_date', label: 'Tgl Masuk' , render: v => window.formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
@@ -52,7 +52,7 @@ export async function renderEmployees(container) {
       {
         type: 'row', fields: [
           { name: 'join_date', label: 'Tanggal Masuk', type: 'date', value: data?.join_date },
-          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'], value: data?.status || 'Aktif' },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'], value: data?.status || '' },
         ]
       },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },

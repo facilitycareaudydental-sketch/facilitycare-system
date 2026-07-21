@@ -42,7 +42,7 @@ export async function renderRelievers(container) {
     bulkDelete: true,
     itemLabel: 'Reliefer',
     columns: [
-      { key: 'backup_date', label: 'Tanggal Backup', nowrap: true },
+      { key: 'backup_date', label: 'Tanggal Backup', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
       { key: 'original_fc_name', label: 'FC Digantikan' },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },
@@ -82,7 +82,7 @@ export async function renderRelievers(container) {
           { name: 'shift', label: 'Shift', type: 'select', options: ['Pagi', 'Siang', 'Full Shift', 'Middle'], value: data?.shift },
         ]
       },
-      { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done', 'Tidak Datang'], value: data?.status || 'Pending' },
+      { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done', 'Tidak Datang'], value: data?.status || '' },
     ],
     exportOptions: {
       moduleName: 'relievers',

@@ -52,7 +52,7 @@ export async function renderIssues(container) {
     bulkDelete: true,
     itemLabel: 'Permasalahan',
     columns: [
-      { key: 'report_date', label: 'Tanggal', nowrap: true },
+      { key: 'report_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
       { key: 'category', label: 'Kategori', render: v => `<span class="badge badge-secondary">${v}</span>` },
       { key: 'source', label: 'Sumber' },
@@ -61,7 +61,7 @@ export async function renderIssues(container) {
       { key: 'fc_specialist', label: 'FC Spesialis' },
       { key: 'solution', label: 'Solusi', render: v => `<span title="${v || ''}">${v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-')}</span>` },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
-      { key: 'completion_date', label: 'Tgl Selesai', nowrap: true },
+      { key: 'completion_date', label: 'Tgl Selesai', nowrap: true , render: v => window.formatDate(v) },
       { key: 'day_count', label: 'Hari', render: v => v !== null && v !== undefined ? v : '-' },
     ],
     filterFields: [
@@ -94,7 +94,7 @@ export async function renderIssues(container) {
       { name: 'solution', label: 'Solusi / Tindakan', type: 'textarea', rows: 3, value: data?.solution },
       {
         type: 'row', fields: [
-          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Open', 'In Progress', 'Done'], value: data?.status || 'Open' },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Open', 'In Progress', 'Done'], value: data?.status || '' },
           { name: 'completion_date', label: 'Tanggal Selesai', type: 'date', value: data?.completion_date },
         ]
       },

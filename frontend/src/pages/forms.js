@@ -89,7 +89,7 @@ async function renderSupplyRequests(container) {
           ]
         },
         { name: 'additional_notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.additional_notes },
-        { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Diproses', 'Selesai'], value: data?.status || 'Pending' },
+        { name: 'status', label: 'Status', type: 'select', options: ['Pending', 'Diproses', 'Selesai'], value: data?.status || '' },
         { name: 'processed_by', label: 'Diproses Oleh', value: data?.processed_by },
       ];
     },

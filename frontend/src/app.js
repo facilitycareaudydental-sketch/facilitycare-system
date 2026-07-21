@@ -2,6 +2,14 @@ import { getToken, getUser, clearToken, apiFetch, setUser, setToken } from './co
 import { initRouter, registerRoute, navigate } from './router.js';
 import { toastError } from './components/toast.js';
 import { createModal } from './components/modal.js';
+import { logout, initAuth } from './utils/auth.js';
+
+window.formatDate = (d) => {
+  if (!d || d === '-') return '';
+  const p = d.split('-');
+  if (p.length === 3 && p[0].length === 4) return `${p[2]}-${p[1]}-${p[0]}`;
+  return d;
+};
 
 // Page imports
 import { renderDashboard } from './pages/dashboard.js';

@@ -34,11 +34,11 @@ export async function renderBasecampReports(container) {
     apiPath: '/api/reports/basecamp',
     itemLabel: 'Laporan Basecamp',
     columns: [
-      { key: 'info_date', label: 'Tgl Info', nowrap: true },
+      { key: 'info_date', label: 'Tgl Info', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
       { key: 'problem', label: 'Permasalahan', render: v => `<span title="${v || ''}">${v?.length > 60 ? v.slice(0, 60) + '…' : (v || '-')}</span>` },
       { key: 'pic', label: 'PIC' },
-      { key: 'done_date', label: 'Tgl Done', nowrap: true },
+      { key: 'done_date', label: 'Tgl Done', nowrap: true , render: v => window.formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
       { key: 'notes', label: 'Keterangan', render: v => v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-') },
     ],
@@ -61,7 +61,7 @@ export async function renderBasecampReports(container) {
           { name: 'done_date', label: 'Tanggal Done', type: 'date', value: data?.done_date },
         ]
       },
-      { name: 'status', label: 'Status', type: 'select', required: true, options: ['Open', 'In Progress', 'Done'], value: data?.status || 'Open' },
+      { name: 'status', label: 'Status', type: 'select', required: true, options: ['Open', 'In Progress', 'Done'], value: data?.status || '' },
       { name: 'notes', label: 'Keterangan', type: 'textarea', rows: 2, value: data?.notes },
     ],
   });
