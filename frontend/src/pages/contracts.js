@@ -128,7 +128,7 @@ export async function renderContracts(container) {
           end_date: String(row['Tgl Selesai'] || '').trim(),
           contract_type: String(row['Tipe Kontrak'] || '').trim(),
           pkwt_number: String(row['PKWT'] || '').trim(),
-          status: String(row['Status'] || '').trim() || null,
+          status: String(row['Status'] || '').trim(),
           notes: String(row['Catatan'] || '').trim(),
         })).filter(row => row.employee_id && row.start_date && row.end_date); // require these fields
         

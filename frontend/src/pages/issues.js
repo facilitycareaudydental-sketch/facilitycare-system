@@ -146,7 +146,7 @@ export async function renderIssues(container) {
           fc_specialist: String(row['FC Spesialis'] || '').trim(),
           solution: String(row['Solusi'] || '').trim(),
           completion_date: String(row['Tgl Selesai'] || '').trim(),
-          status: String(row['Status'] || '').trim() || null,
+          status: String(row['Status'] || '').trim(),
         })).filter(row => row.report_date && row.complaint && row.category);
         
         const res = await apiFetch('/api/issues/import', {

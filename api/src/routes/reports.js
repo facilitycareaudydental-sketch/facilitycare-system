@@ -91,7 +91,7 @@ async function createInspection(request, env, origin) {
   if (!period || !inspection_date) return error('period and inspection_date required', 400, origin);
   const result = await env.DB.prepare(
     'INSERT INTO inspection_reports (branch_id, period, inspection_date, status, fc_score, spv_score, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(branch_id || null, period, inspection_date, status || null, fc_score || null, spv_score || null, document_link || null, notes || null).run();
+  ).bind(branch_id || null, period, inspection_date, status !== null && status !== undefined && status !== '' ? status : '', fc_score || null, spv_score || null, document_link || null, notes || null).run();
   return ok({ id: result.meta.last_row_id }, 201, origin);
 }
 
@@ -107,7 +107,7 @@ async function updateInspection(id, request, env, origin) {
      fc_score = COALESCE(?, fc_score), spv_score = COALESCE(?, spv_score),
      document_link = COALESCE(?, document_link), notes = COALESCE(?, notes),
      updated_at = datetime('now') WHERE id = ?`
-  ).bind(branch_id || null, period || null, inspection_date || null, status || null,
+  ).bind(branch_id || null, period || null, inspection_date || null, status !== null && status !== undefined && status !== '' ? status : '',
     fc_score || null, spv_score || null, document_link || null, notes || null, id).run();
   return ok({ message: 'Updated' }, 200, origin);
 }
@@ -121,7 +121,7 @@ async function handleCleaning(request, env, user, origin, path) {
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     const { branch_id, activity_type, period, activity_date, status, document_link, notes } = body;
     if (!activity_type || !period || !activity_date) return error('activity_type, period, activity_date required', 400, origin);
-    const result = await env.DB.prepare('INSERT INTO cleaning_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, activity_type, period, activity_date, status || null, document_link || null, notes || null).run();
+    const result = await env.DB.prepare('INSERT INTO cleaning_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, activity_type, period, activity_date, status !== null && status !== undefined && status !== '' ? status : '', document_link || null, notes || null).run();
     return ok({ id: result.meta.last_row_id }, 201, origin);
   }
   if (idMatch) {
@@ -134,7 +134,7 @@ async function handleCleaning(request, env, user, origin, path) {
       if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
       let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
       const { branch_id, activity_type, period, activity_date, status, document_link, notes } = body;
-      await env.DB.prepare(`UPDATE cleaning_reports SET branch_id = COALESCE(?, branch_id), activity_type = COALESCE(?, activity_type), period = COALESCE(?, period), activity_date = COALESCE(?, activity_date), status = COALESCE(?, status), document_link = COALESCE(?, document_link), notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?`).bind(branch_id || null, activity_type || null, period || null, activity_date || null, status || null, document_link || null, notes || null, id).run();
+      await env.DB.prepare(`UPDATE cleaning_reports SET branch_id = COALESCE(?, branch_id), activity_type = COALESCE(?, activity_type), period = COALESCE(?, period), activity_date = COALESCE(?, activity_date), status = COALESCE(?, status), document_link = COALESCE(?, document_link), notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?`).bind(branch_id || null, activity_type || null, period || null, activity_date || null, status !== null && status !== undefined && status !== '' ? status : '', document_link || null, notes || null, id).run();
       return ok({ message: 'Updated' }, 200, origin);
     }
     if (request.method === 'DELETE') {
@@ -155,7 +155,7 @@ async function handleFogging(request, env, user, origin, path) {
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     const { branch_id, activity_type, period, activity_date, status, document_link, notes } = body;
     if (!period) return error('period required', 400, origin);
-    const result = await env.DB.prepare('INSERT INTO fogging_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, activity_type || 'Fogging', period, activity_date || null, status || null, document_link || null, notes || null).run();
+    const result = await env.DB.prepare('INSERT INTO fogging_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, activity_type || 'Fogging', period, activity_date || null, status !== null && status !== undefined && status !== '' ? status : '', document_link || null, notes || null).run();
     return ok({ id: result.meta.last_row_id }, 201, origin);
   }
   if (idMatch) {
@@ -168,7 +168,7 @@ async function handleFogging(request, env, user, origin, path) {
       if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
       let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
       const { branch_id, activity_type, period, activity_date, status, document_link, notes } = body;
-      await env.DB.prepare(`UPDATE fogging_reports SET branch_id = COALESCE(?, branch_id), activity_type = COALESCE(?, activity_type), period = COALESCE(?, period), activity_date = COALESCE(?, activity_date), status = COALESCE(?, status), document_link = COALESCE(?, document_link), notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?`).bind(branch_id || null, activity_type || null, period || null, activity_date || null, status || null, document_link || null, notes || null, id).run();
+      await env.DB.prepare(`UPDATE fogging_reports SET branch_id = COALESCE(?, branch_id), activity_type = COALESCE(?, activity_type), period = COALESCE(?, period), activity_date = COALESCE(?, activity_date), status = COALESCE(?, status), document_link = COALESCE(?, document_link), notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?`).bind(branch_id || null, activity_type || null, period || null, activity_date || null, status !== null && status !== undefined && status !== '' ? status : '', document_link || null, notes || null, id).run();
       return ok({ message: 'Updated' }, 200, origin);
     }
     if (request.method === 'DELETE') {
@@ -205,7 +205,7 @@ async function handleBasecamp(request, env, user, origin, path) {
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     const { branch_id, problem, pic, info_date, done_date, status, notes } = body;
     if (!problem || !info_date) return error('problem and info_date required', 400, origin);
-    const result = await env.DB.prepare('INSERT INTO basecamp_reports (branch_id, problem, pic, info_date, done_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, problem, pic || null, info_date, done_date || null, status || null, notes || null).run();
+    const result = await env.DB.prepare('INSERT INTO basecamp_reports (branch_id, problem, pic, info_date, done_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, problem, pic || null, info_date, done_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
     return ok({ id: result.meta.last_row_id }, 201, origin);
   }
   if (idMatch) {
@@ -218,7 +218,7 @@ async function handleBasecamp(request, env, user, origin, path) {
       if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
       let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
       const { branch_id, problem, pic, info_date, done_date, status, notes } = body;
-      await env.DB.prepare(`UPDATE basecamp_reports SET branch_id = COALESCE(?, branch_id), problem = COALESCE(?, problem), pic = COALESCE(?, pic), info_date = COALESCE(?, info_date), done_date = COALESCE(?, done_date), status = COALESCE(?, status), notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?`).bind(branch_id || null, problem || null, pic || null, info_date || null, done_date || null, status || null, notes || null, id).run();
+      await env.DB.prepare(`UPDATE basecamp_reports SET branch_id = COALESCE(?, branch_id), problem = COALESCE(?, problem), pic = COALESCE(?, pic), info_date = COALESCE(?, info_date), done_date = COALESCE(?, done_date), status = COALESCE(?, status), notes = COALESCE(?, notes), updated_at = datetime('now') WHERE id = ?`).bind(branch_id || null, problem || null, pic || null, info_date || null, done_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
       return ok({ message: 'Updated' }, 200, origin);
     }
     if (request.method === 'DELETE') {
@@ -295,7 +295,7 @@ async function handleSupply(request, env, origin, path) {
           additional_notes = COALESCE(?, additional_notes)
         WHERE id = ?
       `).bind(
-        status || null, processed_by || null, status || null,
+        status !== null && status !== undefined && status !== '' ? status : '', processed_by || null, status !== null && status !== undefined && status !== '' ? status : '',
         submitter_name || null, branch_id || null, branch_name || null,
         t_items ? JSON.stringify(t_items) : null, tools_quantity || null,
         c_items ? JSON.stringify(c_items) : null, chemical_quantity || null,

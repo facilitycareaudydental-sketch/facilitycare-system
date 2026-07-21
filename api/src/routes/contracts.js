@@ -95,7 +95,7 @@ async function createContract(request, env, origin) {
   const result = await env.DB.prepare(
     'INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(employee_id, branch_id || null, division || 'FACILITY CARE', start_date, end_date,
-    contract_type || null, pkwt_number || null, status || null, notes || null).run();
+    contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
 
   const newId = result.meta.last_row_id;
   const emp = await env.DB.prepare('SELECT full_name FROM employees WHERE id = ?').bind(employee_id).first();
@@ -106,7 +106,7 @@ async function createContract(request, env, origin) {
       empName,
       branchId: branch_id || null,
       endDate: end_date,
-      status: status || null
+      status: status !== null && status !== undefined && status !== '' ? status : ''
     });
   } catch (syncErr) {
     console.error('Calendar sync error (non-fatal):', syncErr.message);
@@ -136,7 +136,7 @@ async function updateContract(id, request, env, origin) {
       updated_at = datetime('now')
      WHERE id = ?`
   ).bind(employee_id || null, branch_id || null, division || null, start_date || null,
-    end_date || null, contract_type || null, pkwt_number || null, status || null, notes || null, id).run();
+    end_date || null, contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
 
   // Sync updated values
   const updatedContract = await env.DB.prepare('SELECT employee_id, branch_id, end_date, status FROM contracts WHERE id = ?').bind(id).first();
@@ -187,7 +187,7 @@ async function importContracts(request, env, origin) {
         item.end_date,
         item.contract_type || null,
         item.pkwt_number || null,
-        item.status || null,
+        item.status !== null && status !== undefined && status !== '' ? status : '',
         item.notes || null
       )
     );

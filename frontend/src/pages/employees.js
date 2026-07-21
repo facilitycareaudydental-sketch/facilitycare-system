@@ -96,7 +96,7 @@ export async function renderEmployees(container) {
           division: String(row['Divisi'] || '').trim() || 'FACILITY CARE',
           phone: String(row['No. HP'] || '').trim(),
           join_date: String(row['Tgl Masuk'] || '').trim(),
-          status: String(row['Status'] || '').trim() || null,
+          status: String(row['Status'] || '').trim(),
           notes: String(row['Catatan'] || '').trim(),
         })).filter(row => row.full_name);
         

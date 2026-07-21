@@ -63,7 +63,7 @@ export async function handleMutasi(request, env, origin) {
 
       const result = await env.DB.prepare(
         'INSERT INTO mutasi_data (tanggal, employee_name, from_branch_id, to_branch_id, status, document_link) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(tanggal || null, employee_name, from_branch_id || null, to_branch_id || null, status || null, document_link || null).run();
+      ).bind(tanggal || null, employee_name, from_branch_id || null, to_branch_id || null, status !== null && status !== undefined && status !== '' ? status : '', document_link || null).run();
 
       return ok({ id: result.meta.last_row_id, message: 'Mutasi berhasil ditambahkan' }, 201, origin);
     } catch (e) {
@@ -98,7 +98,7 @@ export async function handleMutasi(request, env, origin) {
           `UPDATE mutasi_data SET tanggal=COALESCE(?,tanggal), employee_name=COALESCE(?,employee_name),
            from_branch_id=COALESCE(?,from_branch_id), to_branch_id=COALESCE(?,to_branch_id),
            status=COALESCE(?,status), document_link=COALESCE(?,document_link) WHERE id=?`
-        ).bind(tanggal || null, employee_name || null, from_branch_id || null, to_branch_id || null, status || null, document_link || null, id).run();
+        ).bind(tanggal || null, employee_name || null, from_branch_id || null, to_branch_id || null, status !== null && status !== undefined && status !== '' ? status : '', document_link || null, id).run();
         return ok({ message: 'Mutasi berhasil diperbarui' }, 200, origin);
       } catch (e) {
         return error('Server error: ' + e.message, 500, origin);

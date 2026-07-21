@@ -129,7 +129,7 @@ export async function renderRelievers(container) {
           reason: String(row['Keterangan'] || '').trim(),
           shift: String(row['Shift'] || '').trim(),
           completion_date: String(row['Tanggal Selesai'] || '').trim(),
-          status: String(row['Status'] || '').trim() || null,
+          status: String(row['Status'] || '').trim(),
         })).filter(row => row.reliever_name && row.backup_date);
         
         const res = await apiFetch('/api/relievers/import', {

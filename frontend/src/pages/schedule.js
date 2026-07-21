@@ -132,7 +132,7 @@ export async function renderSchedule(container) {
           opening_date: String(row['Tgl Opening'] || '').trim(),
           target_date: String(row['Tgl Target'] || '').trim(),
           completion_date: String(row['Tgl Selesai'] || '').trim(),
-          status: String(row['Status'] || '').trim() || null,
+          status: String(row['Status'] || '').trim(),
           notes: String(row['Catatan'] || '').trim(),
         })).filter(row => row.activity_type && row.period);
         

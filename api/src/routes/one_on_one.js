@@ -80,7 +80,7 @@ async function create(request, env, origin) {
   const result = await env.DB.prepare(
     'INSERT INTO one_on_one (meeting_date, branch_id, employee_name, pic, problem, solution, status, completion_date, day_count, document_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(meeting_date, branch_id || null, employee_name, pic || null, problem,
-    solution || null, status || null, completion_date || null, day_count, document_link || null).run();
+    solution || null, status !== null && status !== undefined && status !== '' ? status : '', completion_date || null, day_count, document_link || null).run();
 
   return ok({ id: result.meta.last_row_id }, 201, origin);
 }
@@ -103,7 +103,7 @@ async function update(id, request, env, origin) {
      solution = COALESCE(?, solution), status = COALESCE(?, status), completion_date = COALESCE(?, completion_date),
      day_count = ?, document_link = COALESCE(?, document_link), updated_at = datetime('now') WHERE id = ?`
   ).bind(meeting_date || null, branch_id || null, employee_name || null, pic || null, problem || null,
-    solution || null, status || null, completion_date || null, day_count, document_link || null, id).run();
+    solution || null, status !== null && status !== undefined && status !== '' ? status : '', completion_date || null, day_count, document_link || null, id).run();
 
   return ok({ message: 'Updated' }, 200, origin);
 }

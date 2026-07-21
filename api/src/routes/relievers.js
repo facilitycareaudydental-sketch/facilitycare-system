@@ -86,12 +86,12 @@ async function create(request, env, origin) {
   const result = await env.DB.prepare(
     'INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(branch_id || null, original_fc_name || null, period || null, reliever_name,
-    backup_date, completion_date || null, reason || null, shift || null, status || null).run();
+    backup_date, completion_date || null, reason || null, shift || null, status !== null && status !== undefined && status !== '' ? status : '').run();
 
   const newId = result.meta.last_row_id;
   try {
     await runSync(env.DB, 'relievers', newId, {
-      reliever_name, backup_date, status: status || null, branch_id, original_fc_name, reason, shift
+      reliever_name, backup_date, status: status !== null && status !== undefined && status !== '' ? status : '', branch_id, original_fc_name, reason, shift
     });
   } catch (e) { console.error('sync error', e.message); }
 
@@ -111,7 +111,7 @@ async function update(id, request, env, origin) {
      completion_date = COALESCE(?, completion_date), reason = COALESCE(?, reason),
      shift = COALESCE(?, shift), status = COALESCE(?, status), updated_at = datetime('now') WHERE id = ?`
   ).bind(branch_id || null, original_fc_name || null, period || null, reliever_name || null,
-    backup_date || null, completion_date || null, reason || null, shift || null, status || null, id).run();
+    backup_date || null, completion_date || null, reason || null, shift || null, status !== null && status !== undefined && status !== '' ? status : '', id).run();
 
   const updated = await env.DB.prepare('SELECT * FROM relievers WHERE id = ?').bind(id).first();
   if (updated) {
@@ -151,7 +151,7 @@ async function importRelievers(request, env, origin) {
         item.completion_date || null,
         item.reason || null,
         item.shift || null,
-        item.status || null
+        item.status !== null && status !== undefined && status !== '' ? status : ''
       )
     );
   }

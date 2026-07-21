@@ -90,7 +90,7 @@ async function createIssue(request, env, origin) {
   const result = await env.DB.prepare(
     'INSERT INTO issues (report_date, branch_id, category, source, complaint, employee_name, fc_specialist, solution, status, completion_date, day_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(report_date, branch_id || null, category, source || null, complaint, employee_name || null,
-    fc_specialist || null, solution || null, status || null, completion_date || null, day_count).run();
+    fc_specialist || null, solution || null, status !== null && status !== undefined && status !== '' ? status : '', completion_date || null, day_count).run();
 
   return ok({ id: result.meta.last_row_id }, 201, origin);
 }
@@ -118,7 +118,7 @@ async function updateIssue(id, request, env, origin) {
      completion_date = COALESCE(?, completion_date), day_count = ?, updated_at = datetime('now')
      WHERE id = ?`
   ).bind(report_date || null, branch_id || null, category || null, source || null, complaint || null,
-    employee_name || null, fc_specialist || null, solution || null, status || null,
+    employee_name || null, fc_specialist || null, solution || null, status !== null && status !== undefined && status !== '' ? status : '',
     completion_date || null, day_count, id).run();
 
   return ok({ message: 'Issue updated' }, 200, origin);
@@ -161,7 +161,7 @@ async function importIssues(request, env, origin) {
         item.employee_name || null,
         item.fc_specialist || null,
         item.solution || null,
-        item.status || null,
+        item.status !== null && status !== undefined && status !== '' ? status : '',
         item.completion_date || null,
         day_count
       )

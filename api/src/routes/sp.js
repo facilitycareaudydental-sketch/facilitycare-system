@@ -60,7 +60,7 @@ export async function handleSP(request, env, origin) {
 
       const result = await env.DB.prepare(
         'INSERT INTO sp_data (tanggal, employee_name, branch_id, sp_type, status, document_link) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(tanggal || null, employee_name, branch_id || null, sp_type || '', status || null, document_link || null).run();
+      ).bind(tanggal || null, employee_name, branch_id || null, sp_type || '', status !== null && status !== undefined && status !== '' ? status : '', document_link || null).run();
 
       return ok({ id: result.meta.last_row_id, message: 'SP berhasil ditambahkan' }, 201, origin);
     } catch (e) {
@@ -91,7 +91,7 @@ export async function handleSP(request, env, origin) {
           `UPDATE sp_data SET tanggal=COALESCE(?,tanggal), employee_name=COALESCE(?,employee_name),
            branch_id=COALESCE(?,branch_id), sp_type=COALESCE(?,sp_type),
            status=COALESCE(?,status), document_link=COALESCE(?,document_link) WHERE id=?`
-        ).bind(tanggal || null, employee_name || null, branch_id || null, sp_type || null, status || null, document_link || null, id).run();
+        ).bind(tanggal || null, employee_name || null, branch_id || null, sp_type || null, status !== null && status !== undefined && status !== '' ? status : '', document_link || null, id).run();
         return ok({ message: 'SP berhasil diperbarui' }, 200, origin);
       } catch (e) {
         return error('Server error: ' + e.message, 500, origin);
