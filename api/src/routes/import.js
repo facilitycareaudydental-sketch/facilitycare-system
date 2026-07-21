@@ -73,7 +73,16 @@ export async function handleImport(request, env, origin) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function safeStr(v)  { return v !== undefined && v !== null && String(v).trim() !== '' ? String(v).trim() : null; }
-function safeDate(v) { return safeStr(v); }
+function safeDate(v) {
+  if (!v) return null;
+  if (typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}/)) return v.slice(0,10);
+  const excelDays = Number(v);
+  if (!isNaN(excelDays) && excelDays > 20000 && excelDays < 60000) {
+    const d = new Date((excelDays - 25569) * 86400 * 1000);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  }
+  return safeStr(v);
+}
 function today() { return new Date().toISOString().slice(0, 10); }
 
 function makeBranchMatcher(branches) {
