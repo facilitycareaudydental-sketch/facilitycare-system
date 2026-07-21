@@ -95,7 +95,7 @@ async function createContract(request, env, origin) {
   const result = await env.DB.prepare(
     'INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(employee_id, branch_id || null, division || 'FACILITY CARE', start_date, end_date,
-    contract_type || null, pkwt_number || null, status || 'Aktif', notes || null).run();
+    contract_type || null, pkwt_number || null, status || null, notes || null).run();
 
   const newId = result.meta.last_row_id;
   const emp = await env.DB.prepare('SELECT full_name FROM employees WHERE id = ?').bind(employee_id).first();
@@ -106,7 +106,7 @@ async function createContract(request, env, origin) {
       empName,
       branchId: branch_id || null,
       endDate: end_date,
-      status: status || 'Aktif'
+      status: status || null
     });
   } catch (syncErr) {
     console.error('Calendar sync error (non-fatal):', syncErr.message);
@@ -187,7 +187,7 @@ async function importContracts(request, env, origin) {
         item.end_date,
         item.contract_type || null,
         item.pkwt_number || null,
-        item.status || 'Aktif',
+        item.status || null,
         item.notes || null
       )
     );

@@ -80,7 +80,7 @@ async function create(request, env, origin) {
   const result = await env.DB.prepare(
     'INSERT INTO one_on_one (meeting_date, branch_id, employee_name, pic, problem, solution, status, completion_date, day_count, document_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(meeting_date, branch_id || null, employee_name, pic || null, problem,
-    solution || null, status || 'Open', completion_date || null, day_count, document_link || null).run();
+    solution || null, status || null, completion_date || null, day_count, document_link || null).run();
 
   return ok({ id: result.meta.last_row_id }, 201, origin);
 }

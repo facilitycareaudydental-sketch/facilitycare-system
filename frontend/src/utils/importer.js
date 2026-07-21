@@ -31,33 +31,59 @@ export const SHEET_MAP = {
 // ─── Date Parsing Helper ─────────────────────────────────────────────────────
 function dateStr(v) {
   if (v === undefined || v === null || v === '') return null;
-  const s = String(v).trim();
 
-  // ISO: YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-
-  // Excel serial
-  if (/^\d{4,5}$/.test(s)) {
-    const d = new Date(Date.UTC(1899, 11, 30) + Number(s) * 86400000);
-    return d.toISOString().slice(0, 10);
+  // JS Date object (from cellDates: true)
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return null;
+    // Use UTC to avoid timezone shifting
+    return v.toISOString().slice(0, 10);
   }
 
+  const s = String(v).trim();
+  if (s === '' || s === '0') return null;
+
+  // ISO: YYYY-MM-DD (exact match preferred)
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+
+  // Excel serial number (plain integer 20000–99999)
+  if (/^\d{4,5}$/.test(s)) {
+    const n = Number(s);
+    if (n > 20000 && n < 99999) {
+      const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+      return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+    }
+  }
+
+  // Parts-based parsing: DD/MM/YYYY, MM/DD/YYYY, DD-MM-YYYY, etc.
   const parts = s.split(/[\/\-\.]/);
   if (parts.length === 3) {
     const [a, b, c] = parts.map(p => p.trim());
     const na = Number(a), nb = Number(b), nc = Number(c);
+
+    // YYYY-MM-DD or YYYY/MM/DD
     if (a.length === 4 && na > 1900) {
       return `${a}-${b.padStart(2,'0')}-${c.padStart(2,'0')}`;
     }
+
+    // DD/MM/YYYY or MM/DD/YYYY — for Indonesia we default to DD/MM/YYYY
     if (c.length === 4 && nc > 1900) {
+      // If 'a' > 12, it must be a day (DD/MM/YYYY)
+      if (na > 12) return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+      // If 'b' > 12, it must be a day (MM/DD/YYYY)
+      if (nb > 12) return `${c}-${a.padStart(2,'0')}-${b.padStart(2,'0')}`;
+      // Default: assume DD/MM/YYYY (Indonesian convention)
       return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
     }
+
+    // 2-digit year: DD/MM/YY
     if (c.length === 2 && !isNaN(nc)) {
       const year = nc >= 50 ? `19${c}` : `20${c}`;
+      if (na > 12) return `${year}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
       return `${year}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
     }
   }
 
+  // Fallback: try native Date parse (handles "Jul 1, 2026" etc.)
   const d = new Date(s);
   if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
   return null;
@@ -102,7 +128,7 @@ const SCHEMAS = {
       division:    row['Div / Bagian'] || 'FACILITY CARE',
       phone:       row['No. Hp'],
       join_date:   dateStr(row['Tanggal Masuk']),
-      status:      row['Status'] || 'Aktif',
+      status:      row['Status'] || null,
       notes:       '',
     }),
   },
@@ -116,7 +142,7 @@ const SCHEMAS = {
       end_date:      dateStr(row['Tanggal Selesai']),
       contract_type: row['Tipe Kontrak'] || '',
       pkwt_number:   row['PKWT'] || '',
-      status:        row['Status'] || 'Aktif',
+      status:        row['Status'] || null,
       notes:         row['keterangan'],
     }),
   },
@@ -131,7 +157,7 @@ const SCHEMAS = {
       employee_name:   row['Nama FC'],
       fc_specialist:   row['FC Spesialis'],
       solution:        row['Solusi'],
-      status:          row['Status'] || 'Open',
+      status:          row['Status'] || null,
       completion_date: dateStr(row['Tanggal Selesai']),
     }),
   },
@@ -144,7 +170,7 @@ const SCHEMAS = {
       pic:             row['Pic'],
       problem:         row['Masalah'],
       solution:        row['Solusi'],
-      status:          row['Status'] || 'Open',
+      status:          row['Status'] || null,
       completion_date: dateStr(row['Tanggal Selesai']),
       document_link:   row['Link Document'],
     }),
@@ -159,7 +185,7 @@ const SCHEMAS = {
       opening_date:    dateStr(row['Tanggal Opening']),
       target_date:     dateStr(row['Tanggal Target']),
       completion_date: dateStr(row['Tanggal Selesai']),
-      status:          row['Status'] || 'Pending',
+      status:          row['Status'] || null,
       notes:           row['Keterangan'],
     }),
   },
@@ -169,7 +195,7 @@ const SCHEMAS = {
       inspection_date: dateStr(row['Tanggal']),
       branch_name:     row['Cabang'],
       period:          row['Periode'],
-      status:          row['Status'] || 'Pending',
+      status:        row['Status'] || null,
       fc_score:        row['Point FC SP'] !== undefined && row['Point FC SP'] !== null ? parseFloat(String(row['Point FC SP']).replace(',', '.')) : null,
       spv_score:       row['Point SPV'] !== undefined && row['Point SPV'] !== null ? parseFloat(String(row['Point SPV']).replace(',', '.')) : null,
       document_link:   row['Link'],
@@ -183,7 +209,7 @@ const SCHEMAS = {
       branch_name:   row['Cabang'],
       activity_type: row['Jenis Kegiatan'] || 'General Cleaning',
       period:        row['Periode'],
-      status:        row['Status'] || 'Pending',
+      status:        row['Status'] || null,
       document_link: row['Link'],
       notes:         '',
     }),
@@ -194,7 +220,7 @@ const SCHEMAS = {
       activity_date: dateStr(row['Tanggal']),
       branch_name:   row['Cabang'],
       period:        row['Periode'],
-      status:        row['Status'] || 'Pending',
+      status:        row['Status'] || null,
       document_link: row['Link'],
       notes:         '',
     }),
@@ -207,7 +233,7 @@ const SCHEMAS = {
       problem:     row['Permasalahan'],
       pic:         row['PIC'],
       done_date:   dateStr(row['Tgl Done']),
-      status:      row['Status'] || 'Open',
+      status:      row['Status'] || null,
       notes:       row['Ket'],
     }),
   },
@@ -222,7 +248,7 @@ const SCHEMAS = {
       completion_date:  dateStr(row['Tanggal Selesai']),
       reason:           row['Keterangan'],
       shift:            row['Shift'],
-      status:           row['Status'] || 'Pending',
+      status:           row['Status'] || null,
     }),
   },
   training: {
@@ -267,7 +293,7 @@ const SCHEMAS = {
       chemical_items:    row['Chemical'],
       chemical_quantity: row['Jumlah Permintaan Chemical'],
       additional_notes:  row['Tambahan  Alat / Chemical Jika Ada Permintaan Diluar List.'],
-      status:            row['Status'] || 'Pending',
+      status:            row['Status'] || null,
     }),
   },
 };
@@ -324,7 +350,7 @@ export function validateWorkbook(workbook) {
     if (!mapping) return; // Ignore unmapped sheets silently
 
     const ws      = workbook.Sheets[sheetName];
-    const rawRows = window.XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+    const rawRows = window.XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
     const result  = validateSheet(sheetName, rawRows);
 
     const nonEmpty = rawRows.filter(r => !isEmptyRow(r));

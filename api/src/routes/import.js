@@ -74,14 +74,43 @@ export async function handleImport(request, env, origin) {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function safeStr(v)  { return v !== undefined && v !== null && String(v).trim() !== '' ? String(v).trim() : null; }
 function safeDate(v) {
-  if (!v) return null;
-  if (typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}/)) return v.slice(0,10);
+  if (!v || v === '0') return null;
+
+  // JS Date string from ISO format
+  if (typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}/)) return v.slice(0, 10);
+
+  // Excel serial number
   const excelDays = Number(v);
-  if (!isNaN(excelDays) && excelDays > 20000 && excelDays < 60000) {
-    const d = new Date((excelDays - 25569) * 86400 * 1000);
+  if (!isNaN(excelDays) && excelDays > 20000 && excelDays < 99999) {
+    // Use Date.UTC(1899,11,30) formula which matches SheetJS cellDates:true output
+    const d = new Date(Date.UTC(1899, 11, 30) + excelDays * 86400000);
     if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
   }
-  return safeStr(v);
+
+  // Parts-based parsing: DD/MM/YYYY, MM/DD/YYYY, D/M/YY etc.
+  if (typeof v === 'string') {
+    const s = v.trim();
+    const parts = s.split(/[\/\-\.]/);
+    if (parts.length === 3) {
+      const [a, b, c] = parts.map(p => p.trim());
+      const na = Number(a), nb = Number(b), nc = Number(c);
+      if (a.length === 4 && na > 1900) {
+        return `${a}-${b.padStart(2,'0')}-${c.padStart(2,'0')}`;
+      }
+      if (c.length === 4 && nc > 1900) {
+        if (na > 12) return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+        if (nb > 12) return `${c}-${a.padStart(2,'0')}-${b.padStart(2,'0')}`;
+        return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+      }
+      if (c.length === 2 && !isNaN(nc)) {
+        const year = nc >= 50 ? `19${c}` : `20${c}`;
+        return `${year}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+      }
+    }
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  }
+  return null;
 }
 function today() { return new Date().toISOString().slice(0, 10); }
 

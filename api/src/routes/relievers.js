@@ -86,12 +86,12 @@ async function create(request, env, origin) {
   const result = await env.DB.prepare(
     'INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(branch_id || null, original_fc_name || null, period || null, reliever_name,
-    backup_date, completion_date || null, reason || null, shift || null, status || 'Pending').run();
+    backup_date, completion_date || null, reason || null, shift || null, status || null).run();
 
   const newId = result.meta.last_row_id;
   try {
     await runSync(env.DB, 'relievers', newId, {
-      reliever_name, backup_date, status: status || 'Pending', branch_id, original_fc_name, reason, shift
+      reliever_name, backup_date, status: status || null, branch_id, original_fc_name, reason, shift
     });
   } catch (e) { console.error('sync error', e.message); }
 
@@ -151,7 +151,7 @@ async function importRelievers(request, env, origin) {
         item.completion_date || null,
         item.reason || null,
         item.shift || null,
-        item.status || 'Pending'
+        item.status || null
       )
     );
   }

@@ -301,7 +301,7 @@ export function renderImportPage(container) {
       await sleep(200);
 
       const arrayBuffer = await file.arrayBuffer();
-      const workbook = window.XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
+      const workbook = window.XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
 
       statusEl.textContent = `Memvalidasi ${workbook.SheetNames.length} sheet...`;
       barEl.style.width = '50%';

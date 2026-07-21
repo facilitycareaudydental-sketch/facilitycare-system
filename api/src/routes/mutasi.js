@@ -63,7 +63,7 @@ export async function handleMutasi(request, env, origin) {
 
       const result = await env.DB.prepare(
         'INSERT INTO mutasi_data (tanggal, employee_name, from_branch_id, to_branch_id, status, document_link) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(tanggal || null, employee_name, from_branch_id || null, to_branch_id || null, status || 'Proses', document_link || null).run();
+      ).bind(tanggal || null, employee_name, from_branch_id || null, to_branch_id || null, status || null, document_link || null).run();
 
       return ok({ id: result.meta.last_row_id, message: 'Mutasi berhasil ditambahkan' }, 201, origin);
     } catch (e) {

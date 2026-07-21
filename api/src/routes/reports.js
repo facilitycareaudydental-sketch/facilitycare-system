@@ -91,7 +91,7 @@ async function createInspection(request, env, origin) {
   if (!period || !inspection_date) return error('period and inspection_date required', 400, origin);
   const result = await env.DB.prepare(
     'INSERT INTO inspection_reports (branch_id, period, inspection_date, status, fc_score, spv_score, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(branch_id || null, period, inspection_date, status || 'Pending', fc_score || null, spv_score || null, document_link || null, notes || null).run();
+  ).bind(branch_id || null, period, inspection_date, status || null, fc_score || null, spv_score || null, document_link || null, notes || null).run();
   return ok({ id: result.meta.last_row_id }, 201, origin);
 }
 
@@ -121,7 +121,7 @@ async function handleCleaning(request, env, user, origin, path) {
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     const { branch_id, activity_type, period, activity_date, status, document_link, notes } = body;
     if (!activity_type || !period || !activity_date) return error('activity_type, period, activity_date required', 400, origin);
-    const result = await env.DB.prepare('INSERT INTO cleaning_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, activity_type, period, activity_date, status || 'Pending', document_link || null, notes || null).run();
+    const result = await env.DB.prepare('INSERT INTO cleaning_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, activity_type, period, activity_date, status || null, document_link || null, notes || null).run();
     return ok({ id: result.meta.last_row_id }, 201, origin);
   }
   if (idMatch) {
@@ -155,7 +155,7 @@ async function handleFogging(request, env, user, origin, path) {
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     const { branch_id, activity_type, period, activity_date, status, document_link, notes } = body;
     if (!period) return error('period required', 400, origin);
-    const result = await env.DB.prepare('INSERT INTO fogging_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, activity_type || 'Fogging', period, activity_date || null, status || 'Pending', document_link || null, notes || null).run();
+    const result = await env.DB.prepare('INSERT INTO fogging_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, activity_type || 'Fogging', period, activity_date || null, status || null, document_link || null, notes || null).run();
     return ok({ id: result.meta.last_row_id }, 201, origin);
   }
   if (idMatch) {
@@ -205,7 +205,7 @@ async function handleBasecamp(request, env, user, origin, path) {
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     const { branch_id, problem, pic, info_date, done_date, status, notes } = body;
     if (!problem || !info_date) return error('problem and info_date required', 400, origin);
-    const result = await env.DB.prepare('INSERT INTO basecamp_reports (branch_id, problem, pic, info_date, done_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, problem, pic || null, info_date, done_date || null, status || 'Open', notes || null).run();
+    const result = await env.DB.prepare('INSERT INTO basecamp_reports (branch_id, problem, pic, info_date, done_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(branch_id || null, problem, pic || null, info_date, done_date || null, status || null, notes || null).run();
     return ok({ id: result.meta.last_row_id }, 201, origin);
   }
   if (idMatch) {

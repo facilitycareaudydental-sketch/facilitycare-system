@@ -84,12 +84,12 @@ async function createSchedule(request, env, origin) {
   const result = await env.DB.prepare(
     'INSERT INTO activity_schedule (branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(branch_id || null, activity_type, period, pic || null, opening_date || null,
-    target_date || null, completion_date || null, status || 'Pending', notes || null).run();
+    target_date || null, completion_date || null, status || null, notes || null).run();
 
   const newId = result.meta.last_row_id;
   try {
     await runSync(env.DB, 'schedule', newId, {
-      activity_type, period, pic, target_date, status: status || 'Pending', branch_id, notes
+      activity_type, period, pic, target_date, status: status || null, branch_id, notes
     });
   } catch (e) { console.error('sync error', e.message); }
 
@@ -152,7 +152,7 @@ async function importSchedule(request, env, origin) {
         item.opening_date || null,
         item.target_date || null,
         item.completion_date || null,
-        item.status || 'Pending',
+        item.status || null,
         item.notes || null
       )
     );

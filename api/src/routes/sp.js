@@ -60,7 +60,7 @@ export async function handleSP(request, env, origin) {
 
       const result = await env.DB.prepare(
         'INSERT INTO sp_data (tanggal, employee_name, branch_id, sp_type, status, document_link) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(tanggal || null, employee_name, branch_id || null, sp_type || '', status || 'Aktif', document_link || null).run();
+      ).bind(tanggal || null, employee_name, branch_id || null, sp_type || '', status || null, document_link || null).run();
 
       return ok({ id: result.meta.last_row_id, message: 'SP berhasil ditambahkan' }, 201, origin);
     } catch (e) {

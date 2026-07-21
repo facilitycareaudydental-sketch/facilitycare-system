@@ -93,7 +93,7 @@ async function createEmployee(request, env, origin) {
 
   const result = await env.DB.prepare(
     'INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).bind(full_name, branch_id || null, division || 'FACILITY CARE', phone || null, join_date || null, status || 'Aktif', notes || null).run();
+  ).bind(full_name, branch_id || null, division || 'FACILITY CARE', phone || null, join_date || null, status || null, notes || null).run();
 
   return ok({ id: result.meta.last_row_id }, 201, origin);
 }
@@ -148,7 +148,7 @@ async function importEmployees(request, env, origin) {
         item.division || 'FACILITY CARE', 
         item.phone || null, 
         item.join_date || null, 
-        item.status || 'Aktif', 
+        item.status || null, 
         item.notes || null
       )
     );

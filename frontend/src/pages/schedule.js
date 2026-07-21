@@ -27,9 +27,9 @@ export async function renderSchedule(container) {
   };
 
   const formatDate = (d) => {
-    if (!d || d === '-') return '-';
-    const p = d.split('-');
-    if (p.length === 3) return `${p[2]}-${p[1]}-${p[0]}`;
+    if (!d || d === '-' || String(d).trim() === '') return '';
+    const p = String(d).split('-');
+    if (p.length === 3 && p[0].length === 4) return `${p[2]}-${p[1]}-${p[0]}`;
     return d;
   };
 
@@ -132,7 +132,7 @@ export async function renderSchedule(container) {
           opening_date: String(row['Tgl Opening'] || '').trim(),
           target_date: String(row['Tgl Target'] || '').trim(),
           completion_date: String(row['Tgl Selesai'] || '').trim(),
-          status: String(row['Status'] || '').trim() || 'Pending',
+          status: String(row['Status'] || '').trim() || null,
           notes: String(row['Catatan'] || '').trim(),
         })).filter(row => row.activity_type && row.period);
         
