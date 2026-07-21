@@ -128,12 +128,12 @@ export async function renderSchedule(container) {
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
           activity_type: String(row['Kegiatan'] || '').trim(),
           period: String(row['Periode'] || '').trim(),
-          pic: String(row['PIC'] || '').trim(),
-          opening_date: String(row['Tgl Opening'] || '').trim(),
-          target_date: String(row['Tgl Target'] || '').trim(),
-          completion_date: String(row['Tgl Selesai'] || '').trim(),
+          pic: String(row['PIC'] || row['Pic'] || '').trim(),
+          opening_date: String(row['Tgl Opening'] || row['Tanggal Opening'] || '').trim(),
+          target_date: String(row['Tgl Target'] || row['Tanggal Target'] || '').trim(),
+          completion_date: String(row['Tgl Selesai'] || row['Tanggal Selesai'] || '').trim(),
           status: String(row['Status'] || '').trim(),
-          notes: String(row['Catatan'] || '').trim(),
+          notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.activity_type && row.period);
         
         const res = await apiFetch('/api/schedule/import', {
