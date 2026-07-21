@@ -693,8 +693,8 @@ strong { font-weight: 600; }
 .dash-table tr:last-child td { border-bottom: none; }
 .dash-table tr:hover td { background: var(--gray-50); }
 .td-num  { font-weight: 600; color: var(--text-3); width: 32px; }
-.td-branch { font-size: 0.85rem; color: var(--text-2); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.td-complaint { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-branch { font-size: 0.85rem; color: var(--text-2); white-space: nowrap; }
+.td-complaint { white-space: nowrap; }
 
 /* Status Pills */
 .status-pill {
@@ -1235,10 +1235,21 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .data-table tbody td {
   padding: 10px 14px;
   color: var(--text-1);
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* table scroll wrapper */
+.dash-table-wrap,
+.table-wrapper,
+.data-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
+}
+
 
 /* empty-state */
 .empty-state {
