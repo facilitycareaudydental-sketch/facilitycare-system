@@ -137,30 +137,64 @@ async function importSchedule(request, env, origin) {
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
   if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
 
+  const existing = await env.DB.prepare('SELECT id, activity_type, period, branch_id FROM activity_schedule').all();
+  const existingMap = new Map();
+  (existing.results || []).forEach(s => {
+    if (s.activity_type && s.period) {
+      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.branch_id, s.id);
+    }
+  });
+
   const stmts = [];
+  let inserted = 0;
+  let updated = 0;
+
   for (const item of body) {
     if (!item.activity_type || !item.period) continue;
-    stmts.push(
-      env.DB.prepare(
-        `INSERT INTO activity_schedule (branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        item.branch_id || null,
-        item.activity_type,
-        item.period,
-        item.pic || null,
-        item.opening_date || null,
-        item.target_date || null,
-        item.completion_date || null,
-        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
-        item.notes || null
-      )
-    );
+    
+    const key = item.activity_type.toLowerCase().trim() + '_' + item.period.toLowerCase().trim() + '_' + (item.branch_id || 'null');
+    const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
+
+    if (existingMap.has(key)) {
+      const id = existingMap.get(key);
+      stmts.push(
+        env.DB.prepare(
+          `UPDATE activity_schedule SET pic = ?, opening_date = ?, target_date = ?, completion_date = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(
+          item.pic || null,
+          item.opening_date || null,
+          item.target_date || null,
+          item.completion_date || null,
+          status,
+          item.notes || null,
+          id
+        )
+      );
+      updated++;
+    } else {
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO activity_schedule (branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.branch_id || null,
+          item.activity_type,
+          item.period,
+          item.pic || null,
+          item.opening_date || null,
+          item.target_date || null,
+          item.completion_date || null,
+          status,
+          item.notes || null
+        )
+      );
+      inserted++;
+    }
   }
 
   try {
     if (stmts.length > 0) await env.DB.batch(stmts);
-    return ok({ message: `Berhasil mengimport ${stmts.length} jadwal kegiatan` }, 200, origin);
+    return ok({ message: `Berhasil mengimport data (Baru: ${inserted}, Update: ${updated})` }, 200, origin);
   } catch (err) {
     return error('Gagal import data: ' + err.message, 500, origin);
   }
