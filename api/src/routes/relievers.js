@@ -151,7 +151,7 @@ async function importRelievers(request, env, origin) {
         item.completion_date || null,
         item.reason || null,
         item.shift || null,
-        item.status !== null && status !== undefined && status !== '' ? status : ''
+        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : ''
       )
     );
   }

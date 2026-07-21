@@ -148,7 +148,7 @@ async function importEmployees(request, env, origin) {
         item.division || 'FACILITY CARE', 
         item.phone || null, 
         item.join_date || null, 
-        item.status !== null && status !== undefined && status !== '' ? status : '', 
+        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '', 
         item.notes || null
       )
     );

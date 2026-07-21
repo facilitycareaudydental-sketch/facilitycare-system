@@ -161,7 +161,7 @@ async function importIssues(request, env, origin) {
         item.employee_name || null,
         item.fc_specialist || null,
         item.solution || null,
-        item.status !== null && status !== undefined && status !== '' ? status : '',
+        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
         item.completion_date || null,
         day_count
       )

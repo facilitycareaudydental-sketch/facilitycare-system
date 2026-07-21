@@ -152,7 +152,7 @@ async function importSchedule(request, env, origin) {
         item.opening_date || null,
         item.target_date || null,
         item.completion_date || null,
-        item.status !== null && status !== undefined && status !== '' ? status : '',
+        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
         item.notes || null
       )
     );

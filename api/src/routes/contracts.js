@@ -187,7 +187,7 @@ async function importContracts(request, env, origin) {
         item.end_date,
         item.contract_type || null,
         item.pkwt_number || null,
-        item.status !== null && status !== undefined && status !== '' ? status : '',
+        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
         item.notes || null
       )
     );
