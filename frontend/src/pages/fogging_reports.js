@@ -59,15 +59,14 @@ export async function renderFoggingReports(container) {
             'Periode': d.period || '',
             'Tanggal': d.activity_date || '',
             'Status': d.status || '',
-            'Link Dokumen': d.document_link || '',
-            'Catatan': d.notes || ''
+            'Link Dokumen': d.document_link || ''
           }));
           downloadExcel(data, `Laporan_Fogging_${new Date().toISOString().slice(0,10)}`);
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Cabang': '001. Pondok Bambu', 'Jenis': 'Fogging', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...', 'Catatan': 'Tuntas' }
+          { 'Cabang': '001. Pondok Bambu', 'Jenis': 'Fogging', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...' }
         ];
         downloadExcel(template, 'Template_Import_Fogging');
       },
