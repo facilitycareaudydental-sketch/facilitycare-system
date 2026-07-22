@@ -101,15 +101,14 @@ export async function renderSchedule(container) {
             'Tgl Opening': d.opening_date || '',
             'Tgl Target': d.target_date || '',
             'Tgl Selesai': d.completion_date || '',
-            'Status': d.status || '',
-            'Catatan': d.notes || ''
+            'Status': d.status || ''
           }));
           downloadExcel(data, 'Data_Jadwal_Kegiatan');
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Cabang': '001. Pondok Bambu', 'Kegiatan': 'General Cleaning', 'Periode': 'Q1', 'PIC': 'Fajar', 'Tgl Opening': '2024-02-01', 'Tgl Target': '2024-02-15', 'Tgl Selesai': '2024-02-14', 'Status': 'Done', 'Catatan': '' }
+          { 'Cabang': '001. Pondok Bambu', 'Kegiatan': 'General Cleaning', 'Periode': 'Q1', 'PIC': 'Fajar', 'Tgl Opening': '2024-02-01', 'Tgl Target': '2024-02-15', 'Tgl Selesai': '2024-02-14', 'Status': 'Done' }
         ];
         downloadExcel(template, 'Template_Import_Jadwal');
       },
