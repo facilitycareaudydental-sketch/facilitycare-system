@@ -40,10 +40,10 @@ export function buildCrudPage({
     </div>
 
     ${bulkDelete ? `
-    <div class="bulk-toolbar" id="bulk-toolbar" style="display:none">
-      <span id="bulk-count">0 dipilih</span>
-      <button class="btn btn-danger btn-sm" id="btn-bulk-delete">🗑️ Hapus Terpilih</button>
-      <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel">Batalkan</button>
+    <div class="bulk-toolbar" id="bulk-toolbar" style="display:flex; align-items:center; gap:1rem; background:var(--bg-card); padding:0.75rem 1.25rem; border-radius:var(--radius-lg); border:1px solid var(--border-color); margin-bottom:1rem;">
+      <span id="bulk-count" style="font-weight:600; font-size:0.9rem;">0 item dipilih</span>
+      <button class="btn btn-danger btn-sm" id="btn-bulk-delete" disabled>🗑️ Hapus Terpilih</button>
+      <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel" disabled>Batalkan</button>
     </div>` : ''}
     
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
@@ -73,11 +73,16 @@ export function buildCrudPage({
     const toolbar = document.getElementById('bulk-toolbar');
     if (!toolbar) return;
     const countEl = document.getElementById('bulk-count');
+    const btnDelete = document.getElementById('btn-bulk-delete');
+    const btnCancel = document.getElementById('btn-bulk-cancel');
+    
+    countEl.textContent = `${selectedIds.size} item dipilih`;
     if (selectedIds.size > 0) {
-      toolbar.style.display = 'flex';
-      countEl.textContent = `${selectedIds.size} item dipilih`;
+      btnDelete.disabled = false;
+      btnCancel.disabled = false;
     } else {
-      toolbar.style.display = 'none';
+      btnDelete.disabled = true;
+      btnCancel.disabled = true;
     }
   }
 
