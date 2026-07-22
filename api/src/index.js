@@ -154,7 +154,7 @@ export default {
 
       if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') ||
         path.startsWith('/api/forms') || path.startsWith('/api/pic') || 
-        path.startsWith('/api/options') || path.startsWith('/api/audit-emp')) {
+        path.startsWith('/api/options') || path.startsWith('/api/audit-emp') || path.startsWith('/api/audit-emp-clean')) {
         return handleMisc(request, env, origin);
       }
 

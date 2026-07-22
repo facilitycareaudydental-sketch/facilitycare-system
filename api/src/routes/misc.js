@@ -23,6 +23,15 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-emp-clean')) {
+    try {
+      await env.DB.prepare('DELETE FROM employees WHERE id = 857').run();
+      return ok({ message: 'Cleaned' }, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-emp')) {
     try {
       const stats = await env.DB.prepare('SELECT status, COUNT(*) as count FROM employees GROUP BY status').all();
