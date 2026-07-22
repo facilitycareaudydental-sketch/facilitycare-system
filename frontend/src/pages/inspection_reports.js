@@ -14,6 +14,7 @@ export async function renderInspectionReports(container) {
     icon: '🔍',
     apiPath: '/api/reports/inspection',
     itemLabel: 'Laporan Inspeksi',
+    bulkDelete: true,
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },

@@ -66,7 +66,12 @@ export default {
           '/api/forms/bulk': { table: 'master_forms', perm: 'forms' },
           '/api/pic/bulk': { table: 'pic_list', perm: 'pic' },
           '/api/users/bulk': { table: 'users', perm: 'users' },
-          '/api/contracts/bulk': { table: 'contracts', perm: 'contracts', calModule: 'contracts' }
+          '/api/contracts/bulk': { table: 'contracts', perm: 'contracts', calModule: 'contracts' },
+          '/api/reports/cleaning/bulk': { table: 'cleaning_reports', perm: 'reports' },
+          '/api/reports/fogging/bulk': { table: 'fogging_reports', perm: 'reports' },
+          '/api/reports/basecamp/bulk': { table: 'basecamp_reports', perm: 'reports' },
+          '/api/reports/supply/bulk': { table: 'supply_requests', perm: 'reports' },
+          '/api/reports/inspection/bulk': { table: 'inspection_reports', perm: 'reports' }
         };
 
         const config = moduleMap[path];

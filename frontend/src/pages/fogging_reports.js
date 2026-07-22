@@ -14,6 +14,7 @@ export async function renderFoggingReports(container) {
     icon: '💨',
     apiPath: '/api/reports/fogging',
     itemLabel: 'Fogging',
+    bulkDelete: true,
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'activity_type', label: 'Jenis', render: v => `<span class="badge badge-warning">${v}</span>` },

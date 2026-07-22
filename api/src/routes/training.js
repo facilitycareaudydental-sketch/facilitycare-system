@@ -16,6 +16,49 @@ export async function handleTraining(request, env, origin) {
     if (!hasPermission(user, 'training', 'write')) return forbidden(origin);
     return create(request, env, origin);
   }
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'training', 'write')) return forbidden(origin);
+    let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+    if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+    if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+    const existing = await env.DB.prepare('SELECT id, training_date, subject, branch_id FROM training').all();
+    const existingMap = new Map();
+    (existing.results || []).forEach(r => {
+      if (r.training_date && r.subject && r.branch_id) {
+        existingMap.set(r.training_date + '_' + r.subject.toLowerCase().trim() + '_' + r.branch_id, r.id);
+      }
+    });
+
+    const stmts = [];
+    let inserted = 0; let updated = 0;
+    for (const item of body) {
+      if (!item.training_date || !item.subject || !item.branch_id) continue;
+      const key = item.training_date + '_' + item.subject.toLowerCase().trim() + '_' + item.branch_id;
+      const participantsArray = item.participants ? item.participants.split(',').map(p => p.trim()).filter(Boolean) : [];
+      const participantsStr = JSON.stringify(participantsArray);
+      
+      if (existingMap.has(key)) {
+        stmts.push(
+          env.DB.prepare(`UPDATE training SET batch=?, trainer=?, participants=?, score=?, document_link=?, updated_at=datetime('now') WHERE id=?`)
+          .bind(item.batch || null, item.trainer || null, participantsStr, item.score !== null ? item.score : null, item.document_link || null, existingMap.get(key))
+        );
+        updated++;
+      } else {
+        stmts.push(
+          env.DB.prepare(`INSERT INTO training (training_date, batch, subject, branch_id, trainer, participants, score, document_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(item.training_date, item.batch || null, item.subject, item.branch_id, item.trainer || null, participantsStr, item.score !== null ? item.score : null, item.document_link || null)
+        );
+        inserted++;
+      }
+    }
+    try {
+      if (stmts.length > 0) await env.DB.batch(stmts);
+      return ok({ message: 'Import sukses', inserted, updated, total: body.length }, 200, origin);
+    } catch (e) {
+      return error('Gagal import: ' + e.message, 500, origin);
+    }
+  }
   if (idMatch) {
     const id = idMatch[1];
     if (request.method === 'GET') return getOne(id, env, origin);

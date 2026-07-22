@@ -16,6 +16,49 @@ export async function handleOneOnOne(request, env, origin) {
     if (!hasPermission(user, 'one_on_one', 'write')) return forbidden(origin);
     return create(request, env, origin);
   }
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'one_on_one', 'write')) return forbidden(origin);
+    let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+    if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+    if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+    const existing = await env.DB.prepare('SELECT id, meeting_date, employee_name, branch_id FROM one_on_one').all();
+    const existingMap = new Map();
+    (existing.results || []).forEach(r => {
+      if (r.meeting_date && r.employee_name && r.branch_id) {
+        existingMap.set(r.meeting_date + '_' + r.employee_name.toLowerCase().trim() + '_' + r.branch_id, r.id);
+      }
+    });
+
+    const stmts = [];
+    let inserted = 0; let updated = 0;
+    for (const item of body) {
+      if (!item.meeting_date || !item.employee_name || !item.branch_id) continue;
+      const key = item.meeting_date + '_' + item.employee_name.toLowerCase().trim() + '_' + item.branch_id;
+      const status = item.status || 'Open';
+      const dayCount = item.completion_date ? Math.max(0, Math.floor((new Date(item.completion_date) - new Date(item.meeting_date)) / 86400000)) : 0;
+      
+      if (existingMap.has(key)) {
+        stmts.push(
+          env.DB.prepare(`UPDATE one_on_one SET pic=?, problem=?, solution=?, status=?, completion_date=?, day_count=?, document_link=?, updated_at=datetime('now') WHERE id=?`)
+          .bind(item.pic || null, item.problem || null, item.solution || null, status, item.completion_date || null, dayCount, item.document_link || null, existingMap.get(key))
+        );
+        updated++;
+      } else {
+        stmts.push(
+          env.DB.prepare(`INSERT INTO one_on_one (meeting_date, branch_id, employee_name, pic, problem, solution, status, completion_date, day_count, document_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(item.meeting_date, item.branch_id, item.employee_name, item.pic || null, item.problem || null, item.solution || null, status, item.completion_date || null, dayCount, item.document_link || null)
+        );
+        inserted++;
+      }
+    }
+    try {
+      if (stmts.length > 0) await env.DB.batch(stmts);
+      return ok({ message: 'Import sukses', inserted, updated, total: body.length }, 200, origin);
+    } catch (e) {
+      return error('Gagal import: ' + e.message, 500, origin);
+    }
+  }
   if (idMatch) {
     const id = idMatch[1];
     if (request.method === 'GET') return getOne(id, env, origin);

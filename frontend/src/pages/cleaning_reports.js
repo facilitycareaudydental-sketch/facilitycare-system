@@ -14,6 +14,7 @@ export async function renderCleaningReports(container) {
     icon: '🧹',
     apiPath: '/api/reports/cleaning',
     itemLabel: 'Laporan GC/DC',
+    bulkDelete: true,
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'activity_type', label: 'Jenis', render: v => `<span class="badge ${v === 'Deep Cleaning' ? 'badge-purple' : 'badge-success'}">${v}</span>` },
