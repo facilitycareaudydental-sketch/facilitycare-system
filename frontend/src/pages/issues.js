@@ -75,7 +75,7 @@ export async function renderIssues(container) {
       {
         type: 'row', fields: [
           { name: 'report_date', label: 'Tanggal Info', type: 'date', required: true, value: data?.report_date },
-          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },
       {
@@ -87,7 +87,7 @@ export async function renderIssues(container) {
       { name: 'complaint', label: 'Keluhan', type: 'textarea', required: true, rows: 3, value: data?.complaint },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama FC / Security', type: 'select', options: getEmpOptions(data?.employee_name), value: data?.employee_name },
+          { name: 'employee_name', label: 'Nama FC / Security', type: 'combobox', options: getEmpOptions(data?.employee_name), createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } }, value: data?.employee_name },
           { name: 'fc_specialist', label: 'FC Spesialis', type: 'select', options: getFcOptions(data?.fc_specialist), value: data?.fc_specialist },
         ]
       },

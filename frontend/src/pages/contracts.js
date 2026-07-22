@@ -51,7 +51,7 @@ export async function renderContracts(container) {
       {
         type: 'row', fields: [
           { name: 'employee_id', label: 'Karyawan', type: 'select', required: true, options: employeeOptions, value: data?.employee_id },
-          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },
       {

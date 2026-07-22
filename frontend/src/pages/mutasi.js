@@ -97,8 +97,8 @@ export async function renderMutasi(container) {
     formFields: [
       { type: 'date', name: 'tanggal', label: 'Tanggal', required: true },
       { type: 'text', name: 'employee_name', label: 'Nama Karyawan', required: true },
-      { type: 'select', name: 'from_branch_id', label: 'Cabang Asal', required: true, options: branchOptions },
-      { type: 'select', name: 'to_branch_id', label: 'Cabang Tujuan', required: true, options: branchOptions },
+      { type: 'combobox', name: 'from_branch_id', label: 'Cabang Asal', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
+      { type: 'combobox', name: 'to_branch_id', label: 'Cabang Tujuan', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'select', name: 'status', label: 'Status', required: true, options: ['Proses', 'Selesai'] },
       { type: 'url', name: 'document_link', label: 'Link Dokumen (Opsional)' }
     ]

@@ -62,7 +62,7 @@ export async function renderSchedule(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
           { name: 'activity_type', label: 'Jenis Kegiatan', type: 'select', required: true, options: [
             'Inspeksi Hygiene & Aset Bangunan', 'General Cleaning', 'Deep Cleaning', 'Fogging'
           ], value: data?.activity_type },
@@ -71,7 +71,7 @@ export async function renderSchedule(container) {
       {
         type: 'row', fields: [
           { name: 'period', label: 'Periode', type: 'select', required: true, options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
-          { name: 'pic', label: 'PIC', type: 'select', options: picOptions, value: data?.pic },
+          { name: 'pic', label: 'PIC', type: 'combobox', options: picOptions, createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
         ]
       },
       {

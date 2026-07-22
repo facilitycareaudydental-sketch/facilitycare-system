@@ -132,8 +132,8 @@ export async function renderTraining(container) {
       { name: 'subject', label: 'Materi / Topik Training', required: true, placeholder: 'Judul materi training', value: data?.subject },
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
-          { name: 'trainer', label: 'Trainer', type: 'select', options: getPicOptions(data?.trainer), value: data?.trainer },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'trainer', label: 'Trainer', type: 'combobox', options: getPicOptions(data?.trainer), createApi: { path: '/api/pic', field: 'name' }, value: data?.trainer },
         ]
       },
       { name: 'participants', label: 'Peserta (pisahkan dengan koma)', type: 'textarea', rows: 3, placeholder: 'Nama Peserta 1, Nama Peserta 2, ...', value: (() => { try { const arr = JSON.parse(data?.participants); return Array.isArray(arr) ? arr.join(', ') : (data?.participants || ''); } catch { return data?.participants || ''; } })() },

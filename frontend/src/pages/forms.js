@@ -74,7 +74,7 @@ async function renderSupplyRequests(container) {
         {
           type: 'row', fields: [
             { name: 'submitter_name', label: 'Nama Pengirim', required: true, value: data?.submitter_name },
-            { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
+            { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
           ]
         },
         {

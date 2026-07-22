@@ -290,6 +290,42 @@ export function buildCrudPage({
         confirmBtn.textContent = 'Menyimpan...';
 
         let body = getFormData(formEl);
+
+        const fields = typeof formFields === 'function' ? formFields(data) : formFields;
+        const processComboboxes = async (fList) => {
+          for (const f of fList) {
+            if (f.type === 'row') await processComboboxes(f.fields);
+            else if (f.type === 'combobox' && body[f.name]) {
+              const valStr = body[f.name];
+              const existing = (f.options || []).find(o => {
+                 const v = typeof o === 'object' ? String(o.value) : String(o);
+                 const l = typeof o === 'object' ? String(o.label) : String(o);
+                 return v === valStr || l === valStr;
+              });
+              if (existing) {
+                 body[f.name] = typeof existing === 'object' ? existing.value : existing;
+              } else if (f.createApi) {
+                 const payload = {};
+                 payload[f.createApi.field] = valStr;
+                 if (f.createApi.extra) Object.assign(payload, f.createApi.extra);
+                 const cRes = await apiFetch(f.createApi.path, { method: 'POST', body: JSON.stringify(payload) });
+                 if (cRes.ok && cRes.data?.id) body[f.name] = cRes.data.id;
+                 else if (cRes.ok && !cRes.data?.id) body[f.name] = valStr;
+                 else throw new Error(`Gagal membuat master data: ${cRes.data?.error || 'Unknown error'}`);
+              }
+            }
+          }
+        };
+
+        try {
+          await processComboboxes(fields);
+        } catch(e) {
+          toastError(e.message);
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = isEdit ? 'Simpan Perubahan' : `Tambah ${itemLabel}`;
+          return;
+        }
+
         if (onBeforeSubmit) body = await onBeforeSubmit(body, data);
 
         const method = isEdit ? 'PUT' : 'POST';

@@ -21,6 +21,23 @@ export function buildFormHTML(fields) {
         }).join('');
         input = `<select name="${field.name}" class="form-control" ${required}><option value="">-- Pilih ${field.label || ''} --</option>${opts}</select>`;
         break;
+      case 'combobox':
+        const dlId = `dl-${field.name}-${Math.random().toString(36).substring(7)}`;
+        const cbOpts = (field.options || []).map(o => {
+          const val = typeof o === 'object' ? o.value : o;
+          const lbl = typeof o === 'object' ? o.label : o;
+          return `<option value="${lbl}"></option>`;
+        }).join('');
+        let displayVal = field.value || '';
+        if (field.value) {
+            const found = (field.options || []).find(o => (typeof o === 'object' ? o.value : o) == field.value);
+            if (found) displayVal = typeof found === 'object' ? found.label : found;
+        }
+        input = `
+          <input type="text" name="${field.name}" list="${dlId}" class="form-control" value="${displayVal}" placeholder="Pilih atau ketik baru..." ${required} autocomplete="off">
+          <datalist id="${dlId}">${cbOpts}</datalist>
+        `;
+        break;
       case 'checkbox':
         input = `<label class="checkbox-label"><input type="checkbox" name="${field.name}" value="1" ${field.value ? 'checked' : ''}> ${field.checkLabel || field.label}</label>`;
         break;

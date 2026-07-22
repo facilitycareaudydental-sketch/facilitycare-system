@@ -126,13 +126,13 @@ export async function renderOneOnOne(container) {
       {
         type: 'row', fields: [
           { name: 'meeting_date', label: 'Tanggal', type: 'date', required: true, value: data?.meeting_date },
-          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama Karyawan', type: 'select', required: true, options: getEmpOptions(data?.employee_name), value: data?.employee_name },
-          { name: 'pic', label: 'PIC', type: 'select', options: getPicOptions(data?.pic), value: data?.pic },
+          { name: 'employee_name', label: 'Nama Karyawan', type: 'combobox', required: true, options: getEmpOptions(data?.employee_name), createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } }, value: data?.employee_name },
+          { name: 'pic', label: 'PIC', type: 'combobox', options: getPicOptions(data?.pic), createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
         ]
       },
       { name: 'problem', label: 'Masalah', type: 'textarea', required: true, rows: 3, value: data?.problem },
