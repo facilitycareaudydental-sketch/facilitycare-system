@@ -18,6 +18,26 @@ async function loadOptions() {
 export async function renderContracts(container) {
   await loadOptions();
 
+import { buildCrudPage } from './_crud.js';
+import { apiFetch } from '../config.js';
+import { statusBadge, daysRemainingBadge, divisionBadge } from '../components/badges.js';
+import { downloadExcel } from '../utils/excel.js';
+
+let branchOptions = [];
+let employeeOptions = [];
+
+async function loadOptions() {
+  const [bRes, eRes] = await Promise.all([
+    apiFetch('/api/branches?all=1'),
+    apiFetch('/api/employees?limit=10000&status=Aktif'),
+  ]);
+  branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.id, label: e.full_name }));
+}
+
+export async function renderContracts(container) {
+  await loadOptions();
+
   buildCrudPage({
     container,
     title: 'Data Kontrak',
@@ -26,14 +46,12 @@ export async function renderContracts(container) {
     bulkDelete: true,
     itemLabel: 'Kontrak',
     columns: [
-      { key: 'employee_name', label: 'Nama Karyawan' },
+      { key: 'employee_name', label: 'Nama Lengkap' },
       { key: 'branch_name', label: 'Cabang' },
-      { key: 'division', label: 'Divisi', render: v => divisionBadge(v) },
-      { key: 'start_date', label: 'Tgl Mulai', nowrap: true , render: v => window.formatDate(v) },
-      { key: 'end_date', label: 'Tgl Selesai', nowrap: true , render: v => window.formatDate(v) },
-      { key: 'days_remaining', label: 'Sisa', render: v => daysRemainingBadge(v) },
-      { key: 'contract_type', label: 'Tipe Kontrak' },
-      { key: 'pkwt_number', label: 'PKWT' },
+      { key: 'division', label: 'Div / Bagian', render: v => divisionBadge(v) },
+      { key: 'start_date', label: 'Tanggal Mulai', nowrap: true , render: v => window.formatDate(v) },
+      { key: 'end_date', label: 'Tanggal Selesai', nowrap: true , render: v => window.formatDate(v) },
+      { key: 'days_remaining', label: 'Sisa Kontrak', render: v => daysRemainingBadge(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
@@ -50,13 +68,13 @@ export async function renderContracts(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'employee_id', label: 'Karyawan', type: 'select', required: true, options: employeeOptions, value: data?.employee_id },
+          { name: 'employee_id', label: 'Nama Lengkap', type: 'select', required: true, options: employeeOptions, value: data?.employee_id },
           { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY'], value: data?.division || 'FACILITY CARE' },
+          { name: 'division', label: 'Div / Bagian', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY'], value: data?.division || 'FACILITY CARE' },
           { name: 'status', label: 'Status', type: 'select', required: true, options: ['Aktif', 'Tidak Aktif'], value: data?.status || '' },
         ]
       },
@@ -66,13 +84,6 @@ export async function renderContracts(container) {
           { name: 'end_date', label: 'Tanggal Selesai', type: 'date', required: true, value: data?.end_date },
         ]
       },
-      {
-        type: 'row', fields: [
-          { name: 'contract_type', label: 'Tipe Kontrak', type: 'select', options: ['KONTRAK 6 BULAN', 'KONTRAK 1 TAHUN', 'KONTRAK 2 TAHUN'], value: data?.contract_type },
-          { name: 'pkwt_number', label: 'No. PKWT', type: 'select', options: ['PKWT 1', 'PKWT 2', 'PKWT 3', 'PKWT 4', 'PKWT 5', 'PKWT 6'], value: data?.pkwt_number },
-        ]
-      },
-      { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],
     exportOptions: {
       moduleName: 'contracts',
@@ -80,22 +91,20 @@ export async function renderContracts(container) {
         const res = await apiFetch('/api/contracts?limit=10000');
         if (res.ok) {
           const data = res.data.data.map(d => ({
-            'Nama Karyawan': d.employee_name,
+            'Nama Lengkap': d.employee_name,
             'Cabang': d.branch_name || '',
-            'Divisi': d.division || '',
-            'Tgl Mulai': d.start_date || '',
-            'Tgl Selesai': d.end_date || '',
-            'Tipe Kontrak': d.contract_type || '',
-            'PKWT': d.pkwt_number || '',
-            'Status': d.status || '',
-            'Catatan': d.notes || ''
+            'Div / Bagian': d.division || '',
+            'Tanggal Mulai': d.start_date || '',
+            'Tanggal Selesai': d.end_date || '',
+            'Sisa Kontrak': d.days_remaining !== null && d.days_remaining !== undefined ? `${d.days_remaining} Hari` : '',
+            'Status': d.status || ''
           }));
           downloadExcel(data, 'Data_Kontrak');
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Nama Karyawan': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Divisi': 'FACILITY CARE', 'Tgl Mulai': '2024-01-01', 'Tgl Selesai': '2024-12-31', 'Tipe Kontrak': 'KONTRAK 1 TAHUN', 'PKWT': 'PKWT 1', 'Status': 'Aktif', 'Catatan': '' }
+          { 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Div / Bagian': 'FACILITY CARE', 'Tanggal Mulai': '2024-01-01', 'Tanggal Selesai': '2024-12-31', 'Sisa Kontrak': '365 Hari', 'Status': 'Aktif' }
         ];
         downloadExcel(template, 'Template_Import_Kontrak');
       },
@@ -119,18 +128,35 @@ export async function renderContracts(container) {
           const e = rawEmployees.find(r => r.full_name.toLowerCase() === s);
           return e ? e.id : null;
         };
+        const parseDate = (v) => {
+          if (!v) return '';
+          if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+          const s = String(v).trim();
+          if (/^\d{4,5}$/.test(s)) {
+            const n = Number(s);
+            if (n > 20000 && n < 99999) {
+              const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+              return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+            }
+          }
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+          const parts = s.split(/[\/\-\.]/);
+          if (parts.length === 3) {
+            const [a, b, c] = parts.map(p => p.trim());
+            if (a.length === 4 && b.length <= 2 && c.length <= 2) return `${a}-${b.padStart(2, '0')}-${c.padStart(2, '0')}`;
+            if (c.length === 4 && b.length <= 2 && a.length <= 2) return `${c}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+          }
+          return s;
+        };
 
         const payload = json.map(row => ({
-          employee_id: matchEmployee(String(row['Nama Karyawan'] || '').trim()),
+          employee_id: matchEmployee(String(row['Nama Lengkap'] || '').trim()),
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
-          division: String(row['Divisi'] || '').trim() || 'FACILITY CARE',
-          start_date: String(row['Tgl Mulai'] || '').trim(),
-          end_date: String(row['Tgl Selesai'] || '').trim(),
-          contract_type: String(row['Tipe Kontrak'] || '').trim(),
-          pkwt_number: String(row['PKWT'] || '').trim(),
+          division: String(row['Div / Bagian'] || '').trim() || 'FACILITY CARE',
+          start_date: parseDate(row['Tanggal Mulai']),
+          end_date: parseDate(row['Tanggal Selesai']),
           status: String(row['Status'] || '').trim(),
-          notes: String(row['Catatan'] || '').trim(),
-        })).filter(row => row.employee_id && row.start_date && row.end_date); // require these fields
+        })).filter(row => row.employee_id && row.start_date && row.end_date);
         
         const res = await apiFetch('/api/contracts/import', {
           method: 'POST',
