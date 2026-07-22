@@ -10,7 +10,7 @@ export async function renderIssues(container) {
   const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
     apiFetch('/api/employees?limit=10000'),
-    apiFetch('/api/pic')
+    apiFetch('/api/pic?limit=10000')
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   
