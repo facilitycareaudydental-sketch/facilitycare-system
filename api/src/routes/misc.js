@@ -128,6 +128,20 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-expired-contracts')) {
+    try {
+      const expired = await env.DB.prepare(`
+        SELECT c.employee_name, b.full_name as branch_name, c.end_date
+        FROM contracts c
+        LEFT JOIN branches b ON c.branch_id = b.id
+        WHERE c.status='Aktif' AND c.end_date < date('now')
+      `).all();
+      return ok({ expired: expired.results }, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-emp-fix')) {
     try {
       const res = await env.DB.prepare("UPDATE employees SET status='Tidak Aktif' WHERE id IN (SELECT id FROM employees LIMIT 4)").run();
