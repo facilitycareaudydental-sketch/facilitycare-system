@@ -76,10 +76,20 @@ export async function handleMisc(request, env, origin) {
         )
       `).run();
 
+      const res4 = await env.DB.prepare(`
+        DELETE FROM activity_schedule 
+        WHERE id NOT IN (
+            SELECT MAX(id) 
+            FROM activity_schedule 
+            GROUP BY branch_id, activity_type, period, strftime('%Y', target_date)
+        )
+      `).run();
+
       return ok({ 
         inspection_deleted: res1.meta.changes, 
         cleaning_deleted: res2.meta.changes, 
-        fogging_deleted: res3.meta.changes 
+        fogging_deleted: res3.meta.changes,
+        schedule_deleted: res4.meta.changes
       }, 200, origin);
     } catch(e) {
       return error(e.message, 500, origin);

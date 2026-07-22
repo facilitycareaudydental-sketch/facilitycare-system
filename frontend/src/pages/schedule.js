@@ -151,7 +151,7 @@ export async function renderSchedule(container) {
           activity_type: String(row['Kegiatan'] || '').trim(),
           period: String(row['Periode'] || '').trim(),
           pic: String(row['PIC'] || row['Pic'] || '').trim(),
-          opening_date: parseDate(row['Tgl Opening'] || row['Tanggal Opening']),
+          opening_date: parseDate(row['Tgl Opening'] || row['Tanggal Opening'] || row['Tgl Openir']),
           target_date: parseDate(row['Tgl Target'] || row['Tanggal Target']),
           completion_date: parseDate(row['Tgl Selesai'] || row['Tanggal Selesai']),
           status: String(row['Status'] || '').trim(),

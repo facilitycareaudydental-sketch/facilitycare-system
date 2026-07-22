@@ -137,11 +137,12 @@ async function importSchedule(request, env, origin) {
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
   if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
 
-  const existing = await env.DB.prepare('SELECT id, activity_type, period, branch_id FROM activity_schedule').all();
+  const existing = await env.DB.prepare('SELECT id, activity_type, period, branch_id, target_date FROM activity_schedule').all();
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
     if (s.activity_type && s.period) {
-      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.branch_id, s.id);
+      const year = s.target_date ? String(s.target_date).slice(0, 4) : 'noyear';
+      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.branch_id + '_' + year, s.id);
     }
   });
 
@@ -152,7 +153,8 @@ async function importSchedule(request, env, origin) {
   for (const item of body) {
     if (!item.activity_type || !item.period) continue;
     
-    const key = item.activity_type.toLowerCase().trim() + '_' + item.period.toLowerCase().trim() + '_' + (item.branch_id || 'null');
+    const year = item.target_date ? String(item.target_date).slice(0, 4) : 'noyear';
+    const key = item.activity_type.toLowerCase().trim() + '_' + item.period.toLowerCase().trim() + '_' + (item.branch_id || 'null') + '_' + year;
     const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
 
     if (existingMap.has(key)) {
