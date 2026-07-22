@@ -90,6 +90,7 @@ export function populateForm(form, data) {
   Object.entries(data).forEach(([key, val]) => {
     const el = form.querySelector(`[name="${key}"]`);
     if (!el) return;
+    if (el.hasAttribute('list')) return; // Do not overwrite combobox display labels with raw IDs
     if (el.type === 'checkbox') el.checked = !!val;
     else el.value = val !== null && val !== undefined ? val : '';
   });
