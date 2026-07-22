@@ -23,21 +23,22 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
-  if (path.startsWith('/api/audit-clean-up-3')) {
+  if (path.startsWith('/api/audit-clean-up-4')) {
     try {
       // Find duplicate names
-      const dupes = await env.DB.prepare('SELECT full_name, COUNT(*) as c, MIN(id) as min_id FROM employees GROUP BY full_name HAVING c > 1').all();
+      const dupes = await env.DB.prepare('SELECT full_name, COUNT(*) as c, MAX(id) as max_id FROM employees GROUP BY full_name HAVING c > 1').all();
       let deletedEmp = 0;
       for (const d of dupes.results) {
-        const res = await env.DB.prepare('DELETE FROM employees WHERE full_name = ? AND id != ?').bind(d.full_name, d.min_id).run();
+        // Delete all except the NEWEST one (highest ID)
+        const res = await env.DB.prepare('DELETE FROM employees WHERE full_name = ? AND id != ?').bind(d.full_name, d.max_id).run();
         deletedEmp += res.meta.changes;
       }
       
-      // Find duplicate contracts (same employee, same branch, same start_date)
-      const dupeContracts = await env.DB.prepare('SELECT employee_id, branch_id, start_date, COUNT(*) as c, MIN(id) as min_id FROM contracts GROUP BY employee_id, branch_id, start_date HAVING c > 1').all();
+      // Find employees with multiple contracts and keep ONLY the latest one
+      const dupeContracts = await env.DB.prepare('SELECT employee_id, COUNT(*) as c, MAX(id) as max_id FROM contracts GROUP BY employee_id HAVING c > 1').all();
       let deletedCont = 0;
       for (const d of dupeContracts.results) {
-        const res = await env.DB.prepare('DELETE FROM contracts WHERE employee_id = ? AND branch_id = ? AND start_date = ? AND id != ?').bind(d.employee_id, d.branch_id, d.start_date, d.min_id).run();
+        const res = await env.DB.prepare('DELETE FROM contracts WHERE employee_id = ? AND id != ?').bind(d.employee_id, d.max_id).run();
         deletedCont += res.meta.changes;
       }
       
