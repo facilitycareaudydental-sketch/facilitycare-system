@@ -65,6 +65,13 @@ export async function renderContracts(container) {
           { name: 'end_date', label: 'Tanggal Selesai', type: 'date', required: true, value: data?.end_date },
         ]
       },
+      {
+        type: 'row', fields: [
+          { name: 'contract_type', label: 'Tipe Kontrak', type: 'select', options: ['KONTRAK 6 BULAN', 'KONTRAK 1 TAHUN', 'KONTRAK 2 TAHUN'], value: data?.contract_type },
+          { name: 'pkwt_number', label: 'No. PKWT', type: 'select', options: ['PKWT 1', 'PKWT 2', 'PKWT 3', 'PKWT 4', 'PKWT 5', 'PKWT 6'], value: data?.pkwt_number },
+        ]
+      },
+      { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],
     exportOptions: {
       moduleName: 'contracts',
