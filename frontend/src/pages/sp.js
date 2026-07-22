@@ -100,7 +100,7 @@ export async function renderSP(container) {
     },
     formFields: [
       { type: 'date', name: 'tanggal', label: 'Tanggal', required: true },
-      { type: 'combobox', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions, createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } } },
+      { type: 'text', name: 'employee_name', label: 'Nama Karyawan', required: true },
       { type: 'select', name: 'branch_id', label: 'Cabang', required: true, options: branchOptions },
       { type: 'select', name: 'sp_type', label: 'Jenis Surat Peringatan', required: true, options: ['SP 1', 'SP 2', 'SP 3', 'Teguran Lisan'] },
       { type: 'select', name: 'status', label: 'Status', required: true, options: ['Aktif', 'Selesai'] },

@@ -87,7 +87,7 @@ export async function renderIssues(container) {
       { name: 'complaint', label: 'Keluhan', type: 'textarea', required: true, rows: 3, value: data?.complaint },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama FC / Security', type: 'combobox', options: getEmpOptions(data?.employee_name), createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } }, value: data?.employee_name },
+          { name: 'employee_name', label: 'Nama FC / Security', type: 'select', options: getEmpOptions(data?.employee_name), value: data?.employee_name },
           { name: 'fc_specialist', label: 'FC Spesialis', type: 'select', options: getFcOptions(data?.fc_specialist), value: data?.fc_specialist },
         ]
       },

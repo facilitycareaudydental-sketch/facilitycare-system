@@ -131,7 +131,7 @@ export async function renderOneOnOne(container) {
       },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama Karyawan', type: 'combobox', required: true, options: getEmpOptions(data?.employee_name), createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } }, value: data?.employee_name },
+          { name: 'employee_name', label: 'Nama Karyawan', type: 'select', required: true, options: getEmpOptions(data?.employee_name), value: data?.employee_name },
           { name: 'pic', label: 'PIC', type: 'combobox', options: getPicOptions(data?.pic), createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
         ]
       },

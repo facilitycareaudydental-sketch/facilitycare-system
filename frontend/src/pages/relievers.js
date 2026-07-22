@@ -66,8 +66,8 @@ export async function renderRelievers(container) {
       },
       {
         type: 'row', fields: [
-          { name: 'original_fc_name', label: 'FC yang Digantikan', type: 'combobox', options: [{value:'', label:'BELUM ADA FC'}, ...getEmpOptions(data?.original_fc_name)], createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } }, value: data?.original_fc_name },
-          { name: 'reliever_name', label: 'Nama Reliefer', type: 'combobox', required: true, options: getRelieverOptions(data?.reliever_name), createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } }, value: data?.reliever_name },
+          { name: 'original_fc_name', label: 'FC yang Digantikan', type: 'select', options: [{value:'', label:'BELUM ADA FC'}, ...getEmpOptions(data?.original_fc_name)], value: data?.original_fc_name },
+          { name: 'reliever_name', label: 'Nama Reliefer', type: 'select', required: true, options: getRelieverOptions(data?.reliever_name), value: data?.reliever_name },
         ]
       },
       {
