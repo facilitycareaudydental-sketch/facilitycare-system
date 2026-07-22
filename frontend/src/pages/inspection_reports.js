@@ -66,15 +66,14 @@ export async function renderInspectionReports(container) {
             'Point FC': d.fc_score !== null && d.fc_score !== undefined ? d.fc_score : '',
             'Point SPV': d.spv_score !== null && d.spv_score !== undefined ? d.spv_score : '',
             'Status': d.status || '',
-            'Link Dokumen': d.document_link || '',
-            'Catatan': d.notes || ''
+            'Link Dokumen': d.document_link || ''
           }));
           downloadExcel(data, `Laporan_Inspeksi_Hygiene_${new Date().toISOString().slice(0,10)}`);
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Point FC': 85, 'Point SPV': 90, 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...', 'Catatan': 'Semua area bersih' }
+          { 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Point FC': 85, 'Point SPV': 90, 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...' }
         ];
         downloadExcel(template, 'Template_Import_Inspeksi');
       },
