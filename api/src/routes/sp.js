@@ -109,5 +109,67 @@ export async function handleSP(request, env, origin) {
     }
   }
 
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'sp', 'write')) return forbidden(origin);
+    let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+    if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+    if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+    const existing = await env.DB.prepare('SELECT id, branch_id, tanggal, employee_name, sp_type FROM sp_data').all();
+    const existingMap = new Map();
+    (existing.results || []).forEach(s => {
+      if (s.branch_id && s.tanggal && s.employee_name && s.sp_type) {
+        existingMap.set(s.branch_id + '_' + s.tanggal + '_' + s.employee_name.toLowerCase().trim() + '_' + s.sp_type.toLowerCase().trim(), s.id);
+      }
+    });
+
+    const stmts = [];
+    let inserted = 0;
+    let updated = 0;
+
+    for (const item of body) {
+      if (!item.branch_id || !item.tanggal || !item.employee_name || !item.sp_type) continue;
+      
+      const key = item.branch_id + '_' + item.tanggal + '_' + item.employee_name.toLowerCase().trim() + '_' + item.sp_type.toLowerCase().trim();
+      const status = item.status || 'Aktif';
+
+      if (existingMap.has(key)) {
+        const id = existingMap.get(key);
+        stmts.push(
+          env.DB.prepare(
+            `UPDATE sp_data SET status = ?, document_link = ? WHERE id = ?`
+          ).bind(
+            status,
+            item.document_link || null,
+            id
+          )
+        );
+        updated++;
+      } else {
+        stmts.push(
+          env.DB.prepare(
+            `INSERT INTO sp_data (tanggal, employee_name, branch_id, sp_type, status, document_link) 
+             VALUES (?, ?, ?, ?, ?, ?)`
+          ).bind(
+            item.tanggal,
+            item.employee_name,
+            item.branch_id,
+            item.sp_type,
+            status,
+            item.document_link || null
+          )
+        );
+        inserted++;
+      }
+    }
+
+    try {
+      if (stmts.length > 0) await env.DB.batch(stmts);
+      return ok({ message: 'Berhasil mengimport data', inserted, updated, total: body.length }, 200, origin);
+    } catch (err) {
+      return error('Gagal import data: ' + err.message, 500, origin);
+    }
+  }
+
   return notFound(origin);
 }
