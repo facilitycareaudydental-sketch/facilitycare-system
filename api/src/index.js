@@ -154,7 +154,7 @@ export default {
 
       if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') ||
         path.startsWith('/api/forms') || path.startsWith('/api/pic') || 
-        path.startsWith('/api/options') || path.startsWith('/api/audit-emp') || path.startsWith('/api/audit-emp-clean') || path.startsWith('/api/audit-emp-fixdates') || path.startsWith('/api/audit-emp-dupes')) {
+        path.startsWith('/api/options') || path.startsWith('/api/audit-emp') || path.startsWith('/api/audit-clean-up-3') || path.startsWith('/api/audit-emp-clean') || path.startsWith('/api/audit-emp-fixdates') || path.startsWith('/api/audit-emp-dupes')) {
         return handleMisc(request, env, origin);
       }
 

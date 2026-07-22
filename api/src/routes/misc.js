@@ -23,7 +23,7 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
-  if (path.startsWith('/api/audit-emp-dupes')) {
+  if (path.startsWith('/api/audit-clean-up-3')) {
     try {
       // Find duplicate names
       const dupes = await env.DB.prepare('SELECT full_name, COUNT(*) as c, MIN(id) as min_id FROM employees GROUP BY full_name HAVING c > 1').all();
