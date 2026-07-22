@@ -50,7 +50,7 @@ export async function renderContracts(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'employee_id', label: 'Karyawan', type: 'select', required: true, options: employeeOptions, value: data?.employee_id },
+          { name: 'employee_id', label: 'Karyawan', type: 'combobox', required: true, options: employeeOptions, createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } }, value: data?.employee_id },
           { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },

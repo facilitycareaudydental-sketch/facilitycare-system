@@ -2,10 +2,15 @@ import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
 
 let branchOptions = [];
+let employeeOptions = [];
 
 export async function renderMutasi(container) {
-  const res = await apiFetch('/api/branches?all=1');
-  branchOptions = (res.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  const [bRes, eRes] = await Promise.all([
+    apiFetch('/api/branches?all=1'),
+    apiFetch('/api/employees?limit=10000')
+  ]);
+  branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
 
   buildCrudPage({
     container,
@@ -96,7 +101,7 @@ export async function renderMutasi(container) {
     },
     formFields: [
       { type: 'date', name: 'tanggal', label: 'Tanggal', required: true },
-      { type: 'text', name: 'employee_name', label: 'Nama Karyawan', required: true },
+      { type: 'combobox', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions, createApi: { path: '/api/employees', field: 'full_name', extra: { status: 'Aktif' } } },
       { type: 'combobox', name: 'from_branch_id', label: 'Cabang Asal', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'combobox', name: 'to_branch_id', label: 'Cabang Tujuan', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'select', name: 'status', label: 'Status', required: true, options: ['Proses', 'Selesai'] },
