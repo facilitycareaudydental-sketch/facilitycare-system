@@ -18,25 +18,6 @@ async function loadOptions() {
 export async function renderContracts(container) {
   await loadOptions();
 
-import { buildCrudPage } from './_crud.js';
-import { apiFetch } from '../config.js';
-import { statusBadge, daysRemainingBadge, divisionBadge } from '../components/badges.js';
-import { downloadExcel } from '../utils/excel.js';
-
-let branchOptions = [];
-let employeeOptions = [];
-
-async function loadOptions() {
-  const [bRes, eRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000&status=Aktif'),
-  ]);
-  branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.id, label: e.full_name }));
-}
-
-export async function renderContracts(container) {
-  await loadOptions();
 
   buildCrudPage({
     container,
