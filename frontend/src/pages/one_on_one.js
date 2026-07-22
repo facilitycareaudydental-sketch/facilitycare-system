@@ -82,8 +82,8 @@ export async function renderOneOnOne(container) {
       onImport: async (json) => {
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = bRes.data?.data.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
+          const s = String(str || '').toLowerCase();
+          const b = bRes.data?.data.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
           return b ? b.id : null;
         };
         const parseDate = (v) => {

@@ -237,7 +237,7 @@ export function buildCrudPage({
       onEdit: canEdit ? (row) => openForm(row) : null,
       // Individual onDelete removed
       actions: extraActions.map(a => ({ ...a, handler: (row) => a.handler(row, load) })),
-      emptyText: `Tidak ada ${itemLabel.toLowerCase()}`,
+      emptyText: `Tidak ada ${String(itemLabel || '').toLowerCase()}`,
       bulkSelect: bulkDelete ? { selectedIds, onToggle: updateBulkToolbar } : null,
     });
 
