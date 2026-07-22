@@ -12,6 +12,24 @@ export async function handleMisc(request, env, origin) {
   if (path.startsWith('/api/forms')) return handleForms(request, env, origin, path.replace('/api/forms', ''));
   if (path.startsWith('/api/pic')) return handlePic(request, env, origin);
   if (path.startsWith('/api/options')) return handleOptions(request, env, origin);
+  
+  if (path.startsWith('/api/test-emp')) {
+    try {
+      const full_name = 'Test Karyawan';
+      const branch_id = 15;
+      const division = 'FACILITY CARE';
+      const phone = '';
+      const join_date = '';
+      const status = 'Aktif';
+      const notes = '';
+      const result = await env.DB.prepare(
+        'INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(full_name, branch_id || null, division || 'FACILITY CARE', phone || null, join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
+      return ok({ id: result.meta.last_row_id }, 201, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
 
   return error('Not found', 404, origin);
 }
