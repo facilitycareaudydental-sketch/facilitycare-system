@@ -5,8 +5,8 @@ import { statusBadge } from '../components/badges.js';
 export async function renderOneOnOne(container) {
   const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch(/api/employeeslimit=10000),
-    apiFetch(/api/piclimit=10000)
+    apiFetch(`/api/one_on_one${window.location.search ? window.location.search + '&' : '?'}limit=10000`),
+    apiFetch(`/api/one_on_one${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
   ]);
   const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   

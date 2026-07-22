@@ -9,8 +9,8 @@ let picOptions = [];
 export async function renderSchedule(container) {
   const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch(/api/employeeslimit=10000),
-    apiFetch(/api/piclimit=10000)
+    apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`),
+    apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   
@@ -91,7 +91,7 @@ export async function renderSchedule(container) {
     exportOptions: {
       moduleName: 'schedule',
       onExport: async () => {
-        const res = await apiFetch(/api/schedulelimit=10000);
+        const res = await apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
             'Cabang': d.branch_name || '',

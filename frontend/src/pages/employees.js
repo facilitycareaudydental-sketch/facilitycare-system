@@ -60,7 +60,7 @@ export async function renderEmployees(container) {
     exportOptions: {
       moduleName: 'employees',
       onExport: async () => {
-        const res = await apiFetch(/api/employeeslimit=10000);
+        const res = await apiFetch(`/api/employees${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
             'Nama Lengkap': d.full_name,

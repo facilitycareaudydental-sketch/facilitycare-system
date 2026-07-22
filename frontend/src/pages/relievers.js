@@ -6,7 +6,7 @@ import { downloadExcel } from '../utils/excel.js';
 export async function renderRelievers(container) {
   const [bRes, eRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch(/api/employeeslimit=10000)
+    apiFetch(`/api/relievers${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
   ]);
   const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
@@ -87,7 +87,7 @@ export async function renderRelievers(container) {
     exportOptions: {
       moduleName: 'relievers',
       onExport: async () => {
-        const res = await apiFetch(/api/relieverslimit=10000);
+        const res = await apiFetch(`/api/relievers${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
             'Tanggal Backup': d.backup_date || '',

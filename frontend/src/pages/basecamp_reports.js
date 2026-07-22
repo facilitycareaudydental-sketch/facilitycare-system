@@ -6,8 +6,8 @@ import { downloadExcel } from '../utils/excel.js';
 export async function renderBasecampReports(container) {
   const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch(/api/employeeslimit=10000),
-    apiFetch(/api/piclimit=10000)
+    apiFetch(`/api/basecamp_reports${window.location.search ? window.location.search + '&' : '?'}limit=10000`),
+    apiFetch(`/api/basecamp_reports${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
   ]);
   const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   
