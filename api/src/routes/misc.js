@@ -48,6 +48,45 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-clean-up-5')) {
+    try {
+      const results = {};
+      const del = async (table, dupesQuery, deleteQuery, uniqueFields) => {
+        try {
+          const dupes = await env.DB.prepare(dupesQuery).all();
+          let deleted = 0;
+          for (const d of dupes.results) {
+            const bindArgs = uniqueFields.map(f => d[f]);
+            bindArgs.push(d.max_id);
+            const res = await env.DB.prepare(deleteQuery).bind(...bindArgs).run();
+            deleted += res.meta.changes;
+          }
+          results[table] = deleted;
+        } catch (e) {
+          results[table] = 'Error: ' + e.message;
+        }
+      };
+
+      await del('relievers', 'SELECT branch_id, reliever_name, backup_date, COUNT(*) as c, MAX(id) as max_id FROM relievers GROUP BY branch_id, reliever_name, backup_date HAVING c > 1', 'DELETE FROM relievers WHERE (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) AND reliever_name = ? AND backup_date = ? AND id != ?', ['branch_id', 'branch_id', 'reliever_name', 'backup_date']);
+      
+      await del('activity_schedule', 'SELECT branch_id, activity_type, period, COUNT(*) as c, MAX(id) as max_id FROM activity_schedule GROUP BY branch_id, activity_type, period HAVING c > 1', 'DELETE FROM activity_schedule WHERE branch_id = ? AND activity_type = ? AND period = ? AND id != ?', ['branch_id', 'activity_type', 'period']);
+      
+      await del('issues', 'SELECT branch_id, report_date, category, complaint, COUNT(*) as c, MAX(id) as max_id FROM issues GROUP BY branch_id, report_date, category, complaint HAVING c > 1', 'DELETE FROM issues WHERE (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) AND report_date = ? AND category = ? AND complaint = ? AND id != ?', ['branch_id', 'branch_id', 'report_date', 'category', 'complaint']);
+      
+      await del('one_on_one', 'SELECT branch_id, meeting_date, employee_name, COUNT(*) as c, MAX(id) as max_id FROM one_on_one GROUP BY branch_id, meeting_date, employee_name HAVING c > 1', 'DELETE FROM one_on_one WHERE branch_id = ? AND meeting_date = ? AND employee_name = ? AND id != ?', ['branch_id', 'meeting_date', 'employee_name']);
+      
+      await del('inspection_reports', 'SELECT branch_id, period, inspection_date, COUNT(*) as c, MAX(id) as max_id FROM inspection_reports GROUP BY branch_id, period, inspection_date HAVING c > 1', 'DELETE FROM inspection_reports WHERE branch_id = ? AND period = ? AND inspection_date = ? AND id != ?', ['branch_id', 'period', 'inspection_date']);
+      
+      await del('cleaning_reports', 'SELECT branch_id, activity_type, period, activity_date, COUNT(*) as c, MAX(id) as max_id FROM cleaning_reports GROUP BY branch_id, activity_type, period, activity_date HAVING c > 1', 'DELETE FROM cleaning_reports WHERE branch_id = ? AND activity_type = ? AND period = ? AND activity_date = ? AND id != ?', ['branch_id', 'activity_type', 'period', 'activity_date']);
+      
+      await del('basecamp_reports', 'SELECT branch_id, info_date, problem, COUNT(*) as c, MAX(id) as max_id FROM basecamp_reports GROUP BY branch_id, info_date, problem HAVING c > 1', 'DELETE FROM basecamp_reports WHERE branch_id = ? AND info_date = ? AND problem = ? AND id != ?', ['branch_id', 'info_date', 'problem']);
+      
+      return ok({ message: 'Cleanup 5 completed', deleted: results }, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-duplicates-2')) {
     try {
       const results = {};

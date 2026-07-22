@@ -9,8 +9,8 @@ let employeeOptions = [];
 export async function renderIssues(container) {
   const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000'),
-    apiFetch('/api/pic?limit=10000')
+    apiFetch(/api/employeeslimit=10000),
+    apiFetch(/api/piclimit=10000)
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   
@@ -102,7 +102,7 @@ export async function renderIssues(container) {
     exportOptions: {
       moduleName: 'issues',
       onExport: async () => {
-        const res = await apiFetch('/api/issues?limit=10000');
+        const res = await apiFetch(/api/issueslimit=10000);
         if (res.ok) {
           const data = res.data.data.map(d => ({
             'Tanggal': d.report_date || '',

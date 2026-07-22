@@ -76,7 +76,7 @@ export async function renderContracts(container) {
     exportOptions: {
       moduleName: 'contracts',
       onExport: async () => {
-        const res = await apiFetch('/api/contracts?limit=10000');
+        const res = await apiFetch(/api/contractslimit=10000);
         if (res.ok) {
           const data = res.data.data.map(d => ({
             'Nama Lengkap': d.employee_name,
@@ -99,7 +99,7 @@ export async function renderContracts(container) {
       onImport: async (json) => {
         const [bRes, eRes] = await Promise.all([
           apiFetch('/api/branches?all=1'),
-          apiFetch('/api/employees?limit=10000')
+          apiFetch(/api/employeeslimit=10000)
         ]);
         const rawBranches = bRes.data?.data || [];
         const rawEmployees = eRes.data?.data || [];

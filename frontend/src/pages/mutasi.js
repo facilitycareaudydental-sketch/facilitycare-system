@@ -7,7 +7,7 @@ let employeeOptions = [];
 export async function renderMutasi(container) {
   const [bRes, eRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000')
+    apiFetch(/api/employeeslimit=10000)
   ]);
   branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
   employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));

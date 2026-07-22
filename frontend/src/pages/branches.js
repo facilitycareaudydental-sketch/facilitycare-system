@@ -37,7 +37,7 @@ export async function renderBranches(container) {
     exportOptions: {
       moduleName: 'branches',
       onExport: async () => {
-        const res = await apiFetch('/api/branches?limit=10000');
+        const res = await apiFetch(/api/brancheslimit=10000);
         if (res.ok) downloadExcel(res.data.data, 'Data_Cabang');
         else throw new Error('Gagal mengambil data');
       },
