@@ -123,14 +123,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
         btn.addEventListener('click', () => action.handler(row));
         btnGroup.appendChild(btn);
       });
-      if (onDelete) {
-        const btn = document.createElement('button');
-        btn.className = 'btn btn-xs btn-danger';
-        btn.innerHTML = '🗑️';
-        btn.title = 'Hapus';
-        btn.addEventListener('click', () => onDelete(row));
-        btnGroup.appendChild(btn);
-      }
+      // Individual delete button removed globally as per user request
       td.appendChild(btnGroup);
       tr.appendChild(td);
     }
