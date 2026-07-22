@@ -47,6 +47,45 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-clean-up-reports') && request.method === 'POST') {
+    try {
+      const res1 = await env.DB.prepare(`
+        DELETE FROM inspection_reports 
+        WHERE id NOT IN (
+            SELECT MAX(id) 
+            FROM inspection_reports 
+            GROUP BY branch_id, period, strftime('%Y', inspection_date)
+        )
+      `).run();
+      
+      const res2 = await env.DB.prepare(`
+        DELETE FROM cleaning_reports 
+        WHERE id NOT IN (
+            SELECT MAX(id) 
+            FROM cleaning_reports 
+            GROUP BY branch_id, activity_type, period, strftime('%Y', activity_date)
+        )
+      `).run();
+      
+      const res3 = await env.DB.prepare(`
+        DELETE FROM fogging_reports 
+        WHERE id NOT IN (
+            SELECT MAX(id) 
+            FROM fogging_reports 
+            GROUP BY branch_id, period, strftime('%Y', activity_date)
+        )
+      `).run();
+
+      return ok({ 
+        inspection_deleted: res1.meta.changes, 
+        cleaning_deleted: res2.meta.changes, 
+        fogging_deleted: res3.meta.changes 
+      }, 200, origin);
+    } catch(e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/test-emp')) {
     try {
       try { await env.DB.prepare('ALTER TABLE sp_data ADD COLUMN division TEXT').run(); } catch(e){}

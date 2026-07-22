@@ -122,7 +122,7 @@ async function importInspection(request, env, origin) {
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
     if (s.branch_id && s.period && s.inspection_date) {
-      existingMap.set(s.branch_id + '_' + s.period.toLowerCase().trim() + '_' + s.inspection_date, s.id);
+      existingMap.set(s.branch_id + '_' + s.period.toLowerCase().trim() + '_' + String(s.inspection_date).slice(0, 4), s.id);
     }
   });
 
@@ -133,15 +133,16 @@ async function importInspection(request, env, origin) {
   for (const item of body) {
     if (!item.branch_id || !item.period || !item.inspection_date) continue;
     
-    const key = item.branch_id + '_' + item.period.toLowerCase().trim() + '_' + item.inspection_date;
+    const key = item.branch_id + '_' + item.period.toLowerCase().trim() + '_' + String(item.inspection_date).slice(0, 4);
     const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
 
     if (existingMap.has(key)) {
       const id = existingMap.get(key);
       stmts.push(
         env.DB.prepare(
-          `UPDATE inspection_reports SET fc_score = ?, spv_score = ?, status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+          `UPDATE inspection_reports SET inspection_date = ?, fc_score = ?, spv_score = ?, status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
         ).bind(
+          item.inspection_date,
           item.fc_score,
           item.spv_score,
           status,
@@ -250,7 +251,7 @@ async function importCleaning(request, env, origin) {
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
     if (s.branch_id && s.activity_type && s.period && s.activity_date) {
-      existingMap.set(s.branch_id + '_' + s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.activity_date, s.id);
+      existingMap.set(s.branch_id + '_' + s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + String(s.activity_date).slice(0, 4), s.id);
     }
   });
 
@@ -261,15 +262,16 @@ async function importCleaning(request, env, origin) {
   for (const item of body) {
     if (!item.branch_id || !item.activity_type || !item.period || !item.activity_date) continue;
     
-    const key = item.branch_id + '_' + item.activity_type.toLowerCase().trim() + '_' + item.period.toLowerCase().trim() + '_' + item.activity_date;
+    const key = item.branch_id + '_' + item.activity_type.toLowerCase().trim() + '_' + item.period.toLowerCase().trim() + '_' + String(item.activity_date).slice(0, 4);
     const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
 
     if (existingMap.has(key)) {
       const id = existingMap.get(key);
       stmts.push(
         env.DB.prepare(
-          `UPDATE cleaning_reports SET status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+          `UPDATE cleaning_reports SET activity_date = ?, status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
         ).bind(
+          item.activity_date,
           status,
           item.document_link || null,
           item.notes || null,
@@ -358,7 +360,7 @@ async function importFogging(request, env, origin) {
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
     if (s.branch_id && s.period && s.activity_date) {
-      existingMap.set(s.branch_id + '_' + s.period.toLowerCase().trim() + '_' + s.activity_date, s.id);
+      existingMap.set(s.branch_id + '_' + s.period.toLowerCase().trim() + '_' + String(s.activity_date).slice(0, 4), s.id);
     }
   });
 
@@ -369,15 +371,16 @@ async function importFogging(request, env, origin) {
   for (const item of body) {
     if (!item.branch_id || !item.period || !item.activity_date) continue;
     
-    const key = item.branch_id + '_' + item.period.toLowerCase().trim() + '_' + item.activity_date;
+    const key = item.branch_id + '_' + item.period.toLowerCase().trim() + '_' + String(item.activity_date).slice(0, 4);
     const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
 
     if (existingMap.has(key)) {
       const id = existingMap.get(key);
       stmts.push(
         env.DB.prepare(
-          `UPDATE fogging_reports SET status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+          `UPDATE fogging_reports SET activity_date = ?, status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
         ).bind(
+          item.activity_date,
           status,
           item.document_link || null,
           item.notes || null,
