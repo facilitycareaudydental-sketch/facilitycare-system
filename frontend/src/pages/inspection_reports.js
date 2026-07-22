@@ -1,6 +1,7 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
+import { downloadExcel } from '../utils/excel.js';
 
 export async function renderInspectionReports(container) {
   const bRes = await apiFetch('/api/branches?all=1');
