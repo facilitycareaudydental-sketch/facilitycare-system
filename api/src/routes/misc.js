@@ -62,7 +62,27 @@ export async function handleMisc(request, env, origin) {
   }
 
   if (path.startsWith('/api/audit-import-schedule') && request.method === 'POST') {
-    return importSchedule(request, env, origin);
+    let body;
+    try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+    
+    // fetch branches to map
+    const bRes = await env.DB.prepare('SELECT id, name, full_name, code FROM branches').all();
+    const branches = bRes.results || [];
+    
+    for (const item of body) {
+      if (item.branch_name && !item.branch_id) {
+         const s = String(item.branch_name).toLowerCase().trim();
+         const b = branches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
+         if (b) item.branch_id = b.id;
+      }
+    }
+    
+    // reconstruct request to pass to importSchedule
+    const mockRequest = {
+      json: async () => body
+    };
+    
+    return importSchedule(mockRequest, env, origin);
   }
 
   if (path.startsWith('/api/audit-clean-up-reports') && request.method === 'POST') {
