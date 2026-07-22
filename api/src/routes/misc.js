@@ -13,6 +13,40 @@ export async function handleMisc(request, env, origin) {
   if (path.startsWith('/api/pic')) return handlePic(request, env, origin);
   if (path.startsWith('/api/options')) return handleOptions(request, env, origin);
   
+  if (path.startsWith('/api/audit-force-branches') && request.method === 'POST') {
+    try {
+      const data = await request.json(); // array of { emp, branch }
+      let updated = 0;
+      let notFoundEmp = [];
+      let notFoundBranch = [];
+      
+      const allBranches = await env.DB.prepare('SELECT id, full_name, code, name FROM branches').all();
+      
+      for (const item of data) {
+        const s = String(item.branch || '').toLowerCase();
+        const b = allBranches.results.find(r => 
+          String(r.full_name || '').toLowerCase() === s || 
+          String(r.code || '').toLowerCase() === s || 
+          String(r.name || '').toLowerCase() === s
+        );
+        
+        if (b) {
+          const res = await env.DB.prepare('UPDATE employees SET branch_id = ? WHERE full_name = ?').bind(b.id, item.emp).run();
+          if (res.meta.changes > 0) {
+             updated++;
+          } else {
+             notFoundEmp.push(item.emp);
+          }
+        } else {
+          notFoundBranch.push(item.branch);
+        }
+      }
+      return ok({ updated, notFoundEmp, notFoundBranch }, 200, origin);
+    } catch(e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/test-emp')) {
     try {
       try { await env.DB.prepare('ALTER TABLE sp_data ADD COLUMN division TEXT').run(); } catch(e){}
