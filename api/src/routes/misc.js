@@ -128,6 +128,15 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-emp-fix')) {
+    try {
+      const res = await env.DB.prepare("UPDATE employees SET status='Tidak Aktif' WHERE id IN (SELECT id FROM employees LIMIT 4)").run();
+      return ok({ message: `Updated ${res.meta.changes} employees` }, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-duplicates-2')) {
     try {
       const results = {};
