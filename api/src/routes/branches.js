@@ -73,8 +73,12 @@ async function getBranch(id, env, origin) {
 async function createBranch(request, env, origin) {
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-  const { code, name, full_name, city } = body;
-  if (!code || !name || !full_name) return error('code, name, full_name required', 400, origin);
+  const { city, full_name } = body;
+  let { code, name } = body;
+  if (!full_name) return error('full_name required', 400, origin);
+  if (!code) code = `AUTO-${Math.floor(Math.random() * 100000)}`;
+  if (!name) name = full_name;
+  
   const result = await env.DB.prepare(
     'INSERT INTO branches (code, name, full_name, city) VALUES (?, ?, ?, ?)'
   ).bind(code, name, full_name, city || null).run();
