@@ -87,6 +87,47 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-verification')) {
+    try {
+      const q = async (query, ...params) => {
+        const res = await env.DB.prepare(query).bind(...params).first();
+        return res;
+      };
+      const qAll = async (query, ...params) => {
+        const res = await env.DB.prepare(query).bind(...params).all();
+        return res.results;
+      };
+
+      const data = {};
+      data.employees = {
+        total: (await q('SELECT COUNT(*) as c FROM employees')).c,
+        aktif: (await q("SELECT COUNT(*) as c FROM employees WHERE status='Aktif'")).c,
+        tidak_aktif: (await q("SELECT COUNT(*) as c FROM employees WHERE status='Tidak Aktif'")).c,
+        resign: (await q("SELECT COUNT(*) as c FROM employees WHERE status='Resign'")).c,
+        cut: (await q("SELECT COUNT(*) as c FROM employees WHERE status='Cut'")).c,
+      };
+
+      data.contracts = {
+        total: (await q('SELECT COUNT(*) as c FROM contracts')).c,
+        aktif: (await q("SELECT COUNT(*) as c FROM contracts WHERE status='Aktif'")).c,
+        tidak_aktif: (await q("SELECT COUNT(*) as c FROM contracts WHERE status!='Aktif'")).c,
+      };
+
+      data.dashboard = {
+        karyawan_aktif: (await q("SELECT COUNT(*) c FROM employees WHERE status='Aktif'")).c,
+        cabang_aktif: (await q("SELECT COUNT(*) c FROM branches WHERE is_active=1")).c,
+        kontrak_aktif: (await q("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date >= date('now')")).c,
+        kontrak_segera_habis: (await q("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date BETWEEN date('now') AND date('now','+30 days')")).c,
+        permasalahan_open: (await q("SELECT COUNT(*) c FROM issues WHERE status != 'Done'")).c,
+        one_on_one_open: (await q("SELECT COUNT(*) c FROM one_on_one WHERE status != 'Done'")).c,
+      };
+
+      return ok(data, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-duplicates-2')) {
     try {
       const results = {};
