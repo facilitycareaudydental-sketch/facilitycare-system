@@ -31,7 +31,7 @@ export async function handleMisc(request, env, origin) {
         );
         
         if (b) {
-          const res = await env.DB.prepare('UPDATE employees SET branch_id = ? WHERE full_name = ?').bind(b.id, item.emp).run();
+          const res = await env.DB.prepare("UPDATE employees SET branch_id = ?, status = 'Aktif' WHERE full_name = ?").bind(b.id, item.emp).run();
           if (res.meta.changes > 0) {
              updated++;
           } else {
