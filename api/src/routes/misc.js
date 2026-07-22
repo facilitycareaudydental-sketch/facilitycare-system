@@ -47,6 +47,19 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-check-null-branches') && request.method === 'GET') {
+    try {
+      const data = await env.DB.prepare(`
+        SELECT id, branch_id, activity_type, period, target_date
+        FROM activity_schedule
+        WHERE branch_id IS NULL
+      `).all();
+      return ok({ null_branches: data.results }, 200, origin);
+    } catch(e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-clean-up-reports') && request.method === 'POST') {
     try {
       const res1 = await env.DB.prepare(`
