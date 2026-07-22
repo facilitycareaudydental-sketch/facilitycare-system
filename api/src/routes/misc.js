@@ -27,13 +27,21 @@ export async function handleMisc(request, env, origin) {
     try {
       // Find duplicate names
       const dupes = await env.DB.prepare('SELECT full_name, COUNT(*) as c, MIN(id) as min_id FROM employees GROUP BY full_name HAVING c > 1').all();
-      let deleted = 0;
+      let deletedEmp = 0;
       for (const d of dupes.results) {
-        // Delete all except the oldest one
         const res = await env.DB.prepare('DELETE FROM employees WHERE full_name = ? AND id != ?').bind(d.full_name, d.min_id).run();
-        deleted += res.meta.changes;
+        deletedEmp += res.meta.changes;
       }
-      return ok({ message: `Deleted ${deleted} duplicate employees` }, 200, origin);
+      
+      // Find duplicate contracts (same employee, same branch, same start_date)
+      const dupeContracts = await env.DB.prepare('SELECT employee_id, branch_id, start_date, COUNT(*) as c, MIN(id) as min_id FROM contracts GROUP BY employee_id, branch_id, start_date HAVING c > 1').all();
+      let deletedCont = 0;
+      for (const d of dupeContracts.results) {
+        const res = await env.DB.prepare('DELETE FROM contracts WHERE employee_id = ? AND branch_id = ? AND start_date = ? AND id != ?').bind(d.employee_id, d.branch_id, d.start_date, d.min_id).run();
+        deletedCont += res.meta.changes;
+      }
+      
+      return ok({ message: `Deleted ${deletedEmp} dup employees, ${deletedCont} dup contracts` }, 200, origin);
     } catch (e) {
       return error(e.message, 500, origin);
     }
