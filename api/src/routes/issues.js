@@ -137,40 +137,54 @@ async function importIssues(request, env, origin) {
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
   if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
 
-  const stmts = [];
-  for (const item of body) {
-    if (!item.report_date || !item.complaint || !item.category) continue;
-    
-    let day_count = null;
-    if (item.completion_date && item.report_date) {
-      const d1 = new Date(item.report_date);
-      const d2 = new Date(item.completion_date);
-      day_count = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
-    }
-
-    stmts.push(
-      env.DB.prepare(
-        `INSERT INTO issues (report_date, branch_id, category, source, complaint, employee_name, fc_specialist, solution, status, completion_date, day_count) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        item.report_date,
-        item.branch_id || null,
-        item.category,
-        item.source || null,
-        item.complaint,
-        item.employee_name || null,
-        item.fc_specialist || null,
-        item.solution || null,
-        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
-        item.completion_date || null,
-        day_count
-      )
-    );
-  }
-
+  let processed = 0;
   try {
-    if (stmts.length > 0) await env.DB.batch(stmts);
-    return ok({ message: `Berhasil mengimport ${stmts.length} data permasalahan` }, 200, origin);
+    for (const item of body) {
+      if (!item.report_date || !item.complaint || !item.category) continue;
+      
+      let day_count = null;
+      if (item.completion_date && item.report_date) {
+        const d1 = new Date(item.report_date);
+        const d2 = new Date(item.completion_date);
+        day_count = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+      }
+
+      const existing = await env.DB.prepare('SELECT id FROM issues WHERE (branch_id = ? OR branch_id IS NULL) AND report_date = ? AND category = ? AND complaint = ?').bind(item.branch_id || null, item.report_date, item.category, item.complaint).first();
+
+      if (existing) {
+        await env.DB.prepare(
+          `UPDATE issues SET source = ?, employee_name = ?, fc_specialist = ?, solution = ?, status = ?, completion_date = ?, day_count = ? WHERE id = ?`
+        ).bind(
+          item.source || null,
+          item.employee_name || null,
+          item.fc_specialist || null,
+          item.solution || null,
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
+          item.completion_date || null,
+          day_count,
+          existing.id
+        ).run();
+      } else {
+        await env.DB.prepare(
+          `INSERT INTO issues (report_date, branch_id, category, source, complaint, employee_name, fc_specialist, solution, status, completion_date, day_count) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.report_date,
+          item.branch_id || null,
+          item.category,
+          item.source || null,
+          item.complaint,
+          item.employee_name || null,
+          item.fc_specialist || null,
+          item.solution || null,
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
+          item.completion_date || null,
+          day_count
+        ).run();
+      }
+      processed++;
+    }
+    return ok({ message: `Berhasil memperbarui/mengimport ${processed} data permasalahan` }, 200, origin);
   } catch (err) {
     return error('Gagal import data: ' + err.message, 500, origin);
   }

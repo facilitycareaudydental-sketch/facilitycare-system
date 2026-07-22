@@ -135,30 +135,44 @@ async function importRelievers(request, env, origin) {
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
   if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
 
-  const stmts = [];
-  for (const item of body) {
-    if (!item.reliever_name || !item.backup_date) continue;
-    stmts.push(
-      env.DB.prepare(
-        `INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        item.branch_id || null,
-        item.original_fc_name || null,
-        item.period || null,
-        item.reliever_name,
-        item.backup_date,
-        item.completion_date || null,
-        item.reason || null,
-        item.shift || null,
-        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : ''
-      )
-    );
-  }
-
+  let processed = 0;
   try {
-    if (stmts.length > 0) await env.DB.batch(stmts);
-    return ok({ message: `Berhasil mengimport ${stmts.length} reliefer` }, 200, origin);
+    for (const item of body) {
+      if (!item.reliever_name || !item.backup_date) continue;
+      
+      const existing = await env.DB.prepare('SELECT id FROM relievers WHERE (branch_id = ? OR branch_id IS NULL) AND reliever_name = ? AND backup_date = ?').bind(item.branch_id || null, item.reliever_name, item.backup_date).first();
+
+      if (existing) {
+        await env.DB.prepare(
+          `UPDATE relievers SET original_fc_name = ?, period = ?, completion_date = ?, reason = ?, shift = ?, status = ? WHERE id = ?`
+        ).bind(
+          item.original_fc_name || null,
+          item.period || null,
+          item.completion_date || null,
+          item.reason || null,
+          item.shift || null,
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
+          existing.id
+        ).run();
+      } else {
+        await env.DB.prepare(
+          `INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.branch_id || null,
+          item.original_fc_name || null,
+          item.period || null,
+          item.reliever_name,
+          item.backup_date,
+          item.completion_date || null,
+          item.reason || null,
+          item.shift || null,
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : ''
+        ).run();
+      }
+      processed++;
+    }
+    return ok({ message: `Berhasil memperbarui/mengimport ${processed} data` }, 200, origin);
   } catch (err) {
     return error('Gagal import data: ' + err.message, 500, origin);
   }

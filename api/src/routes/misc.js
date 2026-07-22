@@ -48,6 +48,38 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-duplicates-2')) {
+    try {
+      const results = {};
+      const q = async (name, query) => {
+        try {
+          const res = await env.DB.prepare(query).all();
+          results[name] = res.results.reduce((acc, row) => acc + ((row.c || 1) - 1), 0);
+        } catch (e) {
+          results[name] = 'Error: ' + e.message;
+        }
+      };
+
+      await q('employees', 'SELECT full_name, COUNT(*) as c FROM employees GROUP BY full_name HAVING c > 1');
+      await q('contracts', 'SELECT employee_id, COUNT(*) as c FROM contracts GROUP BY employee_id HAVING c > 1');
+      await q('relievers', 'SELECT branch_id, reliever_name, backup_date, COUNT(*) as c FROM relievers GROUP BY branch_id, reliever_name, backup_date HAVING c > 1');
+      await q('activity_schedule', 'SELECT branch_id, activity_type, period, COUNT(*) as c FROM activity_schedule GROUP BY branch_id, activity_type, period HAVING c > 1');
+      await q('issues', 'SELECT branch_id, report_date, category, complaint, COUNT(*) as c FROM issues GROUP BY branch_id, report_date, category, complaint HAVING c > 1');
+      await q('one_on_one', 'SELECT branch_id, meeting_date, employee_name, COUNT(*) as c FROM one_on_one GROUP BY branch_id, meeting_date, employee_name HAVING c > 1');
+      await q('training', 'SELECT training_date, subject, branch_id, COUNT(*) as c FROM training GROUP BY training_date, subject, branch_id HAVING c > 1');
+      await q('inspection_reports', 'SELECT branch_id, period, inspection_date, COUNT(*) as c FROM inspection_reports GROUP BY branch_id, period, inspection_date HAVING c > 1');
+      await q('cleaning_reports', 'SELECT branch_id, activity_type, period, activity_date, COUNT(*) as c FROM cleaning_reports GROUP BY branch_id, activity_type, period, activity_date HAVING c > 1');
+      await q('fogging_reports', 'SELECT branch_id, period, activity_date, COUNT(*) as c FROM fogging_reports GROUP BY branch_id, period, activity_date HAVING c > 1');
+      await q('basecamp_reports', 'SELECT branch_id, info_date, problem, COUNT(*) as c FROM basecamp_reports GROUP BY branch_id, info_date, problem HAVING c > 1');
+      await q('supply_requests', 'SELECT branch_id, submitter_name, submitted_at, COUNT(*) as c FROM supply_requests GROUP BY branch_id, submitter_name, submitted_at HAVING c > 1');
+      await q('sp_data', 'SELECT branch_id, tanggal, employee_name, sp_type, COUNT(*) as c FROM sp_data GROUP BY branch_id, tanggal, employee_name, sp_type HAVING c > 1');
+      
+      return ok({ duplicates: results }, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-emp-fixdates')) {
     try {
       const contracts = await env.DB.prepare('SELECT id, start_date, end_date FROM contracts').all();

@@ -135,28 +135,43 @@ async function importEmployees(request, env, origin) {
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
   if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
 
-  const stmts = [];
-  for (const item of body) {
-    if (!item.full_name) continue;
-    stmts.push(
-      env.DB.prepare(
-        `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        item.full_name, 
-        item.branch_id || null, 
-        item.division || 'FACILITY CARE', 
-        item.phone || null, 
-        item.join_date || null, 
-        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '', 
-        item.notes || null
-      )
-    );
-  }
-
+  let processed = 0;
   try {
-    if (stmts.length > 0) await env.DB.batch(stmts);
-    return ok({ message: `Berhasil mengimport ${stmts.length} karyawan` }, 200, origin);
+    for (const item of body) {
+      if (!item.full_name) continue;
+      
+      const existing = await env.DB.prepare('SELECT id FROM employees WHERE full_name = ?').bind(item.full_name).first();
+      
+      if (existing) {
+        await env.DB.prepare(
+          `UPDATE employees SET branch_id = ?, division = ?, phone = ?, join_date = ?, status = ?, notes = ? WHERE id = ?`
+        ).bind(
+          item.branch_id || null, 
+          item.division || 'FACILITY CARE', 
+          item.phone || null, 
+          item.join_date || null, 
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '', 
+          item.notes || null,
+          existing.id
+        ).run();
+      } else {
+        await env.DB.prepare(
+          `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.full_name, 
+          item.branch_id || null, 
+          item.division || 'FACILITY CARE', 
+          item.phone || null, 
+          item.join_date || null, 
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '', 
+          item.notes || null
+        ).run();
+      }
+      processed++;
+    }
+
+    return ok({ message: `Berhasil memperbarui/mengimport ${processed} karyawan` }, 200, origin);
   } catch (err) {
     return error('Gagal import data: ' + err.message, 500, origin);
   }

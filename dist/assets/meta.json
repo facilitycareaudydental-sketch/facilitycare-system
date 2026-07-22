@@ -1,0 +1,901 @@
+{
+  "inputs": {
+    "frontend/src/config.js": {
+      "bytes": 1820,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/router.js": {
+      "bytes": 1559,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/components/toast.js": {
+      "bytes": 1069,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/components/modal.js": {
+      "bytes": 2060,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/pages/dashboard.js": {
+      "bytes": 32502,
+      "imports": [
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/login.js": {
+      "bytes": 6021,
+      "imports": [
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/components/table.js": {
+      "bytes": 6010,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/components/form.js": {
+      "bytes": 4738,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/utils/excel.js": {
+      "bytes": 2316,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/pages/_crud.js": {
+      "bytes": 14431,
+      "imports": [
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/table.js",
+          "kind": "import-statement",
+          "original": "../components/table.js"
+        },
+        {
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "../components/modal.js"
+        },
+        {
+          "path": "frontend/src/components/form.js",
+          "kind": "import-statement",
+          "original": "../components/form.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/components/badges.js": {
+      "bytes": 1868,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/pages/employees.js": {
+      "bytes": 5047,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/contracts.js": {
+      "bytes": 6713,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/schedule.js": {
+      "bytes": 7939,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/issues.js": {
+      "bytes": 7777,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/one_on_one.js": {
+      "bytes": 7568,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/training.js": {
+      "bytes": 7915,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/relievers.js": {
+      "bytes": 6591,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/inspection_reports.js": {
+      "bytes": 7142,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/cleaning_reports.js": {
+      "bytes": 6637,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/fogging_reports.js": {
+      "bytes": 6283,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/basecamp_reports.js": {
+      "bytes": 6919,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/sop.js": {
+      "bytes": 2946,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "dynamic-import",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "dynamic-import",
+          "original": "../config.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/checklist.js": {
+      "bytes": 3043,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "dynamic-import",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "dynamic-import",
+          "original": "../config.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/forms.js": {
+      "bytes": 10635,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "../components/modal.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/users.js": {
+      "bytes": 4474,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/components/badges.js",
+          "kind": "import-statement",
+          "original": "../components/badges.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/branches.js": {
+      "bytes": 2838,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/calendar.js": {
+      "bytes": 8895,
+      "imports": [
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/profile.js": {
+      "bytes": 7466,
+      "imports": [
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/utils/importer.js": {
+      "bytes": 16110,
+      "imports": [],
+      "format": "esm"
+    },
+    "frontend/src/pages/import.js": {
+      "bytes": 29073,
+      "imports": [
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
+        },
+        {
+          "path": "frontend/src/utils/importer.js",
+          "kind": "import-statement",
+          "original": "../utils/importer.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/sp.js": {
+      "bytes": 5794,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/mutasi.js": {
+      "bytes": 5685,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/app.js": {
+      "bytes": 26828,
+      "imports": [
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "./config.js"
+        },
+        {
+          "path": "frontend/src/router.js",
+          "kind": "import-statement",
+          "original": "./router.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "./components/toast.js"
+        },
+        {
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "./components/modal.js"
+        },
+        {
+          "path": "frontend/src/pages/dashboard.js",
+          "kind": "import-statement",
+          "original": "./pages/dashboard.js"
+        },
+        {
+          "path": "frontend/src/pages/login.js",
+          "kind": "import-statement",
+          "original": "./pages/login.js"
+        },
+        {
+          "path": "frontend/src/pages/employees.js",
+          "kind": "import-statement",
+          "original": "./pages/employees.js"
+        },
+        {
+          "path": "frontend/src/pages/contracts.js",
+          "kind": "import-statement",
+          "original": "./pages/contracts.js"
+        },
+        {
+          "path": "frontend/src/pages/schedule.js",
+          "kind": "import-statement",
+          "original": "./pages/schedule.js"
+        },
+        {
+          "path": "frontend/src/pages/issues.js",
+          "kind": "import-statement",
+          "original": "./pages/issues.js"
+        },
+        {
+          "path": "frontend/src/pages/one_on_one.js",
+          "kind": "import-statement",
+          "original": "./pages/one_on_one.js"
+        },
+        {
+          "path": "frontend/src/pages/training.js",
+          "kind": "import-statement",
+          "original": "./pages/training.js"
+        },
+        {
+          "path": "frontend/src/pages/relievers.js",
+          "kind": "import-statement",
+          "original": "./pages/relievers.js"
+        },
+        {
+          "path": "frontend/src/pages/inspection_reports.js",
+          "kind": "import-statement",
+          "original": "./pages/inspection_reports.js"
+        },
+        {
+          "path": "frontend/src/pages/cleaning_reports.js",
+          "kind": "import-statement",
+          "original": "./pages/cleaning_reports.js"
+        },
+        {
+          "path": "frontend/src/pages/fogging_reports.js",
+          "kind": "import-statement",
+          "original": "./pages/fogging_reports.js"
+        },
+        {
+          "path": "frontend/src/pages/basecamp_reports.js",
+          "kind": "import-statement",
+          "original": "./pages/basecamp_reports.js"
+        },
+        {
+          "path": "frontend/src/pages/sop.js",
+          "kind": "import-statement",
+          "original": "./pages/sop.js"
+        },
+        {
+          "path": "frontend/src/pages/checklist.js",
+          "kind": "import-statement",
+          "original": "./pages/checklist.js"
+        },
+        {
+          "path": "frontend/src/pages/forms.js",
+          "kind": "import-statement",
+          "original": "./pages/forms.js"
+        },
+        {
+          "path": "frontend/src/pages/users.js",
+          "kind": "import-statement",
+          "original": "./pages/users.js"
+        },
+        {
+          "path": "frontend/src/pages/branches.js",
+          "kind": "import-statement",
+          "original": "./pages/branches.js"
+        },
+        {
+          "path": "frontend/src/pages/calendar.js",
+          "kind": "import-statement",
+          "original": "./pages/calendar.js"
+        },
+        {
+          "path": "frontend/src/pages/profile.js",
+          "kind": "import-statement",
+          "original": "./pages/profile.js"
+        },
+        {
+          "path": "frontend/src/pages/import.js",
+          "kind": "import-statement",
+          "original": "./pages/import.js"
+        },
+        {
+          "path": "frontend/src/pages/sp.js",
+          "kind": "import-statement",
+          "original": "./pages/sp.js"
+        },
+        {
+          "path": "frontend/src/pages/mutasi.js",
+          "kind": "import-statement",
+          "original": "./pages/mutasi.js"
+        }
+      ],
+      "format": "esm"
+    }
+  },
+  "outputs": {
+    "frontend/dist/assets/app-767NHWZZ.js": {
+      "imports": [],
+      "exports": [],
+      "entryPoint": "frontend/src/app.js",
+      "inputs": {
+        "frontend/src/config.js": {
+          "bytesInOutput": 1116
+        },
+        "frontend/src/utils/excel.js": {
+          "bytesInOutput": 1184
+        },
+        "frontend/src/app.js": {
+          "bytesInOutput": 19651
+        },
+        "frontend/src/router.js": {
+          "bytesInOutput": 761
+        },
+        "frontend/src/components/toast.js": {
+          "bytesInOutput": 589
+        },
+        "frontend/src/components/modal.js": {
+          "bytesInOutput": 1433
+        },
+        "frontend/src/pages/dashboard.js": {
+          "bytesInOutput": 20992
+        },
+        "frontend/src/pages/login.js": {
+          "bytesInOutput": 5191
+        },
+        "frontend/src/pages/_crud.js": {
+          "bytesInOutput": 8279
+        },
+        "frontend/src/components/table.js": {
+          "bytesInOutput": 3430
+        },
+        "frontend/src/components/form.js": {
+          "bytesInOutput": 2810
+        },
+        "frontend/src/pages/employees.js": {
+          "bytesInOutput": 3066
+        },
+        "frontend/src/components/badges.js": {
+          "bytesInOutput": 1225
+        },
+        "frontend/src/pages/contracts.js": {
+          "bytesInOutput": 4135
+        },
+        "frontend/src/pages/schedule.js": {
+          "bytesInOutput": 4795
+        },
+        "frontend/src/pages/issues.js": {
+          "bytesInOutput": 4724
+        },
+        "frontend/src/pages/one_on_one.js": {
+          "bytesInOutput": 4784
+        },
+        "frontend/src/pages/training.js": {
+          "bytesInOutput": 4910
+        },
+        "frontend/src/pages/relievers.js": {
+          "bytesInOutput": 4044
+        },
+        "frontend/src/pages/inspection_reports.js": {
+          "bytesInOutput": 4506
+        },
+        "frontend/src/pages/cleaning_reports.js": {
+          "bytesInOutput": 4203
+        },
+        "frontend/src/pages/fogging_reports.js": {
+          "bytesInOutput": 3890
+        },
+        "frontend/src/pages/basecamp_reports.js": {
+          "bytesInOutput": 4160
+        },
+        "frontend/src/pages/sop.js": {
+          "bytesInOutput": 1995
+        },
+        "frontend/src/pages/checklist.js": {
+          "bytesInOutput": 2086
+        },
+        "frontend/src/pages/forms.js": {
+          "bytesInOutput": 6933
+        },
+        "frontend/src/pages/users.js": {
+          "bytesInOutput": 2716
+        },
+        "frontend/src/pages/branches.js": {
+          "bytesInOutput": 1788
+        },
+        "frontend/src/pages/calendar.js": {
+          "bytesInOutput": 5865
+        },
+        "frontend/src/pages/profile.js": {
+          "bytesInOutput": 6406
+        },
+        "frontend/src/pages/import.js": {
+          "bytesInOutput": 20209
+        },
+        "frontend/src/utils/importer.js": {
+          "bytesInOutput": 9012
+        },
+        "frontend/src/pages/sp.js": {
+          "bytesInOutput": 3901
+        },
+        "frontend/src/pages/mutasi.js": {
+          "bytesInOutput": 3807
+        }
+      },
+      "bytes": 178726
+    }
+  }
+}

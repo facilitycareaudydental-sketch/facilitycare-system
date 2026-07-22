@@ -172,30 +172,46 @@ async function importContracts(request, env, origin) {
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
   if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
 
-  const stmts = [];
-  for (const item of body) {
-    if (!item.employee_id || !item.start_date || !item.end_date) continue;
-    stmts.push(
-      env.DB.prepare(
-        `INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        item.employee_id,
-        item.branch_id || null,
-        item.division || 'FACILITY CARE',
-        item.start_date,
-        item.end_date,
-        item.contract_type || null,
-        item.pkwt_number || null,
-        item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
-        item.notes || null
-      )
-    );
-  }
-
+  let processed = 0;
   try {
-    if (stmts.length > 0) await env.DB.batch(stmts);
-    return ok({ message: `Berhasil mengimport ${stmts.length} kontrak` }, 200, origin);
+    for (const item of body) {
+      if (!item.employee_id || !item.start_date || !item.end_date) continue;
+
+      const existing = await env.DB.prepare('SELECT id FROM contracts WHERE employee_id = ? ORDER BY id DESC LIMIT 1').bind(item.employee_id).first();
+      
+      if (existing) {
+        await env.DB.prepare(
+          `UPDATE contracts SET branch_id = ?, division = ?, start_date = ?, end_date = ?, contract_type = ?, pkwt_number = ?, status = ?, notes = ? WHERE id = ?`
+        ).bind(
+          item.branch_id || null,
+          item.division || 'FACILITY CARE',
+          item.start_date,
+          item.end_date,
+          item.contract_type || null,
+          item.pkwt_number || null,
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
+          item.notes || null,
+          existing.id
+        ).run();
+      } else {
+        await env.DB.prepare(
+          `INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.employee_id,
+          item.branch_id || null,
+          item.division || 'FACILITY CARE',
+          item.start_date,
+          item.end_date,
+          item.contract_type || null,
+          item.pkwt_number || null,
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
+          item.notes || null
+        ).run();
+      }
+      processed++;
+    }
+    return ok({ message: `Berhasil memperbarui/mengimport ${processed} kontrak` }, 200, origin);
   } catch (err) {
     return error('Gagal import data: ' + err.message, 500, origin);
   }
