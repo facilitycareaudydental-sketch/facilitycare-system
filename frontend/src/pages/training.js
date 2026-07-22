@@ -132,7 +132,7 @@ export async function renderTraining(container) {
       { name: 'subject', label: 'Materi / Topik Training', required: true, placeholder: 'Judul materi training', value: data?.subject },
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
           { name: 'trainer', label: 'Trainer', type: 'combobox', options: getPicOptions(data?.trainer), createApi: { path: '/api/pic', field: 'name' }, value: data?.trainer },
         ]
       },

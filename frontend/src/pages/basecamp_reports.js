@@ -52,7 +52,7 @@ export async function renderBasecampReports(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
           { name: 'pic', label: 'PIC', type: 'combobox', options: getPicOptions(data?.pic), createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
         ]
       },
