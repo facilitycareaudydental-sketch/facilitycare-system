@@ -60,7 +60,7 @@ export async function renderRelievers(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
           { name: 'period', label: 'Periode', type: 'select', options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
         ]
       },

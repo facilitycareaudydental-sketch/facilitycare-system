@@ -49,8 +49,8 @@ export async function renderContracts(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'employee_id', label: 'Nama Lengkap', type: 'select', required: true, options: (data?.employee_id && !employeeOptions.find(o => o.value == data.employee_id)) ? [...employeeOptions, { value: data.employee_id, label: data.employee_name || data.employee_id }] : employeeOptions },
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions },
+          { name: 'employee_id', label: 'Nama Lengkap', type: 'select', required: true, options: employeeOptions, value: data?.employee_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },
       {

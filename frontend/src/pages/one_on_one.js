@@ -126,7 +126,7 @@ export async function renderOneOnOne(container) {
       {
         type: 'row', fields: [
           { name: 'meeting_date', label: 'Tanggal', type: 'date', required: true, value: data?.meeting_date },
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },
       {
