@@ -131,8 +131,9 @@ export async function handleMisc(request, env, origin) {
   if (path.startsWith('/api/audit-expired-contracts')) {
     try {
       const expired = await env.DB.prepare(`
-        SELECT c.employee_name, b.full_name as branch_name, c.end_date
+        SELECT e.full_name as employee_name, b.full_name as branch_name, c.end_date
         FROM contracts c
+        JOIN employees e ON c.employee_id = e.id
         LEFT JOIN branches b ON c.branch_id = b.id
         WHERE c.status='Aktif' AND c.end_date < date('now')
       `).all();
