@@ -193,6 +193,10 @@ async function updateInspection(id, request, env, origin) {
 async function handleCleaning(request, env, user, origin, path) {
   const idMatch = path.match(/^\/(\d+)$/);
   if (request.method === 'GET' && path === '') return crudList(request, env, origin, 'cleaning_reports');
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
+    return importCleaning(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
@@ -223,10 +227,84 @@ async function handleCleaning(request, env, user, origin, path) {
   return error('Not found', 404, origin);
 }
 
+async function importCleaning(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const existing = await env.DB.prepare('SELECT id, branch_id, activity_type, period, activity_date FROM cleaning_reports').all();
+  const existingMap = new Map();
+  (existing.results || []).forEach(s => {
+    if (s.branch_id && s.activity_type && s.period && s.activity_date) {
+      existingMap.set(s.branch_id + '_' + s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.activity_date, s.id);
+    }
+  });
+
+  const stmts = [];
+  let inserted = 0;
+  let updated = 0;
+
+  for (const item of body) {
+    if (!item.branch_id || !item.activity_type || !item.period || !item.activity_date) continue;
+    
+    const key = item.branch_id + '_' + item.activity_type.toLowerCase().trim() + '_' + item.period.toLowerCase().trim() + '_' + item.activity_date;
+    const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
+
+    if (existingMap.has(key)) {
+      const id = existingMap.get(key);
+      stmts.push(
+        env.DB.prepare(
+          `UPDATE cleaning_reports SET status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(
+          status,
+          item.document_link || null,
+          item.notes || null,
+          id
+        )
+      );
+      updated++;
+    } else {
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO cleaning_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.branch_id,
+          item.activity_type,
+          item.period,
+          item.activity_date,
+          status,
+          item.document_link || null,
+          item.notes || null
+        )
+      );
+      inserted++;
+    }
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ 
+      message: `Berhasil mengimport data`, 
+      inserted, 
+      updated,
+      failed: 0,
+      total: body.length 
+    }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
+}
+
 // ---- FOGGING ----
 async function handleFogging(request, env, user, origin, path) {
   const idMatch = path.match(/^\/(\d+)$/);
   if (request.method === 'GET' && path === '') return crudList(request, env, origin, 'fogging_reports');
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
+    return importFogging(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
@@ -257,6 +335,76 @@ async function handleFogging(request, env, user, origin, path) {
   return error('Not found', 404, origin);
 }
 
+async function importFogging(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const existing = await env.DB.prepare('SELECT id, branch_id, period, activity_date FROM fogging_reports').all();
+  const existingMap = new Map();
+  (existing.results || []).forEach(s => {
+    if (s.branch_id && s.period && s.activity_date) {
+      existingMap.set(s.branch_id + '_' + s.period.toLowerCase().trim() + '_' + s.activity_date, s.id);
+    }
+  });
+
+  const stmts = [];
+  let inserted = 0;
+  let updated = 0;
+
+  for (const item of body) {
+    if (!item.branch_id || !item.period || !item.activity_date) continue;
+    
+    const key = item.branch_id + '_' + item.period.toLowerCase().trim() + '_' + item.activity_date;
+    const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
+
+    if (existingMap.has(key)) {
+      const id = existingMap.get(key);
+      stmts.push(
+        env.DB.prepare(
+          `UPDATE fogging_reports SET status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(
+          status,
+          item.document_link || null,
+          item.notes || null,
+          id
+        )
+      );
+      updated++;
+    } else {
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO fogging_reports (branch_id, activity_type, period, activity_date, status, document_link, notes) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.branch_id,
+          item.activity_type || 'Fogging',
+          item.period,
+          item.activity_date,
+          status,
+          item.document_link || null,
+          item.notes || null
+        )
+      );
+      inserted++;
+    }
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ 
+      message: `Berhasil mengimport data`, 
+      inserted, 
+      updated,
+      failed: 0,
+      total: body.length 
+    }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
+}
+
 // ---- BASECAMP ----
 async function handleBasecamp(request, env, user, origin, path) {
   const idMatch = path.match(/^\/(\d+)$/);
@@ -276,6 +424,10 @@ async function handleBasecamp(request, env, user, origin, path) {
       env.DB.prepare(`SELECT t.*, b.full_name as branch_name FROM basecamp_reports t LEFT JOIN branches b ON t.branch_id = b.id ${where} ORDER BY t.info_date DESC LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
     ]);
     return paginated(rows.results, countResult.total, page, limit, origin);
+  }
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
+    return importBasecamp(request, env, origin);
   }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
@@ -307,6 +459,77 @@ async function handleBasecamp(request, env, user, origin, path) {
   return error('Not found', 404, origin);
 }
 
+async function importBasecamp(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const existing = await env.DB.prepare('SELECT id, branch_id, info_date, problem FROM basecamp_reports').all();
+  const existingMap = new Map();
+  (existing.results || []).forEach(s => {
+    if (s.branch_id && s.info_date && s.problem) {
+      existingMap.set(s.branch_id + '_' + s.info_date + '_' + s.problem.toLowerCase().trim(), s.id);
+    }
+  });
+
+  const stmts = [];
+  let inserted = 0;
+  let updated = 0;
+
+  for (const item of body) {
+    if (!item.branch_id || !item.info_date || !item.problem) continue;
+    
+    const key = item.branch_id + '_' + item.info_date + '_' + item.problem.toLowerCase().trim();
+    const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : 'Open';
+
+    if (existingMap.has(key)) {
+      const id = existingMap.get(key);
+      stmts.push(
+        env.DB.prepare(
+          `UPDATE basecamp_reports SET pic = ?, done_date = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(
+          item.pic || null,
+          item.done_date || null,
+          status,
+          item.notes || null,
+          id
+        )
+      );
+      updated++;
+    } else {
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO basecamp_reports (branch_id, problem, pic, info_date, done_date, status, notes) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.branch_id,
+          item.problem,
+          item.pic || null,
+          item.info_date,
+          item.done_date || null,
+          status,
+          item.notes || null
+        )
+      );
+      inserted++;
+    }
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ 
+      message: `Berhasil mengimport data`, 
+      inserted, 
+      updated,
+      failed: 0,
+      total: body.length 
+    }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
+}
+
 // ---- SUPPLY REQUESTS (public POST, auth required for GET/PUT/DELETE) ----
 async function handleSupply(request, env, origin, path) {
   const idMatch = path.match(/^\/(\d+)$/);
@@ -328,6 +551,11 @@ async function handleSupply(request, env, origin, path) {
   const user = await authenticate(request, env);
   if (!user) return unauthorized(origin);
   if (!hasPermission(user, 'reports', 'read')) return forbidden(origin);
+
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
+    return importSupply(request, env, origin);
+  }
 
   if (request.method === 'GET' && path === '') {
     const { page, limit, offset } = getPagination(request.url);
@@ -357,23 +585,14 @@ async function handleSupply(request, env, origin, path) {
       const t_items = tools_items ? (typeof tools_items === 'string' ? tools_items.split(',').map(s=>s.trim()) : tools_items) : null;
       const c_items = chemical_items ? (typeof chemical_items === 'string' ? chemical_items.split(',').map(s=>s.trim()) : chemical_items) : null;
 
-      await env.DB.prepare(`
-        UPDATE supply_requests SET 
-          status = COALESCE(?, status), 
-          processed_by = COALESCE(?, processed_by), 
-          processed_at = CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE processed_at END,
-          submitter_name = COALESCE(?, submitter_name),
-          branch_id = COALESCE(?, branch_id),
-          branch_name = COALESCE(?, branch_name),
-          tools_items = COALESCE(?, tools_items),
-          tools_quantity = COALESCE(?, tools_quantity),
-          chemical_items = COALESCE(?, chemical_items),
-          chemical_quantity = COALESCE(?, chemical_quantity),
-          additional_notes = COALESCE(?, additional_notes)
-        WHERE id = ?
-      `).bind(
-        status !== null && status !== undefined && status !== '' ? status : '', processed_by || null, status !== null && status !== undefined && status !== '' ? status : '',
-        submitter_name || null, branch_id || null, branch_name || null,
+      await env.DB.prepare(
+        `UPDATE supply_requests SET status = COALESCE(?, status), processed_by = COALESCE(?, processed_by), submitter_name = COALESCE(?, submitter_name), branch_id = COALESCE(?, branch_id), branch_name = COALESCE(?, branch_name), tools_items = COALESCE(?, tools_items), tools_quantity = COALESCE(?, tools_quantity), chemical_items = COALESCE(?, chemical_items), chemical_quantity = COALESCE(?, chemical_quantity), additional_notes = COALESCE(?, additional_notes) WHERE id = ?`
+      ).bind(
+        status !== null && status !== undefined && status !== '' ? status : '', 
+        processed_by || null, 
+        submitter_name || null,
+        branch_id || null, 
+        branch_name || null,
         t_items ? JSON.stringify(t_items) : null, tools_quantity || null,
         c_items ? JSON.stringify(c_items) : null, chemical_quantity || null,
         additional_notes || null,
@@ -388,4 +607,82 @@ async function handleSupply(request, env, origin, path) {
     }
   }
   return error('Not found', 404, origin);
+}
+
+async function importSupply(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  // keys: submitted_at(date), submitter_name, branch_id
+  const existing = await env.DB.prepare('SELECT id, branch_id, date(submitted_at) as submitted_date, submitter_name FROM supply_requests').all();
+  const existingMap = new Map();
+  (existing.results || []).forEach(s => {
+    if (s.branch_id && s.submitted_date && s.submitter_name) {
+      existingMap.set(s.branch_id + '_' + s.submitted_date + '_' + s.submitter_name.toLowerCase().trim(), s.id);
+    }
+  });
+
+  const stmts = [];
+  let inserted = 0;
+  let updated = 0;
+
+  for (const item of body) {
+    if (!item.branch_id || !item.submitted_at || !item.submitter_name) continue;
+    
+    // submitted_at in json is just date
+    const key = item.branch_id + '_' + item.submitted_at + '_' + item.submitter_name.toLowerCase().trim();
+    const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : 'Pending';
+    
+    const t_items = item.tools_items ? item.tools_items.split(',').map(s=>s.trim()) : [];
+    const c_items = item.chemical_items ? item.chemical_items.split(',').map(s=>s.trim()) : [];
+
+    if (existingMap.has(key)) {
+      const id = existingMap.get(key);
+      stmts.push(
+        env.DB.prepare(
+          `UPDATE supply_requests SET tools_items = ?, chemical_items = ?, additional_notes = ?, status = ?, processed_by = ? WHERE id = ?`
+        ).bind(
+          JSON.stringify(t_items),
+          JSON.stringify(c_items),
+          item.additional_notes || null,
+          status,
+          item.processed_by || null,
+          id
+        )
+      );
+      updated++;
+    } else {
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO supply_requests (submitted_at, submitter_name, branch_id, tools_items, chemical_items, additional_notes, status, processed_by) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.submitted_at + ' 12:00:00', // ensure valid timestamp
+          item.submitter_name,
+          item.branch_id,
+          JSON.stringify(t_items),
+          JSON.stringify(c_items),
+          item.additional_notes || null,
+          status,
+          item.processed_by || null
+        )
+      );
+      inserted++;
+    }
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ 
+      message: `Berhasil mengimport data`, 
+      inserted, 
+      updated,
+      failed: 0,
+      total: body.length 
+    }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
 }
