@@ -25,6 +25,7 @@ export async function renderFoggingReports(container) {
       { key: 'notes', label: 'Catatan', render: v => v || '-' },
     ],
     filterFields: [
+      { type: 'search', placeholder: 'Cari nama cabang/lokasi...' },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done'] },

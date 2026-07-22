@@ -24,6 +24,7 @@ export async function renderCleaningReports(container) {
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
     filterFields: [
+      { type: 'search', placeholder: 'Cari nama cabang/lokasi...' },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Jenis', options: ['General Cleaning', 'Deep Cleaning'] },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },

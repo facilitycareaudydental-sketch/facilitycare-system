@@ -25,6 +25,7 @@ export async function renderInspectionReports(container) {
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
     filterFields: [
+      { type: 'search', placeholder: 'Cari cabang / PIC...' },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done'] },

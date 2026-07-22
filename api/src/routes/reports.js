@@ -30,6 +30,7 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
   const period = url.searchParams.get('period') || '';
   const status = url.searchParams.get('status') || '';
   const year = url.searchParams.get('year') || '';
+  const search = url.searchParams.get('search') || '';
 
   let conditions = [...extraConditions];
   let values = [];
@@ -41,6 +42,18 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
                       table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
     conditions.push(`strftime('%Y', t.${dateField}) = ?`);
     values.push(year);
+  }
+  if (search) {
+    if (table === 'inspection_reports') {
+      conditions.push('(b.full_name LIKE ? OR t.pic_cleaner LIKE ? OR t.pic_spesialis LIKE ?)');
+      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    } else if (table === 'cleaning_reports' || table === 'fogging_reports') {
+      conditions.push('(b.full_name LIKE ? OR t.activity_type LIKE ? OR t.location LIKE ?)');
+      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    } else {
+      conditions.push('(b.full_name LIKE ?)');
+      values.push(`%${search}%`);
+    }
   }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
