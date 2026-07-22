@@ -68,7 +68,7 @@ if (esbuildCmd) {
     // Use content hash in filename so Cloudflare CDN always serves fresh file
     const metafile = path.join(distDir, 'assets', 'meta.json');
     execSync(
-      `${esbuildCmd} ${path.join(srcDir, 'app.js')} --bundle --outdir=${path.join(distDir, 'assets')} --entry-names=[name]-[hash] --format=esm --minify --platform=browser --metafile=${metafile}`,
+      `${esbuildCmd} "${path.join(srcDir, 'app.js')}" --bundle --outdir="${path.join(distDir, 'assets')}" --entry-names=[name]-[hash] --format=esm --minify --platform=browser --metafile="${metafile}"`,
       { stdio: 'inherit' }
     );
 

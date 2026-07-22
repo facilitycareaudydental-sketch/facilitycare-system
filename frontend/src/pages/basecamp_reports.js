@@ -26,6 +26,21 @@ export async function renderBasecampReports(container) {
       return [...rawPicOptions, { value: val, label: val }];
     }
     return rawPicOptions;
+  };
+
+  buildCrudPage({
+    container,
+    title: 'Rekap Laporan Basecamp',
+    icon: '📝',
+    apiPath: '/api/reports/basecamp',
+    bulkDelete: true,
+    itemLabel: 'Laporan Basecamp',
+    columns: [
+      { key: 'info_date', label: 'Tgl Info', nowrap: true , render: v => window.formatDate(v) },
+      { key: 'branch_name', label: 'Cabang' },
+      { key: 'problem', label: 'Permasalahan', render: v => `<span title="${v || ''}">${v?.length > 60 ? v.slice(0, 60) + '…' : (v || '-')}</span>` },
+      { key: 'pic', label: 'PIC' },
+      { key: 'done_date', label: 'Tgl Done', nowrap: true , render: v => window.formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
       { key: 'notes', label: 'Keterangan', render: v => v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-') },
     ],
