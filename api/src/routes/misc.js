@@ -23,6 +23,22 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-emp-dupes')) {
+    try {
+      // Find duplicate names
+      const dupes = await env.DB.prepare('SELECT full_name, COUNT(*) as c, MIN(id) as min_id FROM employees GROUP BY full_name HAVING c > 1').all();
+      let deleted = 0;
+      for (const d of dupes.results) {
+        // Delete all except the oldest one
+        const res = await env.DB.prepare('DELETE FROM employees WHERE full_name = ? AND id != ?').bind(d.full_name, d.min_id).run();
+        deleted += res.meta.changes;
+      }
+      return ok({ message: `Deleted ${deleted} duplicate employees` }, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-emp-fixdates')) {
     try {
       const contracts = await env.DB.prepare('SELECT id, start_date, end_date FROM contracts').all();

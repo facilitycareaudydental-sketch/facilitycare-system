@@ -38,7 +38,7 @@ export async function renderContracts(container) {
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
-      { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif'] },
+      { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
       { type: 'select', name: 'expiring_days', label: 'Akan Habis', options: [
         { value: '7', label: '7 Hari' },
         { value: '14', label: '14 Hari' },
@@ -56,7 +56,7 @@ export async function renderContracts(container) {
       {
         type: 'row', fields: [
           { name: 'division', label: 'Div / Bagian', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY'], value: data?.division || 'FACILITY CARE' },
-          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Aktif', 'Tidak Aktif'], value: data?.status || '' },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'], value: data?.status || '' },
         ]
       },
       {
