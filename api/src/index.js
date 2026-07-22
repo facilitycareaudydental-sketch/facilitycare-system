@@ -53,6 +53,7 @@ export default {
         if (!user) return new Response('Unauthorized', { status: 401, headers: { 'Access-Control-Allow-Origin': origin } });
         
         const moduleMap = {
+          '/api/branches/bulk': { table: 'branches', perm: 'branches' },
           '/api/employees/bulk': { table: 'employees', perm: 'employees' },
           '/api/issues/bulk': { table: 'issues', perm: 'issues', calModule: 'issues' },
           '/api/schedule/bulk': { table: 'activity_schedule', perm: 'schedule', calModule: 'schedule' },
