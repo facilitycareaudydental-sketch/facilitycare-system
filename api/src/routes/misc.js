@@ -23,6 +23,46 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-emp-fixdates')) {
+    try {
+      const contracts = await env.DB.prepare('SELECT id, start_date, end_date FROM contracts').all();
+      let fixedCount = 0;
+      for (const c of contracts.results) {
+        let updated = false;
+        let newStart = c.start_date;
+        let newEnd = c.end_date;
+        
+        const fix = (s) => {
+          if (/^\d{4,5}$/.test(s)) {
+            const n = Number(s);
+            if (n > 20000 && n < 99999) {
+              const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+              return isNaN(d.getTime()) ? s : d.toISOString().slice(0, 10);
+            }
+          }
+          return s;
+        };
+
+        if (c.start_date) {
+          const fs = fix(c.start_date);
+          if (fs !== c.start_date) { newStart = fs; updated = true; }
+        }
+        if (c.end_date) {
+          const fe = fix(c.end_date);
+          if (fe !== c.end_date) { newEnd = fe; updated = true; }
+        }
+
+        if (updated) {
+          await env.DB.prepare('UPDATE contracts SET start_date = ?, end_date = ? WHERE id = ?').bind(newStart, newEnd, c.id).run();
+          fixedCount++;
+        }
+      }
+      return ok({ message: `Fixed ${fixedCount} contracts` }, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   if (path.startsWith('/api/audit-emp-clean')) {
     try {
       await env.DB.prepare('DELETE FROM employees WHERE id = 857').run();
