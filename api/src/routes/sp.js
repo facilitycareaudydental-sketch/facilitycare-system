@@ -55,12 +55,12 @@ export async function handleSP(request, env, origin) {
     try {
       let body;
       try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-      const { tanggal, employee_name, branch_id, sp_type, status, document_link } = body;
+      const { tanggal, employee_name, division, branch_id, akhir_sp, sp_type, status, document_link } = body;
       if (!employee_name) return error('employee_name required', 400, origin);
 
       const result = await env.DB.prepare(
-        'INSERT INTO sp_data (tanggal, employee_name, branch_id, sp_type, status, document_link) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(tanggal || null, employee_name, branch_id || null, sp_type || '', status !== null && status !== undefined && status !== '' ? status : '', document_link || null).run();
+        'INSERT INTO sp_data (tanggal, employee_name, division, branch_id, akhir_sp, sp_type, status, document_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).bind(tanggal || null, employee_name, division || null, branch_id || null, akhir_sp || null, sp_type || '', status !== null && status !== undefined && status !== '' ? status : '', document_link || null).run();
 
       return ok({ id: result.meta.last_row_id, message: 'SP berhasil ditambahkan' }, 201, origin);
     } catch (e) {
@@ -86,12 +86,12 @@ export async function handleSP(request, env, origin) {
       try {
         let body;
         try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-        const { tanggal, employee_name, branch_id, sp_type, status, document_link } = body;
+        const { tanggal, employee_name, division, branch_id, akhir_sp, sp_type, status, document_link } = body;
         await env.DB.prepare(
           `UPDATE sp_data SET tanggal=COALESCE(?,tanggal), employee_name=COALESCE(?,employee_name),
-           branch_id=COALESCE(?,branch_id), sp_type=COALESCE(?,sp_type),
+           division=COALESCE(?,division), branch_id=COALESCE(?,branch_id), akhir_sp=COALESCE(?,akhir_sp), sp_type=COALESCE(?,sp_type),
            status=COALESCE(?,status), document_link=COALESCE(?,document_link) WHERE id=?`
-        ).bind(tanggal || null, employee_name || null, branch_id || null, sp_type || null, status !== null && status !== undefined && status !== '' ? status : '', document_link || null, id).run();
+        ).bind(tanggal || null, employee_name || null, division || null, branch_id || null, akhir_sp || null, sp_type || null, status !== null && status !== undefined && status !== '' ? status : '', document_link || null, id).run();
         return ok({ message: 'SP berhasil diperbarui' }, 200, origin);
       } catch (e) {
         return error('Server error: ' + e.message, 500, origin);
