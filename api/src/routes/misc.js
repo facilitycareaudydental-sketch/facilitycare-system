@@ -73,7 +73,7 @@ export async function handleMisc(request, env, origin) {
       
       await del('issues', 'SELECT branch_id, report_date, category, complaint, COUNT(*) as c, MAX(id) as max_id FROM issues GROUP BY branch_id, report_date, category, complaint HAVING c > 1', 'DELETE FROM issues WHERE (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) AND report_date = ? AND category = ? AND complaint = ? AND id != ?', ['branch_id', 'branch_id', 'report_date', 'category', 'complaint']);
       
-      await del('one_on_one', 'SELECT branch_id, meeting_date, employee_name, COUNT(*) as c, MAX(id) as max_id FROM one_on_one GROUP BY branch_id, meeting_date, employee_name HAVING c > 1', 'DELETE FROM one_on_one WHERE branch_id = ? AND meeting_date = ? AND employee_name = ? AND id != ?', ['branch_id', 'meeting_date', 'employee_name']);
+      await del('one_on_one', 'SELECT branch_id, meeting_date, employee_name, COUNT(*) as c, MAX(id) as max_id FROM one_on_one GROUP BY branch_id, meeting_date, employee_name HAVING c > 1', 'DELETE FROM one_on_one WHERE (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) AND meeting_date = ? AND employee_name = ? AND id != ?', ['branch_id', 'branch_id', 'meeting_date', 'employee_name']);
       
       await del('inspection_reports', 'SELECT branch_id, period, inspection_date, COUNT(*) as c, MAX(id) as max_id FROM inspection_reports GROUP BY branch_id, period, inspection_date HAVING c > 1', 'DELETE FROM inspection_reports WHERE branch_id = ? AND period = ? AND inspection_date = ? AND id != ?', ['branch_id', 'period', 'inspection_date']);
       
