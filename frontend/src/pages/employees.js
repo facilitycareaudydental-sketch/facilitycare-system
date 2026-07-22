@@ -45,7 +45,7 @@ export async function renderEmployees(container) {
       },
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions },
           { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY'], value: data?.division || 'FACILITY CARE' },
         ]
       },
