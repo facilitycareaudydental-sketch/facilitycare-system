@@ -19,6 +19,14 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+ALTER TABLE users ADD COLUMN phone TEXT;
+ALTER TABLE users ADD COLUMN division TEXT;
+ALTER TABLE users ADD COLUMN position TEXT;
+
+-- sp_data migrations
+ALTER TABLE sp_data ADD COLUMN division TEXT;
+ALTER TABLE sp_data ADD COLUMN akhir_sp TEXT;
+
 CREATE TABLE IF NOT EXISTS roles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
