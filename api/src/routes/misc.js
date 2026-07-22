@@ -2,6 +2,7 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { importSchedule } from './schedule.js';
 
 export async function handleMisc(request, env, origin) {
   const url = new URL(request.url);
@@ -58,6 +59,10 @@ export async function handleMisc(request, env, origin) {
     } catch(e) {
       return error(e.message, 500, origin);
     }
+  }
+
+  if (path.startsWith('/api/audit-import-schedule') && request.method === 'POST') {
+    return importSchedule(request, env, origin);
   }
 
   if (path.startsWith('/api/audit-clean-up-reports') && request.method === 'POST') {

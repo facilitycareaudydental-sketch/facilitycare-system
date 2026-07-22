@@ -131,7 +131,7 @@ async function deleteSchedule(id, env, origin) {
   return ok({ message: 'Schedule deleted' }, 200, origin);
 }
 
-async function importSchedule(request, env, origin) {
+export async function importSchedule(request, env, origin) {
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);

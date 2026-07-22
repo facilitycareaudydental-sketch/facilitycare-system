@@ -154,7 +154,7 @@ export default {
 
       if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || 
         path.startsWith('/api/forms') || path.startsWith('/api/pic') || 
-        path.startsWith('/api/options') || path.startsWith('/api/audit-expired-contracts') || path.startsWith('/api/audit-check-null-branches') || path.startsWith('/api/audit-clean-up-reports') || path.startsWith('/api/audit-force-branches') || path.startsWith('/api/audit-emp') || path.startsWith('/api/audit-verification') || path.startsWith('/api/audit-clean-up-5') || path.startsWith('/api/audit-clean-up-4') || path.startsWith('/api/audit-clean-up-3') || path.startsWith('/api/audit-emp-clean') || path.startsWith('/api/audit-emp-fixdates') || path.startsWith('/api/audit-emp-dupes') || path.startsWith('/api/audit-duplicates-2')) {
+        path.startsWith('/api/options') || path.startsWith('/api/audit-expired-contracts') || path.startsWith('/api/audit-check-null-branches') || path.startsWith('/api/audit-import-schedule') || path.startsWith('/api/audit-clean-up-reports') || path.startsWith('/api/audit-force-branches') || path.startsWith('/api/audit-emp') || path.startsWith('/api/audit-verification') || path.startsWith('/api/audit-clean-up-5') || path.startsWith('/api/audit-clean-up-4') || path.startsWith('/api/audit-clean-up-3') || path.startsWith('/api/audit-emp-clean') || path.startsWith('/api/audit-emp-fixdates') || path.startsWith('/api/audit-emp-dupes') || path.startsWith('/api/audit-duplicates-2')) {
         return handleMisc(request, env, origin);
       }
 
