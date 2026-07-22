@@ -44,6 +44,12 @@ export default {
       });
     }
 
+    if (url.pathname === '/api/migrate-sp') {
+      try { await env.DB.prepare('ALTER TABLE sp_data ADD COLUMN division TEXT').run(); } catch(e){}
+      try { await env.DB.prepare('ALTER TABLE sp_data ADD COLUMN akhir_sp TEXT').run(); } catch(e){}
+      return ok({ message: 'Migration applied!' }, 200, origin);
+    }
+
     try {
       const path = url.pathname;
 
