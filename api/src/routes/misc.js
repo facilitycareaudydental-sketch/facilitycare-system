@@ -23,6 +23,16 @@ export async function handleMisc(request, env, origin) {
     }
   }
 
+  if (path.startsWith('/api/audit-emp')) {
+    try {
+      const stats = await env.DB.prepare('SELECT status, COUNT(*) as count FROM employees GROUP BY status').all();
+      const recent = await env.DB.prepare('SELECT id, full_name, created_at, status FROM employees ORDER BY id DESC LIMIT 50').all();
+      return ok({ stats: stats.results, recent: recent.results }, 200, origin);
+    } catch (e) {
+      return error(e.message, 500, origin);
+    }
+  }
+
   return error('Not found', 404, origin);
 }
 
