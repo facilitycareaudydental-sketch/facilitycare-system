@@ -120,8 +120,8 @@ export async function renderContracts(container) {
           if (!v) return '';
           if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
           const s = String(v).trim();
-          if (/^\d{4,5}$/.test(s)) {
-            const n = Number(s);
+          if (/^\d{4,5}(\.\d+)?$/.test(s)) {
+            const n = Math.floor(Number(s));
             if (n > 20000 && n < 99999) {
               const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
               return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
