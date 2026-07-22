@@ -61,6 +61,10 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
 async function handleInspection(request, env, user, origin, path) {
   const idMatch = path.match(/^\/(\d+)$/);
   if (request.method === 'GET' && path === '') return crudList(request, env, origin, 'inspection_reports');
+  if (request.method === 'POST' && path === '/import') {
+    if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
+    return importInspection(request, env, origin);
+  }
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'reports', 'write')) return forbidden(origin);
     return createInspection(request, env, origin);
@@ -93,6 +97,79 @@ async function createInspection(request, env, origin) {
     'INSERT INTO inspection_reports (branch_id, period, inspection_date, status, fc_score, spv_score, document_link, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(branch_id || null, period, inspection_date, status !== null && status !== undefined && status !== '' ? status : '', fc_score || null, spv_score || null, document_link || null, notes || null).run();
   return ok({ id: result.meta.last_row_id }, 201, origin);
+}
+
+async function importInspection(request, env, origin) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
+  if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
+
+  const existing = await env.DB.prepare('SELECT id, branch_id, period, inspection_date FROM inspection_reports').all();
+  const existingMap = new Map();
+  (existing.results || []).forEach(s => {
+    if (s.branch_id && s.period && s.inspection_date) {
+      existingMap.set(s.branch_id + '_' + s.period.toLowerCase().trim() + '_' + s.inspection_date, s.id);
+    }
+  });
+
+  const stmts = [];
+  let inserted = 0;
+  let updated = 0;
+
+  for (const item of body) {
+    if (!item.branch_id || !item.period || !item.inspection_date) continue;
+    
+    const key = item.branch_id + '_' + item.period.toLowerCase().trim() + '_' + item.inspection_date;
+    const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
+
+    if (existingMap.has(key)) {
+      const id = existingMap.get(key);
+      stmts.push(
+        env.DB.prepare(
+          `UPDATE inspection_reports SET fc_score = ?, spv_score = ?, status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(
+          item.fc_score,
+          item.spv_score,
+          status,
+          item.document_link || null,
+          item.notes || null,
+          id
+        )
+      );
+      updated++;
+    } else {
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO inspection_reports (branch_id, period, inspection_date, fc_score, spv_score, status, document_link, notes) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          item.branch_id,
+          item.period,
+          item.inspection_date,
+          item.fc_score,
+          item.spv_score,
+          status,
+          item.document_link || null,
+          item.notes || null
+        )
+      );
+      inserted++;
+    }
+  }
+
+  try {
+    if (stmts.length > 0) await env.DB.batch(stmts);
+    return ok({ 
+      message: `Berhasil mengimport data`, 
+      inserted, 
+      updated,
+      failed: 0,
+      total: body.length 
+    }, 200, origin);
+  } catch (err) {
+    return error('Gagal import data: ' + err.message, 500, origin);
+  }
 }
 
 async function updateInspection(id, request, env, origin) {
