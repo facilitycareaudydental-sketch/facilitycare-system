@@ -65,6 +65,11 @@ export async function handleMisc(request, env, origin) {
     let body;
     try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     
+    const url = new URL(request.url);
+    if (url.searchParams.get('wipe') === '1') {
+      await env.DB.prepare('DELETE FROM activity_schedule').run();
+    }
+    
     // fetch branches to map
     const bRes = await env.DB.prepare('SELECT id, name, full_name, code FROM branches').all();
     const branches = bRes.results || [];

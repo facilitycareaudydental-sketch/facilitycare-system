@@ -51,7 +51,7 @@ for (let i = 1; i < lines.length; i++) {
 const req = https.request({
   hostname: 'facilitycare-system.pages.dev',
   port: 443,
-  path: '/api/audit-import-schedule',
+  path: '/api/audit-import-schedule?wipe=1',
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
