@@ -60,8 +60,8 @@ export function renderExcelButtons(moduleName) {
       <button class="btn btn-secondary btn-sm" id="btn-template-${moduleName}">
         📄 Download Template
       </button>
-      <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0;">
-        📤 Import Excel
+      <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0;" id="label-import-${moduleName}">
+        <span class="import-text">📤 Import Excel</span>
         <input type="file" id="input-import-${moduleName}" accept=".xlsx, .xls, .csv" style="display:none;">
       </label>
     </div>

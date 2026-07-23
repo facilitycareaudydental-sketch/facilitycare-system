@@ -190,10 +190,11 @@ export function buildCrudPage({
     fileInput?.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const label = fileInput.parentElement;
-      const originalText = label.innerHTML;
-      label.innerHTML = '⏳ Memproses...';
-      label.style.pointerEvents = 'none';
+      const label = document.getElementById(`label-import-${exportOptions.moduleName}`);
+      const span = label ? label.querySelector('.import-text') : null;
+      const originalText = span ? span.innerText : '';
+      if (span) span.innerText = '⌛ Memproses...';
+      if (label) label.style.pointerEvents = 'none';
       fileInput.disabled = true;
       
       try {
@@ -205,8 +206,8 @@ export function buildCrudPage({
       } catch (err) {
         toastError(err.message || 'Gagal import data');
       } finally {
-        label.innerHTML = originalText;
-        label.style.pointerEvents = 'auto';
+        if (span) span.innerText = originalText;
+        if (label) label.style.pointerEvents = 'auto';
         fileInput.disabled = false;
         fileInput.value = ''; // reset
       }
