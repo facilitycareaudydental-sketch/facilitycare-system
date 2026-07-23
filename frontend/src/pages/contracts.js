@@ -15,6 +15,30 @@ async function loadOptions() {
   employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.id, label: e.full_name }));
 }
 
+const fetchAll = async (path) => {
+  let all = [];
+  let page = 1;
+  while (true) {
+    const m = await import('../config.js');
+    const res = await m.apiFetch(`${path}${path.includes('?') ? '&' : '?'}limit=100&page=${page}`);
+    if (!res.ok) break;
+    const data = res.data?.data || res.data || [];
+    const dataArr = Array.isArray(data) ? data : [];
+    all = all.concat(dataArr);
+    
+    // If we got less than the limit, we're on the last page.
+    if (dataArr.length < 100) break;
+    
+    // If the backend provides pagination metadata, respect it.
+    if (res.data?.pagination && page >= res.data.pagination.pages) break;
+    
+    // Otherwise, if we got exactly 100 and no pagination metadata, 
+    // we must assume there MIGHT be another page and fetch it.
+    page++;
+  }
+  return all;
+};
+
 export async function renderContracts(container) {
   await loadOptions();
 
@@ -63,30 +87,6 @@ export async function renderContracts(container) {
           btn.innerHTML = '⌛ Mencari...';
           btn.disabled = true;
           try {
-            const fetchAll = async (path) => {
-               let all = [];
-               let page = 1;
-               while (true) {
-                 const m = await import('../config.js');
-                 const res = await m.apiFetch(`${path}${path.includes('?') ? '&' : '?'}limit=100&page=${page}`);
-                 if (!res.ok) break;
-                 const data = res.data?.data || res.data || [];
-                 const dataArr = Array.isArray(data) ? data : [];
-                 all = all.concat(dataArr);
-                 
-                 // If we got less than the limit, we're on the last page.
-                 if (dataArr.length < 100) break;
-                 
-                 // If the backend provides pagination metadata, respect it.
-                 if (res.data?.pagination && page >= res.data.pagination.pages) break;
-                 
-                 // Otherwise, if we got exactly 100 and no pagination metadata, 
-                 // we must assume there MIGHT be another page and fetch it.
-                 page++;
-               }
-               return all;
-            };
-
             const [activeEmps, allContracts] = await Promise.all([
               fetchAll('/api/employees?status=Aktif'),
               fetchAll('/api/contracts')
@@ -173,12 +173,12 @@ export async function renderContracts(container) {
         downloadExcel(template, 'Template_Import_Kontrak');
       },
       onImport: async (json) => {
-        const [bRes, eRes] = await Promise.all([
-          apiFetch('/api/branches?all=1'),
-          apiFetch(`/api/contracts${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
+        const [bRes, eData] = await Promise.all([
+          apiFetch('/api/branches?limit=10000'),
+          fetchAll(`/api/employees`)
         ]);
         const rawBranches = bRes.data?.data || [];
-        const rawEmployees = eRes.data?.data || [];
+        const rawEmployees = eData || [];
         
         const matchBranch = (str) => {
           if (!str) return null;
