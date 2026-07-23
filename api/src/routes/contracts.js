@@ -94,7 +94,7 @@ async function createContract(request, env, origin) {
 
   const result = await env.DB.prepare(
     'INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(employee_id, branch_id || null, division || 'FACILITY CARE', start_date || null, end_date || null,
+  ).bind(employee_id, branch_id || null, division || 'FACILITY CARE', start_date || '', end_date || '',
     contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
 
   const newId = result.meta.last_row_id;
