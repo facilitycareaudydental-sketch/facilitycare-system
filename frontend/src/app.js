@@ -34,10 +34,10 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force52';
+import { renderDashboard } from './pages/dashboard.js?v=force53';
 import { renderLogin } from './pages/login.js';
 import { renderEmployees } from './pages/employees.js';
-import { renderContracts } from './pages/contracts.js?v=force52';
+import { renderContracts } from './pages/contracts.js?v=force53';
 import { renderSchedule } from './pages/schedule.js';
 import { renderIssues } from './pages/issues.js';
 import { renderOneOnOne } from './pages/one_on_one.js';

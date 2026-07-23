@@ -137,7 +137,7 @@ export async function renderContracts(container) {
       },
       {
         type: 'row', fields: [
-          { name: 'start_date', label: 'Tanggal Mulai', type: 'date', required: true, value: data?.start_date },
+          { name: 'start_date', label: 'Tanggal Mulai', type: 'date', value: data?.start_date },
           { name: 'end_date', label: 'Tanggal Selesai', type: 'date', value: data?.end_date && !String(data.end_date).startsWith('2099') ? data.end_date : '' },
         ]
       },
