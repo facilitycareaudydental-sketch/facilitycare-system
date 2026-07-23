@@ -272,8 +272,8 @@ export async function renderDashboard(container) {
       <div class="mini-stats-row" id="mini-stats-row">${skelMini()}</div>
 
       <!-- Charts Row -->
-      <div style="display:flex; gap:16px; width:100%; align-items:stretch;">
-        <div class="chart-card" style="flex: 1 1 0; min-width:0;">
+      <div class="charts-row">
+        <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Permasalahan per Kategori</div>
           </div>
@@ -288,7 +288,7 @@ export async function renderDashboard(container) {
             Periode: 22 Juni - 22 Juli 2026
           </div>
         </div>
-        <div class="chart-card" style="flex: 1 1 0; min-width:0;">
+        <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Trend Permasalahan 12 Bulan</div>
             <div style="display:flex;align-items:center;gap:16px;font-size:0.75rem;font-weight:600;color:var(--text-2)">
@@ -301,7 +301,7 @@ export async function renderDashboard(container) {
             <canvas id="chart-trend" style="display:none"></canvas>
           </div>
         </div>
-        <div class="chart-card" style="flex: 1 1 0; min-width:0;">
+        <div class="chart-card">
           <div class="chart-card-header" style="align-items:flex-start">
             <div>
               <a href="#/reports/inspection" class="chart-card-title" style="text-decoration:none; display:inline-block">Rata-rata Skor Inspeksi per Cabang <span style="font-size:0.8rem; color:var(--primary); font-weight:600; margin-left:8px">Lihat Laporan &rarr;</span></a>
