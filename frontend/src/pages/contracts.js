@@ -300,30 +300,85 @@ export async function renderContracts(container) {
              console.log('==========================\n');
           }
 
+          let empId = matchEmployee(rawName, rowNum);
+          
+          let reason = null;
+          if (!empId) {
+             reason = `Karyawan tidak ditemukan di Database`;
+          } else if (!parsedStartDate) {
+             reason = `Tanggal Mulai kosong atau tidak berformat tanggal`;
+          }
+
           return {
-            employee_id: matchEmployee(rawName, rowNum),
-            branch_id: matchBranch(String(row['Cabang'] || '').trim()),
-            division: String(row['Div / Bagian'] || '').trim() || 'FACILITY CARE',
-            start_date: parsedStartDate,
-            end_date: parseDate(row['Tanggal Selesai']) || '2099-12-31',
-            status: String(row['Status'] || '').trim(),
-            _rawName: rawName
+            isValid: !!(empId && parsedStartDate),
+            invalidReason: reason,
+            rowNum: rowNum,
+            data: {
+                employee_id: empId,
+                branch_id: matchBranch(String(row['Cabang'] || '').trim()),
+                division: String(row['Div / Bagian'] || '').trim() || 'FACILITY CARE',
+                start_date: parsedStartDate,
+                end_date: parseDate(row['Tanggal Selesai']) || '2099-12-31',
+                status: String(row['Status'] || '').trim(),
+                _rawName: rawName
+            }
           };
         });
         
-        const missing = payload.filter(r => !r.employee_id || !r.start_date);
-        if (missing.length > 0) {
-           const names = missing.map(m => m._rawName).join(', ');
-           const missingBecauseEmptyEmployee = payload.filter(r => !r.employee_id).length;
-           const missingBecauseEmptyDate = payload.filter(r => !r.start_date).length;
-           throw new Error(`[DB: ${rawEmployees.length} Emps (ex: ${rawEmployees[0]?.full_name || 'N/A'}), ${rawBranches.length} Branches] Terdapat ${missing.length} baris gagal (EmpID kosong: ${missingBecauseEmptyEmployee}, Date kosong: ${missingBecauseEmptyDate}). Cek karyawan: ${names}`);
+        const validPayload = [];
+        const invalidList = [];
+        
+        payload.forEach(p => {
+           if (p.isValid) {
+               validPayload.push(p.data);
+           } else {
+               invalidList.push({
+                   rowNum: p.rowNum,
+                   name: p.data._rawName,
+                   reason: p.invalidReason
+               });
+           }
+        });
+        
+        console.log(`Split Validation - Valid: ${validPayload.length}, Invalid: ${invalidList.length}`);
+        
+        if (validPayload.length === 0) {
+           let errorMsg = `SEMUA BARIS GAGAL IMPORT!\n\nTotal Excel: ${json.length}\nValid: 0\nInvalid: ${invalidList.length}\n\nDaftar Kegagalan (Contoh):\n`;
+           invalidList.slice(0, 10).forEach(inv => {
+               errorMsg += `- Row ${inv.rowNum} | Nama: ${inv.name} | Alasan: ${inv.reason}\n`;
+           });
+           if (invalidList.length > 10) errorMsg += `- ... dan ${invalidList.length - 10} lainnya.\n`;
+           alert(errorMsg);
+           return;
         }
         
         const res = await apiFetch('/api/contracts/import', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify(validPayload)
         });
-        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        
+        let summary = `IMPORT SUMMARY\n======================\n`;
+        summary += `Total Baris Excel : ${json.length}\n`;
+        summary += `Baris Valid       : ${validPayload.length}\n`;
+        summary += `Baris Invalid     : ${invalidList.length}\n\n`;
+        
+        if (res && res.data && res.data.metrics) {
+           summary += `Berhasil INSERT   : ${res.data.metrics.inserted}\n`;
+           summary += `Berhasil UPDATE   : ${res.data.metrics.updated}\n`;
+        } else {
+           summary += `Berhasil diproses : ${validPayload.length}\n`;
+        }
+        
+        if (invalidList.length > 0) {
+           summary += `\nDAFTAR DATA DILEWATI:\n`;
+           invalidList.forEach(inv => {
+               summary += `- Row ${inv.rowNum} | ${inv.name} | ${inv.reason}\n`;
+           });
+        }
+        
+        alert(summary);
+        
+        if (typeof renderContracts === 'function') renderContracts();
       }
     }
   });
