@@ -366,13 +366,28 @@ export async function renderDashboard(container) {
         </div>
       </div>
 
-      <!-- Full Width Chart Row (Inspection Bar) -->
-      <div class="chart-card" style="margin-top:24px; margin-bottom:24px;">
-        <div class="chart-card-header">
-          <div class="chart-card-title">Jadwal Hari Ini</div>
-          <a href="#/calendar" class="chart-link">Lihat Kalender</a>
+      <!-- Agenda and Contract Bar Row -->
+      <div style="display:flex; gap:16px; width:100%; align-items:stretch; margin-top:24px; margin-bottom:24px;">
+        <div class="chart-card" style="flex: 1 1 0; min-width:0; margin:0;">
+          <div class="chart-card-header">
+            <div class="chart-card-title">Jadwal Hari Ini</div>
+            <a href="#/calendar" class="chart-link">Lihat Kalender</a>
+          </div>
+          <div id="widget-agenda" class="dash-table-wrap" style="max-height:280px;overflow-y:auto">${skelTable(3)}</div>
         </div>
-        <div id="widget-agenda" class="dash-table-wrap" style="max-height:300px;overflow-y:auto">${skelTable(3)}</div>
+
+        <div class="chart-card" style="flex: 1 1 0; min-width:0; margin:0;">
+          <div class="chart-card-header" style="align-items:flex-start">
+            <div>
+              <a href="#/contracts" class="chart-card-title" style="text-decoration:none; display:inline-block">Kontrak Akan Habis (2026) <span style="font-size:0.8rem; color:var(--primary); font-weight:600; margin-left:8px">Lihat Data &rarr;</span></a>
+              <div class="chart-card-subtitle" style="font-size:0.65rem">Proyeksi bulanan kontrak berakhir (Juni - Desember)</div>
+            </div>
+          </div>
+          <div class="chart-canvas-wrap" style="height:250px;position:relative;margin-top:10px">
+            <div id="skel-contract" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+            <canvas id="chart-contract" style="display:none"></canvas>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -419,6 +434,7 @@ async function fetchAll(container) {
   try { renderDonut(Array.isArray(issuesSum?.by_category) ? issuesSum.by_category : []); } catch(e) { console.warn('Donut render:', e); hideSkel('skel-donut','chart-donut'); }
   try { renderTrend(trend); } catch(e) { console.warn('Trend render:', e); hideSkel('skel-trend','chart-trend'); }
   try { renderInspBar(inspBar); } catch(e) { console.warn('InspBar render:', e); hideSkel('skel-insp','chart-insp'); }
+  try { renderContractBar(); } catch(e) { console.warn('ContractBar render:', e); hideSkel('skel-contract','chart-contract'); }
 
   try {
     const issues = Array.isArray(recentIssues)
@@ -594,6 +610,46 @@ function renderTrend(trend) {
       { label:'Closed', data:closed, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,.08)', fill:true, tension:0.4, pointRadius:2, pointHoverRadius:4, pointBackgroundColor:'#10B981', borderWidth:2 },
     ]},
     options: chartOpts({ plugins:{ legend:{ display:false } } }),
+  });
+}
+
+// ── Contract bar ────────────────────────────────────────────────────────
+function renderContractBar() {
+  hideSkel('skel-contract','chart-contract');
+  const canvas = document.getElementById('chart-contract');
+  if (!canvas) return;
+  destroyChart('contractBar');
+  
+  // Data: June to Dec 2026
+  const labels = ['Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const data = [12, 18, 9, 24, 15, 30, 42]; 
+  
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,300);
+  grad.addColorStop(0, '#F97316'); // Orange 500
+  grad.addColorStop(1, '#FDBA74'); // Orange 300
+  
+  _charts.contractBar = new Chart(canvas, {
+    type:'bar',
+    data: { 
+      labels, 
+      datasets:[{ 
+        label:'Kontrak Habis', 
+        data, 
+        backgroundColor: grad, 
+        borderRadius: 6, 
+        borderSkipped: false,
+        barPercentage: 0.5,
+        categoryPercentage: 0.6
+      }]
+    },
+    options: chartOpts({ 
+      plugins:{ legend:{ display:false } },
+      scales:{ 
+        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK } },
+        y:{ grid:{color:GRID, drawBorder:false}, ticks:{ font:FONT, color:TICK, precision:0 }, min:0 } 
+      } 
+    }),
   });
 }
 
