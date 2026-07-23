@@ -86,7 +86,7 @@ export async function renderContracts(container) {
               });
               html += '</ul>';
               
-              import('../components/modal.js').then(m => m.createModal('Daftar Karyawan Tanpa Kontrak Aktif', html));
+              import('../components/modal.js').then(m => m.createModal({ title: 'Karyawan Tanpa Kontrak Aktif', content: html, cancelText: 'Tutup' }));
             }
           } catch(e) {
              console.error(e);
