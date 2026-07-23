@@ -324,7 +324,7 @@ export async function renderDashboard(container) {
             <div class="chart-card-title">Jadwal Hari Ini</div>
             <a href="#/calendar" class="chart-link">Lihat Kalender</a>
           </div>
-          <div id="widget-agenda" class="dash-table-wrap" style="height:200px;overflow-y:auto">${skelTable(3)}</div>
+          <div id="widget-agenda" class="dash-table-wrap" style="height:160px;overflow-y:auto">${skelTable(3)}</div>
         </div>
         <!-- KPI Kebersihan -->
         <div class="chart-card">
@@ -339,7 +339,7 @@ export async function renderDashboard(container) {
             <div class="chart-card-title">Permasalahan Terbaru</div>
             <a href="#/issues" class="chart-link">Lihat Semua</a>
           </div>
-          <div id="table-issues" class="dash-table-wrap" style="height:200px;overflow-y:auto">${skelTable(3)}</div>
+          <div id="table-issues" class="dash-table-wrap" style="height:160px;overflow-y:auto">${skelTable(3)}</div>
         </div>
         <!-- Kontrak Akan Habis -->
         <div class="chart-card">
@@ -347,7 +347,7 @@ export async function renderDashboard(container) {
             <div class="chart-card-title">Kontrak Akan Habis</div>
             <a href="#/contracts" class="chart-link">Lihat Data</a>
           </div>
-          <div class="chart-canvas-wrap" style="height:200px;position:relative;margin-top:10px">
+          <div class="chart-canvas-wrap" style="height:160px;position:relative;margin-top:10px">
             <div id="skel-contract-mini" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-contract-mini" style="display:none"></canvas>
           </div>
@@ -722,7 +722,7 @@ function renderKPIKebersihan(kpi) {
   ];
   
   wrap.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr;gap:12px;padding-bottom:12px;height:200px;overflow-y:auto;padding-right:8px;">
+    <div style="display:grid;grid-template-columns:1fr;gap:12px;padding-bottom:12px;height:160px;overflow-y:auto;padding-right:8px;">
       ${items.map(r => {
         const pct = r.val.includes('%') ? parseInt(r.val) : Math.min(100, parseInt(r.val)*10);
         return `
