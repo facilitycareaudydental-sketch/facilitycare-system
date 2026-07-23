@@ -444,21 +444,13 @@ function renderKPI(kpi) {
     let val  = safeNum(kpi[c.key]?.current, 0);
     
     return `
-      <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding:16px">
-        <div style="display:flex; gap:16px;">
+      <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding:12px 16px">
+        <div style="display:flex; gap:16px; align-items:center;">
           <div class="kpi-icon-wrap" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
           <div style="flex:1;min-width:0;">
             <div class="kpi-value" data-target="${val}" style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
             <div class="kpi-label" style="font-size:0.85rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
             <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
-            <div style="display:flex; align-items:flex-end; gap:12px; margin-top:12px; height:24px">
-              <div class="kpi-sparkline" style="margin:0;flex:1;height:100%">
-                <svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
-                  <path d="M ${c.points}" fill="none" stroke="${c.trendColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div style="font-size:0.8rem; font-weight:700; color:${c.trendColor}">${c.trendPct}</div>
-            </div>
           </div>
         </div>
       </a>`;
