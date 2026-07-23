@@ -157,10 +157,10 @@ const skelKPI = () => Array(5).fill(0).map(()=>`
     <div class="kpi-card-top"><div class="skeleton" style="width:44px;height:44px;border-radius:12px"></div></div>
     <div class="skeleton skeleton-text" style="width:55%;height:32px;margin:10px 0 6px"></div>
     <div class="skeleton skeleton-text" style="width:75%;height:12px;margin-bottom:4px"></div>
-    <div class="skeleton skeleton-text" style="width:55%;height:11px"></div>
+    <div class="kpi-sparkline"><div class="skeleton" style="width:100%;height:100%;border-radius:4px"></div></div>
   </div>`).join('');
 
-const skelMini = () => Array(6).fill(0).map(()=>`
+const skelMini = () => Array(7).fill(0).map(()=>`
   <div class="mini-stat" style="pointer-events:none">
     <div class="skeleton" style="width:40px;height:40px;border-radius:10px;flex-shrink:0"></div>
     <div style="flex:1">
@@ -256,17 +256,18 @@ export async function renderDashboard(container) {
   container.innerHTML = `
     <div class="dashboard-wrap" id="dash-root">
 
-      <div class="section-header" style="flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:10px">
-        <h2 class="section-title" style="font-size:1.4rem">Selamat Pagi, Berlin Ariansyah 👋</h2>
-        <div class="dash-last-updated">Berikut ringkasan performa operasional FCMS hari ini</div>
-        <div class="dash-refresh-info" style="align-self:flex-end;margin-top:-30px">
-          <span id="dash-updated" class="dash-last-updated"></span>
-          <button class="btn btn-ghost btn-sm" id="btn-dash-refresh" title="Refresh">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-            </svg>
-            Refresh
+      <div class="section-header" style="align-items:center;margin-bottom:10px">
+        <div>
+          <h2 class="section-title">Selamat pagi, Berlin! 👋</h2>
+          <div class="dash-last-updated">Berikut ringkasan operasional FCMS hari ini.</div>
+        </div>
+        <div class="dash-refresh-info">
+          <div class="btn btn-outline" style="background:#fff;gap:6px">
+            📅 <span>Selasa, 22 Juli 2026</span> <span style="font-size:0.7rem">▼</span>
+          </div>
+          <button class="btn btn-primary" style="gap:6px">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Export
           </button>
         </div>
       </div>
@@ -320,15 +321,14 @@ export async function renderDashboard(container) {
 
       <!-- Bottom Row -->
       <div class="bottom-row">
-        <!-- Agenda -->
+        <!-- KPI Kebersihan -->
         <div class="chart-card">
           <div class="chart-card-header">
             <div>
-              <div class="chart-card-title">📅 Agenda & Jadwal Hari Ini</div>
+              <div class="chart-card-title">✨ KPI Kebersihan</div>
             </div>
-            <a href="#/calendar" class="btn btn-ghost btn-sm">Lihat Kalender →</a>
           </div>
-          <div id="widget-agenda" class="dash-table-wrap" style="height:260px;overflow-y:auto">${skelTable(3)}</div>
+          <div id="widget-kpi-kebersihan" style="margin-top:10px">${skelTable(4)}</div>
         </div>
         <!-- Permasalahan Terbaru -->
         <div class="chart-card">
@@ -336,19 +336,27 @@ export async function renderDashboard(container) {
             <div>
               <div class="chart-card-title">⚠️ Permasalahan Terbaru</div>
             </div>
-            <a href="#/issues" class="btn btn-ghost btn-sm">Lihat Semua →</a>
+            <a href="#/issues" class="btn btn-ghost btn-sm" style="font-size:0.75rem">Lihat Semua</a>
           </div>
           <div id="table-issues" class="dash-table-wrap" style="height:260px;overflow-y:auto">${skelTable(3)}</div>
         </div>
-        <!-- Ringkasan Bulan Ini -->
+        <!-- Kontrak Akan Habis -->
         <div class="chart-card">
           <div class="chart-card-header">
             <div>
-              <div class="chart-card-title">📊 Ringkasan Bulan Ini</div>
-              <div class="chart-card-subtitle">Performa operasional hingga hari ini</div>
+              <div class="chart-card-title">📄 Kontrak Akan Habis</div>
             </div>
+            <a href="#/contracts" class="btn btn-ghost btn-sm" style="font-size:0.75rem">Lihat Semua</a>
           </div>
-          <div id="widget-summary" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px">${skelTable(2)}</div>
+          <div id="table-contracts" class="dash-table-wrap" style="height:260px;overflow-y:auto">${skelTable(3)}</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Row -->
+      <div class="chart-card" style="padding:16px 20px">
+        <div class="chart-card-title" style="margin-bottom:12px">Aksi Cepat</div>
+        <div class="actions-row" id="quick-actions">
+          <!-- Rendered in JS -->
         </div>
       </div>
 
@@ -404,11 +412,14 @@ async function fetchAll(container) {
     renderIssuesTable(issues);
   } catch(e) { console.warn('IssuesTable render:', e); }
   
-  try { renderAgenda(Array.isArray(calendarData) ? calendarData : []); } catch(e) { console.warn('Agenda render:', e); }
-  try { renderMonthlySummary(kpi); } catch(e) { console.warn('Monthly Summary render:', e); }
+  try {
+    const contracts = Array.isArray(recentIssues?.expiring_contracts) ? recentIssues.expiring_contracts : [];
+    renderContractsTable(contracts);
+  } catch(e) { console.warn('ContractsTable render:', e); }
 
-  const el = document.getElementById('dash-updated');
-  if (el) el.textContent = `Diperbarui: ${new Date().toLocaleTimeString('id-ID')}`;
+  try { renderAgenda(Array.isArray(calendarData) ? calendarData : []); } catch(e) { console.warn('Agenda render:', e); }
+  try { renderKPIKebersihan(kpi); } catch(e) { console.warn('KPI Kebersihan render:', e); }
+  try { renderQuickActions(); } catch(e) { console.warn('Quick Actions render:', e); }
 }
 
 // ── KPI Cards ──────────────────────────────────────────────────────────────
@@ -418,46 +429,35 @@ function renderKPI(kpi) {
   kpi = kpi || {};
 
   const cards = [
-    { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',         href:'#/employees',   color:'kpi-blue',   key:'employees', hasTrend:true },
-    { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',  href:'#/contracts',   color:'kpi-green',  key:'contracts', hasTrend:true },
-    { icon:'⚠️', label:'Permasalahan Aktif',    sub:'Masih dalam proses',           href:'#/issues',      color:'kpi-amber',  key:'issues',    hasTrend:true },
-    { icon:'🔍', label:'Inspeksi Bulan Ini',    sub:'Cabang diinspeksi',            href:'#/reports/inspection', color:'kpi-purple', key:'inspection_month', hasTrend:false, overrideSub:true },
-    { icon:'🤝', label:'One on One Pending',  sub:'Menunggu tindak lanjut',       href:'#/one-on-one', color:'kpi-teal', key:'one_on_one', hasTrend:true },
+    { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',       href:'#/employees',   color:'kpi-blue',   key:'employees',  trendPct:'+2%', trendColor:'#10B981', points:'0,20 10,18 20,22 30,12 40,15 50,8 60,10 70,5 80,6 90,2 100,0' },
+    { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',href:'#/contracts',   color:'kpi-green',  key:'contracts',  trendPct:'+1%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
+    { icon:'⏳', label:'Kontrak Habis 30 Hari',  sub:'Akan segera berakhir',       href:'#/contracts',   color:'kpi-warn',   key:'expiring30', trendPct:'+25%',trendColor:'#F59E0B', points:'0,25 20,22 40,24 60,15 80,18 100,5' },
+    { icon:'⚠️', label:'Permasalahan Open',    sub:'Belum diselesaikan',         href:'#/issues',      color:'kpi-red',    key:'issues',     trendPct:'0%',  trendColor:'#EF4444', points:'0,20 20,18 40,22 60,19 80,21 100,20' },
+    { icon:'💬', label:'One on One Pending',     sub:'Menunggu tindak lanjut',     href:'#/one-on-one',  color:'kpi-purple', key:'one_on_one', trendPct:'+8%', trendColor:'#10B981', points:'0,25 20,15 40,18 60,8 80,10 100,2' },
   ];
 
   row.innerHTML = cards.map(c => {
     let val  = safeNum(kpi[c.key]?.current, 0);
-    const prev = kpi[c.key]?.prev;
-    const trend = (c.hasTrend && prev !== undefined && prev !== null) ? trendBadge(val, prev) : '';
     
-    let colorCls = c.color || '';
-    let sub = c.sub || '';
-    
-    if (c.overrideSub && val > 0) {
-      sub = `↑ 100% dari target ${val}`;
-    }
-    
-    let displayVal = val;
-    if (c.pct) {
-      displayVal = val + '%';
-    }
-
     return `
-      <a href="${c.href}" class="kpi-card ${colorCls}" style="text-decoration:none">
+      <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding-bottom:12px">
         <div class="kpi-card-top">
           <div class="kpi-icon-wrap"><span class="kpi-icon-emoji">${c.icon}</span></div>
-          ${trend}
+          <span style="font-size:0.8rem;font-weight:700;color:${c.trendColor}">${c.trendPct}</span>
         </div>
-        <div class="kpi-value" data-target="${val}">${displayVal}</div>
+        <div class="kpi-value" data-target="${val}">${val}</div>
         <div class="kpi-label">${c.label}</div>
-        <div class="kpi-subtitle">${sub}</div>
+        <div class="kpi-subtitle">${c.sub}</div>
+        <div class="kpi-sparkline">
+          <svg viewBox="0 0 100 30" preserveAspectRatio="none">
+            <path d="M ${c.points}" fill="none" stroke="${c.trendColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
       </a>`;
   }).join('');
 
   row.querySelectorAll('.kpi-value').forEach(el => {
-    if (!el.textContent.includes('%')) {
-      animateCount(el, parseInt(el.dataset.target)||0);
-    }
+    animateCount(el, parseInt(el.dataset.target)||0);
   });
 }
 
@@ -468,12 +468,13 @@ function renderMiniStats(kpi) {
   kpi = kpi || {};
 
   const items = [
-    { icon:'📅', label:'Jadwal Pending',     val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
-    { icon:'🎓', label:'Training Bulan Ini', val:kpi.training_month?.current,   href:'#/training',            color:'mini-purple' },
-    { icon:'📦', label:'Permintaan Barang',  val:kpi.supply?.current,            href:'#/reports/supply',      color:'mini-orange' },
-    { icon:'💬', label:'Complain Baru',      val:kpi.issues?.current,            href:'#/issues',              color:'mini-indigo' },
-    { icon:'🔄', label:'Reliefer Bertugas',  val:kpi.reliever_today?.current,    href:'#/relievers',           color:'mini-teal' },
-    { icon:'🏢', label:'Total Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-gray' },
+    { icon:'📅', label:'Absensi Pending',      val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
+    { icon:'🎓', label:'Izin / Sakit Bulan Ini',val:kpi.training_month?.current,  href:'#/training',            color:'mini-gray' },
+    { icon:'📦', label:'Permintaan Barang',   val:kpi.supply?.current,            href:'#/reports/supply',      color:'mini-orange' },
+    { icon:'🔍', label:'Inspeksi Bulan Ini',  val:kpi.inspection_month?.current,  href:'#/reports/inspection',  color:'mini-blue' },
+    { icon:'🧹', label:'GCDC Bulan Ini',      val:kpi.cleaning_month?.current,    href:'#/reports/cleaning',    color:'mini-green' },
+    { icon:'💨', label:'Fogging Bulan Ini',   val:kpi.fogging_month?.current,     href:'#/reports/fogging',     color:'mini-purple' },
+    { icon:'🏢', label:'Total Cabang',        val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal' },
   ];
 
   row.innerHTML = items.map(s => `
@@ -496,8 +497,34 @@ function renderDonut(categories) {
   destroyChart('donut');
   const data = (categories||[]).filter(c => safeNum(c.count)>0);
   if (!data.length) { showEmpty(canvas,'Belum ada data permasalahan'); return; }
-  const labels = data.map(c=>safeStr(c.category,'Lainnya'));
+  const labels = data.map(c=>`${safeStr(c.category,'Lainnya')}`);
   const values = data.map(c=>safeNum(c.count));
+  const total = values.reduce((a,b)=>a+b, 0);
+
+  // Plugin to draw text in center
+  const centerTextPlugin = {
+    id: 'centerText',
+    beforeDraw: function(chart) {
+      const width = chart.width, height = chart.height, ctx = chart.ctx;
+      ctx.restore();
+      const fontSize = (height / 114).toFixed(2);
+      ctx.font = "bold " + fontSize + "em Inter";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#1E293B"; // var(--text-1)
+      const text = total.toString(),
+            textX = Math.round((width - ctx.measureText(text).width) / 2),
+            textY = height / 2;
+      ctx.fillText(text, textX, textY - 10);
+      
+      ctx.font = "600 " + (fontSize * 0.4).toFixed(2) + "em Inter";
+      ctx.fillStyle = "#64748B"; // var(--text-2)
+      const labelText = "Total",
+            labelX = Math.round((width - ctx.measureText(labelText).width) / 2);
+      ctx.fillText(labelText, labelX, textY + 15);
+      ctx.save();
+    }
+  };
+
   _charts.donut = new Chart(canvas, {
     type:'doughnut',
     data: { labels, datasets:[{ data:values, backgroundColor:COLORS.slice(0,data.length), borderWidth:2, borderColor:'#fff', hoverBorderColor:'#fff' }] },
@@ -511,8 +538,9 @@ function renderDonut(categories) {
         },
         tooltip:{ bodyFont:FONT, titleFont:{...FONT,weight:'700'}, callbacks:{ label:ctx=>` ${ctx.label}: ${ctx.parsed} kasus` } },
       },
-      cutout:'65%',
+      cutout:'75%',
     },
+    plugins: [centerTextPlugin]
   });
 }
 
@@ -659,28 +687,62 @@ function renderAgenda(rows) {
   `;
 }
 
-// ── Ringkasan Bulan Ini ────────────────────────────────────────────────────
-function renderMonthlySummary(kpi) {
-  const wrap = document.getElementById('widget-summary');
+// ── KPI Kebersihan ────────────────────────────────────────────────────────
+function renderKPIKebersihan(kpi) {
+  const wrap = document.getElementById('widget-kpi-kebersihan');
   if (!wrap) return;
+  
+  // Data sesuai mockup
   const items = [
-    { label: 'Inspeksi Hygiene', val: '100%', target: 'Target Tercapai', icon: '🔍', color: 'primary' },
-    { label: 'General Cleaning', val: '107%', target: 'Di atas target', icon: '🧹', color: 'success' },
-    { label: 'Deep Cleaning', val: '100%', target: 'Target Tercapai', icon: '✨', color: 'purple' },
-    { label: 'Kehadiran CS', val: '98.5%', target: 'Sangat Baik', icon: '👥', color: 'teal' },
+    { label: 'Kebersihan Area', val: '97%', target: 'Target 95%', icon: '🧹', bg: '#ECFDF5', color: '#10B981' },
+    { label: 'Penyelesaian Complaint <24 Jam', val: '100%', target: 'Target 100%', icon: '⏱️', bg: '#ECFDF5', color: '#10B981' },
+    { label: 'Kepatuhan Jadwal Cleaning', val: '99%', target: 'Target 100%', icon: '⏱️', bg: '#EFF6FF', color: '#3B82F6' },
+    { label: 'Kehadiran CS (≥98%)', val: '98.5%', target: 'Target ≥98%', icon: '👥', bg: '#EFF6FF', color: '#3B82F6' },
+    { label: 'Complaint Cleaning (≤10)', val: '4', target: 'Target ≤10', icon: '📝', bg: '#F5F3FF', color: '#8B5CF6' },
+    { label: 'Grooming & Appearance', val: '100%', target: 'Target 100%', icon: '👔', bg: '#F5F3FF', color: '#8B5CF6' },
   ];
   
-  wrap.innerHTML = items.map(r => `
-    <div style="display:flex;align-items:center;gap:12px;background:var(--gray-50);padding:12px;border-radius:12px">
-      <div style="width:40px;height:40px;border-radius:10px;background:var(--${r.color}-light);color:var(--${r.color});display:flex;align-items:center;justify-content:center;font-size:1.2rem">
-        ${r.icon}
-      </div>
-      <div>
-        <div style="font-size:0.75rem;font-weight:600;color:var(--text-2)">${r.label}</div>
-        <div style="font-size:1.2rem;font-weight:800;color:var(--text-1);line-height:1">${r.val}</div>
-        <div style="font-size:0.65rem;color:var(--text-3);margin-top:2px">${r.target}</div>
-      </div>
+  wrap.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      ${items.map(r => {
+        const pct = r.val.includes('%') ? parseInt(r.val) : Math.min(100, parseInt(r.val)*10);
+        return `
+        <div class="prog-item">
+          <div class="prog-header">
+            <div class="prog-title">
+              <div class="prog-title-icon" style="background:${r.bg};color:${r.color}">${r.icon}</div>
+              ${r.label}
+            </div>
+            <div class="prog-val">${r.val}</div>
+          </div>
+          <span class="prog-target">${r.target}</span>
+          <div class="prog-bar-bg">
+            <div class="prog-bar-fill" style="width:${pct}%;background:${r.color}"></div>
+          </div>
+        </div>
+      `}).join('')}
     </div>
+  `;
+}
+
+// ── Quick Actions ──────────────────────────────────────────────────────────
+function renderQuickActions() {
+  const wrap = document.getElementById('quick-actions');
+  if (!wrap) return;
+  const btns = [
+    { label:'Buat Permasalahan', icon:'+', bg:'#3B82F6', href:'#/issues' },
+    { label:'Permintaan Barang', icon:'📦', bg:'#10B981', href:'#/reports/supply' },
+    { label:'One on One Baru',   icon:'👥', bg:'#6366F1', href:'#/one-on-one' },
+    { label:'Input Absensi',     icon:'📋', bg:'#8B5CF6', href:'#/timeline' },
+    { label:'Buat Checklist',    icon:'📝', bg:'#0EA5E9', href:'#/checklist' },
+    { label:'Laporan Harian',    icon:'📊', bg:'#14B8A6', href:'#/reports' },
+    { label:'Kalender',          icon:'📅', bg:'#8B5CF6', href:'#/calendar' },
+  ];
+  wrap.innerHTML = btns.map(b => `
+    <a href="${b.href}" class="action-btn">
+      <div class="action-icon" style="background:${b.bg}">${b.icon}</div>
+      ${b.label}
+    </a>
   `).join('');
 }
 
