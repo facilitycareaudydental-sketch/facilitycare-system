@@ -50,6 +50,54 @@ export async function renderContracts(container) {
       if (!body.end_date) body.end_date = '2099-12-31';
       return body;
     },
+    onAfterLoad: () => {
+      if (!document.getElementById('btn-find-missing')) {
+        const btn = document.createElement('button');
+        btn.id = 'btn-find-missing';
+        btn.className = 'btn btn-ghost';
+        btn.innerHTML = '🔍 Cek Selisih Karyawan';
+        btn.style.marginLeft = '8px';
+        btn.style.color = '#EF4444';
+        btn.style.border = '1px solid currentColor';
+        btn.onclick = async () => {
+          btn.innerHTML = '⌛ Mencari...';
+          btn.disabled = true;
+          try {
+            const [eRes, cRes] = await Promise.all([
+              import('../config.js').then(m => m.apiFetch('/api/employees?limit=10000&status=Aktif')),
+              import('../config.js').then(m => m.apiFetch('/api/contracts?limit=10000'))
+            ]);
+            if (eRes.ok && cRes.ok) {
+              const activeEmps = eRes.data.data || [];
+              const allContracts = cRes.data.data || [];
+              const activeContracts = allContracts.filter(c => c.status === 'Aktif');
+              const activeConEmpIds = new Set(activeContracts.map(c => c.employee_id));
+              
+              const missing = activeEmps.filter(e => !activeConEmpIds.has(e.id));
+              let html = `<p style="margin-bottom:12px">Terdapat <b>${missing.length}</b> karyawan aktif yang tidak memiliki "Kontrak Aktif". Berikut daftarnya:</p><ul style="padding-left:20px; max-height:400px; overflow-y:auto">`;
+              missing.forEach(m => {
+                 const theirContracts = allContracts.filter(c => c.employee_id === m.id);
+                 let conInfo = '<span style="color:#F59E0B">Belum pernah di-input kontrak</span>';
+                 if (theirContracts.length > 0) {
+                    const last = theirContracts[0];
+                    conInfo = `Pernah ada kontrak (Status: <b style="color:#EF4444">${last.status}</b>, Selesai: ${window.formatDate(last.end_date)})`;
+                 }
+                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:var(--text-2)">Cabang: ${m.branch_name || '-'} | ${conInfo}</span></li>`;
+              });
+              html += '</ul>';
+              
+              import('../components/modal.js').then(m => m.createModal('Daftar Karyawan Tanpa Kontrak Aktif', html));
+            }
+          } catch(e) {
+             console.error(e);
+          }
+          btn.innerHTML = '🔍 Cek Selisih Karyawan';
+          btn.disabled = false;
+        };
+        const actionsEl = document.querySelector('.page-actions');
+        if (actionsEl) actionsEl.appendChild(btn);
+      }
+    },
     formFields: (data) => [
       {
         type: 'row', fields: [

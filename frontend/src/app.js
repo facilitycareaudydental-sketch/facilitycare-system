@@ -34,7 +34,7 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force39';
+import { renderDashboard } from './pages/dashboard.js?v=force40';
 import { renderLogin } from './pages/login.js';
 import { renderEmployees } from './pages/employees.js';
 import { renderContracts } from './pages/contracts.js';
