@@ -63,18 +63,33 @@ export async function renderContracts(container) {
           btn.innerHTML = '⌛ Mencari...';
           btn.disabled = true;
           try {
-            const [eRes, cRes] = await Promise.all([
-              import('../config.js').then(m => m.apiFetch('/api/employees?limit=10000&status=Aktif')),
-              import('../config.js').then(m => m.apiFetch('/api/contracts?limit=10000'))
+            const fetchAll = async (path) => {
+               let all = [];
+               let page = 1;
+               while (true) {
+                 const m = await import('../config.js');
+                 const res = await m.apiFetch(`${path}${path.includes('?') ? '&' : '?'}limit=100&page=${page}`);
+                 if (!res.ok) break;
+                 const data = res.data.data || [];
+                 all = all.concat(data);
+                 if (data.length < 100 || !res.data.pagination || page >= res.data.pagination.pages) break;
+                 page++;
+               }
+               return all;
+            };
+
+            const [activeEmps, allContracts] = await Promise.all([
+              fetchAll('/api/employees?status=Aktif'),
+              fetchAll('/api/contracts')
             ]);
-            if (eRes.ok && cRes.ok) {
-              const activeEmps = eRes.data.data || [];
-              const allContracts = cRes.data.data || [];
+            
+            if (activeEmps.length > 0) {
               const activeContracts = allContracts.filter(c => c.status === 'Aktif');
               const activeConEmpIds = new Set(activeContracts.map(c => c.employee_id));
               
               const missing = activeEmps.filter(e => !activeConEmpIds.has(e.id));
-              let html = `<p style="margin-bottom:12px">Terdapat <b>${missing.length}</b> karyawan aktif yang tidak memiliki "Kontrak Aktif". Berikut daftarnya:</p><ul style="padding-left:20px; max-height:400px; overflow-y:auto">`;
+              let html = `<p style="margin-bottom:12px">Data yang terbaca: <b>${activeEmps.length}</b> Karyawan Aktif, dan <b>${activeContracts.length}</b> Kontrak Aktif.</p>
+              <p style="margin-bottom:12px">Terdapat <b>${missing.length}</b> karyawan aktif yang tidak memiliki "Kontrak Aktif". Berikut daftarnya:</p><ul style="padding-left:20px; max-height:400px; overflow-y:auto">`;
               missing.forEach(m => {
                  const theirContracts = allContracts.filter(c => c.employee_id === m.id);
                  let conInfo = '<span style="color:#F59E0B">Belum pernah di-input kontrak</span>';
