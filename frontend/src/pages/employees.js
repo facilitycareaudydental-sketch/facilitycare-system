@@ -68,16 +68,15 @@ export async function renderEmployees(container) {
             'Divisi': d.division || '',
             'No. HP': d.phone || '',
             'Tgl Masuk': d.join_date || '',
-            'Status': d.status || '',
-            'Catatan': d.notes || ''
+            'Status': d.status || ''
           }));
           downloadExcel(data, 'Data_Karyawan');
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Divisi': 'FACILITY CARE', 'No. HP': '08123456789', 'Tgl Masuk': '2024-01-15', 'Status': 'Aktif', 'Catatan': '' },
-          { 'Nama Lengkap': 'Andi Saputra', 'Cabang': '002. Bintaro', 'Divisi': 'SECURITY', 'No. HP': '08987654321', 'Tgl Masuk': '2023-11-01', 'Status': 'Aktif', 'Catatan': '' }
+          { 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Divisi': 'FACILITY CARE', 'No. HP': '08123456789', 'Tgl Masuk': '2024-01-15', 'Status': 'Aktif' },
+          { 'Nama Lengkap': 'Andi Saputra', 'Cabang': '002. Bintaro', 'Divisi': 'SECURITY', 'No. HP': '08987654321', 'Tgl Masuk': '2023-11-01', 'Status': 'Aktif' }
         ];
         downloadExcel(template, 'Template_Import_Karyawan');
       },
