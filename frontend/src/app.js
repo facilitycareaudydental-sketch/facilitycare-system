@@ -342,9 +342,9 @@ function renderLayout() {
             <button class="topbar-menu-btn" id="topbar-menu-btn" aria-label="Menu">
               <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <div class="topbar-welcome" style="font-weight:600; color:var(--text-1); font-size: 1rem; margin-left: 12px;">
-            Welcome Berlin. Ariansyah
-          </div>
+            <div class="topbar-welcome" style="display:flex; align-items:center; gap:6px; font-size:1.15rem; font-weight:500; color:var(--text-2); margin-left:16px;">
+              Welcome, <span style="font-weight:800; background:linear-gradient(90deg, #2563EB, #8B5CF6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-0.5px;">Berlin. Ariansyah</span> 👋
+            </div>
           </div>
 
           <div class="topbar-center" id="topbar-clock">
