@@ -70,9 +70,18 @@ export async function renderContracts(container) {
                  const m = await import('../config.js');
                  const res = await m.apiFetch(`${path}${path.includes('?') ? '&' : '?'}limit=100&page=${page}`);
                  if (!res.ok) break;
-                 const data = res.data.data || [];
-                 all = all.concat(data);
-                 if (data.length < 100 || !res.data.pagination || page >= res.data.pagination.pages) break;
+                 const data = res.data?.data || res.data || [];
+                 const dataArr = Array.isArray(data) ? data : [];
+                 all = all.concat(dataArr);
+                 
+                 // If we got less than the limit, we're on the last page.
+                 if (dataArr.length < 100) break;
+                 
+                 // If the backend provides pagination metadata, respect it.
+                 if (res.data?.pagination && page >= res.data.pagination.pages) break;
+                 
+                 // Otherwise, if we got exactly 100 and no pagination metadata, 
+                 // we must assume there MIGHT be another page and fetch it.
                  page++;
                }
                return all;
