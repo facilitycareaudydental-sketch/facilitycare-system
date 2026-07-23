@@ -11,7 +11,7 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force5';
+import { renderDashboard } from './pages/dashboard.js?v=force6';
 import { renderLogin } from './pages/login.js';
 import { renderEmployees } from './pages/employees.js';
 import { renderContracts } from './pages/contracts.js';
