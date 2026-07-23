@@ -144,7 +144,14 @@ export async function renderContracts(container) {
           start_date: parseDate(row['Tanggal Mulai']),
           end_date: parseDate(row['Tanggal Selesai']),
           status: String(row['Status'] || '').trim(),
-        })).filter(row => row.employee_id && row.start_date && row.end_date);
+          _rawName: String(row['Nama Lengkap'] || '').trim()
+        }));
+        
+        const missing = payload.filter(r => !r.employee_id || !r.start_date || !r.end_date);
+        if (missing.length > 0) {
+           const names = missing.map(m => m._rawName).join(', ');
+           throw new Error(`Terdapat ${missing.length} baris yang tidak bisa di-import. Karyawan harus terdaftar dulu di Master Karyawan dan Tanggal Mulai/Selesai tidak boleh kosong. Cek karyawan: ${names}`);
+        }
         
         const res = await apiFetch('/api/contracts/import', {
           method: 'POST',
