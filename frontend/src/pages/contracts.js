@@ -175,21 +175,21 @@ export async function renderContracts(container) {
       onImport: async (json) => {
         const [bRes, eData] = await Promise.all([
           apiFetch('/api/branches?limit=10000'),
-          fetchAll(`/api/employees?status=Aktif`)
+          fetchAll(`/api/employees`)
         ]);
         const rawBranches = bRes.data?.data || [];
         const rawEmployees = eData || [];
         
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = String(str || '').toLowerCase().trim();
-          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase().trim() === s || String(r.code || '').toLowerCase().trim() === s || String(r.name || '').toLowerCase().trim() === s);
+          const s = String(str || '').replace(/\s+/g, ' ').toLowerCase().trim();
+          const b = rawBranches.find(r => String(r.full_name || '').replace(/\s+/g, ' ').toLowerCase().trim() === s || String(r.code || '').replace(/\s+/g, ' ').toLowerCase().trim() === s || String(r.name || '').replace(/\s+/g, ' ').toLowerCase().trim() === s);
           return b ? b.id : null;
         };
         const matchEmployee = (str) => {
           if (!str) return null;
-          const s = String(str || '').toLowerCase().trim();
-          const e = rawEmployees.find(r => String(r.full_name || '').toLowerCase().trim() === s);
+          const s = String(str || '').replace(/\s+/g, ' ').toLowerCase().trim();
+          const e = rawEmployees.find(r => String(r.full_name || '').replace(/\s+/g, ' ').toLowerCase().trim() === s);
           return e ? e.id : null;
         };
         const parseDate = (v) => {
@@ -226,7 +226,9 @@ export async function renderContracts(container) {
         const missing = payload.filter(r => !r.employee_id || !r.start_date);
         if (missing.length > 0) {
            const names = missing.map(m => m._rawName).join(', ');
-           throw new Error(`Terdapat ${missing.length} baris yang tidak bisa di-import. Pastikan karyawan sudah terdaftar di Master Karyawan dan Tanggal Mulai tidak kosong. Cek karyawan: ${names}`);
+           const missingBecauseEmptyEmployee = payload.filter(r => !r.employee_id).length;
+           const missingBecauseEmptyDate = payload.filter(r => !r.start_date).length;
+           throw new Error(`[DB: ${rawEmployees.length} Emps (ex: ${rawEmployees[0]?.full_name || 'N/A'}), ${rawBranches.length} Branches] Terdapat ${missing.length} baris gagal (EmpID kosong: ${missingBecauseEmptyEmployee}, Date kosong: ${missingBecauseEmptyDate}). Cek karyawan: ${names}`);
         }
         
         const res = await apiFetch('/api/contracts/import', {
