@@ -306,9 +306,9 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Trend Permasalahan 12 Bulan</div>
-            <div style="display:flex;align-items:center;gap:12px;font-size:0.75rem">
-               <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:4px;background:#EF4444;border-radius:2px"></div> Open</div>
-               <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:4px;background:#10B981;border-radius:2px"></div> Closed</div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:0.75rem;font-weight:600;color:var(--text-2)">
+               <div style="display:flex;align-items:center;gap:6px"><div style="width:16px;height:8px;border:2px solid #EF4444;border-radius:2px"></div> Open</div>
+               <div style="display:flex;align-items:center;gap:6px"><div style="width:16px;height:8px;border:2px solid #10B981;border-radius:2px"></div> Closed</div>
             </div>
           </div>
           <div class="chart-canvas-wrap" style="height:250px;position:relative">
@@ -322,21 +322,6 @@ export async function renderDashboard(container) {
             <a href="#/calendar" class="chart-link">Lihat Kalender</a>
           </div>
           <div id="widget-agenda" class="dash-table-wrap" style="height:250px;overflow-y:auto">${skelTable(3)}</div>
-        </div>
-      </div>
-
-      <!-- Full Width Chart Row (Inspection Bar) -->
-      <div class="chart-card" style="margin-top:24px; margin-bottom:24px;">
-        <div class="chart-card-header" style="align-items:flex-start">
-          <div>
-            <a href="#/reports/inspection" class="chart-card-title" style="text-decoration:none; display:inline-block">Rata-rata Skor Inspeksi per Cabang <span style="font-size:0.8rem; color:var(--primary); font-weight:600; margin-left:8px">Lihat Laporan &rarr;</span></a>
-            <div class="chart-card-subtitle">Skor rata-rata inspeksi SCM & Cleaning</div>
-          </div>
-          <select class="btn-ghost" style="padding:4px 8px;font-size:0.8rem;border:1px solid var(--border);border-radius:6px;cursor:pointer"><option>Bulan Ini</option></select>
-        </div>
-        <div class="chart-canvas-wrap" style="height:320px;position:relative">
-          <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-          <canvas id="chart-insp" style="display:none"></canvas>
         </div>
       </div>
 
@@ -372,6 +357,21 @@ export async function renderDashboard(container) {
         <div class="actions-title">Aksi Cepat</div>
         <div class="actions-row" id="quick-actions">
           <!-- Rendered in JS -->
+        </div>
+      </div>
+
+      <!-- Full Width Chart Row (Inspection Bar) -->
+      <div class="chart-card" style="margin-top:24px; margin-bottom:24px;">
+        <div class="chart-card-header" style="align-items:flex-start">
+          <div>
+            <a href="#/reports/inspection" class="chart-card-title" style="text-decoration:none; display:inline-block">Rata-rata Skor Inspeksi per Cabang <span style="font-size:0.8rem; color:var(--primary); font-weight:600; margin-left:8px">Lihat Laporan &rarr;</span></a>
+            <div class="chart-card-subtitle">Skor rata-rata inspeksi SCM & Cleaning</div>
+          </div>
+          <select class="btn-ghost" style="padding:4px 8px;font-size:0.8rem;border:1px solid var(--border);border-radius:6px;cursor:pointer"><option>Bulan Ini</option></select>
+        </div>
+        <div class="chart-canvas-wrap" style="height:320px;position:relative">
+          <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+          <canvas id="chart-insp" style="display:none"></canvas>
         </div>
       </div>
 
@@ -456,21 +456,21 @@ function renderKPI(kpi) {
     
     return `
       <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding:16px">
-        <div style="display:flex; gap:16px; align-items:flex-start">
+        <div style="display:flex; gap:16px;">
           <div class="kpi-icon-wrap" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
-          <div>
+          <div style="flex:1;min-width:0;">
             <div class="kpi-value" data-target="${val}" style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
-            <div class="kpi-label" style="font-size:0.85rem; font-weight:700; color:var(--text-2); margin-top:4px">${c.label}</div>
-            <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px">${c.sub}</div>
+            <div class="kpi-label" style="font-size:0.85rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
+            <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
+            <div style="display:flex; align-items:flex-end; gap:12px; margin-top:12px; height:24px">
+              <div class="kpi-sparkline" style="margin:0;flex:1;height:100%">
+                <svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
+                  <path d="M ${c.points}" fill="none" stroke="${c.trendColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div style="font-size:0.8rem; font-weight:700; color:${c.trendColor}">${c.trendPct}</div>
+            </div>
           </div>
-        </div>
-        <div style="display:flex; align-items:flex-end; gap:12px; margin-top:16px">
-          <div class="kpi-sparkline" style="margin:0;flex:1;height:24px">
-            <svg viewBox="0 0 100 30" preserveAspectRatio="none">
-              <path d="M ${c.points}" fill="none" stroke="${c.trendColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div style="font-size:0.85rem; font-weight:700; color:${c.trendColor}">${c.trendPct}</div>
         </div>
       </a>`;
   }).join('');
@@ -651,16 +651,24 @@ function renderContractsTable(rows) {
   }
   wrap.innerHTML = `
     <div class="dash-list">
-      ${expiring.map((r,i)=>`
+      ${expiring.map((r,i) => {
+        let daysText = '';
+        if (r.days_remaining < 0) daysText = '<span style="color:var(--danger);font-weight:700;font-size:0.8rem">Expired</span>';
+        else if (r.days_remaining <= 30) daysText = `<span style="color:var(--danger);font-weight:700;font-size:0.8rem">${r.days_remaining} Hari Lagi</span>`;
+        else if (r.days_remaining <= 60) daysText = `<span style="color:var(--warning);font-weight:700;font-size:0.8rem">${r.days_remaining} Hari Lagi</span>`;
+        else daysText = `<span style="color:var(--primary);font-weight:700;font-size:0.8rem">${r.days_remaining} Hari</span>`;
+        
+        return `
         <div class="dash-list-item">
           <div style="width:36px;height:36px;border-radius:10px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#64748B;font-size:1.1rem">📄</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:0.85rem;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeStr(r.branch_name)}</div>
             <div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${fmtDate(r.end_date)}</div>
           </div>
-          <div>${daysBadge(r.days_remaining)}</div>
+          <div>${daysText}</div>
         </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>`;
 }
 
