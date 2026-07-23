@@ -416,9 +416,6 @@ strong { font-weight: 600; }
   line-height: 1.2;
 }
 .topbar-greeting {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   font-size: 1.1rem;
   font-weight: 500;
   color: var(--text-2);
@@ -1122,7 +1119,7 @@ strong { font-weight: 600; }
   .topbar-user-text { display: none; }
   .topbar-user-btn { padding: 4px; }
   .topbar-welcome { margin-left: 8px; }
-  .topbar-greeting { font-size: 0.8rem; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+  .topbar-greeting { display: block; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
   .topbar-subtitle { display: none; }
 }
 
