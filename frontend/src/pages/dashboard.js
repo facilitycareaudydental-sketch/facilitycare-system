@@ -756,7 +756,7 @@ function renderQuickActions() {
     { label:'One on One Baru',   icon:'👥', bg:'#6366F1', href:'#/one-on-one' },
     { label:'Input Kegiatan',    icon:'📋', bg:'#8B5CF6', href:'#/timeline' },
     { label:'Buat Checklist',    icon:'📝', bg:'#0EA5E9', href:'#/checklist' },
-    { label:'Laporan Harian',    icon:'📊', bg:'#14B8A6', href:'#/reports' },
+    { label:'Laporan Basecamp',  icon:'📊', bg:'#14B8A6', href:'#/reports/basecamp' },
     { label:'Kalender',          icon:'📅', bg:'#8B5CF6', href:'#/calendar' },
   ];
   wrap.innerHTML = btns.map(b => `
