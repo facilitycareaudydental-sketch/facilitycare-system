@@ -693,10 +693,9 @@ strong { font-weight: 600; }
   margin-bottom: 16px;
 }
 .actions-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 16px;
-  flex-wrap: wrap;
 }
 
 /* Chart Card */
