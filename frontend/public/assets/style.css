@@ -56,14 +56,14 @@
   --sb-width:    260px;
 
   /* Layout */
-  --topbar-h:  64px;
-  --radius-sm: 6px;
-  --radius:    10px;
+  --topbar-h:  70px;
+  --radius-sm: 8px;
+  --radius:    12px;
   --radius-lg: 16px;
-  --radius-xl: 20px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
-  --shadow:    0 2px 16px rgba(0,0,0,.07);
-  --shadow-lg: 0 8px 30px rgba(0,0,0,.1);
+  --radius-xl: 24px;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,.04);
+  --shadow:    0 4px 20px rgba(0,0,0,.05);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,.08);
   --transition: 200ms cubic-bezier(.4,0,.2,1);
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -394,31 +394,59 @@ strong { font-weight: 600; }
 .topbar-user-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 6px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 40px;
   background: transparent;
   transition: background var(--transition);
   text-decoration: none;
 }
 .topbar-user-btn:hover { background: var(--gray-100); }
 .topbar-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--primary), var(--sky));
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.825rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.topbar-user-text {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
 }
 .topbar-user-name {
-  font-size: 0.825rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-1);
+  line-height: 1.2;
+}
+.topbar-user-role-mini {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+/* Topbar Search (Mockup) */
+.topbar-search {
+  display: flex;
+  align-items: center;
+  background: #F1F5F9;
+  border-radius: 30px;
+  padding: 0 16px;
+  height: 40px;
+  gap: 10px;
+  color: var(--gray-400);
+  width: 300px;
+}
+.topbar-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 0.9rem;
   color: var(--text-1);
 }
+.topbar-search-input::placeholder { color: var(--gray-400); }
+
 
 /* ── Dashboard Layout ───────────────────────────────────────── */
 .dashboard-wrap {
@@ -486,12 +514,13 @@ strong { font-weight: 600; }
 }
 .kpi-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); text-decoration: none; }
 .kpi-card:hover::after { opacity: 1; }
-.kpi-card.kpi-blue   { border-top-color: var(--primary); }
-.kpi-card.kpi-green  { border-top-color: var(--success); }
-.kpi-card.kpi-amber  { border-top-color: var(--warning); }
-.kpi-card.kpi-red    { border-top-color: var(--danger); }
-.kpi-card.kpi-purple { border-top-color: var(--purple); }
-.kpi-card.kpi-warn   { box-shadow: 0 2px 16px rgba(245,158,11,.15); }
+/* Remove the solid top border for a cleaner look */
+.kpi-card.kpi-blue   { border-top-color: transparent; }
+.kpi-card.kpi-green  { border-top-color: transparent; }
+.kpi-card.kpi-amber  { border-top-color: transparent; }
+.kpi-card.kpi-red    { border-top-color: transparent; }
+.kpi-card.kpi-purple { border-top-color: transparent; }
+.kpi-card.kpi-warn   { box-shadow: 0 4px 20px rgba(245,158,11,.15); }
 
 .kpi-card-top {
   display: flex;

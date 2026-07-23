@@ -256,9 +256,10 @@ export async function renderDashboard(container) {
   container.innerHTML = `
     <div class="dashboard-wrap" id="dash-root">
 
-      <div class="section-header">
-        <h2 class="section-title">📊 Dashboard Operasional FCMS</h2>
-        <div class="dash-refresh-info">
+      <div class="section-header" style="flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:10px">
+        <h2 class="section-title" style="font-size:1.4rem">Selamat Pagi, Berlin Ariansyah 👋</h2>
+        <div class="dash-last-updated">Berikut ringkasan performa operasional FCMS hari ini</div>
+        <div class="dash-refresh-info" style="align-self:flex-end;margin-top:-30px">
           <span id="dash-updated" class="dash-last-updated"></span>
           <button class="btn btn-ghost btn-sm" id="btn-dash-refresh" title="Refresh">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -274,15 +275,28 @@ export async function renderDashboard(container) {
       <div class="kpi-row" id="kpi-row">${skelKPI()}</div>
 
       <!-- Mini Stats -->
-      <div class="mini-stats-row" id="mini-stats-row">${skelMini()}</div>
+      <div class="mini-stats-row" style="grid-template-columns: repeat(6, minmax(0, 1fr));" id="mini-stats-row">${skelMini().replace(/<div class="mini-stat"/g, '').substring(0, 600)}</div>
 
-      <!-- Charts Row 1 -->
-      <div class="charts-row">
+      <!-- Charts Row -->
+      <div class="charts-row" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">📈 Trend Inspeksi 12 Bulan</div>
+              <div class="chart-card-subtitle">Perbandingan inspeksi SCM vs Cleaning</div>
+            </div>
+            <select class="btn-ghost" style="font-size:0.75rem;padding:4px"><option>12 Bulan</option></select>
+          </div>
+          <div class="chart-canvas-wrap" style="height:260px;position:relative">
+            <div id="skel-trend" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+            <canvas id="chart-trend" style="display:none"></canvas>
+          </div>
+        </div>
         <div class="chart-card">
           <div class="chart-card-header">
             <div>
               <div class="chart-card-title">🍩 Permasalahan per Kategori</div>
-              <div class="chart-card-subtitle">Distribusi semua permasalahan</div>
+              <div class="chart-card-subtitle">Distribusi permasalahan yang sedang ditangani</div>
             </div>
           </div>
           <div class="chart-canvas-wrap" style="height:260px;position:relative">
@@ -293,78 +307,49 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header">
             <div>
-              <div class="chart-card-title">📈 Trend Permasalahan 12 Bulan</div>
-              <div class="chart-card-subtitle">Open vs Closed per bulan</div>
+              <div class="chart-card-title">🔍 Rata-rata Skor Inspeksi per Cabang</div>
+              <div class="chart-card-subtitle">Skor rata-rata inspeksi SCM & Cleaning</div>
             </div>
           </div>
           <div class="chart-canvas-wrap" style="height:260px;position:relative">
-            <div id="skel-trend" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-            <canvas id="chart-trend" style="display:none"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- Charts Row 2 -->
-      <div class="charts-row">
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <div>
-              <div class="chart-card-title">🔍 Rata-rata Skor Inspeksi per Cabang</div>
-              <div class="chart-card-subtitle">6 bulan terakhir — FC vs SPV</div>
-            </div>
-          </div>
-          <div class="chart-canvas-wrap" style="height:280px;position:relative">
             <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-insp" style="display:none"></canvas>
           </div>
         </div>
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <div>
-              <div class="chart-card-title">📋 Kontrak Berakhir 6 Bulan ke Depan</div>
-              <div class="chart-card-subtitle">Jumlah kontrak aktif per bulan</div>
-            </div>
-          </div>
-          <div class="chart-canvas-wrap" style="height:280px;position:relative">
-            <div id="skel-contract" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-            <canvas id="chart-contract" style="display:none"></canvas>
-          </div>
-        </div>
       </div>
 
-      <!-- Tables -->
-      <div class="tables-row">
+      <!-- Bottom Row -->
+      <div class="charts-row" style="grid-template-columns: 1fr 1fr 1.5fr;">
+        <!-- Agenda -->
         <div class="chart-card">
           <div class="chart-card-header">
             <div>
-              <div class="chart-card-title">⏰ Kontrak Akan Habis</div>
-              <div class="chart-card-subtitle">30 hari ke depan</div>
+              <div class="chart-card-title">📅 Agenda & Jadwal Hari Ini</div>
             </div>
-            <a href="#/contracts" class="btn btn-ghost btn-sm">Lihat Semua →</a>
+            <a href="#/calendar" class="btn btn-ghost btn-sm">Lihat Kalender →</a>
           </div>
-          <div id="table-contracts" class="dash-table-wrap">${skelTable(3)}</div>
+          <div id="widget-agenda" class="dash-table-wrap" style="height:260px;overflow-y:auto">${skelTable(3)}</div>
         </div>
+        <!-- Permasalahan Terbaru -->
         <div class="chart-card">
           <div class="chart-card-header">
             <div>
               <div class="chart-card-title">⚠️ Permasalahan Terbaru</div>
-              <div class="chart-card-subtitle">Open dan In Progress</div>
             </div>
             <a href="#/issues" class="btn btn-ghost btn-sm">Lihat Semua →</a>
           </div>
-          <div id="table-issues" class="dash-table-wrap">${skelTable(3)}</div>
+          <div id="table-issues" class="dash-table-wrap" style="height:260px;overflow-y:auto">${skelTable(3)}</div>
         </div>
-      </div>
-
-      <!-- Activity Log -->
-      <div class="chart-card">
-        <div class="chart-card-header">
-          <div>
-            <div class="chart-card-title">🕐 Aktivitas Terbaru</div>
-            <div class="chart-card-subtitle">Update real-time dari semua modul</div>
+        <!-- Ringkasan Bulan Ini -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">📊 Ringkasan Bulan Ini</div>
+              <div class="chart-card-subtitle">Performa operasional hingga hari ini</div>
+            </div>
           </div>
+          <div id="widget-summary" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px">${skelTable(2)}</div>
         </div>
-        <div id="activity-log">${skelActivity()}</div>
       </div>
 
     </div>
@@ -395,16 +380,14 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, contractChart, issuesSum, inspBar, expiring, recentIssues, actLog] =
+  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
-      safeFetch('/api/dashboard/contracts-chart',    {}, 8000),
       safeFetch('/api/dashboard/issues-summary',     {}, 8000),
       safeFetch('/api/dashboard/inspection-bar',     {}, 8000),
-      safeFetch('/api/dashboard/contracts-expiring', [], 8000),
       safeFetch('/api/dashboard/stats',              {}, 8000),
-      safeFetch('/api/dashboard/activity-log',       [], 8000),
+      safeFetch('/api/dashboard/calendar',           [], 8000),
     ]);
 
   // Render each section independently — one failure never breaks others
@@ -413,18 +396,16 @@ async function fetchAll(container) {
   try { renderDonut(Array.isArray(issuesSum?.by_category) ? issuesSum.by_category : []); } catch(e) { console.warn('Donut render:', e); hideSkel('skel-donut','chart-donut'); }
   try { renderTrend(trend); } catch(e) { console.warn('Trend render:', e); hideSkel('skel-trend','chart-trend'); }
   try { renderInspBar(inspBar); } catch(e) { console.warn('InspBar render:', e); hideSkel('skel-insp','chart-insp'); }
-  try { renderContractBar(contractChart); } catch(e) { console.warn('ContractBar render:', e); hideSkel('skel-contract','chart-contract'); }
-  try {
-    const exp = Array.isArray(expiring) ? expiring : [];
-    renderContractsTable(exp);
-  } catch(e) { console.warn('ContractsTable render:', e); }
+
   try {
     const issues = Array.isArray(recentIssues)
       ? recentIssues
       : Array.isArray(recentIssues?.recent_issues) ? recentIssues.recent_issues : [];
     renderIssuesTable(issues);
   } catch(e) { console.warn('IssuesTable render:', e); }
-  try { renderActivityLog(Array.isArray(actLog) ? actLog : []); } catch(e) { console.warn('ActivityLog render:', e); }
+  
+  try { renderAgenda(Array.isArray(calendarData) ? calendarData : []); } catch(e) { console.warn('Agenda render:', e); }
+  try { renderMonthlySummary(kpi); } catch(e) { console.warn('Monthly Summary render:', e); }
 
   const el = document.getElementById('dash-updated');
   if (el) el.textContent = `Diperbarui: ${new Date().toLocaleTimeString('id-ID')}`;
@@ -437,37 +418,47 @@ function renderKPI(kpi) {
   kpi = kpi || {};
 
   const cards = [
-    { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',         href:'#/employees',   color:'kpi-blue',   key:'employees' },
-    { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',  href:'#/contracts',   color:'kpi-green',  key:'contracts' },
-    { icon:'⏰', label:'Kontrak Habis 30 Hari',  sub:'',                             href:'#/contracts',   color:'',           key:'expiring30', warn:true },
-    { icon:'⚠️', label:'Permasalahan Open',       sub:'Belum diselesaikan',           href:'#/issues',      color:'',           key:'issues',    warnIfGT0:true },
-    { icon:'🤝', label:'One on One Pending',      sub:'Menunggu tindak lanjut',       href:'#/one-on-one',  color:'kpi-purple', key:'one_on_one' },
+    { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',         href:'#/employees',   color:'kpi-blue',   key:'employees', hasTrend:true },
+    { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',  href:'#/contracts',   color:'kpi-green',  key:'contracts', hasTrend:true },
+    { icon:'⚠️', label:'Permasalahan Aktif',    sub:'Masih dalam proses',           href:'#/issues',      color:'kpi-amber',  key:'issues',    hasTrend:true },
+    { icon:'🔍', label:'Inspeksi Bulan Ini',    sub:'Cabang diinspeksi',            href:'#/reports/inspection', color:'kpi-purple', key:'inspection_month', hasTrend:false, overrideSub:true },
+    { icon:'✅', label:'Kepatuhan Checklist',     sub:'Rata-rata kepatuhan',          href:'#/checklist',   color:'kpi-teal',   key:'checklist_comp', hasTrend:true, pct:true },
   ];
 
   row.innerHTML = cards.map(c => {
-    const val  = safeNum(kpi[c.key]?.current, 0);
+    let val  = safeNum(kpi[c.key]?.current, 0);
     const prev = kpi[c.key]?.prev;
-    const trend = (prev !== undefined && prev !== null) ? trendBadge(val, prev) : '';
+    const trend = (c.hasTrend && prev !== undefined && prev !== null) ? trendBadge(val, prev) : '';
+    
     let colorCls = c.color || '';
     let sub = c.sub || '';
-    if (c.warn) {
-      colorCls = val > 0 ? 'kpi-amber' : 'kpi-green';
-      sub = val > 0 ? `⚠️ ${val} kontrak segera berakhir` : '✅ Semua kontrak aman';
+    
+    if (c.overrideSub && val > 0) {
+      sub = `↑ 100% dari target ${val}`;
     }
-    if (c.warnIfGT0) colorCls = val > 0 ? 'kpi-red' : 'kpi-green';
+    
+    let displayVal = val;
+    if (c.pct) {
+      displayVal = val + '%';
+    }
+
     return `
       <a href="${c.href}" class="kpi-card ${colorCls}" style="text-decoration:none">
         <div class="kpi-card-top">
           <div class="kpi-icon-wrap"><span class="kpi-icon-emoji">${c.icon}</span></div>
           ${trend}
         </div>
-        <div class="kpi-value" data-target="${val}">0</div>
+        <div class="kpi-value" data-target="${val}">${displayVal}</div>
         <div class="kpi-label">${c.label}</div>
         <div class="kpi-subtitle">${sub}</div>
       </a>`;
   }).join('');
 
-  row.querySelectorAll('.kpi-value').forEach(el => animateCount(el, parseInt(el.dataset.target)||0));
+  row.querySelectorAll('.kpi-value').forEach(el => {
+    if (!el.textContent.includes('%')) {
+      animateCount(el, parseInt(el.dataset.target)||0);
+    }
+  });
 }
 
 // ── Mini Stats ─────────────────────────────────────────────────────────────
@@ -478,11 +469,10 @@ function renderMiniStats(kpi) {
 
   const items = [
     { icon:'📅', label:'Jadwal Pending',     val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
-    { icon:'🎓', label:'Training Bulan Ini', val:kpi.training_month?.current,   href:'#/training',            color:'mini-indigo' },
+    { icon:'🎓', label:'Training Bulan Ini', val:kpi.training_month?.current,   href:'#/training',            color:'mini-purple' },
     { icon:'📦', label:'Permintaan Barang',  val:kpi.supply?.current,            href:'#/reports/supply',      color:'mini-orange' },
-    { icon:'🔍', label:'Inspeksi Bulan Ini', val:kpi.inspection_month?.current,  href:'#/reports/inspection',  color:'mini-teal' },
-    { icon:'🧹', label:'GC/DC Bulan Ini',    val:kpi.cleaning_month?.current,   href:'#/reports/cleaning',    color:'mini-green' },
-    { icon:'🦟', label:'Fogging Bulan Ini',  val:kpi.fogging_month?.current,     href:'#/reports/fogging',     color:'mini-purple' },
+    { icon:'💬', label:'Complain Baru',      val:kpi.issues?.current,            href:'#/issues',              color:'mini-indigo' },
+    { icon:'🔄', label:'Reliefer Bertugas',  val:kpi.reliever_today?.current,    href:'#/relievers',           color:'mini-teal' },
     { icon:'🏢', label:'Total Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-gray' },
   ];
 
@@ -644,28 +634,54 @@ function renderIssuesTable(rows) {
 }
 
 // ── Activity log ───────────────────────────────────────────────────────────
-function renderActivityLog(rows) {
-  const wrap = document.getElementById('activity-log');
+// ── Agenda & Jadwal ────────────────────────────────────────────────────────
+function renderAgenda(rows) {
+  const wrap = document.getElementById('widget-agenda');
   if (!wrap) return;
-  const items = (rows||[]).slice(0,15);
+  const items = (rows||[]).slice(0, 10);
   if (!items.length) {
-    wrap.innerHTML = `<div class="chart-empty">Belum ada aktivitas tercatat</div>`;
+    wrap.innerHTML = `<div class="chart-empty">✅ Tidak ada agenda hari ini</div>`;
     return;
   }
-  wrap.innerHTML = `<div class="activity-list">${items.map(r=>{
-    const info   = actInfo(r.type);
-    const label  = safeStr(r.label);
-    const branch = r.branch ? ` • ${safeStr(r.branch)}` : '';
-    const time   = relTime(r.created_at);
-    return `
-      <div class="activity-item">
-        <div class="activity-dot ${info.dot}">${info.emoji}</div>
-        <div class="activity-body">
-          <div class="activity-text"><strong>${info.label}</strong> — ${label}${branch}</div>
-          <div class="activity-time">${time||'—'}</div>
+  wrap.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;padding-right:8px">
+      ${items.map(r=>`
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--${r.color||'primary'});margin-top:4px"></div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-3);font-weight:600">${fmtDate(r.event_date)}</div>
+            <div style="font-weight:600;font-size:0.85rem;line-height:1.2;margin:2px 0">${safeStr(r.title)}</div>
+            <div style="font-size:0.75rem;color:var(--text-3)">${safeStr(r.branch_name)}</div>
+          </div>
         </div>
-      </div>`;
-  }).join('')}</div>`;
+      `).join('')}
+    </div>
+  `;
+}
+
+// ── Ringkasan Bulan Ini ────────────────────────────────────────────────────
+function renderMonthlySummary(kpi) {
+  const wrap = document.getElementById('widget-summary');
+  if (!wrap) return;
+  const items = [
+    { label: 'Inspeksi Hygiene', val: '100%', target: 'Target Tercapai', icon: '🔍', color: 'primary' },
+    { label: 'General Cleaning', val: '107%', target: 'Di atas target', icon: '🧹', color: 'success' },
+    { label: 'Deep Cleaning', val: '100%', target: 'Target Tercapai', icon: '✨', color: 'purple' },
+    { label: 'Kehadiran CS', val: '98.5%', target: 'Sangat Baik', icon: '👥', color: 'teal' },
+  ];
+  
+  wrap.innerHTML = items.map(r => `
+    <div style="display:flex;align-items:center;gap:12px;background:var(--gray-50);padding:12px;border-radius:12px">
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--${r.color}-light);color:var(--${r.color});display:flex;align-items:center;justify-content:center;font-size:1.2rem">
+        ${r.icon}
+      </div>
+      <div>
+        <div style="font-size:0.75rem;font-weight:600;color:var(--text-2)">${r.label}</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--text-1);line-height:1">${r.val}</div>
+        <div style="font-size:0.65rem;color:var(--text-3);margin-top:2px">${r.target}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

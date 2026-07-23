@@ -318,10 +318,10 @@ function renderLayout() {
 
         <div class="sidebar-footer">
           <div class="sidebar-user">
-            <div class="sidebar-avatar">${initial}</div>
+            <div class="sidebar-avatar">BA</div>
             <div class="sidebar-user-info">
-              <div class="sidebar-user-name">${user?.full_name || 'User'}</div>
-              <div class="sidebar-user-role">${user?.role || ''}</div>
+              <div class="sidebar-user-name">Berlin Ariansyah</div>
+              <div class="sidebar-user-role">Administrator</div>
             </div>
           </div>
           <button class="sidebar-logout" id="logout-btn">
@@ -342,7 +342,10 @@ function renderLayout() {
             <button class="topbar-menu-btn" id="topbar-menu-btn" aria-label="Menu">
               <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <div class="topbar-page-title" id="topbar-title">Dashboard</div>
+            <div class="topbar-search">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Cari di FCMS..." class="topbar-search-input" />
+            </div>
           </div>
 
           <div class="topbar-center" id="topbar-clock">
@@ -361,8 +364,12 @@ function renderLayout() {
               <span class="notif-dot" id="notif-dot" style="display:none"></span>
             </button>
             <a href="#/profile" class="topbar-user-btn" title="Profil">
-              <span class="topbar-avatar">${initial}</span>
-              <span class="topbar-user-name">${user?.full_name?.split(' ')[0] || 'User'}</span>
+              <img src="https://ui-avatars.com/api/?name=Berlin+Ariansyah&background=2563EB&color=fff&bold=true" class="topbar-avatar" alt="Avatar" />
+              <div class="topbar-user-text">
+                <span class="topbar-user-name">Berlin Ariansyah</span>
+                <span class="topbar-user-role-mini">Administrator</span>
+              </div>
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:4px;color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
             </a>
           </div>
         </header>

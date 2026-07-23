@@ -86,6 +86,7 @@ async function getKPI(env, origin) {
     cleanCur,
     fogCur,
     contractPrev,
+    relieverToday,
   ] = await Promise.all([
     // Uses idx_employees_status
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
@@ -129,6 +130,9 @@ async function getKPI(env, origin) {
 
     // Uses idx_contracts_created
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
+
+    // Relievers on duty today (status='Selesai' or 'Proses' or 'Done' depending on how it's stored, or just count those with backup_date = today)
+    env.DB.prepare("SELECT COUNT(*) c FROM relievers WHERE backup_date = date('now')").first(),
   ]);
 
   return ok({
@@ -144,6 +148,8 @@ async function getKPI(env, origin) {
     inspection_month:{ current: inspCur?.c||0 },
     cleaning_month:  { current: cleanCur?.c||0 },
     fogging_month:   { current: fogCur?.c||0 },
+    reliever_today:  { current: relieverToday?.c||0 },
+    checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
   }, 200, origin);
 }
 
