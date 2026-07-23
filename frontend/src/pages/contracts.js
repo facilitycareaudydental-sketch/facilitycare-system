@@ -175,21 +175,21 @@ export async function renderContracts(container) {
       onImport: async (json) => {
         const [bRes, eData] = await Promise.all([
           apiFetch('/api/branches?limit=10000'),
-          fetchAll(`/api/employees`)
+          fetchAll(`/api/employees?status=Aktif`)
         ]);
         const rawBranches = bRes.data?.data || [];
         const rawEmployees = eData || [];
         
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = String(str || '').toLowerCase();
-          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
+          const s = String(str || '').toLowerCase().trim();
+          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase().trim() === s || String(r.code || '').toLowerCase().trim() === s || String(r.name || '').toLowerCase().trim() === s);
           return b ? b.id : null;
         };
         const matchEmployee = (str) => {
           if (!str) return null;
-          const s = String(str || '').toLowerCase();
-          const e = rawEmployees.find(r => String(r.full_name || '').toLowerCase() === s);
+          const s = String(str || '').toLowerCase().trim();
+          const e = rawEmployees.find(r => String(r.full_name || '').toLowerCase().trim() === s);
           return e ? e.id : null;
         };
         const parseDate = (v) => {
