@@ -724,7 +724,7 @@ function renderKPIKebersihan(kpi) {
   ];
   
   wrap.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:16px">
       ${items.map(r => {
         const pct = r.val.includes('%') ? parseInt(r.val) : Math.min(100, parseInt(r.val)*10);
         return `

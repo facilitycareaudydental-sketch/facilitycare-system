@@ -675,12 +675,12 @@ strong { font-weight: 600; }
 /* ── Charts Row ─────────────────────────────────────────────── */
 .charts-row {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 16px;
 }
 .bottom-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 .actions-wrap {
