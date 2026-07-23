@@ -31,8 +31,8 @@ export async function renderContracts(container) {
       { key: 'branch_name', label: 'Cabang' },
       { key: 'division', label: 'Div / Bagian', render: v => divisionBadge(v) },
       { key: 'start_date', label: 'Tanggal Mulai', nowrap: true , render: v => window.formatDate(v) },
-      { key: 'end_date', label: 'Tanggal Selesai', nowrap: true , render: v => window.formatDate(v) },
-      { key: 'days_remaining', label: 'Sisa Kontrak', render: v => daysRemainingBadge(v) },
+      { key: 'end_date', label: 'Tanggal Selesai', nowrap: true , render: v => (!v || String(v).startsWith('2099')) ? 'Tetap / PKWTT' : window.formatDate(v) },
+      { key: 'days_remaining', label: 'Sisa Kontrak', render: (v, row) => (row.end_date && String(row.end_date).startsWith('2099')) ? '<span class="badge badge-success" style="background:#10B981;color:white;padding:4px 8px;border-radius:6px;font-size:0.75rem;font-weight:600">Tetap</span>' : daysRemainingBadge(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
@@ -46,6 +46,10 @@ export async function renderContracts(container) {
         { value: '60', label: '60 Hari' },
       ]},
     ],
+    onBeforeSubmit: (body) => {
+      if (!body.end_date) body.end_date = '2099-12-31';
+      return body;
+    },
     formFields: (data) => [
       {
         type: 'row', fields: [
@@ -61,8 +65,8 @@ export async function renderContracts(container) {
       },
       {
         type: 'row', fields: [
-          { name: 'start_date', label: 'Tanggal Mulai', type: 'date', value: data?.start_date },
-          { name: 'end_date', label: 'Tanggal Selesai', type: 'date', value: data?.end_date },
+          { name: 'start_date', label: 'Tanggal Mulai', type: 'date', required: true, value: data?.start_date },
+          { name: 'end_date', label: 'Tanggal Selesai', type: 'date', value: data?.end_date && !String(data.end_date).startsWith('2099') ? data.end_date : '' },
         ]
       },
       {
@@ -83,8 +87,8 @@ export async function renderContracts(container) {
             'Cabang': d.branch_name || '',
             'Div / Bagian': d.division || '',
             'Tanggal Mulai': d.start_date || '',
-            'Tanggal Selesai': d.end_date || '',
-            'Sisa Kontrak': d.days_remaining !== null && d.days_remaining !== undefined ? `${d.days_remaining} Hari` : '',
+            'Tanggal Selesai': (d.end_date && String(d.end_date).startsWith('2099')) ? '' : (d.end_date || ''),
+            'Sisa Kontrak': (d.end_date && String(d.end_date).startsWith('2099')) ? 'Tetap' : (d.days_remaining !== null && d.days_remaining !== undefined ? `${d.days_remaining} Hari` : ''),
             'Status': d.status || ''
           }));
           downloadExcel(data, 'Data_Kontrak');
@@ -142,15 +146,15 @@ export async function renderContracts(container) {
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
           division: String(row['Div / Bagian'] || '').trim() || 'FACILITY CARE',
           start_date: parseDate(row['Tanggal Mulai']),
-          end_date: parseDate(row['Tanggal Selesai']),
+          end_date: parseDate(row['Tanggal Selesai']) || '2099-12-31',
           status: String(row['Status'] || '').trim(),
           _rawName: String(row['Nama Lengkap'] || '').trim()
         }));
         
-        const missing = payload.filter(r => !r.employee_id);
+        const missing = payload.filter(r => !r.employee_id || !r.start_date);
         if (missing.length > 0) {
            const names = missing.map(m => m._rawName).join(', ');
-           throw new Error(`Terdapat ${missing.length} baris yang tidak bisa di-import. Karyawan harus terdaftar dulu di Master Karyawan. Cek karyawan: ${names}`);
+           throw new Error(`Terdapat ${missing.length} baris yang tidak bisa di-import. Pastikan karyawan sudah terdaftar di Master Karyawan dan Tanggal Mulai tidak kosong. Cek karyawan: ${names}`);
         }
         
         const res = await apiFetch('/api/contracts/import', {
