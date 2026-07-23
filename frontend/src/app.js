@@ -11,7 +11,7 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force32';
+import { renderDashboard } from './pages/dashboard.js?v=force33';
 import { renderLogin } from './pages/login.js';
 import { renderEmployees } from './pages/employees.js';
 import { renderContracts } from './pages/contracts.js';
@@ -344,13 +344,13 @@ function renderLayout() {
             </button>
             <div class="topbar-welcome">
               <div class="topbar-greeting">
-                ${(() => {
+                <span class="topbar-greeting-time">${(() => {
                   const h = new Date().getHours();
                   if (h >= 4 && h < 11) return 'Selamat Pagi';
                   if (h >= 11 && h < 15) return 'Selamat Siang';
                   if (h >= 15 && h < 18) return 'Selamat Sore';
                   return 'Selamat Malam';
-                })()}, <span class="topbar-greeting-name">Berlin Ariansyah</span> 👋
+                })()}, </span><span class="topbar-greeting-name">Berlin Ariansyah</span> 👋
               </div>
               <div class="topbar-subtitle">
                 Ringkasan Operasional FCMS Hari Ini

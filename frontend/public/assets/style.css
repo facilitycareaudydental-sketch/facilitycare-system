@@ -1115,11 +1115,13 @@ strong { font-weight: 600; }
   .sidebar-overlay { display: block; }
   .sidebar-close { display: flex; }
   
+  .topbar-left { flex: 1; }
   .topbar-search { display: none; } /* Hide search on small mobile */
   .topbar-user-text { display: none; }
   .topbar-user-btn { padding: 4px; }
-  .topbar-welcome { margin-left: 8px; }
-  .topbar-greeting { display: block; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+  .topbar-welcome { margin-left: 0; }
+  .topbar-greeting { display: block; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+  .topbar-greeting-time { display: none; }
   .topbar-subtitle { display: none; }
 }
 
