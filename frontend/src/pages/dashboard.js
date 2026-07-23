@@ -613,7 +613,30 @@ function renderTrend(trend) {
   });
 }
 
-// ── Contract bar ────────────────────────────────────────────────────────
+// ── Inspection bar ─────────────────────────────────────────────────────────
+function renderInspBar(inspBar) {
+  hideSkel('skel-insp','chart-insp');
+  const canvas = document.getElementById('chart-insp');
+  if (!canvas) return;
+  destroyChart('inspBar');
+  inspBar = inspBar || {};
+  const labels = inspBar.labels||[];
+  const fc     = (inspBar.fc ||[]).map(v=>safeNum(v));
+  const spv    = (inspBar.spv||[]).map(v=>safeNum(v));
+  if (!labels.length) { showEmpty(canvas,'Belum ada data inspeksi'); return; }
+  _charts.inspBar = new Chart(canvas, {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Skor FC',  data:fc,  backgroundColor:'rgba(37,99,235,.75)',  borderRadius:4, borderSkipped:false },
+      { label:'Skor SPV', data:spv, backgroundColor:'rgba(16,185,129,.75)', borderRadius:4, borderSkipped:false },
+    ]},
+    options: chartOpts({ plugins:{ legend:{ position:'top' } },
+      scales:{ x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:45, minRotation:30 } },
+               y:{ grid:{color:GRID}, ticks:{ font:FONT, color:TICK }, min:0, max:100 } } }),
+  });
+}
+
+// ── Contract bar ───────────────────────────────────────────────────────────
 function renderContractBar() {
   hideSkel('skel-contract','chart-contract');
   const canvas = document.getElementById('chart-contract');
@@ -650,49 +673,6 @@ function renderContractBar() {
         y:{ grid:{color:GRID, drawBorder:false}, ticks:{ font:FONT, color:TICK, precision:0 }, min:0 } 
       } 
     }),
-  });
-}
-
-// ── Inspection bar ─────────────────────────────────────────────────────────
-function renderInspBar(inspBar) {
-  hideSkel('skel-insp','chart-insp');
-  const canvas = document.getElementById('chart-insp');
-  if (!canvas) return;
-  destroyChart('inspBar');
-  inspBar = inspBar || {};
-  const labels = inspBar.labels||[];
-  const fc     = (inspBar.fc ||[]).map(v=>safeNum(v));
-  const spv    = (inspBar.spv||[]).map(v=>safeNum(v));
-  if (!labels.length) { showEmpty(canvas,'Belum ada data inspeksi'); return; }
-  _charts.inspBar = new Chart(canvas, {
-    type:'bar',
-    data:{ labels, datasets:[
-      { label:'Skor FC',  data:fc,  backgroundColor:'rgba(37,99,235,.75)',  borderRadius:4, borderSkipped:false },
-      { label:'Skor SPV', data:spv, backgroundColor:'rgba(16,185,129,.75)', borderRadius:4, borderSkipped:false },
-    ]},
-    options: chartOpts({ plugins:{ legend:{ position:'top' } },
-      scales:{ x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:45, minRotation:30 } },
-               y:{ grid:{color:GRID}, ticks:{ font:FONT, color:TICK }, min:0, max:100 } } }),
-  });
-}
-
-// ── Contract bar ───────────────────────────────────────────────────────────
-function renderContractBar(cc) {
-  hideSkel('skel-contract','chart-contract');
-  const canvas = document.getElementById('chart-contract');
-  if (!canvas) return;
-  destroyChart('contractBar');
-  cc = cc || {};
-  const labels = (cc.labels||[]).map(monthShort);
-  const counts = (cc.counts||[]).map(v=>safeNum(v));
-  if (!labels.length) { showEmpty(canvas,'Belum ada data kontrak'); return; }
-  const bgColors = counts.map(v => v>5?'rgba(239,68,68,.75)': v>2?'rgba(245,158,11,.75)':'rgba(37,99,235,.65)');
-  _charts.contractBar = new Chart(canvas, {
-    type:'bar',
-    data:{ labels, datasets:[{ label:'Kontrak Berakhir', data:counts, backgroundColor:bgColors, borderRadius:6, borderSkipped:false }]},
-    options: chartOpts({ plugins:{ legend:{ display:false } },
-      scales:{ x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK } },
-               y:{ grid:{color:GRID}, ticks:{ font:FONT, color:TICK, precision:0 }, beginAtZero:true } } }),
   });
 }
 
