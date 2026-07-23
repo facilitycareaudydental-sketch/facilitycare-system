@@ -283,8 +283,6 @@ export async function renderDashboard(container) {
       <!-- KPI -->
       <div class="kpi-row" id="kpi-row">${skelKPI()}</div>
 
-      <!-- Mini Stats -->
-      <div class="mini-stats-row" id="mini-stats-row">${skelMini()}</div>
 
       <!-- Charts Row -->
       <div style="display:flex; gap:16px; width:100%; align-items:stretch;">
@@ -416,7 +414,6 @@ async function fetchAll(container) {
 
   // Render each section independently — one failure never breaks others
   try { renderKPI(kpi); } catch(e) { console.warn('KPI render:', e); }
-  try { renderMiniStats(kpi); } catch(e) { console.warn('MiniStats render:', e); }
   try { renderDonut(Array.isArray(issuesSum?.by_category) ? issuesSum.by_category : []); } catch(e) { console.warn('Donut render:', e); hideSkel('skel-donut','chart-donut'); }
   try { renderTrend(trend); } catch(e) { console.warn('Trend render:', e); hideSkel('skel-trend','chart-trend'); }
   try { renderInspBar(inspBar); } catch(e) { console.warn('InspBar render:', e); hideSkel('skel-insp','chart-insp'); }
