@@ -172,12 +172,8 @@ async function importContracts(request, env, origin) {
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
   if (body.length === 0) return ok({ message: 'No data to import' }, 200, origin);
 
-  let inserted = 0;
-  let updated = 0;
+  let processed = 0;
   try {
-    const countBeforeRes = await env.DB.prepare('SELECT COUNT(*) as c FROM contracts').first();
-    const countBefore = countBeforeRes.c;
-    
     for (const item of body) {
       if (!item.employee_id || !item.start_date || !item.end_date) continue;
 
@@ -197,7 +193,6 @@ async function importContracts(request, env, origin) {
           item.notes || null,
           existing.id
         ).run();
-        updated++;
       } else {
         await env.DB.prepare(
           `INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) 
@@ -213,22 +208,10 @@ async function importContracts(request, env, origin) {
           item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
           item.notes || null
         ).run();
-        inserted++;
       }
+      processed++;
     }
-    
-    const countAfterRes = await env.DB.prepare('SELECT COUNT(*) as c FROM contracts').first();
-    const countAfter = countAfterRes.c;
-    
-    return ok({ 
-      message: `Berhasil memproses ${inserted + updated} kontrak`,
-      metrics: {
-        inserted,
-        updated,
-        countBefore,
-        countAfter
-      }
-    }, 200, origin);
+    return ok({ message: `Berhasil memperbarui/mengimport ${processed} kontrak` }, 200, origin);
   } catch (err) {
     return error('Gagal import data: ' + err.message, 500, origin);
   }
