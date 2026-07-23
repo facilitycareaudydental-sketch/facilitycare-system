@@ -754,7 +754,7 @@ function renderQuickActions() {
     { label:'Buat Permasalahan', icon:'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>', bg:'#3B82F6', href:'#/issues' },
     { label:'Permintaan Barang', icon:'📦', bg:'#10B981', href:'#/reports/supply' },
     { label:'One on One Baru',   icon:'👥', bg:'#6366F1', href:'#/one-on-one' },
-    { label:'Input Absensi',     icon:'📋', bg:'#8B5CF6', href:'#/timeline' },
+    { label:'Input Kegiatan',    icon:'📋', bg:'#8B5CF6', href:'#/timeline' },
     { label:'Buat Checklist',    icon:'📝', bg:'#0EA5E9', href:'#/checklist' },
     { label:'Laporan Harian',    icon:'📊', bg:'#14B8A6', href:'#/reports' },
     { label:'Kalender',          icon:'📅', bg:'#8B5CF6', href:'#/calendar' },
