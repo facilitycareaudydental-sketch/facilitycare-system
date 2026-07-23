@@ -468,13 +468,13 @@ function renderMiniStats(kpi) {
   kpi = kpi || {};
 
   const items = [
-    { icon:'📅', label:'Jadwal Kegiatan',      val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
-    { icon:'🎓', label:'Training Bulan Ini',   val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
-    { icon:'📦', label:'Permintaan Barang',   val:kpi.supply?.current,            href:'#/reports/supply',      color:'mini-orange' },
-    { icon:'🔍', label:'Inspeksi Bulan Ini',  val:kpi.inspection_month?.current,  href:'#/reports/inspection',  color:'mini-blue' },
-    { icon:'🧹', label:'GCDC Bulan Ini',      val:kpi.cleaning_month?.current,    href:'#/reports/cleaning',    color:'mini-green' },
-    { icon:'💨', label:'Fogging Bulan Ini',   val:kpi.fogging_month?.current,     href:'#/reports/fogging',     color:'mini-purple' },
-    { icon:'🏢', label:'Total Cabang',        val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal' },
+    { icon:'📅', label:'Jadwal',       val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
+    { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
+    { icon:'📦', label:'Permintaan',   val:kpi.supply?.current,            href:'#/reports/supply',      color:'mini-orange' },
+    { icon:'🔍', label:'Inspeksi',     val:kpi.inspection_month?.current,  href:'#/reports/inspection',  color:'mini-blue' },
+    { icon:'🧹', label:'GCDC',         val:kpi.cleaning_month?.current,    href:'#/reports/cleaning',    color:'mini-green' },
+    { icon:'💨', label:'Fogging',      val:kpi.fogging_month?.current,     href:'#/reports/fogging',     color:'mini-purple' },
+    { icon:'🏢', label:'Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal' },
   ];
 
   row.innerHTML = items.map(s => `
