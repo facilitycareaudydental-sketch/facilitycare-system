@@ -40,8 +40,9 @@ export function parseExcel(file) {
         console.log(`Headers Found: ${headers.join(', ')}`);
         console.log('---------------------------');
 
-        // Convert to array of objects
         const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+        Object.defineProperty(json, '__worksheet', { value: worksheet, enumerable: false });
+        Object.defineProperty(json, '__headers', { value: headers, enumerable: false });
         resolve(json);
       } catch (err) {
         reject(err);

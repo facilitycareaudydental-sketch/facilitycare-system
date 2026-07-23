@@ -248,15 +248,56 @@ export async function renderContracts(container) {
           const parsedStartDate = parseDate(rawStartDate);
           
           if (!parsedStartDate) {
-             console.log('--- [DEBUG] DATE PARSING FAILED ---');
-             console.log(`Nomor baris Excel        : ${rowNum}`);
-             console.log(`Nama karyawan            : ${rawName}`);
-             console.log(`Nilai asli sel tanggal   : "${rawStartDate}"`);
-             console.log(`Tipe data SheetJS        : ${typeof rawStartDate}`);
-             console.log(`Nilai setelah parsing    : "${parsedStartDate}"`);
-             console.log(`Header yang digunakan    : "Tanggal Mulai"`);
-             console.log(`Alasan dianggap kosong   : Fungsi parseDate() gagal menerjemahkan format/tipe data asli menjadi string tanggal valid (YYYY-MM-DD).`);
-             console.log('-----------------------------------');
+             const worksheet = json.__worksheet;
+             const headers = json.__headers || [];
+             let colIdx = headers.indexOf('Tanggal Mulai');
+             let cellType = 'N/A';
+             let cellFormatted = 'N/A';
+             let cellAddress = 'N/A';
+             
+             if (colIdx !== -1 && worksheet && window.XLSX) {
+                 const cellRef = window.XLSX.utils.encode_cell({c: colIdx, r: rowNum - 1});
+                 cellAddress = cellRef;
+                 const cell = worksheet[cellRef];
+                 if (cell) {
+                     cellType = cell.t || 'undefined';
+                     cellFormatted = cell.w || 'undefined';
+                 } else {
+                     cellType = 'CELL KOSONG/TIDAK ADA DI WORKSHEET';
+                 }
+             }
+
+             let reason = "Unknown";
+             if (rawStartDate === undefined || rawStartDate === null || rawStartDate === '') {
+                 reason = "Kondisi IF: Nilai murni undefined, null, atau string kosong dari parsed JSON.";
+             } else if (rawStartDate instanceof Date && isNaN(rawStartDate.getTime())) {
+                 reason = "Kondisi IF: Nilai adalah object Date namun invalid (isNaN).";
+             } else {
+                 reason = "Kondisi IF: Tidak lolos Regex YYYY-MM-DD maupun konversi serial number Excel.";
+             }
+
+             console.log('==========================');
+             console.log('[DEBUG] DATE PARSING FAILED');
+             console.log('==========================');
+             console.log(`Excel Row Number : ${rowNum}`);
+             console.log(`Employee Name : ${rawName}`);
+             console.log(`Column Header Used : "Tanggal Mulai" (Index: ${colIdx})`);
+             console.log(`Raw Cell Value : "${rawStartDate}"`);
+             console.log(`JavaScript Type : ${typeof rawStartDate}`);
+             console.log(`SheetJS Cell Type : ${cellType}`);
+             console.log(`SheetJS Formatted Value : "${cellFormatted}"`);
+             console.log(`Value After Trim : "${String(rawStartDate || '').trim()}"`);
+             console.log(`Value After Date Parser : "${parsedStartDate}"`);
+             console.log(`Is Empty : ${!rawStartDate}`);
+             console.log(`Is Invalid Date : ${rawStartDate instanceof Date ? isNaN(rawStartDate.getTime()) : 'Bukan JS Date Object'}`);
+             console.log(`Reason : ${reason}`);
+             console.log(`Workbook Sheet : ${worksheet ? 'Ada' : 'Tidak Ditemukan'}`);
+             console.log(`Excel Cell Address : ${cellAddress}`);
+             console.log('\n--- Seluruh Kolom Pada Baris Ini (Mencegah Column Shift) ---');
+             console.log(JSON.stringify(row, null, 2));
+             console.log('\n--- Daftar Seluruh Header Yang Terbaca ---');
+             console.log(JSON.stringify(headers));
+             console.log('==========================\n');
           }
 
           return {
