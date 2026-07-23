@@ -472,7 +472,7 @@ function renderMiniStats(kpi) {
   kpi = kpi || {};
 
   const items = [
-    { icon:'📅', label:'Absensi Pending',      val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
+    { icon:'📅', label:'Jadwal Kegiatan',      val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
     { icon:'🎓', label:'Training Bulan Ini',   val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
     { icon:'📦', label:'Permintaan Barang',   val:kpi.supply?.current,            href:'#/reports/supply',      color:'mini-orange' },
     { icon:'🔍', label:'Inspeksi Bulan Ini',  val:kpi.inspection_month?.current,  href:'#/reports/inspection',  color:'mini-blue' },
