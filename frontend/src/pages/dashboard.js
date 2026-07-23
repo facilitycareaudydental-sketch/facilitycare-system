@@ -264,21 +264,6 @@ export async function renderDashboard(container) {
   container.innerHTML = `
     <div class="dashboard-wrap" id="dash-root">
 
-      <div class="section-header" style="align-items:center;margin-bottom:10px">
-        <div>
-          <h2 class="section-title">Selamat pagi, Berlin! 👋</h2>
-          <div class="dash-last-updated">Berikut ringkasan operasional FCMS hari ini.</div>
-        </div>
-        <div class="dash-refresh-info">
-          <div class="btn btn-outline" style="background:#fff;gap:6px">
-            📅 <span>Selasa, 22 Juli 2026</span> <span style="font-size:0.7rem">▼</span>
-          </div>
-          <button class="btn btn-primary" style="gap:6px">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Export
-          </button>
-        </div>
-      </div>
 
       <!-- KPI -->
       <div class="kpi-row" id="kpi-row">${skelKPI()}</div>
