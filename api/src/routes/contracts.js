@@ -90,11 +90,11 @@ async function createContract(request, env, origin) {
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
   const { employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes } = body;
-  if (!employee_id || !start_date || !end_date) return error('employee_id, start_date, end_date required', 400, origin);
+  if (!employee_id) return error('employee_id required', 400, origin);
 
   const result = await env.DB.prepare(
     'INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(employee_id, branch_id || null, division || 'FACILITY CARE', start_date, end_date,
+  ).bind(employee_id, branch_id || null, division || 'FACILITY CARE', start_date || null, end_date || null,
     contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
 
   const newId = result.meta.last_row_id;
