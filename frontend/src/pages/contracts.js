@@ -173,10 +173,6 @@ export async function renderContracts(container) {
         downloadExcel(template, 'Template_Import_Kontrak');
       },
       onImport: async (json) => {
-        console.log('--- START ONIMPORT MAPPING ---');
-        console.log(`JSON received from Excel: ${json.length} rows`);
-        if (json.length > 0) console.log('Sample row 0:', json[0]);
-        
         const [bRes, eData] = await Promise.all([
           apiFetch('/api/branches?limit=10000'),
           fetchAll(`/api/employees`)
@@ -184,17 +180,45 @@ export async function renderContracts(container) {
         const rawBranches = bRes.data?.data || [];
         const rawEmployees = eData || [];
         
+        console.log(`Total employee yang berhasil dimuat dari database : ${rawEmployees.length}`);
+        if (rawEmployees.length > 0) {
+           console.log('Contoh 5 employee pertama:');
+           rawEmployees.slice(0, 5).forEach((emp, i) => {
+              console.log(`${i+1}. ID: ${emp.id}, Name: ${emp.full_name}, Status: ${emp.status}`);
+           });
+        }
+        
         const matchBranch = (str) => {
           if (!str) return null;
           const s = String(str || '').replace(/\s+/g, ' ').toLowerCase().trim();
           const b = rawBranches.find(r => String(r.full_name || '').replace(/\s+/g, ' ').toLowerCase().trim() === s || String(r.code || '').replace(/\s+/g, ' ').toLowerCase().trim() === s || String(r.name || '').replace(/\s+/g, ' ').toLowerCase().trim() === s);
           return b ? b.id : null;
         };
-        const matchEmployee = (str) => {
-          if (!str) return null;
+        const matchEmployee = (str, index) => {
+          console.log('------------------------------------------------');
+          console.log(`Row Excel : ${index}`);
+          console.log(`Nama dari Excel : "${str}"`);
+          
+          if (!str) {
+             console.log('Alasan gagal mapping : Nama kosong');
+             return null;
+          }
+          
           const s = String(str || '').replace(/\s+/g, ' ').toLowerCase().trim();
+          console.log(`Nama setelah normalisasi : "${s}"`);
+          console.log(`Jumlah employee di database : ${rawEmployees.length}`);
+          
           const e = rawEmployees.find(r => String(r.full_name || '').replace(/\s+/g, ' ').toLowerCase().trim() === s);
-          return e ? e.id : null;
+          
+          if (e) {
+             console.log('Employee ditemukan atau tidak : Ditemukan');
+             console.log(`Employee ID jika ditemukan : ${e.id}`);
+             return e.id;
+          } else {
+             console.log('Employee ditemukan atau tidak : TIDAK Ditemukan');
+             console.log('Alasan gagal mapping : Tidak ada kecocokan full_name setelah normalisasi');
+             return null;
+          }
         };
         const parseDate = (v) => {
           if (!v) return '';
@@ -217,8 +241,8 @@ export async function renderContracts(container) {
           return s;
         };
 
-        const payload = json.map(row => ({
-          employee_id: matchEmployee(String(row['Nama Lengkap'] || '').trim()),
+        const payload = json.map((row, idx) => ({
+          employee_id: matchEmployee(String(row['Nama Lengkap'] || '').trim(), idx + 2),
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
           division: String(row['Div / Bagian'] || '').trim() || 'FACILITY CARE',
           start_date: parseDate(row['Tanggal Mulai']),
@@ -227,54 +251,19 @@ export async function renderContracts(container) {
           _rawName: String(row['Nama Lengkap'] || '').trim()
         }));
         
-        const invalid = payload.filter(r => !r.employee_id || !r.start_date);
-        const valid = payload.filter(r => r.employee_id && r.start_date);
-        
-        console.log(`Mapping results - Valid: ${valid.length}, Invalid: ${invalid.length}`);
-        
-        if (valid.length === 0) {
-           const names = invalid.map(m => m._rawName).join(', ');
-           const missingBecauseEmptyEmployee = invalid.filter(r => !r.employee_id).length;
-           const missingBecauseEmptyDate = invalid.filter(r => !r.start_date).length;
-           throw new Error(`Semua baris (${invalid.length}) gagal. (EmpID kosong: ${missingBecauseEmptyEmployee}, Date kosong: ${missingBecauseEmptyDate}). Cek karyawan: ${names}`);
+        const missing = payload.filter(r => !r.employee_id || !r.start_date);
+        if (missing.length > 0) {
+           const names = missing.map(m => m._rawName).join(', ');
+           const missingBecauseEmptyEmployee = payload.filter(r => !r.employee_id).length;
+           const missingBecauseEmptyDate = payload.filter(r => !r.start_date).length;
+           throw new Error(`[DB: ${rawEmployees.length} Emps (ex: ${rawEmployees[0]?.full_name || 'N/A'}), ${rawBranches.length} Branches] Terdapat ${missing.length} baris gagal (EmpID kosong: ${missingBecauseEmptyEmployee}, Date kosong: ${missingBecauseEmptyDate}). Cek karyawan: ${names}`);
         }
         
         const res = await apiFetch('/api/contracts/import', {
           method: 'POST',
-          body: JSON.stringify(valid)
+          body: JSON.stringify(payload)
         });
-        
-        console.log('API Response:', res);
-        
-        // Build summary string
-        let summary = `Import Summary\n--------------\n`;
-        summary += `Total baris Excel      : ${json.length}\n`;
-        summary += `Baris valid            : ${valid.length}\n`;
-        summary += `Baris dikirim ke API   : ${valid.length}\n`;
-        
-        if (res && res.data && res.data.metrics) {
-           summary += `Berhasil INSERT        : ${res.data.metrics.inserted}\n`;
-           summary += `Berhasil UPDATE        : ${res.data.metrics.updated}\n`;
-           
-           console.log('--- DB Verification ---');
-           console.log(`Before: ${res.data.metrics.countBefore}`);
-           console.log(`After : ${res.data.metrics.countAfter}`);
-        } else {
-           summary += `Berhasil diproses      : ${valid.length}\n`;
-        }
-        
-        summary += `Gagal (Frontend)       : ${invalid.length}\n`;
-        if (invalid.length > 0) {
-           summary += `\nDetail Kegagalan:\n`;
-           invalid.forEach((inv, i) => {
-              if (i < 10) summary += `- Excel Row (Nama: ${inv._rawName}) : ${!inv.employee_id ? 'Nama tidak terdaftar di DB' : 'Tanggal Mulai kosong'}\n`;
-           });
-           if (invalid.length > 10) summary += `- ... dan ${invalid.length - 10} lainnya\n`;
-        }
-        
-        alert(summary); // Display the summary directly to the user
-        
-        if (typeof renderContracts === 'function') renderContracts();
+        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }
     }
   });
