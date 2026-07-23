@@ -3,15 +3,38 @@ import { initRouter, registerRoute, navigate } from './router.js';
 import { toastError } from './components/toast.js';
 import { createModal } from './components/modal.js';
 
-window.formatDate = (d) => {
+window.parseFlexibleDate = (d) => {
   if (!d || d === '-') return '';
-  const p = d.split('-');
-  if (p.length === 3 && p[0].length === 4) return `${p[2]}-${p[1]}-${p[0]}`;
-  return d;
+  d = String(d).trim();
+  // Handle Excel serial numbers (e.g. 45208)
+  if (/^\d{5}$/.test(d)) {
+    const utc_days = Math.floor(Number(d) - 25569);
+    const date_info = new Date(utc_days * 86400 * 1000);
+    return date_info.toISOString().split('T')[0];
+  }
+  // Handle DD/MM/YYYY or DD-MM-YYYY
+  if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
+    const p = d.split(/[\/\-]/);
+    return `${p[2]}-${p[1]}-${p[0]}`;
+  }
+  return d.split('T')[0];
+};
+
+window.formatDate = (d) => {
+  const iso = window.parseFlexibleDate(d);
+  if (!iso) return '';
+  const p = iso.split('-');
+  if (p.length === 3 && p[0].length === 4) {
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const day = parseInt(p[2], 10);
+    const month = months[parseInt(p[1], 10) - 1];
+    return `${day} ${month} ${p[0]}`;
+  }
+  return iso;
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force34';
+import { renderDashboard } from './pages/dashboard.js?v=force35';
 import { renderLogin } from './pages/login.js';
 import { renderEmployees } from './pages/employees.js';
 import { renderContracts } from './pages/contracts.js';

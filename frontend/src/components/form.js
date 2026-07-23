@@ -42,7 +42,8 @@ export function buildFormHTML(fields) {
         input = `<label class="checkbox-label"><input type="checkbox" name="${field.name}" value="1" ${field.value ? 'checked' : ''}> ${field.checkLabel || field.label}</label>`;
         break;
       case 'date':
-        input = `<input type="date" name="${field.name}" class="form-control" value="${field.value || ''}" ${required}>`;
+        const safeVal = (window.parseFlexibleDate && field.value) ? window.parseFlexibleDate(field.value) : (field.value || '');
+        input = `<input type="date" name="${field.name}" class="form-control" value="${safeVal}" ${required}>`;
         break;
       case 'number':
         input = `<input type="number" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" min="${field.min || ''}" max="${field.max || ''}" step="${field.step || '1'}" ${required}>`;
@@ -92,6 +93,7 @@ export function populateForm(form, data) {
     if (!el) return;
     if (el.hasAttribute('list')) return; // Do not overwrite combobox display labels with raw IDs
     if (el.type === 'checkbox') el.checked = !!val;
+    else if (el.type === 'date' && val && window.parseFlexibleDate) el.value = window.parseFlexibleDate(val);
     else el.value = val !== null && val !== undefined ? val : '';
   });
 }
