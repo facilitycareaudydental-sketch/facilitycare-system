@@ -1015,14 +1015,9 @@ strong { font-weight: 600; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Responsive Media Queries ───────────────────────────────── */
+/* Removed 1200px wrapping for charts-row and bottom-row per user request to keep them in one horizontal line */
 @media (max-width: 1200px) {
-  .charts-row, .bottom-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .bottom-row .chart-card:last-child {
-    grid-column: span 2;
-  }
+  /* Removed to force single row on laptop screens */
 }
 
 @media (max-width: 992px) {
