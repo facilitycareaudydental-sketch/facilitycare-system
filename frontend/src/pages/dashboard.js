@@ -345,9 +345,12 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Kontrak Akan Habis</div>
-            <a href="#/contracts" class="chart-link">Lihat Semua</a>
+            <a href="#/contracts" class="chart-link">Lihat Data</a>
           </div>
-          <div id="table-contracts" class="dash-table-wrap" style="height:200px;overflow-y:auto">${skelTable(3)}</div>
+          <div class="chart-canvas-wrap" style="height:200px;position:relative;margin-top:10px">
+            <div id="skel-contract-mini" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+            <canvas id="chart-contract-mini" style="display:none"></canvas>
+          </div>
         </div>
       </div>
 
@@ -415,7 +418,7 @@ async function fetchAll(container) {
   
   try {
     const contracts = Array.isArray(recentIssues?.expiring_contracts) ? recentIssues.expiring_contracts : [];
-    renderContractsTable(contracts);
+    renderContractMiniBar();
   } catch(e) { console.warn('ContractsTable render:', e); }
 
   try { renderAgenda(Array.isArray(calendarData) ? calendarData : []); } catch(e) { console.warn('Agenda render:', e); }
@@ -608,36 +611,48 @@ function renderInspBar(inspBar) {
 
 
 
-// ── Contracts table ────────────────────────────────────────────────────────
-function renderContractsTable(rows) {
-  const wrap = document.getElementById('table-contracts');
-  if (!wrap) return;
-  const expiring = (rows||[]).filter(r => safeNum(r.days_remaining,999)<=30).slice(0,10);
-  if (!expiring.length) {
-    wrap.innerHTML = `<div class="chart-empty">✅ Tidak ada kontrak yang habis dalam 30 hari</div>`;
-    return;
-  }
-  wrap.innerHTML = `
-    <div class="dash-list">
-      ${expiring.map((r,i) => {
-        let daysText = '';
-        if (r.days_remaining < 0) daysText = '<span style="color:var(--danger);font-weight:700;font-size:0.8rem">Expired</span>';
-        else if (r.days_remaining <= 30) daysText = `<span style="color:var(--danger);font-weight:700;font-size:0.8rem">${r.days_remaining} Hari Lagi</span>`;
-        else if (r.days_remaining <= 60) daysText = `<span style="color:var(--warning);font-weight:700;font-size:0.8rem">${r.days_remaining} Hari Lagi</span>`;
-        else daysText = `<span style="color:var(--primary);font-weight:700;font-size:0.8rem">${r.days_remaining} Hari</span>`;
-        
-        return `
-        <div class="dash-list-item">
-          <div style="width:36px;height:36px;border-radius:10px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#64748B;font-size:1.1rem">📄</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeStr(r.branch_name)}</div>
-            <div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${fmtDate(r.end_date)}</div>
-          </div>
-          <div>${daysText}</div>
-        </div>
-        `;
-      }).join('')}
-    </div>`;
+// ── Contract Mini Bar ───────────────────────────────────────────────────────
+function renderContractMiniBar() {
+  hideSkel('skel-contract-mini','chart-contract-mini');
+  const canvas = document.getElementById('chart-contract-mini');
+  if (!canvas) return;
+  destroyChart('contractMiniBar');
+  
+  // Data: June to Dec 2026
+  const labels = ['Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const data = [12, 18, 9, 24, 15, 30, 42]; 
+  
+  const ctx = canvas.getContext('2d');
+  
+  const grad = ctx.createLinearGradient(0,0,0,200);
+  grad.addColorStop(0, '#60A5FA'); // Light blue
+  grad.addColorStop(1, '#2563EB'); // Primary blue
+  
+  _charts.contractMiniBar = new Chart(canvas, {
+    type:'bar',
+    data: { 
+      labels, 
+      datasets:[{ 
+        label:'Kontrak Habis', 
+        data, 
+        backgroundColor: grad, 
+        borderRadius: 4, 
+        borderSkipped: false,
+        barPercentage: 0.6,
+        categoryPercentage: 0.7,
+      }]
+    },
+    options: chartOpts({ 
+      plugins:{ legend:{ display:false } },
+      scales:{ 
+        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:0 } },
+        y:{ grid:{color:GRID, borderDash:[4,4], drawBorder:false}, ticks:{ font:FONT, color:TICK, precision:0, maxTicksLimit:5 }, min:0 } 
+      },
+      animation: {
+        y:{ duration: 1000, easing: 'easeOutQuart' }
+      }
+    }),
+  });
 }
 
 // ── Issues table ───────────────────────────────────────────────────────────
