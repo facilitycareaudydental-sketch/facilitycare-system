@@ -683,10 +683,19 @@ strong { font-weight: 600; }
   grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
 }
+.actions-wrap {
+  margin-top: 24px;
+}
+.actions-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 16px;
+}
 .actions-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -703,9 +712,9 @@ strong { font-weight: 600; }
 }
 .chart-card-header {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
 }
 .chart-card-title {
   font-size: 1rem;
@@ -717,6 +726,13 @@ strong { font-weight: 600; }
   color: var(--text-3);
   margin-top: 2px;
 }
+.chart-link {
+  font-size: 0.8rem;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.chart-link:hover { text-decoration: underline; }
 .chart-canvas-wrap {
   position: relative;
   width: 100%;
@@ -892,32 +908,79 @@ strong { font-weight: 600; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 12px 20px;
   background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--text-2);
   font-size: 0.85rem;
   font-weight: 600;
   transition: all var(--transition);
   cursor: pointer;
   text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
 .action-btn:hover {
-  background: var(--gray-50);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
   color: var(--text-1);
 }
 .action-icon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 0.85rem;
+  font-size: 1rem;
+}
+
+/* ── Custom Donut Legend ────────────────────────────────────────── */
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+.donut-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.donut-legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 4px;
+}
+.donut-legend-val {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text-1);
+  line-height: 1;
+}
+.donut-legend-label {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+
+/* ── Custom Lists (Issues & Contracts) ──────────────────────────── */
+.dash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dash-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.dash-list-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 .activity-text {
   font-size: 0.9rem;

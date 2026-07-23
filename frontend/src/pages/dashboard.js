@@ -153,11 +153,19 @@ function chartOpts(extra={}) {
 
 // ── Skeleton HTML ──────────────────────────────────────────────────────────
 const skelKPI = () => Array(5).fill(0).map(()=>`
-  <div class="kpi-card" style="pointer-events:none">
-    <div class="kpi-card-top"><div class="skeleton" style="width:44px;height:44px;border-radius:12px"></div></div>
-    <div class="skeleton skeleton-text" style="width:55%;height:32px;margin:10px 0 6px"></div>
-    <div class="skeleton skeleton-text" style="width:75%;height:12px;margin-bottom:4px"></div>
-    <div class="kpi-sparkline"><div class="skeleton" style="width:100%;height:100%;border-radius:4px"></div></div>
+  <div class="kpi-card" style="pointer-events:none;padding:16px">
+    <div style="display:flex; gap:16px; align-items:flex-start">
+      <div class="skeleton" style="width:48px;height:48px;border-radius:12px;flex-shrink:0"></div>
+      <div style="flex:1">
+        <div class="skeleton skeleton-text" style="width:40px;height:24px;margin-bottom:6px"></div>
+        <div class="skeleton skeleton-text" style="width:80px;height:12px;margin-bottom:4px"></div>
+        <div class="skeleton skeleton-text" style="width:100px;height:10px"></div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:flex-end; gap:8px; margin-top:16px">
+      <div class="skeleton" style="flex:1;height:24px;border-radius:4px"></div>
+      <div class="skeleton skeleton-text" style="width:30px;height:12px"></div>
+    </div>
   </div>`).join('');
 
 const skelMini = () => Array(7).fill(0).map(()=>`
@@ -282,40 +290,38 @@ export async function renderDashboard(container) {
       <div class="charts-row">
         <div class="chart-card">
           <div class="chart-card-header">
-            <div>
-              <div class="chart-card-title">📈 Trend Permasalahan 12 Bulan</div>
-              <div class="chart-card-subtitle">Perbandingan kasus Open vs Closed</div>
-            </div>
-            <select class="btn-ghost" style="font-size:0.75rem;padding:4px"><option>12 Bulan</option></select>
+            <div class="chart-card-title">Permasalahan per Kategori</div>
           </div>
-          <div class="chart-canvas-wrap" style="height:260px;position:relative">
+          <div style="display:flex; gap:20px; align-items:center; height:220px">
+            <div class="chart-canvas-wrap" style="flex:1;height:100%;position:relative">
+              <div id="skel-donut" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+              <canvas id="chart-donut" style="display:none"></canvas>
+            </div>
+            <div id="donut-legend" class="donut-legend" style="width:110px"></div>
+          </div>
+          <div style="text-align:center; font-size:0.75rem; color:var(--text-3); margin-top:16px">
+            Periode: 22 Juni - 22 Juli 2026
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title">Trend Permasalahan 12 Bulan</div>
+            <div style="display:flex;align-items:center;gap:12px;font-size:0.75rem">
+               <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:4px;background:#EF4444;border-radius:2px"></div> Open</div>
+               <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:4px;background:#10B981;border-radius:2px"></div> Closed</div>
+            </div>
+          </div>
+          <div class="chart-canvas-wrap" style="height:250px;position:relative">
             <div id="skel-trend" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-trend" style="display:none"></canvas>
           </div>
         </div>
         <div class="chart-card">
           <div class="chart-card-header">
-            <div>
-              <div class="chart-card-title">🍩 Permasalahan per Kategori</div>
-              <div class="chart-card-subtitle">Distribusi permasalahan yang sedang ditangani</div>
-            </div>
+            <div class="chart-card-title">Jadwal Hari Ini</div>
+            <a href="#/calendar" class="chart-link">Lihat Kalender</a>
           </div>
-          <div class="chart-canvas-wrap" style="height:260px;position:relative">
-            <div id="skel-donut" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-            <canvas id="chart-donut" style="display:none"></canvas>
-          </div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <div>
-              <div class="chart-card-title">🔍 Rata-rata Skor Inspeksi per Cabang</div>
-              <div class="chart-card-subtitle">Skor rata-rata inspeksi SCM & Cleaning</div>
-            </div>
-          </div>
-          <div class="chart-canvas-wrap" style="height:260px;position:relative">
-            <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-            <canvas id="chart-insp" style="display:none"></canvas>
-          </div>
+          <div id="widget-agenda" class="dash-table-wrap" style="height:250px;overflow-y:auto">${skelTable(3)}</div>
         </div>
       </div>
 
@@ -324,37 +330,31 @@ export async function renderDashboard(container) {
         <!-- KPI Kebersihan -->
         <div class="chart-card">
           <div class="chart-card-header">
-            <div>
-              <div class="chart-card-title">✨ KPI Kebersihan</div>
-            </div>
+            <div class="chart-card-title">KPI Kebersihan</div>
           </div>
-          <div id="widget-kpi-kebersihan" style="margin-top:10px">${skelTable(4)}</div>
+          <div id="widget-kpi-kebersihan" style="margin-top:0px">${skelTable(4)}</div>
         </div>
         <!-- Permasalahan Terbaru -->
         <div class="chart-card">
           <div class="chart-card-header">
-            <div>
-              <div class="chart-card-title">⚠️ Permasalahan Terbaru</div>
-            </div>
-            <a href="#/issues" class="btn btn-ghost btn-sm" style="font-size:0.75rem">Lihat Semua</a>
+            <div class="chart-card-title">Permasalahan Terbaru</div>
+            <a href="#/issues" class="chart-link">Lihat Semua</a>
           </div>
           <div id="table-issues" class="dash-table-wrap" style="height:260px;overflow-y:auto">${skelTable(3)}</div>
         </div>
         <!-- Kontrak Akan Habis -->
         <div class="chart-card">
           <div class="chart-card-header">
-            <div>
-              <div class="chart-card-title">📄 Kontrak Akan Habis</div>
-            </div>
-            <a href="#/contracts" class="btn btn-ghost btn-sm" style="font-size:0.75rem">Lihat Semua</a>
+            <div class="chart-card-title">Kontrak Akan Habis</div>
+            <a href="#/contracts" class="chart-link">Lihat Semua</a>
           </div>
           <div id="table-contracts" class="dash-table-wrap" style="height:260px;overflow-y:auto">${skelTable(3)}</div>
         </div>
       </div>
 
       <!-- Quick Actions Row -->
-      <div class="chart-card" style="padding:16px 20px">
-        <div class="chart-card-title" style="margin-bottom:12px">Aksi Cepat</div>
+      <div class="actions-wrap">
+        <div class="actions-title">Aksi Cepat</div>
         <div class="actions-row" id="quick-actions">
           <!-- Rendered in JS -->
         </div>
@@ -440,18 +440,22 @@ function renderKPI(kpi) {
     let val  = safeNum(kpi[c.key]?.current, 0);
     
     return `
-      <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding-bottom:12px">
-        <div class="kpi-card-top">
-          <div class="kpi-icon-wrap"><span class="kpi-icon-emoji">${c.icon}</span></div>
-          <span style="font-size:0.8rem;font-weight:700;color:${c.trendColor}">${c.trendPct}</span>
+      <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding:16px">
+        <div style="display:flex; gap:16px; align-items:flex-start">
+          <div class="kpi-icon-wrap" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
+          <div>
+            <div class="kpi-value" data-target="${val}" style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
+            <div class="kpi-label" style="font-size:0.85rem; font-weight:700; color:var(--text-2); margin-top:4px">${c.label}</div>
+            <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px">${c.sub}</div>
+          </div>
         </div>
-        <div class="kpi-value" data-target="${val}">${val}</div>
-        <div class="kpi-label">${c.label}</div>
-        <div class="kpi-subtitle">${c.sub}</div>
-        <div class="kpi-sparkline">
-          <svg viewBox="0 0 100 30" preserveAspectRatio="none">
-            <path d="M ${c.points}" fill="none" stroke="${c.trendColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <div style="display:flex; align-items:flex-end; gap:12px; margin-top:16px">
+          <div class="kpi-sparkline" style="margin:0;flex:1;height:24px">
+            <svg viewBox="0 0 100 30" preserveAspectRatio="none">
+              <path d="M ${c.points}" fill="none" stroke="${c.trendColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div style="font-size:0.85rem; font-weight:700; color:${c.trendColor}">${c.trendPct}</div>
         </div>
       </a>`;
   }).join('');
@@ -493,7 +497,8 @@ function renderMiniStats(kpi) {
 function renderDonut(categories) {
   hideSkel('skel-donut','chart-donut');
   const canvas = document.getElementById('chart-donut');
-  if (!canvas) return;
+  const legendWrap = document.getElementById('donut-legend');
+  if (!canvas || !legendWrap) return;
   destroyChart('donut');
   const data = (categories||[]).filter(c => safeNum(c.count)>0);
   if (!data.length) { showEmpty(canvas,'Belum ada data permasalahan'); return; }
@@ -501,13 +506,28 @@ function renderDonut(categories) {
   const values = data.map(c=>safeNum(c.count));
   const total = values.reduce((a,b)=>a+b, 0);
 
+  // Render Custom HTML Legend
+  legendWrap.innerHTML = data.map((c, i) => {
+    const color = COLORS[i % COLORS.length];
+    const pct = total > 0 ? Math.round((c.count / total) * 100) : 0;
+    return `
+      <div class="donut-legend-item">
+        <div class="donut-legend-color" style="background:${color}"></div>
+        <div>
+          <div class="donut-legend-val"><span style="color:var(--text-1)">${c.count}</span> <span style="font-size:0.7rem;font-weight:600;color:var(--text-3)">(${pct}%)</span></div>
+          <div class="donut-legend-label">${labels[i]}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   // Plugin to draw text in center
   const centerTextPlugin = {
     id: 'centerText',
     beforeDraw: function(chart) {
       const width = chart.width, height = chart.height, ctx = chart.ctx;
       ctx.restore();
-      const fontSize = (height / 114).toFixed(2);
+      const fontSize = (height / 80).toFixed(2);
       ctx.font = "bold " + fontSize + "em Inter";
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#1E293B"; // var(--text-1)
@@ -516,7 +536,7 @@ function renderDonut(categories) {
             textY = height / 2;
       ctx.fillText(text, textX, textY - 10);
       
-      ctx.font = "600 " + (fontSize * 0.4).toFixed(2) + "em Inter";
+      ctx.font = "600 " + (fontSize * 0.35).toFixed(2) + "em Inter";
       ctx.fillStyle = "#64748B"; // var(--text-2)
       const labelText = "Total",
             labelX = Math.round((width - ctx.measureText(labelText).width) / 2);
@@ -527,15 +547,12 @@ function renderDonut(categories) {
 
   _charts.donut = new Chart(canvas, {
     type:'doughnut',
-    data: { labels, datasets:[{ data:values, backgroundColor:COLORS.slice(0,data.length), borderWidth:2, borderColor:'#fff', hoverBorderColor:'#fff' }] },
+    data: { labels, datasets:[{ data:values, backgroundColor:COLORS, borderWidth:2, borderColor:'#fff', hoverBorderColor:'#fff' }] },
     options: {
       responsive:true, maintainAspectRatio:false,
       animation:{ duration:700 },
       plugins:{
-        legend:{
-          position: window.innerWidth < 768 ? 'bottom' : 'right',
-          labels:{ font:FONT, color:'#475569', usePointStyle:true, padding:10, boxWidth:8, boxHeight:8 },
-        },
+        legend:{ display: false },
         tooltip:{ bodyFont:FONT, titleFont:{...FONT,weight:'700'}, callbacks:{ label:ctx=>` ${ctx.label}: ${ctx.parsed} kasus` } },
       },
       cutout:'75%',
@@ -558,10 +575,10 @@ function renderTrend(trend) {
   _charts.trend = new Chart(canvas, {
     type:'line',
     data:{ labels, datasets:[
-      { label:'Open',   data:open,   borderColor:'#EF4444', backgroundColor:'rgba(239,68,68,.08)',  fill:true, tension:0.4, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:'#EF4444', borderWidth:2 },
-      { label:'Closed', data:closed, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,.08)', fill:true, tension:0.4, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:'#10B981', borderWidth:2 },
+      { label:'Open',   data:open,   borderColor:'#EF4444', backgroundColor:'rgba(239,68,68,.08)',  fill:true, tension:0.4, pointRadius:2, pointHoverRadius:4, pointBackgroundColor:'#EF4444', borderWidth:2 },
+      { label:'Closed', data:closed, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,.08)', fill:true, tension:0.4, pointRadius:2, pointHoverRadius:4, pointBackgroundColor:'#10B981', borderWidth:2 },
     ]},
-    options: chartOpts({ plugins:{ legend:{ position:'top' } } }),
+    options: chartOpts({ plugins:{ legend:{ display:false } } }),
   });
 }
 
@@ -618,21 +635,18 @@ function renderContractsTable(rows) {
     return;
   }
   wrap.innerHTML = `
-    <table class="dash-table">
-      <thead><tr>
-        <th>#</th><th>Nama Karyawan</th><th>Cabang</th><th>Berakhir</th><th>Sisa</th><th>Status</th>
-      </tr></thead>
-      <tbody>${expiring.map((r,i)=>`
-        <tr>
-          <td class="td-num">${i+1}</td>
-          <td><strong>${safeStr(r.emp_name||r.employee_name)}</strong></td>
-          <td class="td-branch">${safeStr(r.branch_name)}</td>
-          <td style="white-space:nowrap;font-size:.8rem">${fmtDate(r.end_date)}</td>
-          <td>${daysBadge(r.days_remaining)}</td>
-          <td>${statusPill(r.status)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+    <div class="dash-list">
+      ${expiring.map((r,i)=>`
+        <div class="dash-list-item">
+          <div style="width:36px;height:36px;border-radius:10px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#64748B;font-size:1.1rem">📄</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeStr(r.branch_name)}</div>
+            <div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${fmtDate(r.end_date)}</div>
+          </div>
+          <div>${daysBadge(r.days_remaining)}</div>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 // ── Issues table ───────────────────────────────────────────────────────────
@@ -645,20 +659,17 @@ function renderIssuesTable(rows) {
     return;
   }
   wrap.innerHTML = `
-    <table class="dash-table">
-      <thead><tr>
-        <th>Tanggal</th><th>Keluhan</th><th>Cabang</th><th>Kategori</th><th>Status</th>
-      </tr></thead>
-      <tbody>${issues.map(r=>`
-        <tr>
-          <td style="white-space:nowrap;font-size:.78rem">${fmtDate(r.report_date)}</td>
-          <td class="td-complaint" title="${safeStr(r.complaint)}">${safeStr(r.complaint)}</td>
-          <td class="td-branch">${safeStr(r.branch_name)}</td>
-          <td><span class="category-tag">${safeStr(r.category)}</span></td>
-          <td>${statusPill(r.status)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+    <div class="dash-list">
+      ${issues.map(r=>`
+        <div class="dash-list-item">
+          <div style="flex-shrink:0">${statusPill(r.status)}</div>
+          <div style="flex:1;min-width:0;margin-left:4px">
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeStr(r.complaint)}</div>
+            <div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${safeStr(r.branch_name)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 // ── Activity log ───────────────────────────────────────────────────────────
@@ -673,16 +684,26 @@ function renderAgenda(rows) {
   }
   wrap.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:12px;padding-right:8px">
-      ${items.map(r=>`
-        <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="width:12px;height:12px;border-radius:50%;background:var(--${r.color||'primary'});margin-top:4px"></div>
-          <div>
-            <div style="font-size:0.75rem;color:var(--text-3);font-weight:600">${fmtDate(r.event_date)}</div>
-            <div style="font-weight:600;font-size:0.85rem;line-height:1.2;margin:2px 0">${safeStr(r.title)}</div>
+      ${items.map(r=> {
+        // use status colors based on typical titles for Jadwal Hari Ini
+        let color = '#3B82F6'; let bg = '#EFF6FF'; let tag = 'Agenda';
+        const titleL = (r.title||'').toLowerCase();
+        if (titleL.includes('inspeksi')) { color = '#10B981'; bg = '#ECFDF5'; tag = 'Inspeksi'; }
+        else if (titleL.includes('cleaning') || titleL.includes('gcdc')) { color = '#3B82F6'; bg = '#EFF6FF'; tag = 'Cleaning'; }
+        else if (titleL.includes('reliefer')) { color = '#F59E0B'; bg = '#FFFBEB'; tag = 'Reliefer'; }
+        else if (titleL.includes('fogging')) { color = '#8B5CF6'; bg = '#F5F3FF'; tag = 'Fogging'; }
+        
+        return `
+        <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--border)">
+          <div style="font-size:0.85rem;font-weight:700;color:var(--text-1);margin-top:2px">${new Date(r.event_date).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="width:8px;height:8px;border-radius:50%;background:${color};margin-top:6px;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:0.85rem;color:var(--text-1);line-height:1.2;margin:0 0 4px 0">${safeStr(r.title)}</div>
             <div style="font-size:0.75rem;color:var(--text-3)">${safeStr(r.branch_name)}</div>
           </div>
+          <div style="font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:6px;background:${bg};color:${color}">${tag}</div>
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `;
 }
@@ -730,7 +751,7 @@ function renderQuickActions() {
   const wrap = document.getElementById('quick-actions');
   if (!wrap) return;
   const btns = [
-    { label:'Buat Permasalahan', icon:'+', bg:'#3B82F6', href:'#/issues' },
+    { label:'Buat Permasalahan', icon:'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>', bg:'#3B82F6', href:'#/issues' },
     { label:'Permintaan Barang', icon:'📦', bg:'#10B981', href:'#/reports/supply' },
     { label:'One on One Baru',   icon:'👥', bg:'#6366F1', href:'#/one-on-one' },
     { label:'Input Absensi',     icon:'📋', bg:'#8B5CF6', href:'#/timeline' },
