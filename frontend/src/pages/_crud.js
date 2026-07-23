@@ -218,7 +218,7 @@ export function buildCrudPage({
     if (!tableContainer) return;
     tableContainer.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
-    const params = new URLSearchParams({ page, limit: 20, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
+    const params = new URLSearchParams({ page, limit: 10000, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
     const res = await apiFetch(`${apiPath}?${params}`);
 
     if (!res.ok) {
@@ -226,8 +226,25 @@ export function buildCrudPage({
       return;
     }
 
-    const items = res.data?.data || [];
-    const pagination = res.data?.pagination;
+    let items = res.data?.data || res.data || [];
+    let pagination = res.data?.pagination;
+    
+    // Client-side pagination fallback if backend doesn't provide pagination object
+    if (!pagination && Array.isArray(items)) {
+       const total = items.length;
+       const limit = 20;
+       const pages = Math.ceil(total / limit);
+       
+       // Slice the items for the current page
+       items = items.slice((page - 1) * limit, page * limit);
+       
+       pagination = {
+          page: page,
+          pages: pages,
+          total: total,
+          limit: limit
+       };
+    }
 
     if (onAfterLoad) onAfterLoad(items);
 
