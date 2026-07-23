@@ -11,7 +11,7 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force22';
+import { renderDashboard } from './pages/dashboard.js?v=force23';
 import { renderLogin } from './pages/login.js';
 import { renderEmployees } from './pages/employees.js';
 import { renderContracts } from './pages/contracts.js';
@@ -342,8 +342,19 @@ function renderLayout() {
             <button class="topbar-menu-btn" id="topbar-menu-btn" aria-label="Menu">
               <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <div class="topbar-welcome" style="display:flex; align-items:center; gap:6px; font-size:1.15rem; font-weight:500; color:var(--text-2); margin-left:16px;">
-              Welcome, <span style="font-weight:800; background:linear-gradient(90deg, #2563EB, #8B5CF6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-0.5px;">Berlin. Ariansyah</span> 👋
+            <div class="topbar-welcome" style="display:flex; flex-direction:column; justify-content:center; margin-left:16px; line-height:1.2;">
+              <div style="display:flex; align-items:center; gap:6px; font-size:1.1rem; font-weight:500; color:var(--text-2);">
+                ${(() => {
+                  const h = new Date().getHours();
+                  if (h >= 4 && h < 11) return 'Selamat Pagi';
+                  if (h >= 11 && h < 15) return 'Selamat Siang';
+                  if (h >= 15 && h < 18) return 'Selamat Sore';
+                  return 'Selamat Malam';
+                })()}, <span style="font-weight:800; background:linear-gradient(90deg, #2563EB, #8B5CF6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-0.5px;">Berlin Ariansyah</span> 👋
+              </div>
+              <div style="font-size:0.75rem; color:var(--text-3); font-weight:500; margin-top:2px;">
+                Ringkasan Operasional FCMS Hari Ini
+              </div>
             </div>
           </div>
 
