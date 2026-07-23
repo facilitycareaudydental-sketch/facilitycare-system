@@ -282,8 +282,8 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header">
             <div>
-              <div class="chart-card-title">📈 Trend Inspeksi 12 Bulan</div>
-              <div class="chart-card-subtitle">Perbandingan inspeksi SCM vs Cleaning</div>
+              <div class="chart-card-title">📈 Trend Permasalahan 12 Bulan</div>
+              <div class="chart-card-subtitle">Perbandingan kasus Open vs Closed</div>
             </div>
             <select class="btn-ghost" style="font-size:0.75rem;padding:4px"><option>12 Bulan</option></select>
           </div>
