@@ -339,7 +339,7 @@ export async function renderDashboard(container) {
             <div class="chart-card-title">Permasalahan Terbaru</div>
             <a href="#/issues" class="chart-link">Lihat Semua</a>
           </div>
-          <div id="table-issues" class="dash-table-wrap" style="height:200px;overflow-y:auto">${skelTable(3)}</div>
+          <div id="table-issues" class="dash-table-wrap" style="margin-top:12px">${skelTable(3)}</div>
         </div>
         <!-- Kontrak Akan Habis -->
         <div class="chart-card">
@@ -657,14 +657,16 @@ function renderIssuesTable(rows) {
     return;
   }
   wrap.innerHTML = `
-    <div class="dash-list">
+    <div class="issues-carousel">
       ${issues.map(r=>`
-        <div class="dash-list-item">
-          <div style="flex-shrink:0">${statusPill(r.status)}</div>
-          <div style="flex:1;min-width:0;margin-left:4px">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeStr(r.complaint)}</div>
-            <div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${safeStr(r.branch_name)}</div>
+        <div class="issue-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            ${statusPill(r.status)}
+            <div style="font-size:0.75rem; color:var(--text-3); background:var(--gray-100); padding:2px 8px; border-radius:12px; font-weight:600;">
+              ${safeStr(r.branch_name)}
+            </div>
           </div>
+          <div class="issue-card-title">${safeStr(r.complaint)}</div>
         </div>
       `).join('')}
     </div>`;
