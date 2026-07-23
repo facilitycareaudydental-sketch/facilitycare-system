@@ -648,30 +648,53 @@ function renderContractBar() {
   const data = [12, 18, 9, 24, 15, 30, 42]; 
   
   const ctx = canvas.getContext('2d');
+  
+  // Create a premium blue gradient (matching Donut #2563EB)
   const grad = ctx.createLinearGradient(0,0,0,300);
-  grad.addColorStop(0, '#F97316'); // Orange 500
-  grad.addColorStop(1, '#FDBA74'); // Orange 300
+  grad.addColorStop(0, '#3B82F6'); // Lighter blue at the top
+  grad.addColorStop(1, '#1D4ED8'); // Deeper blue at the bottom
+  
+  // Plugin to add a subtle, premium drop shadow to the bars
+  const shadowPlugin = {
+    id: 'barShadow',
+    beforeDatasetsDraw(chart) {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.shadowColor = 'rgba(37, 99, 235, 0.4)';
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 4;
+    },
+    afterDatasetsDraw(chart) {
+      chart.ctx.restore();
+    }
+  };
   
   _charts.contractBar = new Chart(canvas, {
     type:'bar',
+    plugins: [shadowPlugin],
     data: { 
       labels, 
       datasets:[{ 
         label:'Kontrak Habis', 
         data, 
         backgroundColor: grad, 
-        borderRadius: 6, 
+        borderRadius: 8, 
         borderSkipped: false,
         barPercentage: 0.5,
-        categoryPercentage: 0.6
+        categoryPercentage: 0.6,
+        hoverBackgroundColor: '#2563EB' // Solid donut blue on hover
       }]
     },
     options: chartOpts({ 
       plugins:{ legend:{ display:false } },
       scales:{ 
-        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK } },
-        y:{ grid:{color:GRID, drawBorder:false}, ticks:{ font:FONT, color:TICK, precision:0 }, min:0 } 
-      } 
+        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:45, minRotation:0 } },
+        y:{ grid:{color:GRID, borderDash:[4,4], drawBorder:false}, ticks:{ font:FONT, color:TICK, precision:0 }, min:0 } 
+      },
+      animation: {
+        y:{ duration: 1500, easing: 'easeOutElastic' }
+      }
     }),
   });
 }
