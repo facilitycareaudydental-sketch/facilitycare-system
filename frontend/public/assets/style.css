@@ -625,21 +625,21 @@ strong { font-weight: 600; }
 .mini-stat {
   background: var(--bg-card);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 10px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   transition: all var(--transition);
   text-decoration: none;
   color: inherit;
 }
 .mini-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow); text-decoration: none; }
 .mini-stat-icon {
-  font-size: 1.4rem;
-  width: 40px;
-  height: 40px;
+  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -655,21 +655,21 @@ strong { font-weight: 600; }
 .mini-stat.mini-gray   .mini-stat-icon { background: var(--gray-100); }
 .mini-stat-body { min-width: 0; }
 .mini-stat-value {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: var(--text-1);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .mini-stat-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-3);
   margin-top: 2px;
-  white-space: normal;     /* allow wrap on narrow cards */
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-break: break-word;
+  word-break: normal;
 }
 
 /* ── Charts Row ─────────────────────────────────────────────── */
