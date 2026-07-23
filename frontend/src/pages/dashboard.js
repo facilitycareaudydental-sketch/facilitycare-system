@@ -716,7 +716,7 @@ function renderKPIKebersihan(kpi) {
   // Data sesuai mockup
   const items = [
     { label: 'Kebersihan Area', val: '97%', target: 'Target 95%', icon: '🧹', bg: '#ECFDF5', color: '#10B981' },
-    { label: 'Penyelesaian Complaint <24 Jam', val: '100%', target: 'Target 100%', icon: '⏱️', bg: '#ECFDF5', color: '#10B981' },
+    { label: 'Penyelesaian Complaint', val: '100%', target: 'Target 100%', icon: '⏱️', bg: '#ECFDF5', color: '#10B981' },
     { label: 'Kepatuhan Jadwal Cleaning', val: '99%', target: 'Target 100%', icon: '⏱️', bg: '#EFF6FF', color: '#3B82F6' },
     { label: 'Kepatuhan GCDC', val: '100%', target: 'Target 100%', icon: '🧹', bg: '#EFF6FF', color: '#3B82F6' },
     { label: 'Complaint Cleaning (≤10)', val: '4', target: 'Target ≤10', icon: '📝', bg: '#F5F3FF', color: '#8B5CF6' },
