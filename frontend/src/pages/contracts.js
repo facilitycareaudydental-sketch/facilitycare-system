@@ -241,15 +241,34 @@ export async function renderContracts(container) {
           return s;
         };
 
-        const payload = json.map((row, idx) => ({
-          employee_id: matchEmployee(String(row['Nama Lengkap'] || '').trim(), idx + 2),
-          branch_id: matchBranch(String(row['Cabang'] || '').trim()),
-          division: String(row['Div / Bagian'] || '').trim() || 'FACILITY CARE',
-          start_date: parseDate(row['Tanggal Mulai']),
-          end_date: parseDate(row['Tanggal Selesai']) || '2099-12-31',
-          status: String(row['Status'] || '').trim(),
-          _rawName: String(row['Nama Lengkap'] || '').trim()
-        }));
+        const payload = json.map((row, idx) => {
+          const rowNum = idx + 2;
+          const rawName = String(row['Nama Lengkap'] || '').trim();
+          const rawStartDate = row['Tanggal Mulai'];
+          const parsedStartDate = parseDate(rawStartDate);
+          
+          if (!parsedStartDate) {
+             console.log('--- [DEBUG] DATE PARSING FAILED ---');
+             console.log(`Nomor baris Excel        : ${rowNum}`);
+             console.log(`Nama karyawan            : ${rawName}`);
+             console.log(`Nilai asli sel tanggal   : "${rawStartDate}"`);
+             console.log(`Tipe data SheetJS        : ${typeof rawStartDate}`);
+             console.log(`Nilai setelah parsing    : "${parsedStartDate}"`);
+             console.log(`Header yang digunakan    : "Tanggal Mulai"`);
+             console.log(`Alasan dianggap kosong   : Fungsi parseDate() gagal menerjemahkan format/tipe data asli menjadi string tanggal valid (YYYY-MM-DD).`);
+             console.log('-----------------------------------');
+          }
+
+          return {
+            employee_id: matchEmployee(rawName, rowNum),
+            branch_id: matchBranch(String(row['Cabang'] || '').trim()),
+            division: String(row['Div / Bagian'] || '').trim() || 'FACILITY CARE',
+            start_date: parsedStartDate,
+            end_date: parseDate(row['Tanggal Selesai']) || '2099-12-31',
+            status: String(row['Status'] || '').trim(),
+            _rawName: rawName
+          };
+        });
         
         const missing = payload.filter(r => !r.employee_id || !r.start_date);
         if (missing.length > 0) {
