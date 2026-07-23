@@ -482,7 +482,7 @@ function renderMiniStats(kpi) {
       <div class="mini-stat-icon">${s.icon}</div>
       <div class="mini-stat-body">
         <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
-        <div class="mini-stat-label">${s.label}</div>
+        <div class="mini-stat-text">${s.label}</div>
       </div>
     </a>`).join('');
 
