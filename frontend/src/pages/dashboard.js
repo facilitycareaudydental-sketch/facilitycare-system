@@ -317,11 +317,17 @@ export async function renderDashboard(container) {
           </div>
         </div>
         <div class="chart-card">
-          <div class="chart-card-header">
-            <div class="chart-card-title">Jadwal Hari Ini</div>
-            <a href="#/calendar" class="chart-link">Lihat Kalender</a>
+          <div class="chart-card-header" style="align-items:flex-start">
+            <div>
+              <a href="#/reports/inspection" class="chart-card-title" style="text-decoration:none; display:inline-block">Rata-rata Skor Inspeksi per Cabang <span style="font-size:0.8rem; color:var(--primary); font-weight:600; margin-left:8px">Lihat Laporan &rarr;</span></a>
+              <div class="chart-card-subtitle" style="font-size:0.65rem">Skor rata-rata SCM & Cleaning</div>
+            </div>
+            <select class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer"><option>Bulan Ini</option></select>
           </div>
-          <div id="widget-agenda" class="dash-table-wrap" style="height:250px;overflow-y:auto">${skelTable(3)}</div>
+          <div class="chart-canvas-wrap" style="height:220px;position:relative;margin-top:10px">
+            <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+            <canvas id="chart-insp" style="display:none"></canvas>
+          </div>
         </div>
       </div>
 
@@ -362,17 +368,11 @@ export async function renderDashboard(container) {
 
       <!-- Full Width Chart Row (Inspection Bar) -->
       <div class="chart-card" style="margin-top:24px; margin-bottom:24px;">
-        <div class="chart-card-header" style="align-items:flex-start">
-          <div>
-            <a href="#/reports/inspection" class="chart-card-title" style="text-decoration:none; display:inline-block">Rata-rata Skor Inspeksi per Cabang <span style="font-size:0.8rem; color:var(--primary); font-weight:600; margin-left:8px">Lihat Laporan &rarr;</span></a>
-            <div class="chart-card-subtitle">Skor rata-rata inspeksi SCM & Cleaning</div>
-          </div>
-          <select class="btn-ghost" style="padding:4px 8px;font-size:0.8rem;border:1px solid var(--border);border-radius:6px;cursor:pointer"><option>Bulan Ini</option></select>
+        <div class="chart-card-header">
+          <div class="chart-card-title">Jadwal Hari Ini</div>
+          <a href="#/calendar" class="chart-link">Lihat Kalender</a>
         </div>
-        <div class="chart-canvas-wrap" style="height:320px;position:relative">
-          <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-          <canvas id="chart-insp" style="display:none"></canvas>
-        </div>
+        <div id="widget-agenda" class="dash-table-wrap" style="max-height:300px;overflow-y:auto">${skelTable(3)}</div>
       </div>
 
     </div>
