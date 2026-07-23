@@ -988,6 +988,45 @@ strong { font-weight: 600; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Issues Carousel ────────────────────────────────────────── */
+.issues-carousel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.issues-carousel::-webkit-scrollbar {
+  height: 6px;
+}
+.issues-carousel::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 4px;
+}
+.issue-card {
+  flex: 0 0 240px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.issue-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-1);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
 .activity-time {
   font-size: 0.75rem;
   color: var(--text-3);
