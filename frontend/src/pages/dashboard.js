@@ -160,7 +160,7 @@ const skelKPI = () => Array(5).fill(0).map(()=>`
     <div class="skeleton skeleton-text" style="width:55%;height:11px"></div>
   </div>`).join('');
 
-const skelMini = () => Array(7).fill(0).map(()=>`
+const skelMini = () => Array(6).fill(0).map(()=>`
   <div class="mini-stat" style="pointer-events:none">
     <div class="skeleton" style="width:40px;height:40px;border-radius:10px;flex-shrink:0"></div>
     <div style="flex:1">
@@ -275,10 +275,10 @@ export async function renderDashboard(container) {
       <div class="kpi-row" id="kpi-row">${skelKPI()}</div>
 
       <!-- Mini Stats -->
-      <div class="mini-stats-row" style="grid-template-columns: repeat(6, minmax(0, 1fr));" id="mini-stats-row">${skelMini().replace(/<div class="mini-stat"/g, '').substring(0, 600)}</div>
+      <div class="mini-stats-row" id="mini-stats-row">${skelMini()}</div>
 
       <!-- Charts Row -->
-      <div class="charts-row" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+      <div class="charts-row">
         <div class="chart-card">
           <div class="chart-card-header">
             <div>
@@ -319,7 +319,7 @@ export async function renderDashboard(container) {
       </div>
 
       <!-- Bottom Row -->
-      <div class="charts-row" style="grid-template-columns: 1fr 1fr 1.5fr;">
+      <div class="bottom-row">
         <!-- Agenda -->
         <div class="chart-card">
           <div class="chart-card-header">
@@ -422,7 +422,7 @@ function renderKPI(kpi) {
     { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',  href:'#/contracts',   color:'kpi-green',  key:'contracts', hasTrend:true },
     { icon:'⚠️', label:'Permasalahan Aktif',    sub:'Masih dalam proses',           href:'#/issues',      color:'kpi-amber',  key:'issues',    hasTrend:true },
     { icon:'🔍', label:'Inspeksi Bulan Ini',    sub:'Cabang diinspeksi',            href:'#/reports/inspection', color:'kpi-purple', key:'inspection_month', hasTrend:false, overrideSub:true },
-    { icon:'✅', label:'Kepatuhan Checklist',     sub:'Rata-rata kepatuhan',          href:'#/checklist',   color:'kpi-teal',   key:'checklist_comp', hasTrend:true, pct:true },
+    { icon:'🤝', label:'One on One Pending',  sub:'Menunggu tindak lanjut',       href:'#/one-on-one', color:'kpi-teal', key:'one_on_one', hasTrend:true },
   ];
 
   row.innerHTML = cards.map(c => {
