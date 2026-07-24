@@ -30,6 +30,7 @@ export async function renderEmployees(container, params) {
     apiPath: '/api/employees',
     itemLabel: 'Karyawan',
     bulkDelete: true,
+    paginationMode: 'client',
     onDataLoaded: (items) => {
       if (dashFilter) {
         return items.filter(s => filterDashboardItem(s, dashFilter));

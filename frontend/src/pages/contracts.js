@@ -71,6 +71,7 @@ export async function renderContracts(container, params) {
     apiPath: '/api/contracts',
     bulkDelete: true,
     itemLabel: 'Kontrak',
+    paginationMode: 'client',
     onDataLoaded: (items) => {
       if (dashFilter) {
         return items.filter(s => filterDashboardItem(s, dashFilter));

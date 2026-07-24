@@ -65,6 +65,7 @@ export async function renderSchedule(container, params) {
     apiPath: '/api/schedule',
     bulkDelete: true,
     itemLabel: 'Jadwal',
+    paginationMode: 'client',
     defaultFilters: dashFilter ? { period: 'Q3' } : { period: activePeriod },
     onDataLoaded: (items) => {
       // 1. Filter dataset directly if dash_filter is set

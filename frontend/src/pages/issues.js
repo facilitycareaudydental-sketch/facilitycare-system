@@ -58,6 +58,7 @@ export async function renderIssues(container, params) {
     apiPath: '/api/issues',
     bulkDelete: true,
     itemLabel: 'Permasalahan',
+    paginationMode: 'client',
     onDataLoaded: (items) => {
       if (dashFilter) {
         return items.filter(s => filterDashboardItem(s, dashFilter));

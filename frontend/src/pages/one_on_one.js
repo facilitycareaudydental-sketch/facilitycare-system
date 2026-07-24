@@ -41,6 +41,7 @@ export async function renderOneOnOne(container, params) {
     apiPath: '/api/one-on-one',
     bulkDelete: true,
     itemLabel: 'One on One',
+    paginationMode: 'client',
     onDataLoaded: (items) => {
       if (dashFilter) {
         return items.filter(s => filterDashboardItem(s, dashFilter));

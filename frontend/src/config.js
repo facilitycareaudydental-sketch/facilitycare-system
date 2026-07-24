@@ -2,6 +2,8 @@
 const API_BASE_URL = '';
 
 export const API = API_BASE_URL;
+export const IS_DEVELOPMENT = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+export const CLIENT_SIDE_MAX_ROWS = 10000;
 
 export function getToken() {
   return localStorage.getItem('fm_token');

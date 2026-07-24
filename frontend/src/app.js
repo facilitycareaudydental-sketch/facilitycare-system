@@ -34,13 +34,13 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force59';
+import { renderDashboard } from './pages/dashboard.js?v=force60';
 import { renderLogin } from './pages/login.js';
-import { renderEmployees } from './pages/employees.js?v=force59';
-import { renderContracts } from './pages/contracts.js?v=force59';
-import { renderSchedule } from './pages/schedule.js?v=force59';
-import { renderIssues } from './pages/issues.js?v=force59';
-import { renderOneOnOne } from './pages/one_on_one.js?v=force59';
+import { renderEmployees } from './pages/employees.js?v=force60';
+import { renderContracts } from './pages/contracts.js?v=force60';
+import { renderSchedule } from './pages/schedule.js?v=force60';
+import { renderIssues } from './pages/issues.js?v=force60';
+import { renderOneOnOne } from './pages/one_on_one.js?v=force60';
 import { renderTraining } from './pages/training.js';
 import { renderRelievers } from './pages/relievers.js';
 import { renderInspectionReports } from './pages/inspection_reports.js';

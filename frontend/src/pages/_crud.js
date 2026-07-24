@@ -1,5 +1,5 @@
 // Generic CRUD page builder - used by all modules
-import { apiFetch } from '../config.js';
+import { apiFetch, CLIENT_SIDE_MAX_ROWS, IS_DEVELOPMENT } from '../config.js';
 import { createTable, createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { buildFormHTML, getFormData, populateForm } from '../components/form.js';
@@ -26,6 +26,7 @@ export function buildCrudPage({
   initialSearch = '',
   exportOptions = null, // { moduleName, onExport, onImport, onTemplate }
   bulkDelete = false,   // true => enable checkbox bulk-delete using DELETE apiPath/bulk
+  paginationMode = 'server', // 'server' or 'client'
 }) {
   let page = 1;
   let filters = { ...defaultFilters };
@@ -221,11 +222,12 @@ export function buildCrudPage({
     tableContainer.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
     // FIX: Tentukan mode paginasi (Hybrid Architecture)
-    // Jika onDataLoaded ada, kita butuh semua data di frontend (Client-Side).
-    // Jika tidak, kita gunakan paginasi Backend yang scalable untuk data raksasa.
-    const isClientSide = !!onDataLoaded;
+    // Mode ditentukan dari konfigurasi (default: server).
+    // Jika 'client', kita butuh semua data di frontend (Client-Side).
+    // Jika 'server', kita gunakan paginasi Backend yang scalable untuk data raksasa.
+    const isClientSide = paginationMode === 'client';
     const apiPage = isClientSide ? 1 : page;
-    const apiLimit = isClientSide ? 10000 : 20;
+    const apiLimit = isClientSide ? CLIENT_SIDE_MAX_ROWS : 20;
     
     const params = new URLSearchParams({ page: apiPage, limit: apiLimit, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
     const res = await apiFetch(`${apiPath}?${params}`);
@@ -267,18 +269,20 @@ export function buildCrudPage({
        };
     }
 
-    console.log({
-      mode: isClientSide ? 'Client-Side' : 'Server-Side',
-      module: apiPath,
-      totalData: originalTotal,
-      filteredData: filteredTotal,
-      currentPage: page,
-      pageSize: limit,
-      totalPages: pages,
-      startIndex,
-      endIndex,
-      rowsRendered: items.length
-    });
+    if (IS_DEVELOPMENT) {
+      console.log({
+        mode: isClientSide ? 'Client-Side' : 'Server-Side',
+        module: apiPath,
+        totalData: originalTotal,
+        filteredData: items.length,
+        currentPage: page,
+        pageSize: pagination ? pagination.limit : 20,
+        totalPages: pagination ? pagination.pages : 1,
+        startIndex: isClientSide ? (page - 1) * 20 : 0,
+        endIndex: isClientSide ? page * 20 : items.length,
+        rowsRendered: items.length
+      });
+    }
 
     if (onAfterLoad) onAfterLoad(items);
 
