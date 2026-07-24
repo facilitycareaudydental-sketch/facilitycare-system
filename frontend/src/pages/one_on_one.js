@@ -15,7 +15,7 @@ export async function renderOneOnOne(container, params) {
   const dashFilter = params ? params.get('dash_filter') : null;
   branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
-  const rawPicOptions = employeeOptions;
+  const rawPicOptions = ['Ade', 'Berlin'];
   
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -25,8 +25,8 @@ export async function renderOneOnOne(container, params) {
   };
   
   const getPicOptions = (val) => {
-    if (val && !rawPicOptions.find(o => o.value === val)) {
-      return [...rawPicOptions, { value: val, label: val }];
+    if (val && !rawPicOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
+      return [...rawPicOptions, val];
     }
     return rawPicOptions;
   };
