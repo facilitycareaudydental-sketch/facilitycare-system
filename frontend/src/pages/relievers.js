@@ -96,12 +96,20 @@ export async function renderRelievers(container) {
             'Shift': d.shift || '',
             'Status': d.status || ''
           }));
+          
+          if (data.length === 0) {
+            // Include headers even if empty
+            data.push({
+              'Cabang': '', 'Nama Facility care': '', 'Periode': '', 'Relifer': '',
+              'Tanggal Back Up': '', 'Tanggal Selesai': '', 'Keterangan': '', 'Shift': '', 'Status': ''
+            });
+          }
           downloadExcel(data, 'Data_Reliefer');
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Tanggal Backup': '2024-03-10', 'Cabang': '001. Pondok Bambu', 'FC Digantikan': 'Budi Santoso', 'Periode': 'Q1', 'Reliefer': 'Andi', 'Keterangan': 'Sakit', 'Shift': 'Pagi', 'Tanggal Selesai': '2024-03-10', 'Status': 'Done' }
+          { 'Cabang': '001. Pondok Bambu', 'Nama Facility care': 'Budi Santoso', 'Periode': 'Q1', 'Relifer': 'Andi', 'Tanggal Back Up': '2024-03-10', 'Tanggal Selesai': '2024-03-10', 'Keterangan': 'Sakit', 'Shift': 'Pagi', 'Status': 'Done' }
         ];
         downloadExcel(template, 'Template_Import_Reliefer');
       },
