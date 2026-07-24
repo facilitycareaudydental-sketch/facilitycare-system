@@ -1,5 +1,6 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { statusBadge, activityTypeBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
@@ -27,24 +28,18 @@ export function filterDashboardItem(s, type) {
 }
 
 export async function renderSchedule(container, params) {
-  const [bRes, eRes, pRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`),
-    apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
-  ]);
-  branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  
-  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
-  const rawPicOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
-  
-  picOptions = [...rawPicOptions];
+  branchOptions = await getCachedBranches();
+  const allEmployees = await getCachedEmployeeNames();
+  picOptions = allEmployees;
 
-  const getEmpOptions = (val) => {
-    if (val && !employeeOptions.find(o => o.value === val)) {
-      return [...employeeOptions, { value: val, label: val }];
+  const getPicOptions = (val) => {
+    if (val && !picOptions.find(o => o.label === val || o.value === val)) {
+      return [...picOptions, { value: val, label: val }];
     }
-    return employeeOptions;
+    return picOptions;
   };
+  
+  const schedRes = await apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
 
   const formatDate = (d) => {
     if (!d || d === '-' || String(d).trim() === '') return '';
@@ -53,7 +48,7 @@ export async function renderSchedule(container, params) {
     return d;
   };
 
-  const scheduleData = pRes.data?.data || [];
+  const scheduleData = schedRes.data?.data || [];
   const activePeriod = getActivePeriod(scheduleData);
   
   const dashFilter = params ? params.get('dash_filter') : null;
@@ -91,18 +86,18 @@ export async function renderSchedule(container, params) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Kegiatan', options: [
         'Inspeksi Hygiene & Aset Bangunan', 'General Cleaning', 'Deep Cleaning', 'Fogging'
       ]},
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'In Progress', 'Done'] },
-      { type: 'select', name: 'pic', label: 'PIC', options: picOptions },
+      { type: 'combobox', name: 'pic', label: 'PIC', options: picOptions },
     ],
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
           { name: 'activity_type', label: 'Jenis Kegiatan', type: 'select', required: true, options: [
             'Inspeksi Hygiene & Aset Bangunan', 'General Cleaning', 'Deep Cleaning', 'Fogging'
           ], value: data?.activity_type },
@@ -111,7 +106,7 @@ export async function renderSchedule(container, params) {
       {
         type: 'row', fields: [
           { name: 'period', label: 'Periode', type: 'select', required: true, options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
-          { name: 'pic', label: 'PIC', type: 'combobox', options: picOptions, createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
+          { name: 'pic', label: 'PIC', type: 'combobox', options: getPicOptions(data?.pic), value: data?.pic },
         ]
       },
       {

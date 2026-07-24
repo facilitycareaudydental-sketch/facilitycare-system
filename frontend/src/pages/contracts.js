@@ -1,5 +1,6 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployees } from '../utils/dataCache.js';
 import { statusBadge, daysRemainingBadge, divisionBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
@@ -7,12 +8,8 @@ let branchOptions = [];
 let employeeOptions = [];
 
 async function loadOptions() {
-  const [bRes, eRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000&status=Aktif'),
-  ]);
-  branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.id, label: e.full_name }));
+  branchOptions = await getCachedBranches();
+  employeeOptions = await getCachedEmployees();
 }
 
 const fetchAll = async (path) => {
@@ -89,7 +86,7 @@ export async function renderContracts(container, params) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
       { type: 'select', name: 'expiring_days', label: 'Akan Habis', options: [
         { value: '7', label: '7 Hari' },
@@ -153,8 +150,8 @@ export async function renderContracts(container, params) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'employee_id', label: 'Nama Lengkap', type: 'combobox', required: true, options: (data?.employee_id && !employeeOptions.find(o => o.value == data.employee_id)) ? [...employeeOptions, { value: data.employee_id, label: data.employee_name || data.employee_id }] : employeeOptions, createApi: { path: '/api/employees', field: 'full_name' }, value: data?.employee_id },
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'employee_id', label: 'Nama Lengkap', type: 'combobox', required: true, options: employeeOptions, value: data?.employee_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
         ]
       },
       {

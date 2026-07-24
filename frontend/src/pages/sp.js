@@ -1,16 +1,13 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 
 let branchOptions = [];
 let employeeOptions = [];
 
 export async function renderSP(container) {
-  const [bRes, eRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch(`/api/sp_data${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
-  ]);
-  branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+  branchOptions = await getCachedBranches();
+  employeeOptions = await getCachedEmployeeNames();
 
   buildCrudPage({
     container,
@@ -30,7 +27,7 @@ export async function renderSP(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
     ],
     exportOptions: {
       moduleName: 'sp_data',
@@ -59,13 +56,11 @@ export async function renderSP(container) {
         downloadExcel(template, 'Template_Import_SP');
       },
       onImport: async (json) => {
-        const bRes = await apiFetch('/api/branches?all=1');
-        const rawBranches = bRes.data?.data || [];
         const matchBranch = (str) => {
           if (!str) return null;
           const s = String(str || '').toLowerCase();
-          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
-          return b ? b.id : null;
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         const parseDate = (v) => {
           if (!v) return '';
@@ -102,9 +97,9 @@ export async function renderSP(container) {
       }
     },
     formFields: [
-      { type: 'text', name: 'employee_name', label: 'Nama Karyawan', required: true },
+      { type: 'combobox', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions },
       { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY'], required: true },
-      { type: 'select', name: 'branch_id', label: 'Cabang', required: true, options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'date', name: 'tanggal', label: 'Tanggal Sp', required: true },
       { type: 'date', name: 'akhir_sp', label: 'Akhir Sp', required: true },
       { type: 'select', name: 'sp_type', label: 'Jenis Sp', required: true, options: ['SP 1', 'SP 2', 'SP 3', 'Teguran Lisan'] },

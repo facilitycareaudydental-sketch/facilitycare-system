@@ -1,5 +1,6 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches } from '../utils/dataCache.js';
 import { statusBadge, divisionBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
@@ -7,9 +8,8 @@ let branchOptions = [];
 let rawBranches = [];
 
 async function loadBranches() {
-  const res = await apiFetch('/api/branches?all=1');
-  rawBranches = res.data?.data || [];
-  branchOptions = rawBranches.map(b => ({ value: b.id, label: b.full_name }));
+  const branchOptions = await getCachedBranches();
+  return branchOptions;
 }
 
 export function filterDashboardItem(s, type) {
@@ -19,7 +19,7 @@ export function filterDashboardItem(s, type) {
 }
 
 export async function renderEmployees(container, params) {
-  await loadBranches();
+  const branchOptions = await loadBranches();
   
   const dashFilter = params ? params.get('dash_filter') : null;
 
@@ -47,7 +47,7 @@ export async function renderEmployees(container, params) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
     ],
@@ -60,7 +60,7 @@ export async function renderEmployees(container, params) {
       },
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
           { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY'], value: data?.division || 'FACILITY CARE' },
         ]
       },
@@ -100,8 +100,8 @@ export async function renderEmployees(container, params) {
         const matchBranch = (str) => {
           if (!str) return null;
           const s = String(str || '').toLowerCase();
-          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
-          return b ? b.id : null;
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         
         const payload = json.map(row => ({

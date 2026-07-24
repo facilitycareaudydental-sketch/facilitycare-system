@@ -1,16 +1,13 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 
 let branchOptions = [];
 let employeeOptions = [];
 
 export async function renderMutasi(container) {
-  const [bRes, eRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch(`/api/mutasi_data${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
-  ]);
-  branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+  branchOptions = await getCachedBranches();
+  employeeOptions = await getCachedEmployeeNames();
 
   buildCrudPage({
     container,
@@ -29,8 +26,8 @@ export async function renderMutasi(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'select', name: 'from_branch_id', label: 'Cabang Asal', options: branchOptions },
-      { type: 'select', name: 'to_branch_id', label: 'Cabang Tujuan', options: branchOptions },
+      { type: 'combobox', name: 'from_branch_id', label: 'Cabang Asal', options: branchOptions },
+      { type: 'combobox', name: 'to_branch_id', label: 'Cabang Tujuan', options: branchOptions },
     ],
     exportOptions: {
       moduleName: 'mutasi_data',
@@ -58,13 +55,11 @@ export async function renderMutasi(container) {
         downloadExcel(template, 'Template_Import_Mutasi');
       },
       onImport: async (json) => {
-        const bRes = await apiFetch('/api/branches?all=1');
-        const rawBranches = bRes.data?.data || [];
         const matchBranch = (str) => {
           if (!str) return null;
           const s = String(str || '').toLowerCase();
-          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
-          return b ? b.id : null;
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         const parseDate = (v) => {
           if (!v) return '';
@@ -101,7 +96,7 @@ export async function renderMutasi(container) {
     },
     formFields: [
       { type: 'date', name: 'tanggal', label: 'Tanggal', required: true },
-      { type: 'text', name: 'employee_name', label: 'Nama Karyawan', required: true },
+      { type: 'combobox', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions },
       { type: 'combobox', name: 'from_branch_id', label: 'Cabang Asal', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'combobox', name: 'to_branch_id', label: 'Cabang Tujuan', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'select', name: 'status', label: 'Status', required: true, options: ['Proses', 'Selesai'] },

@@ -1,11 +1,11 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
 export async function renderCleaningReports(container) {
-  const bRes = await apiFetch('/api/branches?all=1');
-  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  const branchOptions = await getCachedBranches();
   const years = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - i));
 
   buildCrudPage({
@@ -25,7 +25,7 @@ export async function renderCleaningReports(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama cabang/lokasi...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Jenis', options: ['General Cleaning', 'Deep Cleaning'] },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done'] },
@@ -34,7 +34,7 @@ export async function renderCleaningReports(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
           { name: 'activity_type', label: 'Jenis Kegiatan', type: 'select', required: true, options: ['General Cleaning', 'Deep Cleaning'], value: data?.activity_type },
         ]
       },
@@ -72,14 +72,11 @@ export async function renderCleaningReports(container) {
         downloadExcel(template, 'Template_Import_GCDC');
       },
       onImport: async (json) => {
-        const bRes = await apiFetch('/api/branches?all=1');
-        const rawBranches = bRes.data?.data || [];
-        
         const matchBranch = (str) => {
           if (!str) return null;
           const s = String(str || '').toLowerCase();
-          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
-          return b ? b.id : null;
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         
         const parseDate = (v) => {

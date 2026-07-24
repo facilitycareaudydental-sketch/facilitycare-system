@@ -1,37 +1,23 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames, getCachedEmployees } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
 export async function renderRelievers(container) {
-  const [bRes, eRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch(`/api/relievers${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
-  ]);
-  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+  window.__RELIEVER_BUILD__ = "V3";
+  console.log("RELIEVER PAGE LOADED");
+  const branchOptions = await getCachedBranches();
+  const employeeOptions = await getCachedEmployeeNames();
+  
+  console.log("RAW", await getCachedEmployees());
+  console.log("OPTIONS", employeeOptions);
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
       return [...employeeOptions, { value: val, label: val }];
     }
     return employeeOptions;
-  };
-
-  const relieverOptions = [
-    'Krishna Aryaan Permana',
-    'Agung Septiadi',
-    'Indra Saputro',
-    'Wariskin',
-    'Iqbal'
-  ];
-
-  const getRelieverOptions = (val) => {
-    const opts = relieverOptions.map(name => ({ value: name, label: name }));
-    if (val && !opts.find(o => o.value === val)) {
-      return [...opts, { value: val, label: val }];
-    }
-    return opts;
   };
 
   buildCrudPage({
@@ -53,21 +39,21 @@ export async function renderRelievers(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari reliefer / FC...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done', 'Tidak Datang'] },
     ],
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
           { name: 'period', label: 'Periode', type: 'select', options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'original_fc_name', label: 'FC yang Digantikan', type: 'select', options: [{value:'', label:'BELUM ADA FC'}, ...getEmpOptions(data?.original_fc_name)], value: data?.original_fc_name },
-          { name: 'reliever_name', label: 'Nama Reliefer', type: 'select', required: true, options: getRelieverOptions(data?.reliever_name), value: data?.reliever_name },
+          { name: 'original_fc_name', label: 'FC yang Digantikan', type: 'combobox', options: getEmpOptions(data?.original_fc_name), value: data?.original_fc_name },
+          { name: 'reliever_name', label: 'Nama Reliefer', type: 'combobox', required: true, options: getEmpOptions(data?.reliever_name), value: data?.reliever_name },
         ]
       },
       {

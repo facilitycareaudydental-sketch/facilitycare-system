@@ -1,15 +1,11 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 
 export async function renderTraining(container) {
-  const [bRes, eRes, pRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch(`/api/training${window.location.search ? window.location.search + '&' : '?'}limit=10000`),
-    apiFetch(`/api/training${window.location.search ? window.location.search + '&' : '?'}limit=10000`)
-  ]);
-  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
-  const picOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
+  const branchOptions = await getCachedBranches();
+  const employeeOptions = await getCachedEmployeeNames();
+  const picOptions = employeeOptions;
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -84,8 +80,8 @@ export async function renderTraining(container) {
         const matchBranch = (str) => {
           if (!str) return null;
           const s = String(str || '').toLowerCase();
-          const b = bRes.data?.data.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
-          return b ? b.id : null;
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         const parseDate = (v) => {
           if (!v) return '';
@@ -132,8 +128,8 @@ export async function renderTraining(container) {
       { name: 'subject', label: 'Materi / Topik Training', required: true, placeholder: 'Judul materi training', value: data?.subject },
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
-          { name: 'trainer', label: 'Trainer', type: 'combobox', options: getPicOptions(data?.trainer), createApi: { path: '/api/pic', field: 'name' }, value: data?.trainer },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
+          { name: 'trainer', label: 'Trainer', type: 'combobox', options: getPicOptions(data?.trainer), value: data?.trainer },
         ]
       },
       { name: 'participants', label: 'Peserta (pisahkan dengan koma)', type: 'textarea', rows: 3, placeholder: 'Nama Peserta 1, Nama Peserta 2, ...', value: (() => { try { const arr = JSON.parse(data?.participants); return Array.isArray(arr) ? arr.join(', ') : (data?.participants || ''); } catch { return data?.participants || ''; } })() },

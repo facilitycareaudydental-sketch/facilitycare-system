@@ -2,6 +2,7 @@
 export function buildFormHTML(fields) {
   return fields.map(field => {
     if (field.type === 'hidden') return `<input type="hidden" name="${field.name}" value="${field.value || ''}">`;
+    if (field.type === 'html') return field.html || '';
     if (field.type === 'row') return `<div class="form-row">${buildFormHTML(field.fields)}</div>`;
 
     const required = field.required ? 'required' : '';
@@ -25,13 +26,20 @@ export function buildFormHTML(fields) {
         const dlId = `dl-${field.name}-${Math.random().toString(36).substring(7)}`;
         const cbOpts = (field.options || []).map(o => {
           const val = typeof o === 'object' ? o.value : o;
-          const lbl = typeof o === 'object' ? o.label : o;
+          let lbl = typeof o === 'object' ? (o.label || o.value || '') : (o || '');
+          if (lbl === 'undefined' || lbl === '[object Object]' || lbl === 'null') lbl = '';
+          if (!lbl) return '';
           return `<option value="${lbl}"></option>`;
         }).join('');
         let displayVal = field.value || '';
         if (field.value) {
             const found = (field.options || []).find(o => (typeof o === 'object' ? o.value : o) == field.value);
-            if (found) displayVal = typeof found === 'object' ? found.label : found;
+            if (found) {
+               let foundLbl = typeof found === 'object' ? (found.label || found.value || '') : (found || '');
+               if (foundLbl && foundLbl !== 'undefined' && foundLbl !== '[object Object]' && foundLbl !== 'null') {
+                  displayVal = foundLbl;
+               }
+            }
         }
         input = `
           <input type="text" name="${field.name}" list="${dlId}" class="form-control" value="${displayVal}" placeholder="Pilih atau ketik baru..." ${required} autocomplete="off">
