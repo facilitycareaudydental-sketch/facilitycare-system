@@ -5,7 +5,7 @@ import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js
 export async function renderTraining(container) {
   const branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
-  const picOptions = employeeOptions;
+  const picOptions = ['Ade', 'Berlin'];
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -15,8 +15,8 @@ export async function renderTraining(container) {
   };
   
   const getPicOptions = (val) => {
-    if (val && !picOptions.find(o => o.value === val)) {
-      return [...picOptions, { value: val, label: val }];
+    if (val && !picOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
+      return [...picOptions, val];
     }
     return picOptions;
   };
