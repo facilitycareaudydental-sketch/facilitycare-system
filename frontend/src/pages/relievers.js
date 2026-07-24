@@ -37,11 +37,12 @@ export async function renderRelievers(container) {
     bulkDelete: true,
     itemLabel: 'Reliefer',
     columns: [
-      { key: 'backup_date', label: 'Tanggal Backup', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
-      { key: 'original_fc_name', label: 'FC Digantikan' },
+      { key: 'original_fc_name', label: 'Nama Facility care' },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },
-      { key: 'reliever_name', label: 'Reliefer' },
+      { key: 'reliever_name', label: 'Relifer' },
+      { key: 'backup_date', label: 'Tanggal Back Up', nowrap: true , render: v => window.formatDate(v) },
+      { key: 'completion_date', label: 'Tanggal Selesai', nowrap: true , render: v => window.formatDate(v) },
       { key: 'reason', label: 'Keterangan' },
       { key: 'shift', label: 'Shift', render: v => v ? `<span class="badge badge-info">${v}</span>` : '-' },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
@@ -85,14 +86,14 @@ export async function renderRelievers(container) {
         const res = await apiFetch(`/api/relievers${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
-            'Tanggal Backup': d.backup_date || '',
             'Cabang': d.branch_name || '',
-            'FC Digantikan': d.original_fc_name || '',
+            'Nama Facility care': d.original_fc_name || '',
             'Periode': d.period || '',
-            'Reliefer': d.reliever_name || '',
+            'Relifer': d.reliever_name || '',
+            'Tanggal Back Up': d.backup_date || '',
+            'Tanggal Selesai': d.completion_date || '',
             'Keterangan': d.reason || '',
             'Shift': d.shift || '',
-            'Tanggal Selesai': d.completion_date || '',
             'Status': d.status || ''
           }));
           downloadExcel(data, 'Data_Reliefer');
