@@ -21,6 +21,7 @@ export function buildCrudPage({
   canDelete = true,
   onBeforeSubmit,
   onAfterLoad,
+  onDataLoaded,
   extraActions = [],
   initialSearch = '',
   exportOptions = null, // { moduleName, onExport, onImport, onTemplate }
@@ -232,6 +233,7 @@ export function buildCrudPage({
     
     // Client-side pagination fallback if backend doesn't provide pagination object
     if (!pagination && Array.isArray(items)) {
+       if (onDataLoaded) items = onDataLoaded(items);
        const total = items.length;
        const limit = 20;
        const pages = Math.ceil(total / limit);

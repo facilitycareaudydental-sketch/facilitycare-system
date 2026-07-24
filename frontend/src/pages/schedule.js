@@ -6,6 +6,15 @@ import { downloadExcel } from '../utils/excel.js';
 let branchOptions = [];
 let picOptions = [];
 
+export function getActivePeriod(data) {
+  if (!Array.isArray(data)) return 'Q3';
+  const periods = ['Q4', 'Q3', 'Q2', 'Q1'];
+  for (const p of periods) {
+    if (data.some(d => d.period === p)) return p;
+  }
+  return 'Q3'; // Default fallback
+}
+
 export async function renderSchedule(container) {
   const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
@@ -33,13 +42,25 @@ export async function renderSchedule(container) {
     return d;
   };
 
+  const scheduleData = pRes.data?.data || [];
+  const activePeriod = getActivePeriod(scheduleData);
+
   buildCrudPage({
     container,
     title: 'Jadwal Kegiatan',
-    icon: '🗓️',
+    icon: '📅',
     apiPath: '/api/schedule',
     bulkDelete: true,
     itemLabel: 'Jadwal',
+    defaultFilters: { period: activePeriod },
+    onDataLoaded: (items) => {
+      // Sort descending by opening_date, so newest year/date is first
+      return items.sort((a, b) => {
+        const da = a.opening_date ? new Date(a.opening_date).getTime() : 0;
+        const db = b.opening_date ? new Date(b.opening_date).getTime() : 0;
+        return db - da;
+      });
+    },
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'activity_type', label: 'Kegiatan', render: v => activityTypeBadge(v) },

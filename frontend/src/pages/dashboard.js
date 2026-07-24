@@ -9,6 +9,7 @@
  * - Tidak pernah menampilkan [object Object]
  */
 import { apiFetch } from '../config.js';
+import { getActivePeriod } from './schedule.js';
 
 // ── Chart registry ─────────────────────────────────────────────────────────
 const _charts = {};
@@ -392,7 +393,7 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData] =
+  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
@@ -400,7 +401,22 @@ async function fetchAll(container) {
       safeFetch('/api/dashboard/inspection-bar',     {}, 8000),
       safeFetch('/api/dashboard/stats',              {}, 8000),
       safeFetch('/api/dashboard/calendar',           [], 8000),
+      safeFetch('/api/schedule?limit=10000',         {data: []}, 8000),
     ]);
+
+  // Override Inspeksi count with single source of truth from Timeline
+  if (kpi && kpi.inspection_month) {
+    const schedules = Array.isArray(scheduleData?.data) ? scheduleData.data : (Array.isArray(scheduleData) ? scheduleData : []);
+    const activePeriod = getActivePeriod(schedules);
+    const inspCount = schedules.filter(s => {
+      if (s.period !== activePeriod) return false;
+      const status = String(s.status || '').toLowerCase();
+      if (status !== 'selesai' && status !== 'completed' && status !== 'done') return false;
+      const title = String(s.activity_type || '').toLowerCase();
+      return title.includes('inspeksi');
+    }).length;
+    kpi.inspection_month.current = inspCount;
+  }
 
   // Render each section independently — one failure never breaks others
   try { renderKPI(kpi); } catch(e) { console.warn('KPI render:', e); }
