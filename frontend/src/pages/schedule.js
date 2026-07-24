@@ -15,7 +15,18 @@ export function getActivePeriod(data) {
   return 'Q3'; // Default fallback
 }
 
-export async function renderSchedule(container) {
+export function filterDashboardItem(s, type) {
+  if (s.period !== 'Q3') return false;
+  const status = String(s.status || '').toLowerCase();
+  if (status !== 'selesai' && status !== 'completed' && status !== 'done') return false;
+  
+  const title = String(s.activity_type || '').toLowerCase();
+  if (type === 'inspeksi') return title.includes('inspeksi');
+  if (type === 'gcdc') return title.includes('general cleaning') || title.includes('deep cleaning');
+  return false;
+}
+
+export async function renderSchedule(container, params) {
   const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
     apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`),
@@ -44,6 +55,8 @@ export async function renderSchedule(container) {
 
   const scheduleData = pRes.data?.data || [];
   const activePeriod = getActivePeriod(scheduleData);
+  
+  const dashFilter = params ? params.get('dash_filter') : null;
 
   buildCrudPage({
     container,
@@ -52,9 +65,14 @@ export async function renderSchedule(container) {
     apiPath: '/api/schedule',
     bulkDelete: true,
     itemLabel: 'Jadwal',
-    defaultFilters: { period: activePeriod },
+    defaultFilters: dashFilter ? { period: 'Q3' } : { period: activePeriod },
     onDataLoaded: (items) => {
-      // Sort descending by opening_date, so newest year/date is first
+      // 1. Filter dataset directly if dash_filter is set
+      if (dashFilter) {
+        items = items.filter(s => filterDashboardItem(s, dashFilter));
+      }
+
+      // 2. Sort descending by opening_date, so newest year/date is first
       return items.sort((a, b) => {
         const da = a.opening_date ? new Date(a.opening_date).getTime() : 0;
         const db = b.opening_date ? new Date(b.opening_date).getTime() : 0;

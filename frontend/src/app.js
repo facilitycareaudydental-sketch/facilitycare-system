@@ -34,11 +34,11 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force55';
+import { renderDashboard } from './pages/dashboard.js?v=force56';
 import { renderLogin } from './pages/login.js';
 import { renderEmployees } from './pages/employees.js';
 import { renderContracts } from './pages/contracts.js?v=force53';
-import { renderSchedule } from './pages/schedule.js?v=force55';
+import { renderSchedule } from './pages/schedule.js?v=force56';
 import { renderIssues } from './pages/issues.js';
 import { renderOneOnOne } from './pages/one_on_one.js';
 import { renderTraining } from './pages/training.js';
@@ -475,7 +475,7 @@ async function init() {
   registerRoute('/contracts',          requireAuth(({ main }) => renderContracts(main)));
   registerRoute('/sp',                 requireAuth(({ main }) => renderSP(main)));
   registerRoute('/mutasi',             requireAuth(({ main }) => renderMutasi(main)));
-  registerRoute('/timeline',           requireAuth(({ main }) => renderSchedule(main)));
+  registerRoute('/timeline',           requireAuth(({ main, params }) => renderSchedule(main, params)));
   registerRoute('/issues',             requireAuth(({ main }) => renderIssues(main)));
   registerRoute('/one-on-one',         requireAuth(({ main }) => renderOneOnOne(main)));
   registerRoute('/training',           requireAuth(({ main }) => renderTraining(main)));

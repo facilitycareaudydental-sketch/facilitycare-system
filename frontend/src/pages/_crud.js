@@ -231,9 +231,18 @@ export function buildCrudPage({
     let items = res.data?.data || res.data || [];
     let pagination = res.data?.pagination;
     
-    // Client-side pagination fallback if backend doesn't provide pagination object
-    if (!pagination && Array.isArray(items)) {
-       if (onDataLoaded) items = onDataLoaded(items);
+    // If onDataLoaded exists, we MUST re-paginate on frontend because the data might be filtered/sorted
+    if (onDataLoaded) {
+       items = onDataLoaded(items);
+       const total = items.length;
+       const limit = 20;
+       const pages = Math.ceil(total / limit);
+       
+       items = items.slice((page - 1) * limit, page * limit);
+       pagination = { page, limit, total, pages };
+    } 
+    // Client-side pagination fallback if backend doesn't provide pagination object and no onDataLoaded
+    else if (!pagination && Array.isArray(items)) {
        const total = items.length;
        const limit = 20;
        const pages = Math.ceil(total / limit);
@@ -243,9 +252,9 @@ export function buildCrudPage({
        
        pagination = {
           page: page,
-          pages: pages,
+          limit: limit,
           total: total,
-          limit: limit
+          pages: pages
        };
     }
 
