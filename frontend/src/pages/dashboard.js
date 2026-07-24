@@ -718,7 +718,15 @@ function renderIssuesTable(rows) {
 function renderAgenda(rows) {
   const wrap = document.getElementById('widget-agenda');
   if (!wrap) return;
-  const items = (rows||[]).slice(0, 10);
+  
+  // Ambil tanggal lokal hari ini (YYYY-MM-DD)
+  const d = new Date();
+  const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  
+  // Hanya tampilkan aktivitas yang event_date-nya sama dengan hari ini
+  const todayItems = (rows||[]).filter(r => (r.event_date || '').startsWith(todayStr));
+  const items = todayItems.slice(0, 10);
+  
   if (!items.length) {
     wrap.innerHTML = `<div class="chart-empty">✅ Tidak ada agenda hari ini</div>`;
     return;
