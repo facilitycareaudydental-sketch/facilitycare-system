@@ -118,9 +118,9 @@ export async function renderRelievers(container) {
 
         const payload = json.map(row => ({
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
-          backup_date: String(row['Tanggal Backup'] || '').trim(),
-          original_fc_name: String(row['FC Digantikan'] || '').trim(),
-          reliever_name: String(row['Reliefer'] || '').trim(),
+          backup_date: String(row['Tanggal Back Up'] || row['Tanggal Backup'] || '').trim(),
+          original_fc_name: String(row['Nama Facility care'] || row['FC Digantikan'] || '').trim(),
+          reliever_name: String(row['Relifer'] || row['Reliefer'] || '').trim(),
           period: String(row['Periode'] || '').trim(),
           reason: String(row['Keterangan'] || '').trim(),
           shift: String(row['Shift'] || '').trim(),
