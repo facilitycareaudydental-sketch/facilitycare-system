@@ -404,18 +404,32 @@ async function fetchAll(container) {
       safeFetch('/api/schedule?limit=10000',         {data: []}, 8000),
     ]);
 
-  // Override Inspeksi count with single source of truth from Timeline
-  if (kpi && kpi.inspection_month) {
+  // Override Inspeksi and GCDC count with single source of truth from Timeline
+  if (kpi) {
     const schedules = Array.isArray(scheduleData?.data) ? scheduleData.data : (Array.isArray(scheduleData) ? scheduleData : []);
     const activePeriod = getActivePeriod(schedules);
-    const inspCount = schedules.filter(s => {
-      if (s.period !== activePeriod) return false;
-      const status = String(s.status || '').toLowerCase();
-      if (status !== 'selesai' && status !== 'completed' && status !== 'done') return false;
-      const title = String(s.activity_type || '').toLowerCase();
-      return title.includes('inspeksi');
-    }).length;
-    kpi.inspection_month.current = inspCount;
+    
+    if (kpi.inspection_month) {
+      const inspCount = schedules.filter(s => {
+        if (s.period !== activePeriod) return false;
+        const status = String(s.status || '').toLowerCase();
+        if (status !== 'selesai' && status !== 'completed' && status !== 'done') return false;
+        const title = String(s.activity_type || '').toLowerCase();
+        return title.includes('inspeksi');
+      }).length;
+      kpi.inspection_month.current = inspCount;
+    }
+
+    if (kpi.cleaning_month) {
+      const gcdcCount = schedules.filter(s => {
+        if (s.period !== activePeriod) return false;
+        const status = String(s.status || '').toLowerCase();
+        if (status !== 'selesai' && status !== 'completed' && status !== 'done') return false;
+        const title = String(s.activity_type || '').toLowerCase();
+        return title.includes('general cleaning') || title.includes('deep cleaning');
+      }).length;
+      kpi.cleaning_month.current = gcdcCount;
+    }
   }
 
   // Render each section independently — one failure never breaks others
