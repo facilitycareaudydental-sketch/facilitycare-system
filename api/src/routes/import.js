@@ -90,9 +90,30 @@ function safeDate(v) {
   // Parts-based parsing: DD/MM/YYYY, MM/DD/YYYY, D/M/YY etc.
   if (typeof v === 'string') {
     const s = v.trim();
-    const parts = s.split(/[\/\-\.]/);
+    const parts = s.split(/[\/\-\.\s]+/);
     if (parts.length === 3) {
-      const [a, b, c] = parts.map(p => p.trim());
+      let [a, b, c] = parts.map(p => p.trim());
+      
+      // Handle Indonesian month names
+      const indoMonths = {
+        'jan': '01', 'januari': '01',
+        'feb': '02', 'februari': '02',
+        'mar': '03', 'maret': '03',
+        'apr': '04', 'april': '04',
+        'mei': '05',
+        'jun': '06', 'juni': '06',
+        'jul': '07', 'juli': '07',
+        'agu': '08', 'agustus': '08',
+        'sep': '09', 'september': '09',
+        'okt': '10', 'oktober': '10',
+        'nov': '11', 'november': '11',
+        'des': '12', 'desember': '12'
+      };
+      const bLower = b.toLowerCase();
+      if (indoMonths[bLower]) {
+        b = indoMonths[bLower];
+      }
+      
       const na = Number(a), nb = Number(b), nc = Number(c);
       if (a.length === 4 && na > 1900) {
         return `${a}-${b.padStart(2,'0')}-${c.padStart(2,'0')}`;
