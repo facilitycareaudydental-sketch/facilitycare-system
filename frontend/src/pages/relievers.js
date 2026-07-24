@@ -57,28 +57,28 @@ export async function renderRelievers(container) {
       {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
-          { name: 'period', label: 'Periode', type: 'select', options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
+          { name: 'period', label: 'Periode', type: 'combobox', options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'original_fc_name', label: 'FC yang Digantikan', type: 'combobox', options: getEmpOptions(data?.original_fc_name), value: data?.original_fc_name },
-          { name: 'reliever_name', label: 'Nama Reliefer', type: 'combobox', required: true, options: getRelieverOptions(data?.reliever_name), value: data?.reliever_name },
+          { name: 'original_fc_name', label: 'Nama Facility care', type: 'combobox', options: getEmpOptions(data?.original_fc_name), value: data?.original_fc_name },
+          { name: 'reliever_name', label: 'Relifer', type: 'combobox', required: true, options: getRelieverOptions(data?.reliever_name), value: data?.reliever_name },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'backup_date', label: 'Tanggal Backup', type: 'date', required: true, value: data?.backup_date },
+          { name: 'backup_date', label: 'Tanggal Back Up', type: 'date', required: true, value: data?.backup_date },
           { name: 'completion_date', label: 'Tanggal Selesai', type: 'date', value: data?.completion_date },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'reason', label: 'Keterangan', type: 'select', options: ['Cuti', 'Mengisi Kekosongan', 'Back Up Training', 'Deep Cleaning', 'Training Praktek Skill', 'Sakit', 'Lainnya'], value: data?.reason },
-          { name: 'shift', label: 'Shift', type: 'select', options: ['Pagi', 'Siang', 'Full Shift', 'Middle'], value: data?.shift },
+          { name: 'reason', label: 'Keterangan', type: 'combobox', options: ['Cuti', 'Mengisi Kekosongan', 'Back Up Training', 'Deep Cleaning', 'Training Praktek Skill', 'Sakit', 'Lainnya'], value: data?.reason },
+          { name: 'shift', label: 'Shift', type: 'combobox', options: ['Pagi', 'Siang', 'Full Shift', 'Middle'], value: data?.shift },
         ]
       },
-      { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done', 'Tidak Datang'], value: data?.status || '' },
+      { name: 'status', label: 'Status', type: 'combobox', required: true, options: ['Pending', 'Done', 'Tidak Datang'], value: data?.status || '' },
     ],
     exportOptions: {
       moduleName: 'relievers',
