@@ -34,13 +34,13 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force56';
+import { renderDashboard } from './pages/dashboard.js?v=force57';
 import { renderLogin } from './pages/login.js';
-import { renderEmployees } from './pages/employees.js';
-import { renderContracts } from './pages/contracts.js?v=force53';
-import { renderSchedule } from './pages/schedule.js?v=force56';
-import { renderIssues } from './pages/issues.js';
-import { renderOneOnOne } from './pages/one_on_one.js';
+import { renderEmployees } from './pages/employees.js?v=force57';
+import { renderContracts } from './pages/contracts.js?v=force57';
+import { renderSchedule } from './pages/schedule.js?v=force57';
+import { renderIssues } from './pages/issues.js?v=force57';
+import { renderOneOnOne } from './pages/one_on_one.js?v=force57';
 import { renderTraining } from './pages/training.js';
 import { renderRelievers } from './pages/relievers.js';
 import { renderInspectionReports } from './pages/inspection_reports.js';
@@ -471,13 +471,13 @@ async function init() {
   registerRoute('/login',              ({ main }) => renderLogin(main));
   registerRoute('/dashboard',          requireAuth(({ main }) => renderDashboard(main)));
   registerRoute('/calendar',           requireAuth(({ main }) => renderCalendar(main)));
-  registerRoute('/employees',          requireAuth(({ main }) => renderEmployees(main)));
-  registerRoute('/contracts',          requireAuth(({ main }) => renderContracts(main)));
+  registerRoute('/employees',          requireAuth(({ main, params }) => renderEmployees(main, params)));
+  registerRoute('/contracts',          requireAuth(({ main, params }) => renderContracts(main, params)));
   registerRoute('/sp',                 requireAuth(({ main }) => renderSP(main)));
   registerRoute('/mutasi',             requireAuth(({ main }) => renderMutasi(main)));
   registerRoute('/timeline',           requireAuth(({ main, params }) => renderSchedule(main, params)));
-  registerRoute('/issues',             requireAuth(({ main }) => renderIssues(main)));
-  registerRoute('/one-on-one',         requireAuth(({ main }) => renderOneOnOne(main)));
+  registerRoute('/issues',             requireAuth(({ main, params }) => renderIssues(main, params)));
+  registerRoute('/one-on-one',         requireAuth(({ main, params }) => renderOneOnOne(main, params)));
   registerRoute('/training',           requireAuth(({ main }) => renderTraining(main)));
   registerRoute('/relievers',          requireAuth(({ main }) => renderRelievers(main)));
   registerRoute('/reports/inspection', requireAuth(({ main }) => renderInspectionReports(main)));

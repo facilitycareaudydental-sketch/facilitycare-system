@@ -9,7 +9,11 @@
  * - Tidak pernah menampilkan [object Object]
  */
 import { apiFetch } from '../config.js';
-import { getActivePeriod, filterDashboardItem } from './schedule.js';
+import { getActivePeriod, filterDashboardItem as filterSched } from './schedule.js';
+import { filterDashboardItem as filterEmp } from './employees.js';
+import { filterDashboardItem as filterContr } from './contracts.js';
+import { filterDashboardItem as filterIss } from './issues.js';
+import { filterDashboardItem as filterOoO } from './one_on_one.js';
 
 // ── Chart registry ─────────────────────────────────────────────────────────
 const _charts = {};
@@ -393,7 +397,7 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData] =
+  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
@@ -402,18 +406,40 @@ async function fetchAll(container) {
       safeFetch('/api/dashboard/stats',              {}, 8000),
       safeFetch('/api/dashboard/calendar',           [], 8000),
       safeFetch('/api/schedule?limit=10000',         {data: []}, 8000),
+      safeFetch('/api/employees?limit=10000',        {data: []}, 8000),
+      safeFetch('/api/contracts?limit=10000',        {data: []}, 8000),
+      safeFetch('/api/issues?limit=10000',           {data: []}, 8000),
+      safeFetch('/api/one_on_one?limit=10000',       {data: []}, 8000),
     ]);
 
-  // Override Inspeksi and GCDC count with single source of truth from Timeline
+  // Override KPIs with single source of truth from their respective modules
   if (kpi) {
     const schedules = Array.isArray(scheduleData?.data) ? scheduleData.data : (Array.isArray(scheduleData) ? scheduleData : []);
+    const employees = Array.isArray(empData?.data) ? empData.data : (Array.isArray(empData) ? empData : []);
+    const contracts = Array.isArray(contrData?.data) ? contrData.data : (Array.isArray(contrData) ? contrData : []);
+    const issues = Array.isArray(issData?.data) ? issData.data : (Array.isArray(issData) ? issData : []);
+    const oneOnOnes = Array.isArray(oooData?.data) ? oooData.data : (Array.isArray(oooData) ? oooData : []);
     
-    if (kpi.inspection_month) {
-      kpi.inspection_month.current = schedules.filter(s => filterDashboardItem(s, 'inspeksi')).length;
+    if (kpi.employees) {
+      kpi.employees.current = employees.filter(s => filterEmp(s, 'active')).length;
     }
-
+    if (kpi.contracts) {
+      kpi.contracts.current = contracts.filter(s => filterContr(s, 'active')).length;
+    }
+    if (kpi.expiring30) {
+      kpi.expiring30 = { current: contracts.filter(s => filterContr(s, 'expiring30')).length };
+    }
+    if (kpi.issues) {
+      kpi.issues.current = issues.filter(s => filterIss(s, 'open')).length;
+    }
+    if (kpi.one_on_one) {
+      kpi.one_on_one.current = oneOnOnes.filter(s => filterOoO(s, 'pending')).length;
+    }
+    if (kpi.inspection_month) {
+      kpi.inspection_month.current = schedules.filter(s => filterSched(s, 'inspeksi')).length;
+    }
     if (kpi.cleaning_month) {
-      kpi.cleaning_month.current = schedules.filter(s => filterDashboardItem(s, 'gcdc')).length;
+      kpi.cleaning_month.current = schedules.filter(s => filterSched(s, 'gcdc')).length;
     }
   }
 
@@ -448,11 +474,11 @@ function renderKPI(kpi) {
   kpi = kpi || {};
 
   const cards = [
-    { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',       href:'#/employees',   color:'kpi-blue',   key:'employees',  trendPct:'+2%', trendColor:'#10B981', points:'0,20 10,18 20,22 30,12 40,15 50,8 60,10 70,5 80,6 90,2 100,0' },
-    { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',href:'#/contracts',   color:'kpi-green',  key:'contracts',  trendPct:'+1%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
-    { icon:'⏳', label:'Kontrak Habis 30 Hari',  sub:'Akan segera berakhir',       href:'#/contracts',   color:'kpi-warn',   key:'expiring30', trendPct:'+25%',trendColor:'#F59E0B', points:'0,25 20,22 40,24 60,15 80,18 100,5' },
-    { icon:'⚠️', label:'Permasalahan Open',    sub:'Belum diselesaikan',         href:'#/issues',      color:'kpi-red',    key:'issues',     trendPct:'0%',  trendColor:'#EF4444', points:'0,20 20,18 40,22 60,19 80,21 100,20' },
-    { icon:'💬', label:'One on One Pending',     sub:'Menunggu tindak lanjut',     href:'#/one-on-one',  color:'kpi-purple', key:'one_on_one', trendPct:'+8%', trendColor:'#10B981', points:'0,25 20,15 40,18 60,8 80,10 100,2' },
+    { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',       href:'#/employees?dash_filter=active',   color:'kpi-blue',   key:'employees',  trendPct:'+2%', trendColor:'#10B981', points:'0,20 10,18 20,22 30,12 40,15 50,8 60,10 70,5 80,6 90,2 100,0' },
+    { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',href:'#/contracts?dash_filter=active',   color:'kpi-green',  key:'contracts',  trendPct:'+1%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
+    { icon:'⏳', label:'Kontrak Habis 30 Hari',  sub:'Akan segera berakhir',       href:'#/contracts?dash_filter=expiring30',   color:'kpi-warn',   key:'expiring30', trendPct:'+25%',trendColor:'#F59E0B', points:'0,25 20,22 40,24 60,15 80,18 100,5' },
+    { icon:'⚠️', label:'Permasalahan Open',    sub:'Belum diselesaikan',         href:'#/issues?dash_filter=open',      color:'kpi-red',    key:'issues',     trendPct:'0%',  trendColor:'#EF4444', points:'0,20 20,18 40,22 60,19 80,21 100,20' },
+    { icon:'💬', label:'One on One Pending',     sub:'Menunggu tindak lanjut',     href:'#/one-on-one?dash_filter=pending',  color:'kpi-purple', key:'one_on_one', trendPct:'+8%', trendColor:'#10B981', points:'0,25 20,15 40,18 60,8 80,10 100,2' },
   ];
 
   row.innerHTML = cards.map(c => {

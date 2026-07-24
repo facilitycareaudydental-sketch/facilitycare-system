@@ -39,8 +39,29 @@ const fetchAll = async (path) => {
   return all;
 };
 
-export async function renderContracts(container) {
+export function filterDashboardItem(s, type) {
+  const status = String(s.status || '').toLowerCase();
+  if (status !== 'aktif') return false;
+  
+  if (type === 'active') return true;
+  
+  if (type === 'expiring30') {
+    if (!s.end_date) return false;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const next30 = new Date(today);
+    next30.setDate(today.getDate() + 30);
+    const end = new Date(s.end_date);
+    end.setHours(0,0,0,0);
+    return end >= today && end <= next30;
+  }
+  return false;
+}
+
+export async function renderContracts(container, params) {
   await loadOptions();
+  
+  const dashFilter = params ? params.get('dash_filter') : null;
 
 
   buildCrudPage({
@@ -50,6 +71,12 @@ export async function renderContracts(container) {
     apiPath: '/api/contracts',
     bulkDelete: true,
     itemLabel: 'Kontrak',
+    onDataLoaded: (items) => {
+      if (dashFilter) {
+        return items.filter(s => filterDashboardItem(s, dashFilter));
+      }
+      return items;
+    },
     columns: [
       { key: 'employee_name', label: 'Nama Lengkap' },
       { key: 'branch_name', label: 'Cabang' },

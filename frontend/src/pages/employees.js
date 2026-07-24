@@ -12,8 +12,16 @@ async function loadBranches() {
   branchOptions = rawBranches.map(b => ({ value: b.id, label: b.full_name }));
 }
 
-export async function renderEmployees(container) {
+export function filterDashboardItem(s, type) {
+  const status = String(s.status || '').toLowerCase();
+  if (type === 'active') return status === 'aktif';
+  return false;
+}
+
+export async function renderEmployees(container, params) {
   await loadBranches();
+  
+  const dashFilter = params ? params.get('dash_filter') : null;
 
   buildCrudPage({
     container,
@@ -22,6 +30,12 @@ export async function renderEmployees(container) {
     apiPath: '/api/employees',
     itemLabel: 'Karyawan',
     bulkDelete: true,
+    onDataLoaded: (items) => {
+      if (dashFilter) {
+        return items.filter(s => filterDashboardItem(s, dashFilter));
+      }
+      return items;
+    },
     columns: [
       { key: 'full_name', label: 'Nama Lengkap' },
       { key: 'branch_name', label: 'Cabang' },

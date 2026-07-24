@@ -6,7 +6,14 @@ import { downloadExcel } from '../utils/excel.js';
 let branchOptions = [];
 let employeeOptions = [];
 
-export async function renderIssues(container) {
+export function filterDashboardItem(s, type) {
+  const status = String(s.status || '').toLowerCase();
+  if (type === 'open') return status === 'open';
+  return false;
+}
+
+export async function renderIssues(container, params) {
+  const dashFilter = params ? params.get('dash_filter') : null;
   const [bRes, eRes, pRes] = await Promise.all([
     apiFetch('/api/branches?all=1'),
     apiFetch(`/api/issues${window.location.search ? window.location.search + '&' : '?'}limit=10000`),
@@ -51,6 +58,12 @@ export async function renderIssues(container) {
     apiPath: '/api/issues',
     bulkDelete: true,
     itemLabel: 'Permasalahan',
+    onDataLoaded: (items) => {
+      if (dashFilter) {
+        return items.filter(s => filterDashboardItem(s, dashFilter));
+      }
+      return items;
+    },
     columns: [
       { key: 'report_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
