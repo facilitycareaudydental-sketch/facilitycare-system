@@ -220,10 +220,14 @@ export function buildCrudPage({
     if (!tableContainer) return;
     tableContainer.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
-    // FIX: Selalu ambil dari halaman 1 (semua data) dari backend
-    // karena kita menggunakan limit 10000 dan mem-paginate di frontend.
-    const apiPage = 1;
-    const params = new URLSearchParams({ page: apiPage, limit: 10000, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
+    // FIX: Tentukan mode paginasi (Hybrid Architecture)
+    // Jika onDataLoaded ada, kita butuh semua data di frontend (Client-Side).
+    // Jika tidak, kita gunakan paginasi Backend yang scalable untuk data raksasa.
+    const isClientSide = !!onDataLoaded;
+    const apiPage = isClientSide ? 1 : page;
+    const apiLimit = isClientSide ? 10000 : 20;
+    
+    const params = new URLSearchParams({ page: apiPage, limit: apiLimit, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
     const res = await apiFetch(`${apiPath}?${params}`);
 
     if (!res.ok) {
@@ -232,36 +236,39 @@ export function buildCrudPage({
     }
 
     let items = res.data?.data || res.data || [];
+    let pagination = res.data?.pagination;
     const originalTotal = items.length;
     
-    // 1. Terapkan filter khusus (seperti filter dari Dashboard)
-    if (onDataLoaded) {
+    if (isClientSide) {
+       // 1. Terapkan filter khusus (Client-Side)
        items = onDataLoaded(items);
+       
+       // 2. Hitung jumlah total data setelah difilter
+       const filteredTotal = items.length;
+       const limit = 20;
+       const pages = Math.ceil(filteredTotal / limit);
+       
+       // 3. Pastikan current page tidak melebihi total pages
+       if (page > pages && pages > 0) page = pages;
+       
+       // 4. Hitung index slicing
+       const startIndex = (page - 1) * limit;
+       const endIndex = page * limit;
+       
+       // 5. Potong array data sesuai halaman
+       items = items.slice(startIndex, endIndex);
+       
+       // 6. Tumpuk pagination object milik backend dengan milik frontend
+       pagination = { 
+          page: page, 
+          limit: limit, 
+          total: filteredTotal, 
+          pages: pages 
+       };
     }
-    
-    // 2. Hitung jumlah total data setelah difilter
-    const filteredTotal = items.length;
-    const limit = 20;
-    const pages = Math.ceil(filteredTotal / limit);
-    
-    // 3. Pastikan current page tidak melebihi total pages
-    if (page > pages && pages > 0) page = pages;
-    
-    // 4. Hitung index slicing
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    
-    // 5. Potong array data sesuai halaman (Client-Side Pagination)
-    items = items.slice(startIndex, endIndex);
-    
-    const pagination = { 
-       page: page, 
-       limit: limit, 
-       total: filteredTotal, 
-       pages: pages 
-    };
 
     console.log({
+      mode: isClientSide ? 'Client-Side' : 'Server-Side',
       module: apiPath,
       totalData: originalTotal,
       filteredData: filteredTotal,
