@@ -73,7 +73,7 @@ export async function renderIssues(container, params) {
       {
         type: 'row', fields: [
           { name: 'category', label: 'Kategori', type: 'select', required: true, options: ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'], value: data?.category },
-          { name: 'source', label: 'Sumber Laporan', type: 'combobox', options: [...getEmpOptions(data?.source), {value: 'Lainnya', label: 'Lainnya'}], value: data?.source },
+          { name: 'source', label: 'Sumber Laporan', type: 'combobox', options: ['SPV', 'AM', 'RCP', 'Perawat', 'FC', 'Berlin', 'Ade', 'Pattrel', 'Dentrel'], value: data?.source },
         ]
       },
       { name: 'complaint', label: 'Keluhan', type: 'textarea', required: true, rows: 3, value: data?.complaint },
