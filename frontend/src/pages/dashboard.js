@@ -266,6 +266,8 @@ export async function renderDashboard(container) {
   if (container._dashRefresh)  clearInterval(container._dashRefresh);
   if (container._skelTimeout)  clearTimeout(container._skelTimeout);
 
+  const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
   container.innerHTML = `
     <div class="dashboard-wrap" id="dash-root">
 
@@ -325,11 +327,11 @@ export async function renderDashboard(container) {
       <div class="bottom-row" style="margin-top:24px;">
         <!-- Jadwal Hari Ini -->
         <div class="chart-card">
-          <div class="chart-card-header">
-            <div class="chart-card-title">Jadwal Hari Ini</div>
+          <div class="chart-card-header" style="flex-wrap: wrap; gap: 8px;">
+            <div class="chart-card-title">Jadwal Hari Ini <span style="font-size:0.75rem; font-weight:normal; color:var(--text-3); margin-left:6px">${todayStr}</span></div>
             <a href="#/calendar" class="chart-link">Lihat Kalender</a>
           </div>
-          <div id="widget-agenda" class="dash-table-wrap" style="height:160px;overflow-y:auto">${skelTable(3)}</div>
+          <div id="widget-agenda" class="dash-table-wrap" style="height:160px;overflow-y:auto;overflow-x:hidden">${skelTable(3)}</div>
         </div>
         <!-- KPI Kebersihan -->
         <div class="chart-card">
@@ -733,14 +735,14 @@ function renderAgenda(rows) {
         else if (titleL.includes('fogging')) { color = '#8B5CF6'; bg = '#F5F3FF'; tag = 'Fogging'; }
         
         return `
-        <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--border)">
-          <div style="font-size:0.85rem;font-weight:700;color:var(--text-1);margin-top:2px">${new Date(r.event_date).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</div>
+        <div style="display:flex;gap:12px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--border)">
+          <div style="font-size:0.85rem;font-weight:700;color:var(--text-1);margin-top:2px;white-space:nowrap">${new Date(r.event_date).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</div>
           <div style="width:8px;height:8px;border-radius:50%;background:${color};margin-top:6px;flex-shrink:0"></div>
-          <div style="flex:1">
+          <div style="flex:1;min-width:0">
             <div style="font-weight:700;font-size:0.85rem;color:var(--text-1);line-height:1.2;margin:0 0 4px 0">${safeStr(r.title)}</div>
-            <div style="font-size:0.75rem;color:var(--text-3)">${safeStr(r.branch_name)}</div>
+            <div style="font-size:0.75rem;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeStr(r.branch_name)}</div>
           </div>
-          <div style="font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:6px;background:${bg};color:${color}">${tag}</div>
+          <div style="flex-shrink:0;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:6px;background:${bg};color:${color}">${tag}</div>
         </div>
       `}).join('')}
     </div>
