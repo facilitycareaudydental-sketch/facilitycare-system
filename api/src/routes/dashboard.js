@@ -185,32 +185,8 @@ export async function handleRelieverAudit(request, env, origin) {
 }
 
 export async function handleDebug56(request, env, origin) {
-  const curM = '2026-07';
-  const mParts = curM.split('-');
-  const y = mParts[0];
-  const mIdx = parseInt(mParts[1], 10) - 1;
-  const indoMonth = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][mIdx];
-  const engMonth = ['January','February','March','April','May','June','July','August','September','October','November','December'][mIdx];
-  
-  const bind = [
-    curM,
-    `%${curM}%`,
-    `%${indoMonth}%${y}%`,
-    `%${engMonth}%${y}%`,
-    `%${mParts[1]}%${y}%`
-  ];
-  
-  const doneRow = await env.DB.prepare(`
-    SELECT COUNT(*) c FROM relievers 
-    WHERE LOWER(TRIM(status))='done' AND (
-      strftime('%Y-%m', backup_date) = ? OR 
-      backup_date LIKE ? OR 
-      backup_date LIKE ? OR 
-      backup_date LIKE ? OR 
-      backup_date LIKE ?
-    )`).bind(...bind).first();
-    
-  return new Response(`SQL COUNT IS: ${doneRow.c}`, { headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+  const rows = await env.DB.prepare("SELECT * FROM relievers").all();
+  return new Response(JSON.stringify(rows.results || []), { headers: { 'Content-Type': 'application/json' } });
 }
 
 // ─── /stats — backward-compat + expiring list + recent issues ────────────────
