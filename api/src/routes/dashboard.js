@@ -185,40 +185,32 @@ export async function handleRelieverAudit(request, env, origin) {
 }
 
 export async function handleDebug56(request, env, origin) {
-  const rows = await env.DB.prepare("SELECT * FROM relievers").all();
-  const data = rows.results || [];
+  const curM = '2026-07';
+  const mParts = curM.split('-');
+  const y = mParts[0];
+  const mIdx = parseInt(mParts[1], 10) - 1;
+  const indoMonth = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][mIdx];
+  const engMonth = ['January','February','March','April','May','June','July','August','September','October','November','December'][mIdx];
   
-  function parseFlexibleDate(d) {
-    if (!d || d === '-') return '';
-    d = String(d).trim();
-    if (/^\d{5}$/.test(d)) {
-      const utc_days = Math.floor(Number(d) - 25569);
-      const date_info = new Date(utc_days * 86400 * 1000);
-      return date_info.toISOString().split('T')[0];
-    }
-    if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
-      const p = d.split(/[\/\-]/);
-      return `${p[2]}-${p[1]}-${p[0]}`; 
-    }
-    return d.split('T')[0];
-  }
+  const bind = [
+    curM,
+    `%${curM}%`,
+    `%${indoMonth}%${y}%`,
+    `%${engMonth}%${y}%`,
+    `%${mParts[1]}%${y}%`
+  ];
   
-  const julyData = [];
-  for (const r of data) {
-    const parsedDate = parseFlexibleDate(r.backup_date);
-    if (parsedDate && parsedDate.startsWith('2026-07')) {
-      if ((r.status || '').trim().toLowerCase() === 'done') {
-        julyData.push(r);
-      }
-    }
-  }
-  
-  let md = '# 56 Data Juli\n\n';
-  for (let i = 0; i < julyData.length; i++) {
-     md += `- ID: ${julyData[i].id}, Nama: ${julyData[i].reliever_name}, Tgl: ${julyData[i].backup_date}, Branch: ${julyData[i].branch_id}, Shift: ${julyData[i].shift}, Reason: ${julyData[i].reason}\n`;
-  }
-  
-  return new Response(md, { headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+  const doneRow = await env.DB.prepare(`
+    SELECT COUNT(*) c FROM relievers 
+    WHERE LOWER(TRIM(status))='done' AND (
+      strftime('%Y-%m', backup_date) = ? OR 
+      backup_date LIKE ? OR 
+      backup_date LIKE ? OR 
+      backup_date LIKE ? OR 
+      backup_date LIKE ?
+    )`).bind(...bind).first();
+    
+  return new Response(`SQL COUNT IS: ${doneRow.c}`, { headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
 }
 
 // ─── /stats — backward-compat + expiring list + recent issues ────────────────
