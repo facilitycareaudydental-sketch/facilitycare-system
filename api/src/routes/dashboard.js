@@ -45,6 +45,20 @@ function prevMonthStr() {
   n.setMonth(n.getMonth() - 1);
   return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
 }
+function parseFlexibleDate(d) {
+  if (!d || d === '-') return '';
+  d = String(d).trim();
+  if (/^\d{5}$/.test(d)) {
+    const utc_days = Math.floor(Number(d) - 25569);
+    const date_info = new Date(utc_days * 86400 * 1000);
+    return date_info.toISOString().split('T')[0];
+  }
+  if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
+    const p = d.split(/[\/\-]/);
+    return `${p[2]}-${p[1]}-${p[0]}`; // YYYY-MM-DD
+  }
+  return d.split('T')[0];
+};
 function monthLabels(count = 12) {
   const labels = [];
   const now = new Date();
@@ -70,45 +84,6 @@ async function getKPI(env, origin) {
   const curM  = curMonthStr();
   const prevM = prevMonthStr();
 
-  const y2 = curM.split('-')[0].slice(-2);
-  const mStr = curM.split('-')[1];
-  const mInt = parseInt(mStr, 10).toString();
-  const idx = parseInt(mStr, 10) - 1;
-  const indoM = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][idx];
-  const engM = ['January','February','March','April','May','June','July','August','September','October','November','December'][idx];
-
-  const likePatterns = [
-    `%${curM}%`,
-    `%${indoM}%${curM.split('-')[0]}%`, `%${indoM}%${y2}`,
-    `%${engM}%${curM.split('-')[0]}%`, `%${engM}%${y2}`,
-    `${mStr}/%/${curM.split('-')[0]}`, `${mStr}/%/${y2}`,
-    `${mInt}/%/${curM.split('-')[0]}`, `${mInt}/%/${y2}`,
-    `%/${mStr}/${curM.split('-')[0]}`, `%/${mStr}/${y2}`,
-    `%/${mInt}/${curM.split('-')[0]}`, `%/${mInt}/${y2}`,
-    `%-${mStr}-${curM.split('-')[0]}`, `%-${mStr}-${y2}`,
-    `%-${mInt}-${curM.split('-')[0]}`, `%-${mInt}-${y2}`
-  ];
-  const likeClauses = likePatterns.map(() => 'backup_date LIKE ?').join(' OR ');
-
-  const relieverQuery = env.DB.prepare(`
-    SELECT COUNT(*) c FROM relievers 
-    WHERE (
-       CASE 
-         WHEN (status IS NULL OR status = '' OR LOWER(TRIM(status)) = 'pending') 
-              AND date(backup_date) IS NOT NULL 
-              AND date(backup_date) <= date('now', 'localtime') THEN 'done'
-         ELSE LOWER(TRIM(COALESCE(status, 'pending')))
-       END
-    ) = 'done'
-    AND (
-      strftime('%Y-%m', backup_date) = ? OR 
-      strftime('%Y-%m', REPLACE(backup_date, '/', '-')) = ? OR
-      ${likeClauses}
-    )
-  `);
-
-  const relieverTodayPromise = relieverQuery.bind(curM, curM, ...likePatterns).first();
-
   // All 16 counts run in parallel — no sequential blocking
   const [
     empActive, empPrevMonth,
@@ -122,7 +97,7 @@ async function getKPI(env, origin) {
     inspCur,
     cleanCur,
     fogCur,
-    relieverToday
+    allRelieversRes
   ] = await Promise.all([
     // Uses idx_employees_status
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
@@ -167,9 +142,24 @@ async function getKPI(env, origin) {
     // Uses idx_fogging_date
     env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
 
-    // Total Relievers back up this month
-    relieverTodayPromise,
+    // Fetch all relievers to parse dates exactly like the UI
+    env.DB.prepare("SELECT backup_date, status FROM relievers").all(),
   ]);
+
+  // JS-based count for relievers to perfectly match the UI Date logic without any auto-done
+  let relieverCount = 0;
+  if (allRelieversRes && allRelieversRes.results) {
+    for (const r of allRelieversRes.results) {
+      const parsedDate = parseFlexibleDate(r.backup_date);
+      if (!parsedDate || !parsedDate.startsWith(curM)) continue; // Must be this month
+
+      let status = (r.status || '').trim().toLowerCase();
+      // Strictly only count actual 'Done' statuses, NO auto-done estimation
+      if (status === 'done') {
+        relieverCount++;
+      }
+    }
+  }
 
   return ok({
     employees:       { current: empActive?.c||0,       prev: empPrevMonth?.c||0 },
@@ -184,7 +174,7 @@ async function getKPI(env, origin) {
     inspection_month:{ current: inspCur?.c||0 },
     cleaning_month:  { current: cleanCur?.c||0 },
     fogging_month:   { current: fogCur?.c||0 },
-    reliever_total:  { current: relieverToday?.c||0 },
+    reliever_total:  { current: relieverCount },
     checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
   }, 200, origin);
 }
