@@ -30,6 +30,7 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/activity-by-period') return getActivityByPeriod(env, origin);
   if (path === '/inspection-scores') return getInspectionScores(request, env, origin);
   if (path === '/notifications')      return getNotifications(request, env, origin);
+  if (path === '/reliefer-summary')   return getRelieferSummary(request, env, origin);
 
   return ok({}, 200, origin);
 }
@@ -664,4 +665,57 @@ async function getNotifications(request, env, origin) {
   list.sort((a, b) => b.date.localeCompare(a.date));
 
   return ok(list, 200, origin);
+}
+
+// ─── /reliefer-summary ───────────────────────────────────────────────────────
+async function getRelieferSummary(request, env, origin) {
+  const url = new URL(request.url);
+  const curM = url.searchParams.get('month') || curMonthStr();
+  
+  const mParts = curM.split('-');
+  const y = mParts[0];
+  const mIdx = parseInt(mParts[1], 10) - 1;
+  const indoMonth = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][mIdx];
+  const engMonth = ['January','February','March','April','May','June','July','August','September','October','November','December'][mIdx];
+
+  const bind = [
+    curM,
+    `%${curM}%`,
+    `%${indoMonth}%${y}%`,
+    `%${engMonth}%${y}%`,
+    `%${mParts[1]}%${y}%`
+  ];
+
+  const [doneRow, totalRow] = await Promise.all([
+    env.DB.prepare(`
+      SELECT COUNT(*) c FROM relievers 
+      WHERE LOWER(TRIM(status))='done' AND (
+        strftime('%Y-%m', backup_date) = ? OR 
+        backup_date LIKE ? OR 
+        backup_date LIKE ? OR 
+        backup_date LIKE ? OR 
+        backup_date LIKE ?
+      )`).bind(...bind).first(),
+      
+    env.DB.prepare(`
+      SELECT COUNT(*) c FROM relievers 
+      WHERE (
+        strftime('%Y-%m', backup_date) = ? OR 
+        backup_date LIKE ? OR 
+        backup_date LIKE ? OR 
+        backup_date LIKE ? OR 
+        backup_date LIKE ?
+      )`).bind(...bind).first()
+  ]);
+
+  const done = doneRow?.c || 0;
+  const total = totalRow?.c || 0;
+  const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  return ok({
+    month: curM,
+    done,
+    total,
+    percentage
+  }, 200, origin);
 }
