@@ -94,7 +94,12 @@ async function getKPI(env, origin) {
 
   const relieverQuery = env.DB.prepare(`
     SELECT COUNT(*) c FROM relievers 
-    WHERE LOWER(TRIM(status))='done' AND (
+    WHERE (
+        LOWER(TRIM(status))='done' 
+        OR ((status IS NULL OR status = '' OR LOWER(TRIM(status))='pending') 
+            AND date(backup_date) IS NOT NULL 
+            AND date(backup_date) <= date('now', 'localtime'))
+      ) AND (
       strftime('%Y-%m', backup_date) = ? OR 
       strftime('%Y-%m', REPLACE(backup_date, '/', '-')) = ? OR
       ${likeClauses}
