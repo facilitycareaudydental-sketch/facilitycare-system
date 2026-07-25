@@ -13,8 +13,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch and Analyze Data
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: |
-          curl -s https://fm-operations-api.facilitycareaudydental.workers.dev/api/dashboard/reliever-audit > dump.json
+          curl -s "$API_BASE_URL/api/dashboard/reliever-audit" > dump.json
           node -e "
             const fs = require('fs');
             let data = [];
