@@ -72,6 +72,37 @@ async function getKPI(env, origin) {
   const curM  = curMonthStr();
   const prevM = prevMonthStr();
 
+  const y2 = curM.split('-')[0].slice(-2);
+  const mStr = curM.split('-')[1];
+  const mInt = parseInt(mStr, 10).toString();
+  const idx = parseInt(mStr, 10) - 1;
+  const indoM = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][idx];
+  const engM = ['January','February','March','April','May','June','July','August','September','October','November','December'][idx];
+
+  const likePatterns = [
+    `%${curM}%`,
+    `%${indoM}%${curM.split('-')[0]}%`, `%${indoM}%${y2}`,
+    `%${engM}%${curM.split('-')[0]}%`, `%${engM}%${y2}`,
+    `${mStr}/%/${curM.split('-')[0]}`, `${mStr}/%/${y2}`,
+    `${mInt}/%/${curM.split('-')[0]}`, `${mInt}/%/${y2}`,
+    `%/${mStr}/${curM.split('-')[0]}`, `%/${mStr}/${y2}`,
+    `%/${mInt}/${curM.split('-')[0]}`, `%/${mInt}/${y2}`,
+    `%-${mStr}-${curM.split('-')[0]}`, `%-${mStr}-${y2}`,
+    `%-${mInt}-${curM.split('-')[0]}`, `%-${mInt}-${y2}`
+  ];
+  const likeClauses = likePatterns.map(() => 'backup_date LIKE ?').join(' OR ');
+
+  const relieverQuery = env.DB.prepare(`
+    SELECT COUNT(*) c FROM relievers 
+    WHERE LOWER(TRIM(status))='done' AND (
+      strftime('%Y-%m', backup_date) = ? OR 
+      strftime('%Y-%m', REPLACE(backup_date, '/', '-')) = ? OR
+      ${likeClauses}
+    )
+  `);
+
+  const relieverTodayPromise = relieverQuery.bind(curM, curM, ...likePatterns).first();
+
   // All 16 counts run in parallel — no sequential blocking
   const [
     empActive, empPrevMonth,
@@ -132,33 +163,8 @@ async function getKPI(env, origin) {
     // Uses idx_contracts_created
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
 
-    // Total Relievers back up this month (Done status)
-    // Support various date formats since import allows raw strings (e.g. "16 Juli 2026", "1/7/2026", "2026/07/16")
-    env.DB.prepare(`
-      SELECT COUNT(*) c FROM relievers 
-      WHERE LOWER(TRIM(status))='done' AND (
-        strftime('%Y-%m', backup_date) = ? OR 
-        strftime('%Y-%m', REPLACE(backup_date, '/', '-')) = ? OR
-        backup_date LIKE ? OR 
-        backup_date LIKE ? OR 
-        backup_date LIKE ? OR 
-        backup_date LIKE ? OR
-        backup_date LIKE ? OR
-        backup_date LIKE ? OR
-        backup_date LIKE ? OR
-        backup_date LIKE ?
-      )`).bind(
-        curM,
-        curM, 
-        `%${curM}%`, 
-        `%${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][parseInt(curM.split('-')[1])-1]}%${curM.split('-')[0]}%`,
-        `%${['January','February','March','April','May','June','July','August','September','October','November','December'][parseInt(curM.split('-')[1])-1]}%${curM.split('-')[0]}%`,
-        `%${curM.split('-')[1]}%${curM.split('-')[0]}%`,
-        `%-${parseInt(curM.split('-')[1])}-%${curM.split('-')[0]}%`,
-        `%/${parseInt(curM.split('-')[1])}/%${curM.split('-')[0]}%`,
-        `%${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][parseInt(curM.split('-')[1])-1]}%${curM.split('-')[0]}%`,
-        `%${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(curM.split('-')[1])-1]}%${curM.split('-')[0]}%`
-      ).first(),
+    // Total Relievers back up this month
+    relieverTodayPromise,
   ]);
 
   return ok({
