@@ -133,21 +133,31 @@ async function getKPI(env, origin) {
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
 
     // Total Relievers back up this month (Done status)
-    // Support various date formats since import allows raw strings (e.g. "16 Juli 2026")
+    // Support various date formats since import allows raw strings (e.g. "16 Juli 2026", "1/7/2026", "2026/07/16")
     env.DB.prepare(`
       SELECT COUNT(*) c FROM relievers 
       WHERE LOWER(TRIM(status))='done' AND (
         strftime('%Y-%m', backup_date) = ? OR 
+        strftime('%Y-%m', REPLACE(backup_date, '/', '-')) = ? OR
         backup_date LIKE ? OR 
         backup_date LIKE ? OR 
         backup_date LIKE ? OR 
+        backup_date LIKE ? OR
+        backup_date LIKE ? OR
+        backup_date LIKE ? OR
+        backup_date LIKE ? OR
         backup_date LIKE ?
       )`).bind(
+        curM,
         curM, 
         `%${curM}%`, 
         `%${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][parseInt(curM.split('-')[1])-1]}%${curM.split('-')[0]}%`,
         `%${['January','February','March','April','May','June','July','August','September','October','November','December'][parseInt(curM.split('-')[1])-1]}%${curM.split('-')[0]}%`,
-        `%${curM.split('-')[1]}%${curM.split('-')[0]}%`
+        `%${curM.split('-')[1]}%${curM.split('-')[0]}%`,
+        `%-${parseInt(curM.split('-')[1])}-%${curM.split('-')[0]}%`,
+        `%/${parseInt(curM.split('-')[1])}/%${curM.split('-')[0]}%`,
+        `%${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][parseInt(curM.split('-')[1])-1]}%${curM.split('-')[0]}%`,
+        `%${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(curM.split('-')[1])-1]}%${curM.split('-')[0]}%`
       ).first(),
   ]);
 
