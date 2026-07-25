@@ -494,7 +494,7 @@ function renderKPI(kpi, relieferSummary = {}) {
         <div style="display:flex; gap:16px; align-items:center;">
           <div class="kpi-icon-wrap" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
           <div style="flex:1;min-width:0;">
-            <div class="kpi-value" ${targetAttr} style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${c.valStr ? val : '0'}</div>
+            <div class="${c.valStr ? 'kpi-value-text' : 'kpi-value'}" ${targetAttr} style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${c.valStr ? val : '0'}</div>
             <div class="kpi-label" style="font-size:0.85rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
             <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
           </div>
