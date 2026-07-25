@@ -131,8 +131,8 @@ async function getKPI(env, origin) {
     // Uses idx_contracts_created
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
 
-    // Total Relievers back up this month
-    env.DB.prepare("SELECT COUNT(*) c FROM relievers WHERE strftime('%Y-%m', backup_date) = ?").bind(curM).first(),
+    // Total Relievers back up this month (Done status)
+    env.DB.prepare("SELECT COUNT(*) c FROM relievers WHERE status='Done' AND strftime('%Y-%m', backup_date) = ?").bind(curM).first(),
   ]);
 
   return ok({
