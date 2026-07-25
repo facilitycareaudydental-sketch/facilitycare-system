@@ -386,52 +386,82 @@ async function importRelievers(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, reliever_name, backup_date FROM relievers').all();
-  const existingMap = new Map();
-  (existing.results || []).forEach(r => {
-    if (r.reliever_name && r.backup_date) {
-      existingMap.set(r.reliever_name.toLowerCase().trim() + '_' + r.backup_date, r.id);
-    }
-  });
-
-  const stmts = [];
-  const importedKeys = [];
-  let inserted = 0;
-  let updated = 0;
-  let skipped = 0;
-
+  // 1. Collect all unique months from the incoming data
+  const monthsToSync = new Set();
+  const validRows = [];
+  
   for (const row of rows) {
     const reliever_name = safeStr(row.reliever_name) || '-';
+    let rawDate = safeDate(row.backup_date) || today();
+    
+    let m = '';
+    if (typeof rawDate === 'string' && rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+      m = rawDate.substring(0, 7);
+    } else {
+      const excelDays = Number(rawDate);
+      if (!isNaN(excelDays)) {
+        const d = new Date(Date.UTC(1899, 11, 30) + excelDays * 86400000);
+        if (!isNaN(d.getTime())) m = d.toISOString().slice(0, 7);
+      }
+    }
+    if (m) monthsToSync.add(m);
+    
+    validRows.push({ ...row, backup_date: rawDate, reliever_name });
+  }
 
-    const backup_date = safeDate(row.backup_date) || today();
-    const key = reliever_name.toLowerCase().trim() + '_' + backup_date;
-    importedKeys.push(key);
+  // 2. Fetch all existing records and find those belonging to the months to sync
+  const allExisting = await env.DB.prepare('SELECT id, backup_date FROM relievers').all();
+  const idsToDelete = [];
+  
+  for (const r of (allExisting.results || [])) {
+    let d = String(r.backup_date || '').trim();
+    let parsed = '';
+    
+    if (/^\d{5}$/.test(d)) {
+      const utc_days = Math.floor(Number(d) - 25569);
+      const date_info = new Date(utc_days * 86400 * 1000);
+      parsed = date_info.toISOString().split('T')[0];
+    } else if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
+      const p = d.split(/[\/\-]/);
+      parsed = `${p[2]}-${p[1]}-${p[0]}`;
+    } else {
+      parsed = d.split('T')[0];
+    }
 
+    if (parsed) {
+      for (const m of monthsToSync) {
+        if (parsed.startsWith(m)) {
+          idsToDelete.push(r.id);
+          break;
+        }
+      }
+    }
+  }
+
+  // 3. Delete old ghost records for these months to ensure PERFECT SYNC
+  if (idsToDelete.length > 0) {
+    const deleteStmts = idsToDelete.map(id => env.DB.prepare('DELETE FROM relievers WHERE id = ?').bind(id));
+    await batchInsert(env.DB, deleteStmts);
+  }
+
+  // 4. Insert all the new rows exactly as provided in the Excel file
+  const stmts = [];
+  let inserted = 0;
+
+  for (const row of validRows) {
     const branch_id = matchBranch(row.branch_name);
     const original_fc_name = safeStr(row.original_fc_name);
     const period = safeStr(row.period);
     const completion_date = safeDate(row.completion_date);
     const reason = safeStr(row.reason);
     const shift = safeStr(row.shift);
-    const status = safeStr(row.status) || '';
+    const status = safeStr(row.status) || 'Pending';
 
-    if (existingMap.has(key)) {
-      const id = existingMap.get(key);
-      if (onDuplicate === 'update') {
-        stmts.push(env.DB.prepare(
-          `UPDATE relievers SET branch_id = ?, original_fc_name = ?, period = ?, completion_date = ?, reason = ?, shift = ?, status = ?, updated_at = datetime('now') WHERE id = ?`
-        ).bind(branch_id, original_fc_name, period, completion_date, reason, shift, status, id));
-        updated++;
-      } else {
-        skipped++;
-      }
-    } else {
-      stmts.push(env.DB.prepare(
-        `INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status));
-      inserted++;
-    }
+    stmts.push(env.DB.prepare(
+      `INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(branch_id, original_fc_name, period, row.reliever_name, row.backup_date, completion_date, reason, shift, status));
+    inserted++;
   }
 
   await batchInsert(env.DB, stmts);
