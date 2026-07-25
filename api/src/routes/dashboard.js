@@ -184,6 +184,71 @@ export async function handleRelieverAudit(request, env, origin) {
   return ok(rows.results, 200, origin);
 }
 
+export async function handleDebug56(request, env, origin) {
+  const rows = await env.DB.prepare("SELECT * FROM relievers").all();
+  const data = rows.results || [];
+  
+  function parseFlexibleDate(d) {
+    if (!d || d === '-') return '';
+    d = String(d).trim();
+    if (/^\d{5}$/.test(d)) {
+      const utc_days = Math.floor(Number(d) - 25569);
+      const date_info = new Date(utc_days * 86400 * 1000);
+      return date_info.toISOString().split('T')[0];
+    }
+    if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
+      const p = d.split(/[\/\-]/);
+      return `${p[2]}-${p[1]}-${p[0]}`; 
+    }
+    return d.split('T')[0];
+  }
+  
+  const julyData = [];
+  for (const r of data) {
+    const parsedDate = parseFlexibleDate(r.backup_date);
+    if (parsedDate && parsedDate.startsWith('2026-07')) {
+      if ((r.status || '').trim().toLowerCase() === 'done') {
+        julyData.push(r);
+      }
+    }
+  }
+  
+  const seen = new Set();
+  const duplicates = [];
+  const misparsed = [];
+  
+  for (const r of julyData) {
+    if (String(r.backup_date).includes('/08/2026') || String(r.backup_date).includes('-08-2026') || String(r.backup_date).toLowerCase().includes('agus')) {
+       misparsed.push(r);
+    }
+    const key = `${r.reliever_name}_${r.backup_date}_${r.branch_id}_${r.shift}`;
+    if (seen.has(key)) {
+      duplicates.push(r);
+    } else {
+      seen.add(key);
+    }
+  }
+  
+  let md = '# Laporan 11 Data Ekstra di Bulan Juli 2026\n\n';
+  md += `Total Data Done Juli di Database: ${julyData.length}\n`;
+  md += `Data Ganda (Duplicate Identik): ${duplicates.length}\n`;
+  md += `Data Agustus (Terkonversi jadi Juli karena format DD/MM/YYYY): ${misparsed.length}\n\n`;
+  
+  md += '## Data Ganda (Penyebab Angka 56)\n';
+  if (duplicates.length === 0) md += 'Tidak ada data ganda.\n';
+  for (let i = 0; i < duplicates.length; i++) {
+     md += `- ID: ${duplicates[i].id}, Nama: ${duplicates[i].reliever_name}, Tgl: ${duplicates[i].backup_date}, Branch: ${duplicates[i].branch_id}, Shift: ${duplicates[i].shift} (Alasan: Nama, Tgl, Cabang, Shift persis sama dengan record sebelumnya)\n`;
+  }
+  
+  md += '\n## Data Salah Baca Bulan (Bulan Agustus terbaca Juli)\n';
+  if (misparsed.length === 0) md += 'Tidak ada data Agustus.\n';
+  for (let i = 0; i < misparsed.length; i++) {
+     md += `- ID: ${misparsed[i].id}, Nama: ${misparsed[i].reliever_name}, Tgl: ${misparsed[i].backup_date} (Alasan: Format DD/MM/YYYY membuat bulan terbaca sebagai hari)\n`;
+  }
+  
+  return new Response(md, { headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+}
+
 // ─── /stats — backward-compat + expiring list + recent issues ────────────────
 async function getStats(env, origin) {
   const [
