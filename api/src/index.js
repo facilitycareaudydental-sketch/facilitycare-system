@@ -18,7 +18,7 @@ import { handleTraining } from './routes/training.js';
 import { handleRelievers } from './routes/relievers.js';
 import { handleReports } from './routes/reports.js';
 import { handleMisc } from './routes/misc.js';
-import { handleDashboard } from './routes/dashboard.js';
+import { handleDashboard, handleRelieverAudit } from './routes/dashboard.js';
 import { handleImport } from './routes/import.js';
 import { handleSP } from './routes/sp.js';
 import { handleMutasi } from './routes/mutasi.js';
@@ -123,6 +123,7 @@ export default {
       if (path.startsWith('/api/training')) return handleTraining(request, env, origin);
       if (path.startsWith('/api/relievers')) return handleRelievers(request, env, origin);
       if (path.startsWith('/api/reports')) return handleReports(request, env, origin);
+      if (path === '/api/dashboard/reliever-audit') return handleRelieverAudit(request, env, origin);
       if (path.startsWith('/api/dashboard')) return handleDashboard(request, env, origin);
       if (path.startsWith('/api/import')) return handleImport(request, env, origin);
       if (path.startsWith('/api/sp')) return handleSP(request, env, origin);

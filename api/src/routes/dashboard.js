@@ -179,6 +179,11 @@ async function getKPI(env, origin) {
   }, 200, origin);
 }
 
+export async function handleRelieverAudit(request, env, origin) {
+  const rows = await env.DB.prepare("SELECT * FROM relievers").all();
+  return ok(rows.results, 200, origin);
+}
+
 // ─── /stats — backward-compat + expiring list + recent issues ────────────────
 async function getStats(env, origin) {
   const [
