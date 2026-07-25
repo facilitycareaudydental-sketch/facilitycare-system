@@ -11,7 +11,7 @@
 import { authenticate } from '../utils/auth.js';
 import { ok, unauthorized } from '../utils/response.js';
 
-export async function handleDashboard(request, env, origin) {
+export default async function (request, env, origin) {
   const user = await authenticate(request, env);
   if (!user) return unauthorized(origin);
 
@@ -42,11 +42,23 @@ function curMonthStr() {
 }
 function prevMonthStr() {
   const n = new Date();
-  const pm = n.getMonth() === 0
-    ? `${n.getFullYear()-1}-12`
-    : `${n.getFullYear()}-${String(n.getMonth()).padStart(2,'0')}`;
-  return pm;
+  n.setMonth(n.getMonth() - 1);
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
 }
+function parseFlexibleDate(d) {
+  if (!d || d === '-') return '';
+  d = String(d).trim();
+  if (/^\d{5}$/.test(d)) {
+    const utc_days = Math.floor(Number(d) - 25569);
+    const date_info = new Date(utc_days * 86400 * 1000);
+    return date_info.toISOString().split('T')[0];
+  }
+  if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
+    const p = d.split(/[\/\-]/);
+    return `${p[2]}-${p[1]}-${p[0]}`; // YYYY-MM-DD
+  }
+  return d.split('T')[0];
+};
 function monthLabels(count = 12) {
   const labels = [];
   const now = new Date();
@@ -72,47 +84,10 @@ async function getKPI(env, origin) {
   const curM  = curMonthStr();
   const prevM = prevMonthStr();
 
-  const y2 = curM.split('-')[0].slice(-2);
-  const mStr = curM.split('-')[1];
-  const mInt = parseInt(mStr, 10).toString();
-  const idx = parseInt(mStr, 10) - 1;
-  const indoM = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][idx];
-  const engM = ['January','February','March','April','May','June','July','August','September','October','November','December'][idx];
-
-  const likePatterns = [
-    `%${curM}%`,
-    `%${indoM}%${curM.split('-')[0]}%`, `%${indoM}%${y2}`,
-    `%${engM}%${curM.split('-')[0]}%`, `%${engM}%${y2}`,
-    `${mStr}/%/${curM.split('-')[0]}`, `${mStr}/%/${y2}`,
-    `${mInt}/%/${curM.split('-')[0]}`, `${mInt}/%/${y2}`,
-    `%/${mStr}/${curM.split('-')[0]}`, `%/${mStr}/${y2}`,
-    `%/${mInt}/${curM.split('-')[0]}`, `%/${mInt}/${y2}`,
-    `%-${mStr}-${curM.split('-')[0]}`, `%-${mStr}-${y2}`,
-    `%-${mInt}-${curM.split('-')[0]}`, `%-${mInt}-${y2}`
-  ];
-  const likeClauses = likePatterns.map(() => 'backup_date LIKE ?').join(' OR ');
-
-  const relieverQuery = env.DB.prepare(`
-    SELECT COUNT(*) c FROM relievers 
-    WHERE (
-        LOWER(TRIM(status))='done' 
-        OR ((status IS NULL OR status = '' OR LOWER(TRIM(status))='pending') 
-            AND date(backup_date) IS NOT NULL 
-            AND date(backup_date) <= date('now', 'localtime'))
-      ) AND (
-      strftime('%Y-%m', backup_date) = ? OR 
-      strftime('%Y-%m', REPLACE(backup_date, '/', '-')) = ? OR
-      ${likeClauses}
-    )
-  `);
-
-  const relieverTodayPromise = relieverQuery.bind(curM, curM, ...likePatterns).first();
-
   // All 16 counts run in parallel — no sequential blocking
   const [
     empActive, empPrevMonth,
-    contractActive,
-    contractExp30,
+    contractActive, contractPrev, contractExp30,
     issuesOpen, issuesPrevOpen,
     oo1Open, oo1PrevOpen,
     schedPending,
@@ -122,8 +97,7 @@ async function getKPI(env, origin) {
     inspCur,
     cleanCur,
     fogCur,
-    contractPrev,
-    relieverToday,
+    allRelieversRes
   ] = await Promise.all([
     // Uses idx_employees_status
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
@@ -132,6 +106,9 @@ async function getKPI(env, origin) {
 
     // Uses idx_contracts_status_end
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date>=date('now')").first(),
+
+    // Uses idx_contracts_created
+    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
 
     // Uses idx_contracts_status_end (covering index)
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date BETWEEN date('now') AND date('now','+30 days')").first(),
@@ -165,12 +142,28 @@ async function getKPI(env, origin) {
     // Uses idx_fogging_date
     env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
 
-    // Uses idx_contracts_created
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
-
-    // Total Relievers back up this month
-    relieverTodayPromise,
+    // Fetch all relievers to parse dates exactly like the UI
+    env.DB.prepare("SELECT backup_date, status FROM relievers").all(),
   ]);
+
+  // JS-based count for relievers to perfectly match the UI Date logic
+  const todayStr = new Date().toISOString().split('T')[0];
+  let relieverCount = 0;
+  if (allRelieversRes && allRelieversRes.results) {
+    for (const r of allRelieversRes.results) {
+      const parsedDate = parseFlexibleDate(r.backup_date);
+      if (!parsedDate || !parsedDate.startsWith(curM)) continue; // Must be this month
+
+      let status = (r.status || '').trim().toLowerCase();
+      // Auto-done logic if date has passed
+      if (!status || status === 'pending') {
+        if (parsedDate <= todayStr) {
+          status = 'done';
+        }
+      }
+      if (status === 'done') relieverCount++;
+    }
+  }
 
   return ok({
     employees:       { current: empActive?.c||0,       prev: empPrevMonth?.c||0 },
@@ -185,7 +178,7 @@ async function getKPI(env, origin) {
     inspection_month:{ current: inspCur?.c||0 },
     cleaning_month:  { current: cleanCur?.c||0 },
     fogging_month:   { current: fogCur?.c||0 },
-    reliever_total:  { current: relieverToday?.c||0 },
+    reliever_total:  { current: relieverCount },
     checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
   }, 200, origin);
 }
