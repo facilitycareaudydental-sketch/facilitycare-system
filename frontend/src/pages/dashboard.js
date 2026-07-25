@@ -399,7 +399,7 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, relieferSummary] =
+  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
@@ -412,7 +412,6 @@ async function fetchAll(container) {
       safeFetch('/api/contracts?limit=10000',        {data: []}, 8000),
       safeFetch('/api/issues?limit=10000',           {data: []}, 8000),
       safeFetch('/api/one_on_one?limit=10000',       {data: []}, 8000),
-      safeFetch('/api/dashboard/reliefer-summary',   {done:0, total:0, percentage:0}, 8000),
     ]);
 
   // Override KPIs with single source of truth from their respective modules
@@ -447,7 +446,7 @@ async function fetchAll(container) {
   }
 
   // Render each section independently — one failure never breaks others
-  try { renderKPI(kpi, relieferSummary); } catch(e) { console.warn('KPI render:', e); }
+  try { renderKPI(kpi); } catch(e) { console.warn('KPI render:', e); }
   try { renderMiniStats(kpi); } catch(e) { console.warn('MiniStats render:', e); }
   try { renderDonut(Array.isArray(issuesSum?.by_category) ? issuesSum.by_category : []); } catch(e) { console.warn('Donut render:', e); hideSkel('skel-donut','chart-donut'); }
   try { renderTrend(trend); } catch(e) { console.warn('Trend render:', e); hideSkel('skel-trend','chart-trend'); }
@@ -471,7 +470,7 @@ async function fetchAll(container) {
 }
 
 // ── KPI Cards ──────────────────────────────────────────────────────────────
-function renderKPI(kpi, relieferSummary = {}) {
+function renderKPI(kpi) {
   const row = document.getElementById('kpi-row');
   if (!row) return;
   kpi = kpi || {};
@@ -482,19 +481,17 @@ function renderKPI(kpi, relieferSummary = {}) {
     { icon:'⏳', label:'Kontrak Habis 30 Hari',  sub:'Akan segera berakhir',       href:'#/contracts?dash_filter=expiring30',   color:'kpi-warn',   key:'expiring30', trendPct:'+25%',trendColor:'#F59E0B', points:'0,25 20,22 40,24 60,15 80,18 100,5' },
     { icon:'⚠️', label:'Permasalahan Open',    sub:'Belum diselesaikan',         href:'#/issues?dash_filter=open',      color:'kpi-red',    key:'issues',     trendPct:'0%',  trendColor:'#EF4444', points:'0,20 20,18 40,22 60,19 80,21 100,20' },
     { icon:'💬', label:'One on One Pending',     sub:'Menunggu tindak lanjut',     href:'#/one-on-one?dash_filter=pending',  color:'kpi-purple', key:'one_on_one', trendPct:'+8%', trendColor:'#10B981', points:'0,25 20,15 40,18 60,8 80,10 100,2' },
-    { icon:'👥', label:'Rekap Reliefer',         sub:`${relieferSummary.percentage || 0}% (${relieferSummary.done || 0} Selesai)`, href:'#/relievers', color:'kpi-teal', key:'reliefer', valStr: `${relieferSummary.done || 0} / ${relieferSummary.total || 0}` },
   ];
 
   row.innerHTML = cards.map(c => {
-    let val  = c.valStr ? c.valStr : safeNum(kpi[c.key]?.current, 0);
-    let targetAttr = c.valStr ? '' : `data-target="${val}"`;
+    let val  = safeNum(kpi[c.key]?.current, 0);
     
     return `
       <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding:12px 16px">
         <div style="display:flex; gap:16px; align-items:center;">
           <div class="kpi-icon-wrap" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
           <div style="flex:1;min-width:0;">
-            <div class="${c.valStr ? 'kpi-value-text' : 'kpi-value'}" ${targetAttr} style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${c.valStr ? val : '0'}</div>
+            <div class="kpi-value" data-target="${val}" style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
             <div class="kpi-label" style="font-size:0.85rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
             <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
           </div>
@@ -516,6 +513,7 @@ function renderMiniStats(kpi) {
   const items = [
     { icon:'📅', label:'Jadwal',       val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
     { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
+    { icon:'🔄', label:'Rekap Reliefer',   val:kpi.reliever_total?.current,    href:'#/relievers',      color:'mini-teal' },
     { icon:'🔍', label:'Inspeksi',     val:kpi.inspection_month?.current,  href:'#/timeline?dash_filter=inspeksi',  color:'mini-blue' },
     { icon:'🧹', label:'GCDC',         val:kpi.cleaning_month?.current,    href:'#/timeline?dash_filter=gcdc',    color:'mini-green' },
     { icon:'💨', label:'Fogging',      val:kpi.fogging_month?.current,     href:'#/reports/fogging',     color:'mini-purple' },
