@@ -11,7 +11,7 @@
 import { authenticate } from '../utils/auth.js';
 import { ok, unauthorized } from '../utils/response.js';
 
-export default async function (request, env, origin) {
+export async function handleDashboard(request, env, origin) {
   const user = await authenticate(request, env);
   if (!user) return unauthorized(origin);
 
