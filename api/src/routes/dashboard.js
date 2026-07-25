@@ -213,37 +213,9 @@ export async function handleDebug56(request, env, origin) {
     }
   }
   
-  const seen = new Set();
-  const duplicates = [];
-  const misparsed = [];
-  
-  for (const r of julyData) {
-    if (String(r.backup_date).includes('/08/2026') || String(r.backup_date).includes('-08-2026') || String(r.backup_date).toLowerCase().includes('agus')) {
-       misparsed.push(r);
-    }
-    const key = `${r.reliever_name}_${r.backup_date}_${r.branch_id}_${r.shift}`;
-    if (seen.has(key)) {
-      duplicates.push(r);
-    } else {
-      seen.add(key);
-    }
-  }
-  
-  let md = '# Laporan 11 Data Ekstra di Bulan Juli 2026\n\n';
-  md += `Total Data Done Juli di Database: ${julyData.length}\n`;
-  md += `Data Ganda (Duplicate Identik): ${duplicates.length}\n`;
-  md += `Data Agustus (Terkonversi jadi Juli karena format DD/MM/YYYY): ${misparsed.length}\n\n`;
-  
-  md += '## Data Ganda (Penyebab Angka 56)\n';
-  if (duplicates.length === 0) md += 'Tidak ada data ganda.\n';
-  for (let i = 0; i < duplicates.length; i++) {
-     md += `- ID: ${duplicates[i].id}, Nama: ${duplicates[i].reliever_name}, Tgl: ${duplicates[i].backup_date}, Branch: ${duplicates[i].branch_id}, Shift: ${duplicates[i].shift} (Alasan: Nama, Tgl, Cabang, Shift persis sama dengan record sebelumnya)\n`;
-  }
-  
-  md += '\n## Data Salah Baca Bulan (Bulan Agustus terbaca Juli)\n';
-  if (misparsed.length === 0) md += 'Tidak ada data Agustus.\n';
-  for (let i = 0; i < misparsed.length; i++) {
-     md += `- ID: ${misparsed[i].id}, Nama: ${misparsed[i].reliever_name}, Tgl: ${misparsed[i].backup_date} (Alasan: Format DD/MM/YYYY membuat bulan terbaca sebagai hari)\n`;
+  let md = '# 56 Data Juli\n\n';
+  for (let i = 0; i < julyData.length; i++) {
+     md += `- ID: ${julyData[i].id}, Nama: ${julyData[i].reliever_name}, Tgl: ${julyData[i].backup_date}, Branch: ${julyData[i].branch_id}, Shift: ${julyData[i].shift}, Reason: ${julyData[i].reason}\n`;
   }
   
   return new Response(md, { headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
