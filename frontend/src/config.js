@@ -1,6 +1,7 @@
 export const IS_DEVELOPMENT = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_BASE_URL = IS_DEVELOPMENT ? 'http://localhost:8787' : '';
-
+const API_BASE_URL = IS_DEVELOPMENT
+  ? 'http://127.0.0.1:8787'
+  : 'https://fm-operations-api.facilitycare-audydental.workers.dev';
 export const API = API_BASE_URL;
 
 export const CLIENT_SIDE_MAX_ROWS = 10000;

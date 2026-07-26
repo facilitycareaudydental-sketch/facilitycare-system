@@ -217,6 +217,9 @@ export function buildCrudPage({
   }
 
   async function load() {
+    selectedIds.clear();
+    updateBulkToolbar();
+    
     const tableContainer = document.getElementById('table-container');
     if (!tableContainer) return;
     tableContainer.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';

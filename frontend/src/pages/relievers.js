@@ -125,7 +125,7 @@ export async function renderRelievers(container) {
         };
 
         const payload = json.map(row => ({
-          branch_id: matchBranch(String(row['Cabang'] || '').trim()),
+          branch_name: String(row['Cabang'] || '').trim(),
           backup_date: String(row['Tanggal Back Up'] || row['Tanggal Backup'] || '').trim(),
           original_fc_name: String(row['Nama Facility care'] || row['FC Digantikan'] || '').trim(),
           reliever_name: String(row['Relifer'] || row['Reliefer'] || '').trim(),
@@ -136,9 +136,9 @@ export async function renderRelievers(container) {
           status: String(row['Status'] || '').trim(),
         })).filter(row => row.reliever_name && row.backup_date);
         
-        const res = await apiFetch('/api/relievers/import', {
+        const res = await apiFetch('/api/import/relievers', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }
