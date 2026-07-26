@@ -38,6 +38,7 @@ export async function renderRelievers(container, params) {
     apiPath: '/api/relievers',
     bulkDelete: true,
     itemLabel: 'Reliefer',
+    paginationMode: 'client',
     onDataLoaded: (items) => {
       if (dashFilter === 'reliever') {
         const now = new Date();
