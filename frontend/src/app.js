@@ -479,7 +479,7 @@ async function init() {
   registerRoute('/issues',             requireAuth(({ main, params }) => renderIssues(main, params)));
   registerRoute('/one-on-one',         requireAuth(({ main, params }) => renderOneOnOne(main, params)));
   registerRoute('/training',           requireAuth(({ main }) => renderTraining(main)));
-  registerRoute('/relievers',          requireAuth(({ main }) => renderRelievers(main)));
+  registerRoute('/relievers',          requireAuth(({ main, params }) => renderRelievers(main, params)));
   registerRoute('/reports/inspection', requireAuth(({ main }) => renderInspectionReports(main)));
   registerRoute('/reports/cleaning',   requireAuth(({ main }) => renderCleaningReports(main)));
   registerRoute('/reports/fogging',    requireAuth(({ main }) => renderFoggingReports(main)));

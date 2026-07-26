@@ -4,12 +4,14 @@ import { getCachedBranches, getCachedEmployeeNames, getCachedEmployees } from '.
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
-export async function renderRelievers(container) {
+export async function renderRelievers(container, params) {
   window.__RELIEVER_BUILD__ = "V3";
   console.log("RELIEVER PAGE LOADED");
   const branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
   
+  const dashFilter = params ? params.get('dash_filter') : null;
+
   console.log("RAW", await getCachedEmployees());
   console.log("OPTIONS", employeeOptions);
 
@@ -23,7 +25,7 @@ export async function renderRelievers(container) {
   const relieverOptions = ['Agung Septiadi', 'Wasrikin', 'IQBAL AL BANNA'];
   
   const getRelieverOptions = (val) => {
-    if (val && !relieverOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
+    if (val && !relieverOptions.includes(val)) {
       return [...relieverOptions, val];
     }
     return relieverOptions;
@@ -36,6 +38,28 @@ export async function renderRelievers(container) {
     apiPath: '/api/relievers',
     bulkDelete: true,
     itemLabel: 'Reliefer',
+    onDataLoaded: (items) => {
+      if (dashFilter === 'reliever') {
+        const now = new Date();
+        const curY = now.getFullYear();
+        const curM = String(now.getMonth() + 1).padStart(2, '0');
+        return items.filter(d => {
+          if (String(d.status || '').toLowerCase() !== 'done') return false;
+          let bd = d.backup_date || '';
+          if (bd.includes('/')) {
+            const parts = bd.split('/');
+            if (parts.length === 3) {
+              const yyyy = parts[2].length === 4 ? parts[2] : `20${parts[2]}`;
+              if (yyyy == curY && parts[1].padStart(2, '0') == curM) return true;
+            }
+          } else if (bd.includes('-')) {
+            if (bd.startsWith(`${curY}-${curM}`)) return true;
+          }
+          return false;
+        });
+      }
+      return items;
+    },
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'original_fc_name', label: 'Nama Facility care' },
