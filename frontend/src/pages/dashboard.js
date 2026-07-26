@@ -493,7 +493,7 @@ function renderKPI(kpi) {
           <div style="flex:1;min-width:0;">
             <div class="kpi-value" data-target="${val}" style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
             <div class="kpi-label" style="font-size:0.85rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
-            <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
+            <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
           </div>
         </div>
       </a>`;
