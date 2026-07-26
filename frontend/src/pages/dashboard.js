@@ -487,13 +487,13 @@ function renderKPI(kpi) {
     let val  = safeNum(kpi[c.key]?.current, 0);
     
     return `
-      <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding:12px 16px">
-        <div style="display:flex; gap:16px; align-items:center;">
-          <div class="kpi-icon-wrap" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
+      <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding:10px 12px">
+        <div style="display:flex; gap:10px; align-items:center;">
+          <div class="kpi-icon-wrap" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
           <div style="flex:1;min-width:0;">
-            <div class="kpi-value" data-target="${val}" style="font-size:1.8rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
-            <div class="kpi-label" style="font-size:0.85rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
-            <div class="kpi-subtitle" style="font-size:0.7rem; color:var(--text-3); margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
+            <div class="kpi-value" data-target="${val}" style="font-size:1.6rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
+            <div class="kpi-label" style="font-size:0.75rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
+            <div class="kpi-subtitle" style="font-size:0.65rem; color:var(--text-3); margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
           </div>
         </div>
       </a>`;
