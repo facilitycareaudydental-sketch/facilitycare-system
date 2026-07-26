@@ -567,12 +567,6 @@ strong { font-weight: 600; }
 }
 .kpi-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); text-decoration: none; }
 .kpi-card:hover::after { opacity: 1; }
-/* Remove the solid top border for a cleaner look */
-.kpi-card.kpi-blue   { border-top-color: transparent; }
-.kpi-card.kpi-green  { border-top-color: transparent; }
-.kpi-card.kpi-amber  { border-top-color: transparent; }
-.kpi-card.kpi-red    { border-top-color: transparent; }
-.kpi-card.kpi-purple { border-top-color: transparent; }
 .kpi-card.kpi-warn   { box-shadow: 0 4px 20px rgba(245,158,11,.15); }
 
 .kpi-card-top {
