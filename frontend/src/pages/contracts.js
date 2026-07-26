@@ -37,12 +37,18 @@ const fetchAll = async (path) => {
 };
 
 export function filterDashboardItem(s, type) {
-  const status = String(s.status || '').toLowerCase();
-  if (status !== 'aktif') return false;
-  
-  if (type === 'active') return true;
-  
-  if (type === 'expiring30') {
+    const status = String(s.status || '').toLowerCase();
+    if (status !== 'aktif') return false;
+    
+    if (type === 'active') {
+      if (!s.end_date) return false;
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const end = new Date(s.end_date + 'T00:00:00');
+      return end >= today;
+    }
+    
+    if (type === 'expiring30') {
     if (!s.end_date) return false;
     const today = new Date();
     today.setHours(0,0,0,0);
