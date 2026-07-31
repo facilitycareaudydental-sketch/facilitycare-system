@@ -728,7 +728,7 @@ function renderAgenda(rows) {
   const items = todayItems.slice(0, 10);
   
   if (!items.length) {
-    wrap.innerHTML = `<div class="chart-empty">✅ Tidak ada agenda hari ini</div>`;
+    wrap.innerHTML = '';
     return;
   }
   wrap.innerHTML = `

@@ -9,6 +9,7 @@ export async function renderBranches(container) {
     icon: '🏢',
     apiPath: '/api/branches',
     itemLabel: 'Cabang',
+    bulkDelete: true,
     columns: [
       { key: 'code', label: 'Kode', width: '60px' },
       { key: 'full_name', label: 'Nama Cabang' },

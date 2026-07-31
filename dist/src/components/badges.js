@@ -13,8 +13,9 @@ export function statusBadge(status) {
     'Cut': 'badge-danger',
     'Tidak Datang': 'badge-danger',
   };
+  if (!status || status === '-' || String(status).trim() === '') return '';
   const cls = map[status] || 'badge-neutral';
-  return `<span class="badge ${cls}">${status || '-'}</span>`;
+  return `<span class="badge ${cls}">${status}</span>`;
 }
 
 export function daysRemainingBadge(days) {

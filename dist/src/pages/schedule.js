@@ -26,6 +26,13 @@ export async function renderSchedule(container) {
     return employeeOptions;
   };
 
+  const formatDate = (d) => {
+    if (!d || d === '-' || String(d).trim() === '') return '';
+    const p = String(d).split('-');
+    if (p.length === 3 && p[0].length === 4) return `${p[2]}-${p[1]}-${p[0]}`;
+    return d;
+  };
+
   buildCrudPage({
     container,
     title: 'Jadwal Kegiatan',
@@ -38,9 +45,9 @@ export async function renderSchedule(container) {
       { key: 'activity_type', label: 'Kegiatan', render: v => activityTypeBadge(v) },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },
       { key: 'pic', label: 'PIC' },
-      { key: 'opening_date', label: 'Tgl Opening', nowrap: true },
-      { key: 'target_date', label: 'Tgl Target', nowrap: true },
-      { key: 'completion_date', label: 'Tgl Selesai', nowrap: true },
+      { key: 'opening_date', label: 'Tgl Opening', nowrap: true, render: v => formatDate(v) },
+      { key: 'target_date', label: 'Tgl Target', nowrap: true, render: v => formatDate(v) },
+      { key: 'completion_date', label: 'Tgl Selesai', nowrap: true, render: v => formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
@@ -76,7 +83,7 @@ export async function renderSchedule(container) {
       {
         type: 'row', fields: [
           { name: 'completion_date', label: 'Tanggal Selesai', type: 'date', value: data?.completion_date },
-          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'In Progress', 'Done'], value: data?.status || 'Pending' },
+          { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'In Progress', 'Done'], value: data?.status || '' },
         ]
       },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
@@ -116,17 +123,39 @@ export async function renderSchedule(container) {
           const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
           return b ? b.id : null;
         };
+        
+        const parseDate = (v) => {
+          if (v === undefined || v === null || v === '') return '';
+          if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+          const s = String(v).trim();
+          if (s === '' || s === '0') return '';
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+          if (/^\d{4,5}$/.test(s)) {
+            const n = Number(s);
+            if (n > 20000 && n < 99999) {
+              const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+              return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+            }
+          }
+          const parts = s.split(/[\/\-\.]/);
+          if (parts.length === 3) {
+            const [a, b, c] = parts.map(p => p.trim());
+            if (a.length === 4 && b.length <= 2 && c.length <= 2) return `${a}-${b.padStart(2, '0')}-${c.padStart(2, '0')}`;
+            if (c.length === 4 && b.length <= 2 && a.length <= 2) return `${c}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+          }
+          return s; // Fallback
+        };
 
         const payload = json.map(row => ({
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
           activity_type: String(row['Kegiatan'] || '').trim(),
           period: String(row['Periode'] || '').trim(),
-          pic: String(row['PIC'] || '').trim(),
-          opening_date: String(row['Tgl Opening'] || '').trim(),
-          target_date: String(row['Tgl Target'] || '').trim(),
-          completion_date: String(row['Tgl Selesai'] || '').trim(),
-          status: String(row['Status'] || '').trim() || 'Pending',
-          notes: String(row['Catatan'] || '').trim(),
+          pic: String(row['PIC'] || row['Pic'] || '').trim(),
+          opening_date: parseDate(row['Tgl Opening'] || row['Tanggal Opening']),
+          target_date: parseDate(row['Tgl Target'] || row['Tanggal Target']),
+          completion_date: parseDate(row['Tgl Selesai'] || row['Tanggal Selesai']),
+          status: String(row['Status'] || '').trim(),
+          notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.activity_type && row.period);
         
         const res = await apiFetch('/api/schedule/import', {
