@@ -279,7 +279,7 @@ export async function renderDashboard(container) {
       <div class="mini-stats-row" id="mini-stats-row">${skelMini()}</div>
 
       <!-- Charts Row -->
-      <div class="charts-row">
+      <div class="charts-row" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
         <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Permasalahan per Kategori</div>
@@ -308,6 +308,10 @@ export async function renderDashboard(container) {
             <canvas id="chart-trend" style="display:none"></canvas>
           </div>
         </div>
+      </div>
+
+      <!-- Charts Row 2 -->
+      <div class="charts-row" style="grid-template-columns: 1fr; margin-top:16px;">
         <div class="chart-card">
           <div class="chart-card-header" style="align-items:flex-start">
             <div>
