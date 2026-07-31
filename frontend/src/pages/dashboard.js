@@ -318,7 +318,21 @@ export async function renderDashboard(container) {
               <a href="#/reports/inspection" class="chart-card-title" style="text-decoration:none; display:inline-block">Rata-rata Skor Inspeksi per Cabang <span style="font-size:0.8rem; color:var(--primary); font-weight:600; margin-left:8px">Lihat Laporan &rarr;</span></a>
               <div class="chart-card-subtitle" style="font-size:0.65rem">Skor rata-rata SCM & Cleaning</div>
             </div>
-            <select class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer"><option>Bulan Ini</option></select>
+            <select id="filter-insp-month" class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer">
+              <option value="">Bulan Ini</option>
+              <option value="01">Januari</option>
+              <option value="02">Februari</option>
+              <option value="03">Maret</option>
+              <option value="04">April</option>
+              <option value="05">Mei</option>
+              <option value="06">Juni</option>
+              <option value="07">Juli</option>
+              <option value="08">Agustus</option>
+              <option value="09">September</option>
+              <option value="10">Oktober</option>
+              <option value="11">November</option>
+              <option value="12">Desember</option>
+            </select>
           </div>
           <div class="chart-canvas-wrap" style="height:140px;position:relative;margin-top:10px">
             <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
@@ -380,6 +394,18 @@ export async function renderDashboard(container) {
 
   document.getElementById('btn-dash-refresh')
     ?.addEventListener('click', () => fetchAll(container));
+
+  document.getElementById('filter-insp-month')?.addEventListener('change', async (e) => {
+    const month = e.target.value;
+    const url = month ? `/api/dashboard/inspection-bar?month=${month}` : '/api/dashboard/inspection-bar';
+    const skel = document.getElementById('skel-insp');
+    const cvs = document.getElementById('chart-insp');
+    if (skel) { skel.style.display = 'block'; skel.style.position = 'absolute'; }
+    if (cvs) cvs.style.display = 'none';
+    
+    const inspBar = await safeFetch(url, {}, 8000);
+    try { renderInspBar(inspBar); } catch(err) { console.warn('InspBar render:', err); hideSkel('skel-insp','chart-insp'); }
+  });
 
   // ── Safety: force remove skeletons after 5 seconds no matter what ──────
   container._skelTimeout = setTimeout(() => forceRemoveSkeletons(), 5000);

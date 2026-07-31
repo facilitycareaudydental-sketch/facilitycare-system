@@ -23,7 +23,7 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/issues-trend')      return getIssuesTrend(env, origin);
   if (path === '/contracts-chart')   return getContractsChart(env, origin);
   if (path === '/issues-summary')    return getIssuesSummary(env, origin);
-  if (path === '/inspection-bar')    return getInspectionBar(env, origin);
+  if (path === '/inspection-bar')    return getInspectionBar(request, env, origin);
   if (path === '/contracts-expiring') return getContractsExpiring(env, origin);
   if (path === '/activity-log')      return getActivityLog(env, origin);
   if (path === '/calendar')          return getCalendarEvents(request, env, origin);
@@ -328,11 +328,21 @@ async function getIssuesSummary(env, origin) {
 
 // ─── /inspection-bar — avg score per branch (last 6 months) ──────────────────
 // Uses idx_inspection_branch_date
-async function getInspectionBar(env, origin) {
-  const since = (() => {
+async function getInspectionBar(request, env, origin) {
+  const url = new URL(request.url);
+  const month = url.searchParams.get('month');
+  
+  let qParams = [];
+  let whereClause = "";
+  
+  if (month) {
+    whereClause = "strftime('%m', r.inspection_date) = ? AND strftime('%Y', r.inspection_date) = ?";
+    qParams = [month, String(new Date().getFullYear())];
+  } else {
+    whereClause = "r.inspection_date >= ?";
     const d = new Date(); d.setMonth(d.getMonth()-5);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
-  })();
+    qParams = [`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`];
+  }
 
   const rows = await env.DB.prepare(
     `SELECT b.full_name branch_name,
@@ -341,10 +351,10 @@ async function getInspectionBar(env, origin) {
      COUNT(*) total
      FROM inspection_reports r
      LEFT JOIN branches b ON r.branch_id=b.id
-     WHERE r.inspection_date >= ?
+     WHERE ${whereClause}
      GROUP BY r.branch_id
      ORDER BY avg_fc DESC LIMIT 15`
-  ).bind(since).all();
+  ).bind(...qParams).all();
 
   const results = rows.results || [];
   return ok({
