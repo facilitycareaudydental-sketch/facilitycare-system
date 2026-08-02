@@ -8,11 +8,16 @@ export const SYNC_MAPPER = {
   // Phase 2: Master Karyawan
   'Master Karyawan': {
     table: 'employees',
+    enabled: true,
+    direction: 'BIDIRECTIONAL',
+    delete_strategy: 'SOFT',
+    soft_delete_col: 'deleted_at',
+    schema_version: '1.0',
     columns: {
-      'FCMS_ID': 'id', // Primary Key
+      'FCMS_ID': 'id',
       'Nama Lengkap': 'full_name',
       'No Karyawan': 'employee_id',
-      'Area Penempatan': 'branch_id', // Note: Needs branch resolution logic
+      'Area Penempatan': 'branch_id',
       'Status Karyawan': 'employee_status',
       'No KTP': 'id_card',
       'No Telpon / HP': 'phone_number',
@@ -27,18 +32,94 @@ export const SYNC_MAPPER = {
       'Divisi (Wajib Diisi)': 'division',
       'Golongan Darah': 'blood_type',
       'LAST_SYNC_SOURCE': 'last_sync_source',
-      'ROW_VERSION': 'row_version' // Will be managed internally by OCC
+      'ROW_VERSION': 'row_version'
     }
   },
   
-  // Example for Branch
+  // Phase 3: Data Cabang
   'Data Cabang': {
     table: 'branches',
+    enabled: true,
+    direction: 'BIDIRECTIONAL',
+    delete_strategy: 'SOFT',
+    soft_delete_col: 'deleted_at',
+    schema_version: '1.0',
     columns: {
       'FCMS_ID': 'id',
       'ID Cabang (Kode)': 'branch_code',
       'Nama Cabang': 'branch_name',
-      'LAST_SYNC_SOURCE': 'last_sync_source'
+      'LAST_SYNC_SOURCE': 'last_sync_source',
+      'ROW_VERSION': 'row_version'
+    }
+  },
+
+  // Phase 3: Master Kontrak
+  'Master Kontrak': {
+    table: 'contracts',
+    enabled: true,
+    direction: 'BIDIRECTIONAL',
+    delete_strategy: 'SOFT',
+    soft_delete_col: 'deleted_at',
+    schema_version: '1.0',
+    columns: {
+      'FCMS_ID': 'id',
+      'Employee ID': 'employee_id',
+      'Start Date': 'start_date',
+      'End Date': 'end_date',
+      'Contract Type': 'contract_type',
+      'LAST_SYNC_SOURCE': 'last_sync_source',
+      'ROW_VERSION': 'row_version'
+    }
+  },
+
+  // Phase 3: Master SOP
+  'Master SOP': {
+    table: 'sop',
+    enabled: true,
+    direction: 'BIDIRECTIONAL',
+    delete_strategy: 'SOFT',
+    soft_delete_col: 'deleted_at',
+    schema_version: '1.0',
+    columns: {
+      'FCMS_ID': 'id',
+      'Title': 'title',
+      'Description': 'description',
+      'LAST_SYNC_SOURCE': 'last_sync_source',
+      'ROW_VERSION': 'row_version'
+    }
+  },
+
+  // Phase 3: Master Checklist
+  'Master Checklist': {
+    table: 'master_checklist',
+    enabled: true,
+    direction: 'BIDIRECTIONAL',
+    delete_strategy: 'SOFT',
+    soft_delete_col: 'deleted_at',
+    schema_version: '1.0',
+    columns: {
+      'FCMS_ID': 'id',
+      'Name': 'name',
+      'Category': 'category',
+      'LAST_SYNC_SOURCE': 'last_sync_source',
+      'ROW_VERSION': 'row_version'
+    }
+  },
+
+  // Phase 3: Master Form
+  'Master Form': {
+    table: 'master_forms',
+    enabled: true,
+    direction: 'BIDIRECTIONAL',
+    delete_strategy: 'SOFT',
+    soft_delete_col: 'deleted_at',
+    schema_version: '1.0',
+    columns: {
+      'FCMS_ID': 'id',
+      'Form Name': 'name',
+      'Form Type': 'type',
+      'LAST_SYNC_SOURCE': 'last_sync_source',
+      'ROW_VERSION': 'row_version'
     }
   }
 };
@@ -46,9 +127,19 @@ export const SYNC_MAPPER = {
 /**
  * Helper to convert a payload from Google Sheets into a D1-compatible object
  */
-export function mapPayloadToDB(sheetName, excelPayload) {
+export function mapPayloadToDB(sheetName, excelPayload, payloadVersion) {
   const mapDefinition = SYNC_MAPPER[sheetName];
   if (!mapDefinition) throw new Error(`MappingError: No mapping defined for sheet: ${sheetName}`);
+  
+  if (!mapDefinition.enabled) {
+    throw new Error(`SyncConfigError: Sync is disabled for sheet ${sheetName}`);
+  }
+  if (mapDefinition.direction === 'OUTBOUND_ONLY') {
+    throw new Error(`SyncConfigError: Sheet ${sheetName} only allows outbound sync. Webhook rejected.`);
+  }
+  if (payloadVersion && mapDefinition.schema_version !== payloadVersion) {
+    console.warn(`Version mismatch for ${sheetName}: expected ${mapDefinition.schema_version}, got ${payloadVersion}`);
+  }
   
   const dbObject = {};
   for (const [excelCol, val] of Object.entries(excelPayload)) {
@@ -62,6 +153,8 @@ export function mapPayloadToDB(sheetName, excelPayload) {
   }
   return {
     table: mapDefinition.table,
+    delete_strategy: mapDefinition.delete_strategy,
+    soft_delete_col: mapDefinition.soft_delete_col,
     data: dbObject
   };
 }

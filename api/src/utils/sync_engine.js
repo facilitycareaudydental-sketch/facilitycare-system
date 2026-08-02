@@ -54,10 +54,8 @@ export async function receiveWebhook(request, env) {
       return ok({ message: 'Event already processed', event_id }, 200);
     }
 
-    // Phase 2: Route webhook to handler
-    if (sheet_name === 'Master Karyawan') {
-      await handleKaryawanWebhook(env, action, data);
-    }
+    // 2. Route webhook to generic handler
+    await handleGenericWebhook(env, sheet_name, action, data, payload_version);
 
     // Mark as processed
     await env.DB.prepare('INSERT INTO sync_idempotency (event_id) VALUES (?)').bind(event_id).run();
@@ -195,24 +193,32 @@ export function buildOutboxQuery(env, entityName, entityId, action, payload) {
 }
 
 /**
- * Handle incoming webhook data for Master Karyawan
+ * Generic handler for incoming webhook data
  */
-async function handleKaryawanWebhook(env, action, excelData) {
-  const { table, data } = mapPayloadToDB('Master Karyawan', excelData);
-  
+async function handleGenericWebhook(env, sheetName, action, excelData, payloadVersion) {
+  const { table, delete_strategy, soft_delete_col, data } = mapPayloadToDB(sheetName, excelData, payloadVersion);
+  const isDryRun = env.SYNC_MODE === 'DRY_RUN';
+
   if (action === 'INSERT') {
     const keys = Object.keys(data).join(', ');
     const placeholders = Object.keys(data).map(() => '?').join(', ');
     const values = Object.values(data);
     
+    if (isDryRun) {
+      console.log(`[DRY_RUN] INSERT INTO ${table} (${keys}) VALUES (${values})`);
+      return;
+    }
+
     await env.DB.batch([
       env.DB.prepare(`INSERT INTO ${table} (${keys}) VALUES (${placeholders})`).bind(...values),
-      env.DB.prepare(`INSERT INTO audit_logs (action, module, details) VALUES ('WEBHOOK_INSERT', 'Master Karyawan', 'Inserted from sheets')`)
+      env.DB.prepare(`INSERT INTO audit_logs (action, module, details) VALUES ('WEBHOOK_INSERT', ?, 'Inserted from sheets')`).bind(sheetName)
     ]);
     
   } else if (action === 'UPDATE') {
     const id = data['id'];
+    if (!id) return; // Need ID for update
     delete data['id'];
+    
     const sets = Object.keys(data).map(k => `${k} = ?`).join(', ');
     const values = Object.values(data);
     values.push(id);
@@ -222,22 +228,62 @@ async function handleKaryawanWebhook(env, action, excelData) {
     const incomingVersion = data['row_version'];
     
     if (existing && incomingVersion && incomingVersion < existing.row_version) {
-      // Conflict! Log it and do not update
-      await env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('CONFLICT', 'Master Karyawan', ?, 'Ignored webhook due to outdated row_version')`).bind(String(id)).run();
+      if (isDryRun) {
+        console.log(`[DRY_RUN] CONFLICT for ${sheetName} ID ${id}`);
+        return;
+      }
+      await env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('CONFLICT', ?, ?, 'Ignored webhook due to outdated row_version')`).bind(sheetName, String(id)).run();
       return;
     }
     
+    if (isDryRun) {
+      console.log(`[DRY_RUN] UPDATE ${table} SET ${sets} WHERE id = ${id}`);
+      return;
+    }
+
     await env.DB.batch([
       env.DB.prepare(`UPDATE ${table} SET ${sets}, updated_at = datetime('now') WHERE id = ?`).bind(...values),
-      env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('WEBHOOK_UPDATE', 'Master Karyawan', ?, 'Updated from sheets')`).bind(String(id))
+      env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('WEBHOOK_UPDATE', ?, ?, 'Updated from sheets')`).bind(sheetName, String(id))
     ]);
     
   } else if (action === 'DELETE') {
     const id = data['id'];
-    // Soft Delete Implementation
-    await env.DB.batch([
-      env.DB.prepare(`UPDATE ${table} SET status = 'Tidak Aktif', updated_at = datetime('now') WHERE id = ?`).bind(id),
-      env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('WEBHOOK_DELETE', 'Master Karyawan', ?, 'Soft deleted from sheets')`).bind(String(id))
-    ]);
+    if (!id) return;
+    
+    if (delete_strategy === 'SOFT') {
+      const delCol = soft_delete_col || 'deleted_at';
+      if (isDryRun) {
+        console.log(`[DRY_RUN] SOFT DELETE ${table} ID ${id} (${delCol})`);
+        return;
+      }
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE ${table} SET ${delCol} = datetime('now'), updated_at = datetime('now') WHERE id = ?`).bind(id),
+        env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('WEBHOOK_DELETE', ?, ?, 'Soft deleted from sheets')`).bind(sheetName, String(id))
+      ]);
+    } else if (delete_strategy === 'HARD') {
+      if (isDryRun) {
+        console.log(`[DRY_RUN] HARD DELETE ${table} ID ${id}`);
+        return;
+      }
+      await env.DB.batch([
+        env.DB.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id),
+        env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('WEBHOOK_DELETE', ?, ?, 'Hard deleted from sheets')`).bind(sheetName, String(id))
+      ]);
+    } else if (delete_strategy === 'IGNORE') {
+      if (isDryRun) {
+        console.log(`[DRY_RUN] IGNORE DELETE for ${table} ID ${id}`);
+      }
+    } else if (delete_strategy === 'ARCHIVE') {
+      // Custom archive logic can be placed here. Fallback to soft delete for now.
+      const delCol = soft_delete_col || 'deleted_at';
+      if (isDryRun) {
+        console.log(`[DRY_RUN] ARCHIVE ${table} ID ${id}`);
+        return;
+      }
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE ${table} SET ${delCol} = datetime('now'), updated_at = datetime('now') WHERE id = ?`).bind(id),
+        env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('WEBHOOK_ARCHIVE', ?, ?, 'Archived from sheets')`).bind(sheetName, String(id))
+      ]);
+    }
   }
 }

@@ -144,12 +144,12 @@ async function deleteEmployee(id, env, origin) {
   const existing = await env.DB.prepare('SELECT * FROM employees WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
   
-  const deletedRecord = { ...existing, status: 'Tidak Aktif' };
+  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
   const payload = mapDBToPayload('Master Karyawan', deletedRecord);
   
   await env.DB.batch([
-    env.DB.prepare("UPDATE employees SET status = 'Tidak Aktif', updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?").bind(id),
-    buildOutboxQuery(env, 'Master Karyawan', id, 'UPDATE', payload)
+    env.DB.prepare("UPDATE employees SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?").bind(id),
+    buildOutboxQuery(env, 'Master Karyawan', id, 'DELETE', payload)
   ]);
   
   return ok({ message: 'Employee deactivated' }, 200, origin);
