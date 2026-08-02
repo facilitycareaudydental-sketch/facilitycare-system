@@ -250,23 +250,23 @@ export function buildCrudPage({
         }
         
         barEl.style.width = '100%';
-        textEl.innerHTML = \`<strong style="color:var(--success)">✅ Import Selesai!</strong>\`;
+        textEl.innerHTML = `<strong style="color:var(--success)">✅ Import Selesai!</strong>`;
         
         summaryEl.style.display = 'block';
-        summaryEl.innerHTML = \`
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total Data:</span> <strong>\${total}</strong></div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:var(--success)"><span>Berhasil Diimport:</span> <strong>\${inserted}</strong></div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:var(--warning)"><span>Dilewati (Duplikat):</span> <strong>\${skipped}</strong></div>
-          <div style="display:flex;justify-content:space-between;color:var(--danger)"><span>Gagal:</span> <strong>\${failed}</strong></div>
-        \`;
+        summaryEl.innerHTML = `
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total Data:</span> <strong>${total}</strong></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:var(--success)"><span>Berhasil Diimport:</span> <strong>${inserted}</strong></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:var(--warning)"><span>Dilewati (Duplikat):</span> <strong>${skipped}</strong></div>
+          <div style="display:flex;justify-content:space-between;color:var(--danger)"><span>Gagal:</span> <strong>${failed}</strong></div>
+        `;
         if (failed > 0) {
-          summaryEl.innerHTML += \`<p style="margin-top:12px;font-size:0.8rem;color:var(--danger)">Sebagian data gagal diimport. Pastikan format kolom sesuai template dan tidak ada data kosong pada kolom wajib.</p>\`;
+          summaryEl.innerHTML += `<p style="margin-top:12px;font-size:0.8rem;color:var(--danger)">Sebagian data gagal diimport. Pastikan format kolom sesuai template dan tidak ada data kosong pada kolom wajib.</p>`;
         }
         
         closeBtn.style.display = 'block';
         fileInput.value = ''; // reset
       } catch (err) {
-        textEl.innerHTML = \`<strong style="color:var(--danger)">❌ Gagal Memproses File</strong><br>\${err.message}\`;
+        textEl.innerHTML = `<strong style="color:var(--danger)">❌ Gagal Memproses File</strong><br>${err.message}`;
         barEl.style.background = 'var(--danger)';
         barEl.style.width = '100%';
         closeBtn.style.display = 'block';
