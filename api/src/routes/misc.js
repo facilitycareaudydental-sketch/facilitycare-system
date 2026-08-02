@@ -3,6 +3,8 @@ import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
 import { importSchedule } from './schedule.js';
+import { buildOutboxQuery } from '../utils/sync_engine.js';
+import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleMisc(request, env, origin) {
   const url = new URL(request.url);
@@ -373,6 +375,8 @@ export async function handleMisc(request, env, origin) {
 }
 
 async function handleTable(request, env, origin, table, path) {
+  const sheetName = table === 'sop' ? 'Master SOP' : (table === 'master_checklist' ? 'Master Checklist' : null);
+
   // GET list is public for SOPs and checklists
   if (request.method === 'GET' && path === '') {
     const { page, limit, offset } = getPagination(request.url);
@@ -380,12 +384,12 @@ async function handleTable(request, env, origin, table, path) {
     const search = url.searchParams.get('search') || '';
     const all = url.searchParams.get('all');
     if (all === '1') {
-      const rows = await env.DB.prepare(`SELECT * FROM ${table} ORDER BY name`).all();
+      const rows = await env.DB.prepare(`SELECT * FROM ${table} WHERE deleted_at IS NULL ORDER BY name`).all();
       return ok(rows.results, 200, origin);
     }
-    let conditions = []; let values = [];
+    let conditions = ['deleted_at IS NULL']; let values = [];
     if (search) { conditions.push('(name LIKE ? OR category LIKE ?)'); values.push(`%${search}%`, `%${search}%`); }
-    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    const where = 'WHERE ' + conditions.join(' AND ');
     const [countResult, rows] = await Promise.all([
       env.DB.prepare(`SELECT COUNT(*) as total FROM ${table} ${where}`).bind(...values).first(),
       env.DB.prepare(`SELECT * FROM ${table} ${where} ORDER BY name LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
@@ -403,9 +407,18 @@ async function handleTable(request, env, origin, table, path) {
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     const { name, category, document_link, description, version, effective_date } = body;
     if (!name) return error('name required', 400, origin);
-    const result = await env.DB.prepare(`INSERT INTO ${table} (name, category, document_link, description) VALUES (?, ?, ?, ?)`)
+    const result = await env.DB.prepare(`INSERT INTO ${table} (name, category, document_link, description, row_version, last_sync_source) VALUES (?, ?, ?, ?, 1, 'FCMS')`)
       .bind(name, category || null, document_link || null, description || null).run();
-    return ok({ id: result.meta.last_row_id }, 201, origin);
+      
+    const newId = result.meta.last_row_id;
+    if (sheetName) {
+      const newRecord = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(newId).first();
+      if (newRecord) {
+        const payload = mapDBToPayload(sheetName, newRecord);
+        await buildOutboxQuery(env, sheetName, newId, 'INSERT', payload).run();
+      }
+    }
+    return ok({ id: newId }, 201, origin);
   }
 
   if (idMatch) {
@@ -417,12 +430,37 @@ async function handleTable(request, env, origin, table, path) {
     if (request.method === 'PUT') {
       let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
       const { name, category, document_link, description } = body;
-      await env.DB.prepare(`UPDATE ${table} SET name = COALESCE(?, name), category = COALESCE(?, category), document_link = COALESCE(?, document_link), description = COALESCE(?, description), updated_at = datetime('now') WHERE id = ?`)
-        .bind(name || null, category || null, document_link || null, description || null, id).run();
+      
+      const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first();
+      if (!existing) return notFound(origin);
+      
+      const updatedRecord = { ...existing, name: name || existing.name, category: category || existing.category, document_link: document_link || existing.document_link, description: description || existing.description };
+      
+      const batchStmts = [
+        env.DB.prepare(`UPDATE ${table} SET name = COALESCE(?, name), category = COALESCE(?, category), document_link = COALESCE(?, document_link), description = COALESCE(?, description), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`)
+          .bind(name || null, category || null, document_link || null, description || null, id)
+      ];
+      if (sheetName) {
+        batchStmts.push(buildOutboxQuery(env, sheetName, id, 'UPDATE', mapDBToPayload(sheetName, updatedRecord)));
+      }
+      await env.DB.batch(batchStmts);
+      
       return ok({ message: 'Updated' }, 200, origin);
     }
     if (request.method === 'DELETE') {
-      await env.DB.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id).run();
+      const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first();
+      if (!existing) return notFound(origin);
+      
+      const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+      
+      const batchStmts = [
+        env.DB.prepare(`UPDATE ${table} SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id)
+      ];
+      if (sheetName) {
+        batchStmts.push(buildOutboxQuery(env, sheetName, id, 'DELETE', mapDBToPayload(sheetName, deletedRecord)));
+      }
+      await env.DB.batch(batchStmts);
+      
       return ok({ message: 'Deleted' }, 200, origin);
     }
   }
@@ -432,7 +470,7 @@ async function handleTable(request, env, origin, table, path) {
 async function handleForms(request, env, origin, path) {
   // Public GET for is_public forms
   if (request.method === 'GET' && path === '/public') {
-    const rows = await env.DB.prepare('SELECT * FROM master_forms WHERE is_public = 1 ORDER BY name').all();
+    const rows = await env.DB.prepare('SELECT * FROM master_forms WHERE is_public = 1 AND deleted_at IS NULL ORDER BY name').all();
     return ok(rows.results, 200, origin);
   }
 
@@ -440,9 +478,9 @@ async function handleForms(request, env, origin, path) {
     const { page, limit, offset } = getPagination(request.url);
     const url = new URL(request.url);
     const search = url.searchParams.get('search') || '';
-    let conditions = []; let values = [];
+    let conditions = ['deleted_at IS NULL']; let values = [];
     if (search) { conditions.push('(name LIKE ? OR category LIKE ?)'); values.push(`%${search}%`, `%${search}%`); }
-    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    const where = 'WHERE ' + conditions.join(' AND ');
     const [countResult, rows] = await Promise.all([
       env.DB.prepare(`SELECT COUNT(*) as total FROM master_forms ${where}`).bind(...values).first(),
       env.DB.prepare(`SELECT * FROM master_forms ${where} ORDER BY name LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
@@ -450,7 +488,7 @@ async function handleForms(request, env, origin, path) {
     const user = await authenticate(request, env);
     if (!user) {
       // Public: only return is_public forms
-      const pubRows = await env.DB.prepare('SELECT * FROM master_forms WHERE is_public = 1 ORDER BY name').all();
+      const pubRows = await env.DB.prepare('SELECT * FROM master_forms WHERE is_public = 1 AND deleted_at IS NULL ORDER BY name').all();
       return ok(pubRows.results, 200, origin);
     }
     return paginated(rows.results, countResult.total, page, limit, origin);
@@ -466,9 +504,17 @@ async function handleForms(request, env, origin, path) {
     let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
     const { name, category, document_link, description, is_public } = body;
     if (!name) return error('name required', 400, origin);
-    const result = await env.DB.prepare('INSERT INTO master_forms (name, category, document_link, description, is_public) VALUES (?, ?, ?, ?, ?)')
+    const result = await env.DB.prepare("INSERT INTO master_forms (name, category, document_link, description, is_public, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, 1, 'FCMS')")
       .bind(name, category || null, document_link || null, description || null, is_public ? 1 : 0).run();
-    return ok({ id: result.meta.last_row_id }, 201, origin);
+      
+    const newId = result.meta.last_row_id;
+    const newRecord = await env.DB.prepare('SELECT * FROM master_forms WHERE id = ?').bind(newId).first();
+    if (newRecord) {
+      const payload = mapDBToPayload('Master Form', newRecord);
+      await buildOutboxQuery(env, 'Master Form', newId, 'INSERT', payload).run();
+    }
+    
+    return ok({ id: newId }, 201, origin);
   }
 
   if (idMatch) {
@@ -480,12 +526,29 @@ async function handleForms(request, env, origin, path) {
     if (request.method === 'PUT') {
       let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
       const { name, category, document_link, description, is_public } = body;
-      await env.DB.prepare(`UPDATE master_forms SET name = COALESCE(?, name), category = COALESCE(?, category), document_link = COALESCE(?, document_link), description = COALESCE(?, description), is_public = COALESCE(?, is_public), updated_at = datetime('now') WHERE id = ?`)
-        .bind(name || null, category || null, document_link || null, description || null, is_public !== undefined ? (is_public ? 1 : 0) : null, id).run();
+      
+      const existing = await env.DB.prepare(`SELECT * FROM master_forms WHERE id = ?`).bind(id).first();
+      if (!existing) return notFound(origin);
+      
+      const updatedRecord = { ...existing, name: name || existing.name, category: category || existing.category, document_link: document_link || existing.document_link, description: description || existing.description, type: is_public !== undefined ? (is_public ? 'Public' : 'Internal') : existing.type }; // Type isn't mapped directly for forms but we can map whatever is there
+      
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE master_forms SET name = COALESCE(?, name), category = COALESCE(?, category), document_link = COALESCE(?, document_link), description = COALESCE(?, description), is_public = COALESCE(?, is_public), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`)
+          .bind(name || null, category || null, document_link || null, description || null, is_public !== undefined ? (is_public ? 1 : 0) : null, id),
+        buildOutboxQuery(env, 'Master Form', id, 'UPDATE', mapDBToPayload('Master Form', updatedRecord))
+      ]);
       return ok({ message: 'Updated' }, 200, origin);
     }
     if (request.method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM master_forms WHERE id = ?').bind(id).run();
+      const existing = await env.DB.prepare(`SELECT * FROM master_forms WHERE id = ?`).bind(id).first();
+      if (!existing) return notFound(origin);
+      
+      const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+      
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE master_forms SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id),
+        buildOutboxQuery(env, 'Master Form', id, 'DELETE', mapDBToPayload('Master Form', deletedRecord))
+      ]);
       return ok({ message: 'Deleted' }, 200, origin);
     }
   }

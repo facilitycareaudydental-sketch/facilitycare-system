@@ -2,6 +2,8 @@ import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
 import { runSync } from '../utils/calendar.js';
+import { buildOutboxQuery } from '../utils/sync_engine.js';
+import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleContracts(request, env, origin) {
   const user = await authenticate(request, env);
@@ -55,7 +57,7 @@ async function listContracts(request, env, origin) {
     values.push(expiring_days);
   }
 
-  const where = 'WHERE ' + conditions.join(' AND ');
+  const where = 'WHERE ' + conditions.join(' AND ') + ' AND c.deleted_at IS NULL';
 
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total FROM contracts c LEFT JOIN employees e ON c.employee_id = e.id ${where}`
@@ -112,6 +114,12 @@ async function createContract(request, env, origin) {
     console.error('Calendar sync error (non-fatal):', syncErr.message);
   }
 
+  const newRecord = await env.DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(newId).first();
+  if (newRecord) {
+    const payload = mapDBToPayload('Master Kontrak', newRecord);
+    await buildOutboxQuery(env, 'Master Kontrak', newId, 'INSERT', payload).run();
+  }
+
   return ok({ id: newId }, 201, origin);
 }
 
@@ -121,22 +129,29 @@ async function updateContract(id, request, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM contracts WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
 
-  const { employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes } = body;
-  await env.DB.prepare(
-    `UPDATE contracts SET 
-      employee_id = COALESCE(?, employee_id),
-      branch_id = COALESCE(?, branch_id),
-      division = COALESCE(?, division),
-      start_date = COALESCE(?, start_date),
-      end_date = COALESCE(?, end_date),
-      contract_type = COALESCE(?, contract_type),
-      pkwt_number = COALESCE(?, pkwt_number),
-      status = COALESCE(?, status),
-      notes = COALESCE(?, notes),
-      updated_at = datetime('now')
-     WHERE id = ?`
-  ).bind(employee_id || null, branch_id || null, division || null, start_date || null,
-    end_date || null, contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
+  const updatedRecord = { ...existing, employee_id: employee_id || existing.employee_id, branch_id: branch_id || existing.branch_id, division: division || existing.division, start_date: start_date || existing.start_date, end_date: end_date || existing.end_date, contract_type: contract_type || existing.contract_type, pkwt_number: pkwt_number || existing.pkwt_number, status: status !== null && status !== undefined && status !== '' ? status : existing.status, notes: notes || existing.notes };
+  const payload = mapDBToPayload('Master Kontrak', updatedRecord);
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE contracts SET 
+        employee_id = COALESCE(?, employee_id),
+        branch_id = COALESCE(?, branch_id),
+        division = COALESCE(?, division),
+        start_date = COALESCE(?, start_date),
+        end_date = COALESCE(?, end_date),
+        contract_type = COALESCE(?, contract_type),
+        pkwt_number = COALESCE(?, pkwt_number),
+        status = COALESCE(?, status),
+        notes = COALESCE(?, notes),
+        updated_at = datetime('now'),
+        row_version = COALESCE(row_version, 0) + 1,
+        last_sync_source = 'FCMS'
+       WHERE id = ?`
+    ).bind(employee_id || null, branch_id || null, division || null, start_date || null,
+      end_date || null, contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id),
+    buildOutboxQuery(env, 'Master Kontrak', id, 'UPDATE', payload)
+  ]);
 
   // Sync updated values
   const updatedContract = await env.DB.prepare('SELECT employee_id, branch_id, end_date, status FROM contracts WHERE id = ?').bind(id).first();
@@ -159,9 +174,16 @@ async function updateContract(id, request, env, origin) {
 }
 
 async function deleteContract(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT id FROM contracts WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  await env.DB.prepare('DELETE FROM contracts WHERE id = ?').bind(id).run();
+  
+  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+  const payload = mapDBToPayload('Master Kontrak', deletedRecord);
+
+  await env.DB.batch([
+    env.DB.prepare("UPDATE contracts SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?").bind(id),
+    buildOutboxQuery(env, 'Master Kontrak', id, 'DELETE', payload)
+  ]);
   try { await runSync(env.DB, 'contracts', id, null); } catch (e) { /* non-fatal */ }
   return ok({ message: 'Contract deleted' }, 200, origin);
 }
