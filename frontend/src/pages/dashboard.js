@@ -441,7 +441,7 @@ async function fetchAll(container) {
       safeFetch('/api/employees?limit=10000',        {data: []}, 8000),
       safeFetch('/api/contracts?limit=10000',        {data: []}, 8000),
       safeFetch('/api/issues?limit=10000',           {data: []}, 8000),
-      safeFetch('/api/one_on_one?limit=10000',       {data: []}, 8000),
+      safeFetch('/api/one-on-one?limit=10000',       {data: []}, 8000),
       safeFetch('/api/dashboard/contracts-chart',    {labels:[], data:[]}, 8000),
     ]);
 

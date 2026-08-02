@@ -1,4 +1,4 @@
-import { buildCrudPage } from './_crud.js';
+import { buildCrudPage } from './_crud.js?v=v3';
 import { apiFetch } from '../config.js';
 import { getCachedBranches, getCachedEmployeeNames, getCachedEmployees } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
@@ -22,7 +22,7 @@ export async function renderRelievers(container, params) {
     return employeeOptions;
   };
 
-  const relieverOptions = ['Agung Septiadi', 'Wasrikin', 'IQBAL AL BANNA'];
+  const relieverOptions = ['Agung Septiadi', 'Wasrikin', 'Iqbal Al Banna', 'Muhammad Tri Ismandanu'];
   
   const getRelieverOptions = (val) => {
     if (val && !relieverOptions.includes(val)) {
@@ -73,8 +73,8 @@ export async function renderRelievers(container, params) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
-      { type: 'search', placeholder: 'Cari reliefer / FC...' },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'reliever_name', label: 'Cari reliefer / FC...', options: relieverOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done', 'Tidak Datang'] },
     ],

@@ -20,6 +20,7 @@
     "wrangler": "^3.78.0"
   },
   "dependencies": {
+    "puppeteer": "^25.4.0",
     "xlsx": "^0.18.5"
   }
 }

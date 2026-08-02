@@ -154,7 +154,7 @@ async function getKPI(env, origin) {
     env.DB.prepare("SELECT backup_date, status FROM relievers").all(),
     
     // Kebersihan Area (Avg from inspection_reports)
-    env.DB.prepare("SELECT AVG(score_fc) as avg_fc, AVG(score_spv) as avg_spv FROM inspection_reports WHERE strftime('%Y-%m',inspection_date)=?").bind(curM).first(),
+    env.DB.prepare("SELECT AVG(fc_score) as avg_fc, AVG(spv_score) as avg_spv FROM inspection_reports WHERE strftime('%Y-%m',inspection_date)=?").bind(curM).first(),
     
     // Penyelesaian Complaint
     env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE strftime('%Y-%m',created_at)=?").bind(curM).first(),
@@ -165,11 +165,11 @@ async function getKPI(env, origin) {
     
     // Kepatuhan Jadwal Cleaning
     env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE type IN ('cleaning','Cleaning') AND strftime('%Y-%m',event_date)=?").bind(curM).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type IN ('cleaning','Cleaning') AND strftime('%Y-%m',target_date)=?").bind(curM).first(),
     
     // Kepatuhan GCDC
     env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=? AND activity_type IN ('gcdc','GCDC')").bind(curM).first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE type IN ('gcdc','GCDC') AND strftime('%Y-%m',event_date)=?").bind(curM).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type IN ('gcdc','GCDC') AND strftime('%Y-%m',target_date)=?").bind(curM).first(),
   ]);
 
   // JS-based count for relievers to perfectly match the UI Date logic without any auto-done
@@ -180,7 +180,16 @@ async function getKPI(env, origin) {
       if (!parsedDate || !parsedDate.startsWith(curM)) continue; // Must be this month
 
       let status = (r.status || '').trim().toLowerCase();
-      // Strictly only count actual 'Done' statuses, NO auto-done estimation
+      
+      if (!status || status === 'pending') {
+        const bd = new Date(parsedDate);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        if (!isNaN(bd) && bd <= today) {
+          status = 'done';
+        }
+      }
+
       if (status === 'done') {
         relieverCount++;
       }

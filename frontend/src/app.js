@@ -42,7 +42,7 @@ import { renderSchedule } from './pages/schedule.js?v=force60';
 import { renderIssues } from './pages/issues.js?v=force60';
 import { renderOneOnOne } from './pages/one_on_one.js?v=force60';
 import { renderTraining } from './pages/training.js';
-import { renderRelievers } from './pages/relievers.js';
+import { renderRelievers } from './pages/relievers.js?v=v2';
 import { renderInspectionReports } from './pages/inspection_reports.js';
 import { renderCleaningReports } from './pages/cleaning_reports.js';
 import { renderFoggingReports } from './pages/fogging_reports.js';

@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM employees WHERE status='Aktif'; SELECT COUNT(*) FROM contracts WHERE status='Aktif' AND end_date>=date('now'); SELECT COUNT(*) FROM issues WHERE status!='Done'; SELECT COUNT(*) FROM one_on_one WHERE status!='Done'; SELECT COUNT(*) FROM activity_schedule; SELECT AVG(score_fc) as avg_fc, AVG(score_spv) as avg_spv FROM inspection_reports;
