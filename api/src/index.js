@@ -131,6 +131,7 @@ export default {
       if (path.startsWith('/api/import')) return await handleImport(request, env, origin);
       if (path.startsWith('/api/sp')) return await handleSP(request, env, origin);
       if (path.startsWith('/api/mutasi')) return await handleMutasi(request, env, origin);
+      if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || path.startsWith('/api/forms') || path.startsWith('/api/pic') || path.startsWith('/api/options')) return await handleMisc(request, env, origin);
       
       // Manual sync trigger
       if (path === '/api/emergency-fix-dates' && request.method === 'GET') {

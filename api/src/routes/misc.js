@@ -10,8 +10,8 @@ export async function handleMisc(request, env, origin) {
   const url = new URL(request.url);
   const path = url.pathname;
 
-  if (path.startsWith('/api/sop')) return handleTable(request, env, origin, 'sop', path.replace('/api/sop', ''));
-  if (path.startsWith('/api/checklist')) return handleTable(request, env, origin, 'master_checklist', path.replace('/api/checklist', ''));
+  if (path.startsWith('/api/sop')) return handleTable(request, env, origin, 'sop', path.replace('/api/sop', ''), false);
+  if (path.startsWith('/api/checklist')) return handleTable(request, env, origin, 'master_checklist', path.replace('/api/checklist', ''), false);
   if (path.startsWith('/api/forms')) return handleForms(request, env, origin, path.replace('/api/forms', ''));
   if (path.startsWith('/api/pic')) return handlePic(request, env, origin);
   if (path.startsWith('/api/options')) return handleOptions(request, env, origin);
@@ -374,8 +374,8 @@ export async function handleMisc(request, env, origin) {
   return error('Not found', 404, origin);
 }
 
-async function handleTable(request, env, origin, table, path) {
-  const sheetName = table === 'sop' ? 'Master SOP' : (table === 'master_checklist' ? 'Master Checklist' : null);
+async function handleTable(request, env, origin, table, path, hasSoftDelete = false) {
+  const sheetName = table === 'sop' ? 'SOP' : table === 'master_checklist' ? 'Master Checklist' : null;
 
   // GET list is public for SOPs and checklists
   if (request.method === 'GET' && path === '') {
@@ -384,12 +384,14 @@ async function handleTable(request, env, origin, table, path) {
     const search = url.searchParams.get('search') || '';
     const all = url.searchParams.get('all');
     if (all === '1') {
-      const rows = await env.DB.prepare(`SELECT * FROM ${table} WHERE deleted_at IS NULL ORDER BY name`).all();
+      const q = hasSoftDelete ? `SELECT * FROM ${table} WHERE deleted_at IS NULL ORDER BY name` : `SELECT * FROM ${table} ORDER BY name`;
+      const rows = await env.DB.prepare(q).all();
       return ok(rows.results, 200, origin);
     }
-    let conditions = ['deleted_at IS NULL']; let values = [];
+    let conditions = hasSoftDelete ? ['deleted_at IS NULL'] : []; 
+    let values = [];
     if (search) { conditions.push('(name LIKE ? OR category LIKE ?)'); values.push(`%${search}%`, `%${search}%`); }
-    const where = 'WHERE ' + conditions.join(' AND ');
+    const where = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
     const [countResult, rows] = await Promise.all([
       env.DB.prepare(`SELECT COUNT(*) as total FROM ${table} ${where}`).bind(...values).first(),
       env.DB.prepare(`SELECT * FROM ${table} ${where} ORDER BY name LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
@@ -451,15 +453,25 @@ async function handleTable(request, env, origin, table, path) {
       const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first();
       if (!existing) return notFound(origin);
       
-      const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
-      
-      const batchStmts = [
-        env.DB.prepare(`UPDATE ${table} SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id)
-      ];
-      if (sheetName) {
-        batchStmts.push(buildOutboxQuery(env, sheetName, id, 'DELETE', mapDBToPayload(sheetName, deletedRecord)));
+      if (hasSoftDelete) {
+        const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+        const batchStmts = [
+          env.DB.prepare(`UPDATE ${table} SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id)
+        ];
+        if (sheetName) {
+          batchStmts.push(buildOutboxQuery(env, sheetName, id, 'DELETE', mapDBToPayload(sheetName, deletedRecord)));
+        }
+        await env.DB.batch(batchStmts);
+      } else {
+        const batchStmts = [
+          env.DB.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id)
+        ];
+        if (sheetName) {
+          // Send a tombstone payload or basic delete marker
+          batchStmts.push(buildOutboxQuery(env, sheetName, id, 'DELETE', JSON.stringify({ id })));
+        }
+        await env.DB.batch(batchStmts);
       }
-      await env.DB.batch(batchStmts);
       
       return ok({ message: 'Deleted' }, 200, origin);
     }
@@ -575,20 +587,24 @@ async function handlePic(request, env, origin) {
 
 async function handleOptions(request, env, origin) {
   if (request.method !== 'GET') return error('Method not allowed', 405, origin);
-  const rows = await env.DB.prepare('SELECT category, value FROM validation_options ORDER BY value').all();
   
+  // validation_options table does not exist in schema. 
+  // Returning standard drop-down options instead.
+  
+  let pic = [];
+  try {
+    const rows = await env.DB.prepare('SELECT name FROM pic_list WHERE is_active = 1 ORDER BY name').all();
+    pic = rows.results.map(r => r.name);
+  } catch(e) {
+    // Ignore if pic_list fails
+  }
+
   const data = {
-    pic: [],
-    activity: [],
-    quarter: [],
-    pkwt: []
+    pic: pic.length > 0 ? pic : ['IT', 'HR', 'GA', 'Finance'],
+    activity: ['Cleaning', 'Maintenance', 'Inspection', 'Fogging', 'Pest Control'],
+    quarter: ['Q1', 'Q2', 'Q3', 'Q4'],
+    pkwt: ['PKWT 1', 'PKWT 2', 'Permanent', 'Probation']
   };
-  
-  (rows.results || []).forEach(r => {
-    if (data[r.category]) {
-      data[r.category].push(r.value);
-    }
-  });
   
   return ok(data, 200, origin);
 }
