@@ -1,0 +1,25 @@
+name = "fm-operations-api"
+main = "api/src/index.js"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fcms-production-db"
+database_id = "62b4b6e5-a718-40bc-9aab-6a700b82a9c9"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "4acb3038c5b042b8ad3c87473d02a434"
+
+[vars]
+JWT_SECRET = "FacilityCare-AudyDental-FM-Ops-S3cr3t-K3y-2026!@#$"
+CORS_ORIGIN = "https://facilitycare-system.pages.dev"
+SYNC_WEBHOOK_SECRET = "Rahasia-Sync-FCMS-2026-A1B2C3D4"
+
+[dev]
+port = 8787
+local_protocol = "http"
+
+[triggers]
+crons = ["0 17 * * *", "*/1 * * * *"] # Midnight + Every 1 minute for sync sweeper
