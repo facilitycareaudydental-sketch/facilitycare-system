@@ -156,11 +156,7 @@ export default {
       }
 
       if (path === '/api/sync/webhook' && request.method === 'POST') {
-        const response = await receiveWebhook(request, env);
-        return new Response(JSON.stringify(response.data || response), {
-          status: response.status || 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin }
-        });
+        return await receiveWebhook(request, env);
       }
 
       if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || 

@@ -6,17 +6,46 @@ import { error, ok } from './response.js';
 export async function receiveWebhook(request, env) {
   try {
     const authHeader = request.headers.get('Authorization');
-    // Basic shared secret check for webhook (You should set SYNC_WEBHOOK_SECRET in Cloudflare)
+    const signatureHeader = request.headers.get('X-FCMS-SIGNATURE');
+    
     if (env.SYNC_WEBHOOK_SECRET && authHeader !== `Bearer ${env.SYNC_WEBHOOK_SECRET}`) {
       return error('Unauthorized Webhook', 401);
     }
 
-    const payload = await request.json();
-    const { event_id, sheet_name, action, data } = payload;
-
-    if (!event_id || !sheet_name || !action || !data) {
-      return error('Invalid payload format', 400);
+    const payloadText = await request.text();
+    let payload;
+    try {
+      payload = JSON.parse(payloadText);
+    } catch (e) {
+      return error('Invalid JSON', 400);
     }
+
+    // HMAC Signature Verification
+    if (env.SYNC_WEBHOOK_SECRET && signatureHeader) {
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw', encoder.encode(env.SYNC_WEBHOOK_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+      );
+      // Expected signature is hex, we need to convert it to array buffer or convert crypto result to hex
+      // Alternatively, compute our own HMAC and compare hex strings
+      const computedBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(payloadText));
+      const computedHex = Array.from(new Uint8Array(computedBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      if (computedHex !== signatureHeader) {
+        return error('Invalid Signature', 403);
+      }
+    }
+
+    const { event_id, sheet_name, action, data, payload_version } = payload;
+
+    // Validation Layer
+    if (payload_version !== '1.0') {
+      return error('Unsupported payload version', 400);
+    }
+    if (!event_id || typeof event_id !== 'string') return error('Invalid event_id', 400);
+    if (!sheet_name || typeof sheet_name !== 'string') return error('Invalid sheet_name', 400);
+    if (!action || !['INSERT', 'UPDATE', 'DELETE'].includes(action)) return error('Invalid action', 400);
+    if (!data || typeof data !== 'object') return error('Invalid data payload', 400);
 
     // 1. Idempotency Check
     const isProcessed = await env.DB.prepare('SELECT 1 FROM sync_idempotency WHERE event_id = ?').bind(event_id).first();
@@ -48,12 +77,13 @@ export async function processOutbox(env) {
   console.log('Starting Outbox Sweeper...');
   try {
     // 1. Fetch pending or failed (but ready for retry) events
+    const batchSize = env.SYNC_BATCH_SIZE || 50;
     const query = `
       SELECT * FROM sync_outbox 
       WHERE status = 'PENDING' 
          OR (status = 'FAILED' AND next_retry_at <= datetime('now'))
       ORDER BY created_at ASC
-      LIMIT 50
+      LIMIT ${Number(batchSize)}
     `;
     const pendingEvents = (await env.DB.prepare(query).all()).results;
 
