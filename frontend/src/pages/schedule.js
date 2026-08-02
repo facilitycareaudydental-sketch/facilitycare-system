@@ -30,7 +30,7 @@ export function filterDashboardItem(s, type) {
 export async function renderSchedule(container, params) {
   branchOptions = await getCachedBranches();
   const allEmployees = await getCachedEmployeeNames();
-  picOptions = ['Ade', 'Berlin'];
+  picOptions = ['BERLIN ARIANSYAH', 'ADE SURAHMAN'];
 
   const getPicOptions = (val) => {
     if (val && !picOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
@@ -86,13 +86,27 @@ export async function renderSchedule(container, params) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Kegiatan', options: [
         'Inspeksi Hygiene & Aset Bangunan', 'General Cleaning', 'Deep Cleaning', 'Fogging'
       ]},
+      { type: 'select', name: 'month', label: 'Bulan', options: [
+        { value: '2026-01', label: 'Jan 2026' },
+        { value: '2026-02', label: 'Feb 2026' },
+        { value: '2026-03', label: 'Mar 2026' },
+        { value: '2026-04', label: 'Apr 2026' },
+        { value: '2026-05', label: 'Mei 2026' },
+        { value: '2026-06', label: 'Jun 2026' },
+        { value: '2026-07', label: 'Jul 2026' },
+        { value: '2026-08', label: 'Agu 2026' },
+        { value: '2026-09', label: 'Sep 2026' },
+        { value: '2026-10', label: 'Okt 2026' },
+        { value: '2026-11', label: 'Nov 2026' },
+        { value: '2026-12', label: 'Des 2026' },
+      ]},
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'In Progress', 'Done'] },
-      { type: 'combobox', name: 'pic', label: 'PIC', options: picOptions },
+      { type: 'select', name: 'pic', label: 'PIC', options: picOptions },
     ],
     formFields: (data) => [
       {

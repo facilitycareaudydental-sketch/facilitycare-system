@@ -46,6 +46,7 @@ async function listSchedule(request, env, origin) {
   const period = url.searchParams.get('period') || '';
   const status = url.searchParams.get('status') || '';
   const pic = url.searchParams.get('pic') || '';
+  const month = url.searchParams.get('month') || '';
 
   let conditions = ['s.deleted_at IS NULL'];
   let values = [];
@@ -54,6 +55,7 @@ async function listSchedule(request, env, origin) {
   if (period) { conditions.push('s.period = ?'); values.push(period); }
   if (status) { conditions.push('s.status = ?'); values.push(status); }
   if (pic) { conditions.push('s.pic = ?'); values.push(pic); }
+  if (month) { conditions.push("strftime('%Y-%m', s.opening_date) = ?"); values.push(month); }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
