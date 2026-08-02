@@ -429,7 +429,7 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData] =
+  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, contractChart] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
@@ -442,6 +442,7 @@ async function fetchAll(container) {
       safeFetch('/api/contracts?limit=10000',        {data: []}, 8000),
       safeFetch('/api/issues?limit=10000',           {data: []}, 8000),
       safeFetch('/api/one_on_one?limit=10000',       {data: []}, 8000),
+      safeFetch('/api/dashboard/contracts-chart',    {labels:[], data:[]}, 8000),
     ]);
 
   // Override KPIs with single source of truth from their respective modules
@@ -491,7 +492,7 @@ async function fetchAll(container) {
   
   try {
     const contracts = Array.isArray(recentIssues?.expiring_contracts) ? recentIssues.expiring_contracts : [];
-    renderContractMiniBar();
+    renderContractMiniBar(contractChart);
   } catch(e) { console.warn('ContractsTable render:', e); }
 
   try { renderAgenda(Array.isArray(calendarData) ? calendarData : []); } catch(e) { console.warn('Agenda render:', e); }
@@ -676,16 +677,16 @@ function renderInspBar(inspBar) {
 
 
 
-// ── Contract Mini Bar ───────────────────────────────────────────────────────
-function renderContractMiniBar() {
+function renderContractMiniBar(contractChart) {
   hideSkel('skel-contract-mini','chart-contract-mini');
   const canvas = document.getElementById('chart-contract-mini');
   if (!canvas) return;
   destroyChart('contractMiniBar');
   
-  // Data: June to Dec 2026
-  const labels = ['Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const data = [12, 18, 9, 24, 15, 30, 42]; 
+  contractChart = contractChart || {};
+  const labels = contractChart.labels || [];
+  const data = (contractChart.data || []).map(v => safeNum(v));
+  if (!labels.length) { showEmpty(canvas, 'Belum ada data'); return; }
   
   const ctx = canvas.getContext('2d');
   
@@ -787,19 +788,43 @@ function renderAgenda(rows) {
   `;
 }
 
-// ── KPI Kebersihan ────────────────────────────────────────────────────────
 function renderKPIKebersihan(kpi) {
   const wrap = document.getElementById('widget-kpi-kebersihan');
   if (!wrap) return;
   
-  // Data sesuai mockup
+  const kb = kpi?.kebersihan || {};
+  
+  // 1. Kebersihan Area = (avg_fc + avg_spv) / 2
+  const avgFc = safeNum(kb.area?.avg_fc, 0);
+  const avgSpv = safeNum(kb.area?.avg_spv, 0);
+  const scoreArea = avgFc > 0 && avgSpv > 0 ? (avgFc + avgSpv) / 2 : (avgFc || avgSpv || 0);
+  
+  // 2. Penyelesaian Complaint = closed / total
+  const totalIssue = safeNum(kb.issues?.total, 0);
+  const closedIssue = safeNum(kb.issues?.closed, 0);
+  const pctIssue = totalIssue > 0 ? Math.round((closedIssue / totalIssue) * 100) : 100;
+  
+  // 3. Kepatuhan Jadwal Cleaning
+  const schedClean = safeNum(kb.cleaning?.scheduled, 0);
+  const repClean = safeNum(kb.cleaning?.reported, 0);
+  const pctClean = schedClean > 0 ? Math.round((repClean / schedClean) * 100) : 100;
+  
+  // 4. Kepatuhan GCDC
+  const schedGcdc = safeNum(kb.gcdc?.scheduled, 0);
+  const repGcdc = safeNum(kb.gcdc?.reported, 0);
+  const pctGcdc = schedGcdc > 0 ? Math.round((repGcdc / schedGcdc) * 100) : 100;
+
+  const issueCleanTotal = safeNum(kb.issues?.cleanTotal, 0);
+  const repFogging = safeNum(kpi?.fogging_month?.current, 0);
+  const pctFogging = repFogging > 0 ? 100 : 0; // Assume 100% if done at least once, or map to a target later.
+
   const items = [
-    { label: 'Kebersihan Area', val: '97%', target: 'Target 95%', icon: '🧹', bg: '#ECFDF5', color: '#10B981' },
-    { label: 'Penyelesaian Complaint', val: '100%', target: 'Target 100%', icon: '⏱️', bg: '#ECFDF5', color: '#10B981' },
-    { label: 'Kepatuhan Jadwal Cleaning', val: '99%', target: 'Target 100%', icon: '⏱️', bg: '#EFF6FF', color: '#3B82F6' },
-    { label: 'Kepatuhan GCDC', val: '100%', target: 'Target 100%', icon: '🧹', bg: '#EFF6FF', color: '#3B82F6' },
-    { label: 'Complaint Cleaning (≤10)', val: '4', target: 'Target ≤10', icon: '📝', bg: '#F5F3FF', color: '#8B5CF6' },
-    { label: 'Pelaksanaan Fogging', val: '100%', target: 'Target 100%', icon: '💨', bg: '#F5F3FF', color: '#8B5CF6' },
+    { label: 'Kebersihan Area', val: `${Math.round(scoreArea)}%`, target: 'Target 95%', icon: '🧹', bg: scoreArea >= 95 ? '#ECFDF5' : '#FEF2F2', color: scoreArea >= 95 ? '#10B981' : '#EF4444' },
+    { label: 'Penyelesaian Complaint', val: `${pctIssue}%`, target: 'Target 100%', icon: '⏱️', bg: pctIssue >= 100 ? '#ECFDF5' : '#FEF2F2', color: pctIssue >= 100 ? '#10B981' : '#EF4444' },
+    { label: 'Kepatuhan Jadwal Cleaning', val: `${pctClean}%`, target: 'Target 100%', icon: '⏱️', bg: pctClean >= 100 ? '#EFF6FF' : '#FEF2F2', color: pctClean >= 100 ? '#3B82F6' : '#EF4444' },
+    { label: 'Kepatuhan GCDC', val: `${pctGcdc}%`, target: 'Target 100%', icon: '🧹', bg: pctGcdc >= 100 ? '#EFF6FF' : '#FEF2F2', color: pctGcdc >= 100 ? '#3B82F6' : '#EF4444' },
+    { label: 'Complaint Cleaning (≤10)', val: `${issueCleanTotal}`, target: 'Target ≤10', icon: '📝', bg: issueCleanTotal <= 10 ? '#F5F3FF' : '#FEF2F2', color: issueCleanTotal <= 10 ? '#8B5CF6' : '#EF4444' },
+    { label: 'Pelaksanaan Fogging', val: `${pctFogging}%`, target: 'Target 100%', icon: '💨', bg: pctFogging >= 100 ? '#F5F3FF' : '#FEF2F2', color: pctFogging >= 100 ? '#8B5CF6' : '#EF4444' },
   ];
   
   wrap.innerHTML = `

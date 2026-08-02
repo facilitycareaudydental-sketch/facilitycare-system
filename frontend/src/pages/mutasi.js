@@ -92,6 +92,7 @@ export async function renderMutasi(container) {
         
         const res = await apiFetch('/api/import/mutasi', { method: 'POST', body: JSON.stringify({ rows: payload, onDuplicate: 'update' }) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     formFields: [

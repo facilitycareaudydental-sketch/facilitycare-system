@@ -174,6 +174,7 @@ async function renderSupplyRequests(container) {
           body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     extraActions: [

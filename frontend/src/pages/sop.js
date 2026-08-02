@@ -52,6 +52,7 @@ export async function renderSOP(container) {
         const { apiFetch } = await import('../config.js');
         const res = await apiFetch('/api/sop/import', { method: 'POST', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     formFields: (data) => [

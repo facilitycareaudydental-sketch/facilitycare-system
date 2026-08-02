@@ -192,26 +192,87 @@ export function buildCrudPage({
     fileInput?.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const label = document.getElementById(`label-import-${exportOptions.moduleName}`);
-      const span = label ? label.querySelector('.import-text') : null;
-      const originalText = span ? span.innerText : '';
-      if (span) span.innerText = '⌛ Memproses...';
-      if (label) label.style.pointerEvents = 'none';
       fileInput.disabled = true;
       
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
+      overlay.innerHTML = `
+        <div style="background:var(--bg-card);border-radius:var(--radius-xl);padding:32px;width:90%;max-width:500px;box-shadow:var(--shadow-lg);text-align:center;">
+          <h3 style="margin:0 0 16px;color:var(--text-1);font-size:1.2rem">🔄 Memproses Import Data</h3>
+          <div style="margin-bottom:16px;color:var(--text-2);font-size:0.9rem" id="import-progress-text">Membaca file Excel...</div>
+          <div style="background:var(--bg-body);border-radius:999px;height:12px;overflow:hidden;margin-bottom:24px">
+            <div id="import-progress-bar" style="background:var(--primary);height:100%;width:0%;transition:width 0.3s"></div>
+          </div>
+          <div id="import-summary" style="display:none;text-align:left;background:var(--bg-body);padding:16px;border-radius:8px;margin-bottom:24px;font-size:0.9rem"></div>
+          <button id="import-close-btn" class="btn btn-primary" style="display:none;width:100%">Selesai</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      const textEl = overlay.querySelector('#import-progress-text');
+      const barEl = overlay.querySelector('#import-progress-bar');
+      const summaryEl = overlay.querySelector('#import-summary');
+      const closeBtn = overlay.querySelector('#import-close-btn');
+
+      closeBtn.addEventListener('click', () => {
+        overlay.remove();
+        load();
+      });
+
       try {
         const json = await parseExcel(file);
         if (json.length === 0) throw new Error('File kosong atau format salah');
-        await exportOptions.onImport(json);
-        toastSuccess('Import berhasil!');
-        load();
-      } catch (err) {
-        toastError(err.message || 'Gagal import data');
-      } finally {
-        if (span) span.innerText = originalText;
-        if (label) label.style.pointerEvents = 'auto';
-        fileInput.disabled = false;
+        
+        // Chunking Logic (Stress Test Ready: 100 - 10,000 rows)
+        const CHUNK_SIZE = 500;
+        let inserted = 0, skipped = 0, failed = 0;
+        const total = json.length;
+        
+        textEl.textContent = \`Ditemukan \${total} baris data. Memulai import...\`;
+        
+        for (let i = 0; i < total; i += CHUNK_SIZE) {
+          const chunk = json.slice(i, i + CHUNK_SIZE);
+          textEl.textContent = \`Mengimport baris \${i + 1} - \${Math.min(i + CHUNK_SIZE, total)} dari \${total}...\`;
+          barEl.style.width = \`\${Math.round((i / total) * 100)}%\`;
+          
+          try {
+            // onImport should return { inserted, skipped } or throw
+            const result = await exportOptions.onImport(chunk);
+            if (result) {
+              inserted += result.inserted || result.metrics?.inserted || chunk.length;
+              skipped += result.skipped || result.metrics?.updated || 0;
+            } else {
+              inserted += chunk.length; // fallback
+            }
+          } catch (err) {
+            console.error('Chunk import failed:', err);
+            failed += chunk.length;
+          }
+        }
+        
+        barEl.style.width = '100%';
+        textEl.innerHTML = \`<strong style="color:var(--success)">✅ Import Selesai!</strong>\`;
+        
+        summaryEl.style.display = 'block';
+        summaryEl.innerHTML = \`
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total Data:</span> <strong>\${total}</strong></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:var(--success)"><span>Berhasil Diimport:</span> <strong>\${inserted}</strong></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:var(--warning)"><span>Dilewati (Duplikat):</span> <strong>\${skipped}</strong></div>
+          <div style="display:flex;justify-content:space-between;color:var(--danger)"><span>Gagal:</span> <strong>\${failed}</strong></div>
+        \`;
+        if (failed > 0) {
+          summaryEl.innerHTML += \`<p style="margin-top:12px;font-size:0.8rem;color:var(--danger)">Sebagian data gagal diimport. Pastikan format kolom sesuai template dan tidak ada data kosong pada kolom wajib.</p>\`;
+        }
+        
+        closeBtn.style.display = 'block';
         fileInput.value = ''; // reset
+      } catch (err) {
+        textEl.innerHTML = \`<strong style="color:var(--danger)">❌ Gagal Memproses File</strong><br>\${err.message}\`;
+        barEl.style.background = 'var(--danger)';
+        barEl.style.width = '100%';
+        closeBtn.style.display = 'block';
+        fileInput.value = ''; // reset
+      } finally {
+        fileInput.disabled = false;
       }
     });
   }

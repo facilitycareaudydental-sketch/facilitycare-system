@@ -368,13 +368,7 @@ export async function renderContracts(container, params) {
         console.log(`Split Validation - Valid: ${validPayload.length}, Invalid: ${invalidList.length}`);
         
         if (validPayload.length === 0) {
-           let errorMsg = `SEMUA BARIS GAGAL IMPORT!\n\nTotal Excel: ${json.length}\nValid: 0\nInvalid: ${invalidList.length}\n\nDaftar Kegagalan (Contoh):\n`;
-           invalidList.slice(0, 10).forEach(inv => {
-               errorMsg += `- Row ${inv.rowNum} | Nama: ${inv.name} | Alasan: ${inv.reason}\n`;
-           });
-           if (invalidList.length > 10) errorMsg += `- ... dan ${invalidList.length - 10} lainnya.\n`;
-           alert(errorMsg);
-           return;
+           return { inserted: 0, skipped: json.length, failed: json.length };
         }
         
         const res = await apiFetch('/api/import/contracts', {
@@ -382,26 +376,8 @@ export async function renderContracts(container, params) {
           body: JSON.stringify({ rows: validPayload, onDuplicate: 'update' })
         });
         
-        let summary = `IMPORT SUMMARY\n======================\n`;
-        summary += `Total Baris Excel : ${json.length}\n`;
-        summary += `Baris Valid       : ${validPayload.length}\n`;
-        summary += `Baris Invalid     : ${invalidList.length}\n\n`;
-        
-        if (res && res.data && res.data.metrics) {
-           summary += `Berhasil INSERT   : ${res.data.metrics.inserted}\n`;
-           summary += `Berhasil UPDATE   : ${res.data.metrics.updated}\n`;
-        } else {
-           summary += `Berhasil diproses : ${validPayload.length}\n`;
-        }
-        
-        if (invalidList.length > 0) {
-           summary += `\nDAFTAR DATA DILEWATI:\n`;
-           invalidList.forEach(inv => {
-               summary += `- Row ${inv.rowNum} | ${inv.name} | ${inv.reason}\n`;
-           });
-        }
-        
-        alert(summary);
+        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     }
   });

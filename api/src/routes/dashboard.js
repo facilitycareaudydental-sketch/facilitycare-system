@@ -97,7 +97,15 @@ async function getKPI(env, origin) {
     inspCur,
     cleanCur,
     fogCur,
-    allRelieversRes
+    allRelieversRes,
+    kebAreaCur,
+    kebIssuesTotal,
+    kebIssuesClosed,
+    kebCleanReported,
+    kebCleanScheduled,
+    kebGcdcReported,
+    kebGcdcScheduled,
+    kebIssueCleanTotal
   ] = await Promise.all([
     // Uses idx_employees_status
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
@@ -144,6 +152,24 @@ async function getKPI(env, origin) {
 
     // Fetch all relievers to parse dates exactly like the UI
     env.DB.prepare("SELECT backup_date, status FROM relievers").all(),
+    
+    // Kebersihan Area (Avg from inspection_reports)
+    env.DB.prepare("SELECT AVG(score_fc) as avg_fc, AVG(score_spv) as avg_spv FROM inspection_reports WHERE strftime('%Y-%m',inspection_date)=?").bind(curM).first(),
+    
+    // Penyelesaian Complaint
+    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE strftime('%Y-%m',created_at)=?").bind(curM).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE strftime('%Y-%m',created_at)=? AND status='Done'").bind(curM).first(),
+    
+    // Complaint Cleaning
+    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE strftime('%Y-%m',created_at)=? AND category='Cleaning'").bind(curM).first(),
+    
+    // Kepatuhan Jadwal Cleaning
+    env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE type IN ('cleaning','Cleaning') AND strftime('%Y-%m',event_date)=?").bind(curM).first(),
+    
+    // Kepatuhan GCDC
+    env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=? AND activity_type IN ('gcdc','GCDC')").bind(curM).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE type IN ('gcdc','GCDC') AND strftime('%Y-%m',event_date)=?").bind(curM).first(),
   ]);
 
   // JS-based count for relievers to perfectly match the UI Date logic without any auto-done
@@ -176,6 +202,12 @@ async function getKPI(env, origin) {
     fogging_month:   { current: fogCur?.c||0 },
     reliever_total:  { current: relieverCount },
     checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
+    kebersihan: {
+      area: { avg_fc: kebAreaCur?.avg_fc || 0, avg_spv: kebAreaCur?.avg_spv || 0 },
+      issues: { total: kebIssuesTotal?.c || 0, closed: kebIssuesClosed?.c || 0, cleanTotal: kebIssueCleanTotal?.c || 0 },
+      cleaning: { reported: kebCleanReported?.c || 0, scheduled: kebCleanScheduled?.c || 0 },
+      gcdc: { reported: kebGcdcReported?.c || 0, scheduled: kebGcdcScheduled?.c || 0 }
+    }
   }, 200, origin);
 }
 

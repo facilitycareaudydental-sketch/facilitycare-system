@@ -134,6 +134,7 @@ export async function renderOneOnOne(container, params) {
           body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     formFields: (data) => [
