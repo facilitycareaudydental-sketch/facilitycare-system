@@ -67,7 +67,7 @@ export async function renderCleaningReports(container) {
       },
       onTemplate: () => {
         const template = [
-          { 'Cabang': '001. Pondok Bambu', 'Jenis': 'General Cleaning', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...' }
+          { 'Cabang': '001. Pondok Bambu', 'Jenis': 'General Cleaning', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...', 'Catatan': '' }
         ];
         downloadExcel(template, 'Template_Import_GCDC');
       },
@@ -111,9 +111,9 @@ export async function renderCleaningReports(container) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.branch_id && row.activity_type && row.period && row.activity_date);
         
-        const res = await apiFetch('/api/reports/cleaning/import', {
+        const res = await apiFetch('/api/import/cleaning', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }

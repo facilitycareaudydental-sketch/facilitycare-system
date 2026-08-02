@@ -163,7 +163,7 @@ export async function renderRelievers(container, params) {
         
         const res = await apiFetch('/api/import/relievers', {
           method: 'POST',
-          body: JSON.stringify({ rows: payload })
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }

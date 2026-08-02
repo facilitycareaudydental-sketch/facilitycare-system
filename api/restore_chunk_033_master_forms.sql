@@ -1,0 +1,1 @@
+INSERT INTO "master_forms" ("id","name","category","document_link","description","is_public","created_at","updated_at") VALUES(1,'Seragam','Barang',NULL,NULL,1,'2026-07-15 07:23:19','2026-07-15 07:23:19');

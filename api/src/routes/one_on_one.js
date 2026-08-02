@@ -1,6 +1,8 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { buildOutboxQuery } from '../utils/sync_engine.js';
+import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleOneOnOne(request, env, origin) {
   const user = await authenticate(request, env);
@@ -81,7 +83,7 @@ async function list(request, env, origin) {
   const status = url.searchParams.get('status') || '';
   const search = url.searchParams.get('search') || '';
 
-  let conditions = [];
+  let conditions = ['o.deleted_at IS NULL'];
   let values = [];
   if (branch_id) { conditions.push('o.branch_id = ?'); values.push(branch_id); }
   if (status) { conditions.push('o.status = ?'); values.push(status); }
@@ -121,11 +123,18 @@ async function create(request, env, origin) {
   }
 
   const result = await env.DB.prepare(
-    'INSERT INTO one_on_one (meeting_date, branch_id, employee_name, pic, problem, solution, status, completion_date, day_count, document_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    "INSERT INTO one_on_one (meeting_date, branch_id, employee_name, pic, problem, solution, status, completion_date, day_count, document_link, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'FCMS')"
   ).bind(meeting_date, branch_id || null, employee_name, pic || null, problem,
     solution || null, status !== null && status !== undefined && status !== '' ? status : '', completion_date || null, day_count, document_link || null).run();
 
-  return ok({ id: result.meta.last_row_id }, 201, origin);
+  const newId = result.meta.last_row_id;
+  const newRecord = await env.DB.prepare('SELECT * FROM one_on_one WHERE id = ?').bind(newId).first();
+  if (newRecord) {
+    const payload = mapDBToPayload('One on One', newRecord);
+    await buildOutboxQuery(env, 'One on One', newId, 'INSERT', payload).run();
+  }
+
+  return ok({ id: newId }, 201, origin);
 }
 
 async function update(id, request, env, origin) {
@@ -140,20 +149,31 @@ async function update(id, request, env, origin) {
   let day_count = existing.day_count;
   if (rd && cd) day_count = Math.floor((new Date(cd) - new Date(rd)) / (1000 * 60 * 60 * 24));
 
-  await env.DB.prepare(
-    `UPDATE one_on_one SET meeting_date = COALESCE(?, meeting_date), branch_id = COALESCE(?, branch_id),
-     employee_name = COALESCE(?, employee_name), pic = COALESCE(?, pic), problem = COALESCE(?, problem),
-     solution = COALESCE(?, solution), status = COALESCE(?, status), completion_date = COALESCE(?, completion_date),
-     day_count = ?, document_link = COALESCE(?, document_link), updated_at = datetime('now') WHERE id = ?`
-  ).bind(meeting_date || null, branch_id || null, employee_name || null, pic || null, problem || null,
-    solution || null, status !== null && status !== undefined && status !== '' ? status : '', completion_date || null, day_count, document_link || null, id).run();
+  const updatedRecord = { ...existing, meeting_date: meeting_date || existing.meeting_date, branch_id: branch_id || existing.branch_id, employee_name: employee_name || existing.employee_name, pic: pic || existing.pic, problem: problem || existing.problem, solution: solution || existing.solution, status: status !== null && status !== undefined && status !== '' ? status : existing.status, completion_date: completion_date || existing.completion_date, day_count, document_link: document_link || existing.document_link };
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE one_on_one SET meeting_date = COALESCE(?, meeting_date), branch_id = COALESCE(?, branch_id),
+       employee_name = COALESCE(?, employee_name), pic = COALESCE(?, pic), problem = COALESCE(?, problem),
+       solution = COALESCE(?, solution), status = COALESCE(?, status), completion_date = COALESCE(?, completion_date),
+       day_count = ?, document_link = COALESCE(?, document_link), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`
+    ).bind(meeting_date || null, branch_id || null, employee_name || null, pic || null, problem || null,
+      solution || null, status !== null && status !== undefined && status !== '' ? status : '', completion_date || null, day_count, document_link || null, id),
+    buildOutboxQuery(env, 'One on One', id, 'UPDATE', mapDBToPayload('One on One', updatedRecord))
+  ]);
 
   return ok({ message: 'Updated' }, 200, origin);
 }
 
 async function remove(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT id FROM one_on_one WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM one_on_one WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  await env.DB.prepare('DELETE FROM one_on_one WHERE id = ?').bind(id).run();
+  
+  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE one_on_one SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id),
+    buildOutboxQuery(env, 'One on One', id, 'DELETE', mapDBToPayload('One on One', deletedRecord))
+  ]);
+  
   return ok({ message: 'Deleted' }, 200, origin);
 }

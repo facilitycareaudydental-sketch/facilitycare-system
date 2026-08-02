@@ -13,6 +13,7 @@
     "wrangler": "^3.78.0"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "papaparse": "^5.5.4"
   }
 }

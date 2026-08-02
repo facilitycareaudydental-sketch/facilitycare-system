@@ -1,6 +1,8 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { buildOutboxQuery } from '../utils/sync_engine.js';
+import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleTraining(request, env, origin) {
   const user = await authenticate(request, env);
@@ -80,7 +82,7 @@ async function list(request, env, origin) {
   const search = url.searchParams.get('search') || '';
   const year = url.searchParams.get('year') || '';
 
-  let conditions = [];
+  let conditions = ['t.deleted_at IS NULL'];
   let values = [];
   if (search) { conditions.push('(t.subject LIKE ? OR t.trainer LIKE ? OR t.participants LIKE ?)'); values.push(`%${search}%`, `%${search}%`, `%${search}%`); }
   if (year) { conditions.push("strftime('%Y', t.training_date) = ?"); values.push(year); }
@@ -116,11 +118,18 @@ async function create(request, env, origin) {
   const participantsStr = Array.isArray(participants) ? JSON.stringify(participants) : (participants || null);
 
   const result = await env.DB.prepare(
-    'INSERT INTO training (training_date, batch, subject, participants, branch_id, trainer, score, notes, document_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    "INSERT INTO training (training_date, batch, subject, participants, branch_id, trainer, score, notes, document_link, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'FCMS')"
   ).bind(training_date, batch || null, subject, participantsStr, branch_id || null,
     trainer || null, score || null, notes || null, document_link || null).run();
 
-  return ok({ id: result.meta.last_row_id }, 201, origin);
+  const newId = result.meta.last_row_id;
+  const newRecord = await env.DB.prepare('SELECT * FROM training WHERE id = ?').bind(newId).first();
+  if (newRecord) {
+    const payload = mapDBToPayload('Training', newRecord);
+    await buildOutboxQuery(env, 'Training', newId, 'INSERT', payload).run();
+  }
+
+  return ok({ id: newId }, 201, origin);
 }
 
 async function update(id, request, env, origin) {
@@ -132,21 +141,31 @@ async function update(id, request, env, origin) {
   const { training_date, batch, subject, participants, branch_id, trainer, score, notes, document_link } = body;
   const participantsStr = Array.isArray(participants) ? JSON.stringify(participants) : (participants || null);
 
-  await env.DB.prepare(
-    `UPDATE training SET training_date = COALESCE(?, training_date), batch = COALESCE(?, batch),
-     subject = COALESCE(?, subject), participants = COALESCE(?, participants),
-     branch_id = COALESCE(?, branch_id), trainer = COALESCE(?, trainer),
-     score = COALESCE(?, score), notes = COALESCE(?, notes),
-     document_link = COALESCE(?, document_link), updated_at = datetime('now') WHERE id = ?`
-  ).bind(training_date || null, batch || null, subject || null, participantsStr,
-    branch_id || null, trainer || null, score || null, notes || null, document_link || null, id).run();
+  const updatedRecord = { ...existing, training_date: training_date || existing.training_date, batch: batch || existing.batch, subject: subject || existing.subject, participants: participantsStr !== null ? participantsStr : existing.participants, branch_id: branch_id || existing.branch_id, trainer: trainer || existing.trainer, score: score || existing.score, notes: notes || existing.notes, document_link: document_link || existing.document_link };
+  
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE training SET training_date = COALESCE(?, training_date), batch = COALESCE(?, batch),
+       subject = COALESCE(?, subject), participants = COALESCE(?, participants),
+       branch_id = COALESCE(?, branch_id), trainer = COALESCE(?, trainer),
+       score = COALESCE(?, score), notes = COALESCE(?, notes),
+       document_link = COALESCE(?, document_link), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`
+    ).bind(training_date || null, batch || null, subject || null, participantsStr,
+      branch_id || null, trainer || null, score || null, notes || null, document_link || null, id),
+    buildOutboxQuery(env, 'Training', id, 'UPDATE', mapDBToPayload('Training', updatedRecord))
+  ]);
 
   return ok({ message: 'Updated' }, 200, origin);
 }
 
 async function remove(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT id FROM training WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM training WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  await env.DB.prepare('DELETE FROM training WHERE id = ?').bind(id).run();
+  
+  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE training SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id),
+    buildOutboxQuery(env, 'Training', id, 'DELETE', mapDBToPayload('Training', deletedRecord))
+  ]);
   return ok({ message: 'Deleted' }, 200, origin);
 }

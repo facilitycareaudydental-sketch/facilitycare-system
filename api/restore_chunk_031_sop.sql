@@ -1,0 +1,2 @@
+INSERT INTO "sop" ("id","name","category","document_link","version","effective_date","notes","created_at","updated_at") VALUES(1,'SOP Keseluruhan','Ketentuan & Basic','https://docs.google.com/document/d/1sxCDfkFkTtZAnnE5_oy7uIymOggsA38y-Vp5TnkC-NY/edit?tab=t.0',NULL,NULL,NULL,'2026-07-15 06:16:18','2026-07-15 06:16:18');
+INSERT INTO "sop" ("id","name","category","document_link","version","effective_date","notes","created_at","updated_at") VALUES(10,'Standart','Kualitas & Grooming',NULL,NULL,NULL,NULL,'2026-07-18 23:03:54','2026-07-18 23:03:54');

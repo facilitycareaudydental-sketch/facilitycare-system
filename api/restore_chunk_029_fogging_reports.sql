@@ -1,0 +1,2 @@
+INSERT INTO "fogging_reports" ("id","branch_id","activity_type","period","activity_date","status","document_link","notes","created_at","updated_at") VALUES(1,19,'Fogging','Q3','2026-07-04','Done',NULL,'Fogging Harapan Indah','2026-07-16 22:13:14','2026-07-16 22:13:14');
+INSERT INTO "fogging_reports" ("id","branch_id","activity_type","period","activity_date","status","document_link","notes","created_at","updated_at") VALUES(2,56,'Fogging','Q3','2026-07-10','Done',NULL,'Fogging Gajah Mada','2026-07-16 22:14:59','2026-07-16 22:14:59');

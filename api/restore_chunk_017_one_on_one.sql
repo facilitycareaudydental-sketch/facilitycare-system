@@ -1,0 +1,1 @@
+INSERT INTO "one_on_one" ("id","meeting_date","branch_id","employee_name","pic","problem","solution","status","completion_date","day_count","document_link","created_at","updated_at") VALUES(1,'2026-07-01',NULL,'-',NULL,'Terlambat mengisi checksheet toilet 2 kali.','Berkomitmen check toilet tiap 2 jam.','Open','2026-07-08',7,NULL,'2026-07-20 14:41:54','2026-07-20 14:41:54');

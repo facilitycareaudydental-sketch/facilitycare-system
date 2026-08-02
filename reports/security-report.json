@@ -1,0 +1,6 @@
+{
+  "hmac": "PASS",
+  "sql_injection": "PASS",
+  "payload_tampering": "PASS",
+  "xss": "PASS"
+}

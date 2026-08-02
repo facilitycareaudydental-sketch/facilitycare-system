@@ -64,6 +64,8 @@ export async function handleImport(request, env, origin) {
       case '/basecamp':     return importBasecamp(rows, onDuplicate, env, origin);
       case '/supply':       return importSupply(rows, onDuplicate, env, origin);
       case '/validation':   return importValidation(rows, onDuplicate, env, origin);
+      case '/sp':           return importSP(rows, onDuplicate, env, origin);
+      case '/mutasi':       return importMutasi(rows, onDuplicate, env, origin);
       default:              return error('Unknown import module', 404, origin);
     }
   } catch (err) {
@@ -1261,3 +1263,62 @@ async function triggerCalendarSync(env, origin) {
 
   return ok({ message: `Berhasil sinkronisasi ${allStmts.length} event kalender dari data lama.` }, 200, origin);
 }
+
+async function importSP(rows, onDuplicate, env, origin) {
+  if (rows.length === 0) return ok({ message: 'No data' }, 200, origin);
+  const stmts = [];
+  let inserted = 0, updated = 0;
+
+  for (const item of rows) {
+    if (!item.tanggal || !item.employee_name || !item.branch_id || !item.sp_type) continue;
+    const status = item.status || 'Aktif';
+
+    if (onDuplicate === 'update') {
+      const existing = await env.DB.prepare('SELECT id FROM sp_data WHERE branch_id = ? AND tanggal = ? AND lower(employee_name) = ? AND lower(sp_type) = ? LIMIT 1').bind(
+        item.branch_id, item.tanggal, item.employee_name.toLowerCase().trim(), item.sp_type.toLowerCase().trim()
+      ).first();
+
+      if (existing) {
+        stmts.push(env.DB.prepare('UPDATE sp_data SET status = ?, document_link = ? WHERE id = ?').bind(status, item.document_link || null, existing.id));
+        updated++;
+        continue;
+      }
+    }
+    stmts.push(env.DB.prepare('INSERT INTO sp_data (tanggal, employee_name, branch_id, sp_type, status, document_link) VALUES (?, ?, ?, ?, ?, ?)').bind(
+      item.tanggal, item.employee_name, item.branch_id, item.sp_type, status, item.document_link || null
+    ));
+    inserted++;
+  }
+  if (stmts.length > 0) await env.DB.batch(stmts);
+  return ok({ message: 'Berhasil import SP', inserted, updated }, 200, origin);
+}
+
+async function importMutasi(rows, onDuplicate, env, origin) {
+  if (rows.length === 0) return ok({ message: 'No data' }, 200, origin);
+  const stmts = [];
+  let inserted = 0, updated = 0;
+
+  for (const item of rows) {
+    if (!item.tanggal || !item.employee_name || !item.from_branch_id || !item.to_branch_id) continue;
+    const status = item.status || 'Proses';
+
+    if (onDuplicate === 'update') {
+      const existing = await env.DB.prepare('SELECT id FROM mutasi_data WHERE tanggal = ? AND lower(employee_name) = ? AND from_branch_id = ? AND to_branch_id = ? LIMIT 1').bind(
+        item.tanggal, item.employee_name.toLowerCase().trim(), item.from_branch_id, item.to_branch_id
+      ).first();
+
+      if (existing) {
+        stmts.push(env.DB.prepare('UPDATE mutasi_data SET status = ?, document_link = ? WHERE id = ?').bind(status, item.document_link || null, existing.id));
+        updated++;
+        continue;
+      }
+    }
+    stmts.push(env.DB.prepare('INSERT INTO mutasi_data (tanggal, employee_name, from_branch_id, to_branch_id, status, document_link) VALUES (?, ?, ?, ?, ?, ?)').bind(
+      item.tanggal, item.employee_name, item.from_branch_id, item.to_branch_id, status, item.document_link || null
+    ));
+    inserted++;
+  }
+  if (stmts.length > 0) await env.DB.batch(stmts);
+  return ok({ message: 'Berhasil import Mutasi', inserted, updated }, 200, origin);
+}
+

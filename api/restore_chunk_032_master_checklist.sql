@@ -1,0 +1,2 @@
+INSERT INTO "master_checklist" ("id","name","category","document_link","description","created_at","updated_at") VALUES(2,'Master Claning Program','Umum',NULL,NULL,'2026-07-20 14:41:55','2026-07-20 14:41:55');
+INSERT INTO "master_checklist" ("id","name","category","document_link","description","created_at","updated_at") VALUES(3,'Toilet','Umum','https://docs.google.com/spreadsheets/d/1euLGRgPPJMueZhnx_gDKCJQ2LPPVyDtb/edit?gid=1966419973#gid=1966419973',NULL,'2026-07-20 14:41:55','2026-07-20 14:41:55');

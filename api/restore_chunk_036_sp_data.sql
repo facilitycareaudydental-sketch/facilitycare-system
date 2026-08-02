@@ -1,0 +1,3 @@
+INSERT INTO "sp_data" ("id","tanggal","employee_name","branch_id","sp_type","status","document_link","created_at","division","akhir_sp") VALUES(3,'2024-03-21','M. FIRMANSYAH',26,'SP 2','',NULL,'2026-07-22 17:23:43','FACILITY CARE','2024-09-20');
+INSERT INTO "sp_data" ("id","tanggal","employee_name","branch_id","sp_type","status","document_link","created_at","division","akhir_sp") VALUES(4,'2025-04-10','Andri',2,'SP 1','',NULL,'2026-07-22 17:23:43','FACILITY CARE','2025-10-09');
+INSERT INTO "sp_data" ("id","tanggal","employee_name","branch_id","sp_type","status","document_link","created_at","division","akhir_sp") VALUES(5,'2025-08-19','Teguh Ariyandi',19,'SP 1','',NULL,'2026-07-22 17:23:43','FACILITY CARE','2026-02-18');

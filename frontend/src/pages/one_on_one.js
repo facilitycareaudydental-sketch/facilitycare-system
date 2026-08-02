@@ -129,7 +129,10 @@ export async function renderOneOnOne(container, params) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.meeting_date && r.employee_name && r.branch_id);
         
-        const res = await apiFetch('/api/one-on-one/import', { method: 'POST', body: JSON.stringify(payload) });
+        const res = await apiFetch('/api/import/one_on_one', {
+          method: 'POST',
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+        });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }
     },

@@ -201,7 +201,7 @@ async function importContracts(request, env, origin) {
     const countBefore = countBeforeRes.c;
     
     for (const item of body) {
-      if (!item.employee_id || !item.start_date || !item.end_date) continue;
+      if (!item.employee_id) continue;
 
       const existing = await env.DB.prepare('SELECT id FROM contracts WHERE employee_id = ? ORDER BY id DESC LIMIT 1').bind(item.employee_id).first();
       

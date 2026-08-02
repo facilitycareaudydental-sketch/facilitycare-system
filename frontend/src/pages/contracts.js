@@ -41,11 +41,7 @@ export function filterDashboardItem(s, type) {
     if (status !== 'aktif') return false;
     
     if (type === 'active') {
-      if (!s.end_date) return false;
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const end = new Date(s.end_date + 'T00:00:00');
-      return end >= today;
+      return true; // TAMPILKAN SEMUA KONTRAK AKTIF WALAUPUN EXPIRED
     }
     
     if (type === 'expiring30') {
@@ -336,12 +332,10 @@ export async function renderContracts(container, params) {
           let reason = null;
           if (!empId) {
              reason = `Karyawan tidak ditemukan di Database`;
-          } else if (!parsedStartDate) {
-             reason = `Tanggal Mulai kosong atau tidak berformat tanggal`;
           }
 
           return {
-            isValid: !!(empId && parsedStartDate),
+            isValid: !!(empId),
             invalidReason: reason,
             rowNum: rowNum,
             data: {
@@ -383,9 +377,9 @@ export async function renderContracts(container, params) {
            return;
         }
         
-        const res = await apiFetch('/api/contracts/import', {
+        const res = await apiFetch('/api/import/contracts', {
           method: 'POST',
-          body: JSON.stringify(validPayload)
+          body: JSON.stringify({ rows: validPayload, onDuplicate: 'update' })
         });
         
         let summary = `IMPORT SUMMARY\n======================\n`;
@@ -408,8 +402,6 @@ export async function renderContracts(container, params) {
         }
         
         alert(summary);
-        
-        if (typeof renderContracts === 'function') renderContracts();
       }
     }
   });

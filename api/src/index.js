@@ -24,6 +24,7 @@ import { handleSP } from './routes/sp.js';
 import { handleMutasi } from './routes/mutasi.js';
 import { syncGoogleSheets } from './utils/google_sync.js';
 import { receiveWebhook, processOutbox } from './utils/sync_engine.js';
+import { handleMonitoring } from './routes/monitoring.js';
 import { options, error, ok, forbidden } from './utils/response.js';
 import { authenticate, hasPermission } from './utils/auth.js';
 
@@ -113,23 +114,23 @@ export default {
         }
       }
 
-      if (path.startsWith('/api/auth')) return handleAuth(request, env, origin);
-      if (path.startsWith('/api/users')) return handleUsers(request, env, origin);
-      if (path.startsWith('/api/branches')) return handleBranches(request, env, origin);
-      if (path.startsWith('/api/employees')) return handleEmployees(request, env, origin);
-      if (path.startsWith('/api/contracts')) return handleContracts(request, env, origin);
-      if (path.startsWith('/api/schedule')) return handleSchedule(request, env, origin);
-      if (path.startsWith('/api/issues')) return handleIssues(request, env, origin);
-      if (path.startsWith('/api/one-on-one')) return handleOneOnOne(request, env, origin);
-      if (path.startsWith('/api/training')) return handleTraining(request, env, origin);
-      if (path.startsWith('/api/relievers')) return handleRelievers(request, env, origin);
-      if (path.startsWith('/api/reports')) return handleReports(request, env, origin);
-      if (path === '/api/dashboard/debug-56') return handleDebug56(request, env, origin);
-      if (path === '/api/dashboard/reliever-audit') return handleRelieverAudit(request, env, origin);
-      if (path.startsWith('/api/dashboard')) return handleDashboard(request, env, origin);
-      if (path.startsWith('/api/import')) return handleImport(request, env, origin);
-      if (path.startsWith('/api/sp')) return handleSP(request, env, origin);
-      if (path.startsWith('/api/mutasi')) return handleMutasi(request, env, origin);
+      if (path.startsWith('/api/auth')) return await handleAuth(request, env, origin);
+      if (path.startsWith('/api/users')) return await handleUsers(request, env, origin);
+      if (path.startsWith('/api/branches')) return await handleBranches(request, env, origin);
+      if (path.startsWith('/api/employees')) return await handleEmployees(request, env, origin);
+      if (path.startsWith('/api/contracts')) return await handleContracts(request, env, origin);
+      if (path.startsWith('/api/schedule')) return await handleSchedule(request, env, origin);
+      if (path.startsWith('/api/issues')) return await handleIssues(request, env, origin);
+      if (path.startsWith('/api/one-on-one')) return await handleOneOnOne(request, env, origin);
+      if (path.startsWith('/api/training')) return await handleTraining(request, env, origin);
+      if (path.startsWith('/api/relievers')) return await handleRelievers(request, env, origin);
+      if (path.startsWith('/api/reports')) return await handleReports(request, env, origin);
+      if (path === '/api/dashboard/debug-56') return await handleDebug56(request, env, origin);
+      if (path === '/api/dashboard/reliever-audit') return await handleRelieverAudit(request, env, origin);
+      if (path.startsWith('/api/dashboard')) return await handleDashboard(request, env, origin);
+      if (path.startsWith('/api/import')) return await handleImport(request, env, origin);
+      if (path.startsWith('/api/sp')) return await handleSP(request, env, origin);
+      if (path.startsWith('/api/mutasi')) return await handleMutasi(request, env, origin);
       
       // Manual sync trigger
       if (path === '/api/emergency-fix-dates' && request.method === 'GET') {
@@ -157,6 +158,10 @@ export default {
 
       if (path === '/api/sync/webhook' && request.method === 'POST') {
         return await receiveWebhook(request, env);
+      }
+
+      if (path.startsWith('/api/sync/health') || path.startsWith('/api/sync/status') || path.startsWith('/api/sync/queue') || path.startsWith('/api/sync/metrics') || path.startsWith('/api/sync/errors')) {
+        return handleMonitoring(request, env, origin);
       }
 
       if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || 

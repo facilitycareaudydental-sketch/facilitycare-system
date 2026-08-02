@@ -1,0 +1,1 @@
+INSERT INTO "training" ("id","training_date","batch","subject","participants","branch_id","trainer","score","notes","document_link","created_at","updated_at") VALUES(2,'2026-06-10',NULL,'Safety Chemical Handling',NULL,NULL,NULL,92,NULL,NULL,'2026-07-15 09:44:11','2026-07-15 09:44:11');

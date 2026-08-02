@@ -192,9 +192,9 @@ export async function renderSchedule(container, params) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.activity_type && row.period);
         
-        const res = await apiFetch('/api/schedule/import', {
+        const res = await apiFetch('/api/import/schedule', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }

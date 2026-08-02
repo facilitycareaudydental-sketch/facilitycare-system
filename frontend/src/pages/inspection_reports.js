@@ -73,7 +73,7 @@ export async function renderInspectionReports(container) {
       },
       onTemplate: () => {
         const template = [
-          { 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Point FC': 85, 'Point SPV': 90, 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...' }
+          { 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Point FC': 85, 'Point SPV': 90, 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...', 'Catatan': '' }
         ];
         downloadExcel(template, 'Template_Import_Inspeksi');
       },
@@ -118,9 +118,9 @@ export async function renderInspectionReports(container) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.branch_id && row.period && row.inspection_date);
         
-        const res = await apiFetch('/api/reports/inspection/import', {
+        const res = await apiFetch('/api/import/inspection', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }

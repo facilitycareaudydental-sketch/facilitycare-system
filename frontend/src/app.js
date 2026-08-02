@@ -57,6 +57,7 @@ import { renderProfile } from './pages/profile.js';
 import { renderImportPage } from './pages/import.js';
 import { renderSP } from './pages/sp.js';
 import { renderMutasi } from './pages/mutasi.js';
+import { renderSyncDashboard } from './pages/sync_dashboard.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
@@ -475,6 +476,7 @@ async function init() {
   registerRoute('/contracts',          requireAuth(({ main, params }) => renderContracts(main, params)));
   registerRoute('/sp',                 requireAuth(({ main }) => renderSP(main)));
   registerRoute('/mutasi',             requireAuth(({ main }) => renderMutasi(main)));
+  registerRoute('/sync-dashboard',     requireAuth(({ main }) => renderSyncDashboard(main)));
   registerRoute('/timeline',           requireAuth(({ main, params }) => renderSchedule(main, params)));
   registerRoute('/issues',             requireAuth(({ main, params }) => renderIssues(main, params)));
   registerRoute('/one-on-one',         requireAuth(({ main, params }) => renderOneOnOne(main, params)));

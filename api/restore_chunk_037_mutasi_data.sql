@@ -1,0 +1,3 @@
+INSERT INTO "mutasi_data" ("id","tanggal","employee_name","from_branch_id","to_branch_id","status","document_link","created_at") VALUES(1,'2026-06-23','Widya Astuti',2,8,'Selesai',NULL,'2026-07-21 15:13:02');
+INSERT INTO "mutasi_data" ("id","tanggal","employee_name","from_branch_id","to_branch_id","status","document_link","created_at") VALUES(2,'2026-06-22','Ahmad Farhan',2,63,'Selesai',NULL,'2026-07-21 15:13:46');
+INSERT INTO "mutasi_data" ("id","tanggal","employee_name","from_branch_id","to_branch_id","status","document_link","created_at") VALUES(3,'2026-06-22','Gema Azan Saputra',2,22,'Selesai',NULL,'2026-07-21 15:14:22');

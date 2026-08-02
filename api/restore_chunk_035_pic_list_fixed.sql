@@ -1,0 +1,13 @@
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(243,'Berlin Ariansyah','FC Spesialis',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(244,'SPV','Pelapor',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(245,'Ade Surahman','FC Spesialis',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(246,'AM','Pelapor',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(247,'Miswar','FC Spesialis',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(248,'RCP','Pelapor',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(249,'Fajar','FC Spesialis',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(250,'Perawat','Pelapor',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(251,'FC','Pelapor',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(252,'Berlin','Pelapor',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(253,'Ade','Pelapor',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(254,'Pattrel','Pelapor',1);
+INSERT OR IGNORE INTO "pic_list" ("id","name","role","is_active") VALUES(255,'Dentrel','Pelapor',1);

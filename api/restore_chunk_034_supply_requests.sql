@@ -1,0 +1,1 @@
+INSERT INTO "supply_requests" ("id","submitted_at","submitter_name","branch_id","branch_name","tools_items","tools_quantity","chemical_items","chemical_quantity","additional_notes","status","processed_by","processed_at") VALUES(1,'2026-07-13','-',19,'018. Harapan Indah','Mop set','2','New complite','3','Pergantian general cleaning','Pending',NULL,NULL);

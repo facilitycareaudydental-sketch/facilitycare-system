@@ -92,7 +92,7 @@ export async function renderSP(container) {
           document_link: String(row['Link Document / Foto'] || '').trim(),
         })).filter(r => r.employee_name && r.branch_id);
         
-        const res = await apiFetch('/api/sp/import', { method: 'POST', body: JSON.stringify(payload) });
+        const res = await apiFetch('/api/import/sp', { method: 'POST', body: JSON.stringify({ rows: payload, onDuplicate: 'update' }) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }
     },

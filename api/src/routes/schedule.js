@@ -2,6 +2,8 @@ import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
 import { runSync } from '../utils/calendar.js';
+import { buildOutboxQuery } from '../utils/sync_engine.js';
+import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleSchedule(request, env, origin) {
   const user = await authenticate(request, env);
@@ -45,7 +47,7 @@ async function listSchedule(request, env, origin) {
   const status = url.searchParams.get('status') || '';
   const pic = url.searchParams.get('pic') || '';
 
-  let conditions = [];
+  let conditions = ['s.deleted_at IS NULL'];
   let values = [];
   if (branch_id) { conditions.push('s.branch_id = ?'); values.push(branch_id); }
   if (activity_type) { conditions.push('s.activity_type = ?'); values.push(activity_type); }
@@ -82,11 +84,17 @@ async function createSchedule(request, env, origin) {
   if (!activity_type || !period) return error('activity_type and period required', 400, origin);
 
   const result = await env.DB.prepare(
-    'INSERT INTO activity_schedule (branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    "INSERT INTO activity_schedule (branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'FCMS')"
   ).bind(branch_id || null, activity_type, period, pic || null, opening_date || null,
     target_date || null, completion_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
 
   const newId = result.meta.last_row_id;
+  
+  const newRecord = await env.DB.prepare('SELECT * FROM activity_schedule WHERE id = ?').bind(newId).first();
+  if (newRecord) {
+    const payload = mapDBToPayload('Time Line', newRecord);
+    await buildOutboxQuery(env, 'Time Line', newId, 'INSERT', payload).run();
+  }
   try {
     await runSync(env.DB, 'schedule', newId, {
       activity_type, period, pic, target_date, status: status !== null && status !== undefined && status !== '' ? status : '', branch_id, notes
@@ -102,18 +110,22 @@ async function updateSchedule(id, request, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM activity_schedule WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
 
-  const { branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes } = body;
-  await env.DB.prepare(
-    `UPDATE activity_schedule SET
-      branch_id = COALESCE(?, branch_id), activity_type = COALESCE(?, activity_type),
-      period = COALESCE(?, period), pic = COALESCE(?, pic),
-      opening_date = COALESCE(?, opening_date), target_date = COALESCE(?, target_date),
-      completion_date = COALESCE(?, completion_date), status = COALESCE(?, status),
-      notes = COALESCE(?, notes), updated_at = datetime('now')
-     WHERE id = ?`
-  ).bind(branch_id || null, activity_type || null, period || null, pic || null,
-    opening_date || null, target_date || null, completion_date || null,
-    status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
+  const updatedRecord = { ...existing, branch_id: branch_id || existing.branch_id, activity_type: activity_type || existing.activity_type, period: period || existing.period, pic: pic || existing.pic, opening_date: opening_date || existing.opening_date, target_date: target_date || existing.target_date, completion_date: completion_date || existing.completion_date, status: status !== null && status !== undefined && status !== '' ? status : existing.status, notes: notes || existing.notes };
+  
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE activity_schedule SET
+        branch_id = COALESCE(?, branch_id), activity_type = COALESCE(?, activity_type),
+        period = COALESCE(?, period), pic = COALESCE(?, pic),
+        opening_date = COALESCE(?, opening_date), target_date = COALESCE(?, target_date),
+        completion_date = COALESCE(?, completion_date), status = COALESCE(?, status),
+        notes = COALESCE(?, notes), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS'
+       WHERE id = ?`
+    ).bind(branch_id || null, activity_type || null, period || null, pic || null,
+      opening_date || null, target_date || null, completion_date || null,
+      status !== null && status !== undefined && status !== '' ? status : '', notes || null, id),
+    buildOutboxQuery(env, 'Time Line', id, 'UPDATE', mapDBToPayload('Time Line', updatedRecord))
+  ]);
 
   const updated = await env.DB.prepare('SELECT * FROM activity_schedule WHERE id = ?').bind(id).first();
   if (updated) {
@@ -124,9 +136,15 @@ async function updateSchedule(id, request, env, origin) {
 }
 
 async function deleteSchedule(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT id FROM activity_schedule WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM activity_schedule WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  await env.DB.prepare('DELETE FROM activity_schedule WHERE id = ?').bind(id).run();
+  
+  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE activity_schedule SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id),
+    buildOutboxQuery(env, 'Time Line', id, 'DELETE', mapDBToPayload('Time Line', deletedRecord))
+  ]);
+  
   try { await runSync(env.DB, 'schedule', id, null); } catch (e) { /* non-fatal */ }
   return ok({ message: 'Schedule deleted' }, 200, origin);
 }

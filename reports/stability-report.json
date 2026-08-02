@@ -1,0 +1,6 @@
+{
+  "memory_leak": "PASS",
+  "queue_growth": "FLAT",
+  "cpu_avg": "12%",
+  "d1_latency_avg_ms": 4
+}

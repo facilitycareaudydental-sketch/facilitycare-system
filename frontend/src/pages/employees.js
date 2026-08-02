@@ -114,9 +114,9 @@ export async function renderEmployees(container, params) {
           notes: String(row['Catatan'] || '').trim(),
         })).filter(row => row.full_name);
         
-        const res = await apiFetch('/api/employees/import', {
+        const res = await apiFetch('/api/import/employees', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }

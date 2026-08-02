@@ -1,0 +1,1 @@
+﻿CREATE TABLE IF NOT EXISTS circuit_breaker (id INTEGER PRIMARY KEY, state TEXT DEFAULT 'CLOSED', failure_count INTEGER DEFAULT 0, last_failure_at DATETIME, next_attempt_at DATETIME); INSERT OR IGNORE INTO circuit_breaker (id, state, failure_count) VALUES (1, 'CLOSED', 0);

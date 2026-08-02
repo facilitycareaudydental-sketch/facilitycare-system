@@ -5,6 +5,7 @@ import { mapPayloadToDB } from './sync_mapper.js';
  * Handle incoming Webhook from Google Apps Script (Sheets -> FCMS)
  */
 export async function receiveWebhook(request, env) {
+  const startTime = Date.now();
   try {
     const authHeader = request.headers.get('Authorization');
     const signatureHeader = request.headers.get('X-FCMS-SIGNATURE');
@@ -28,8 +29,6 @@ export async function receiveWebhook(request, env) {
         'raw', encoder.encode(env.SYNC_WEBHOOK_SECRET),
         { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
       );
-      // Expected signature is hex, we need to convert it to array buffer or convert crypto result to hex
-      // Alternatively, compute our own HMAC and compare hex strings
       const computedBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(payloadText));
       const computedHex = Array.from(new Uint8Array(computedBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
       if (computedHex !== signatureHeader) {
@@ -37,7 +36,7 @@ export async function receiveWebhook(request, env) {
       }
     }
 
-    const { event_id, sheet_name, action, data, payload_version } = payload;
+    const { event_id, sheet_name, action, data, payload_version, correlation_id } = payload;
 
     // Validation Layer
     if (payload_version !== '1.0') {
@@ -55,10 +54,13 @@ export async function receiveWebhook(request, env) {
     }
 
     // 2. Route webhook to generic handler
-    await handleGenericWebhook(env, sheet_name, action, data, payload_version);
+    await handleGenericWebhook(env, sheet_name, action, data, payload_version, correlation_id);
 
     // Mark as processed
     await env.DB.prepare('INSERT INTO sync_idempotency (event_id) VALUES (?)').bind(event_id).run();
+
+    const duration = Date.now() - startTime;
+    await env.DB.prepare('INSERT INTO sync_metrics (event_id, action, module, webhook_duration_ms, correlation_id) VALUES (?, ?, ?, ?, ?)').bind(event_id, action, sheet_name, duration, correlation_id || null).run();
 
     return ok({ message: 'Webhook received successfully', event_id }, 200);
   } catch (err) {
@@ -73,7 +75,69 @@ export async function receiveWebhook(request, env) {
  */
 export async function processOutbox(env) {
   console.log('Starting Outbox Sweeper...');
+  const workerId = crypto.randomUUID();
+  const leaseToken = crypto.randomUUID();
+  
   try {
+    // 0a. Distributed Lock Hardening (Lease Lock)
+    await env.DB.prepare("DELETE FROM sync_locks WHERE lease_until < datetime('now')").run();
+    
+    const lock = await env.DB.prepare(`
+      INSERT INTO sync_locks (lock_id, worker_id, lease_token, lease_until, heartbeat_at) 
+      VALUES ('outbox_sweeper', ?, ?, datetime('now', '+2 minutes'), datetime('now'))
+      ON CONFLICT(lock_id) DO NOTHING
+    `).bind(workerId, leaseToken).run();
+    
+    if (lock.meta.changes === 0) {
+      console.log('Another worker holds the outbox lease lock. Exiting.');
+      return;
+    }
+
+    const extendLease = async () => {
+      const res = await env.DB.prepare(`
+        UPDATE sync_locks 
+        SET lease_until = datetime('now', '+2 minutes'), heartbeat_at = datetime('now'), updated_at = datetime('now')
+        WHERE lock_id = 'outbox_sweeper' AND lease_token = ?
+      `).bind(leaseToken).run();
+      if (res.meta.changes === 0) throw new Error('FENCING_TOKEN_EXPIRED');
+    };
+
+    // 0b. Circuit Breaker Check
+    const cb = await env.DB.prepare('SELECT * FROM circuit_breaker WHERE id = 1').first();
+    if (cb && cb.state === 'OPEN') {
+      const now = new Date();
+      const nextAttempt = cb.next_attempt_at ? new Date(cb.next_attempt_at) : new Date(0);
+      if (now < nextAttempt) {
+        console.log('Circuit Breaker is OPEN. Skipping outbox processing.');
+        return;
+      } else {
+        console.log('Circuit Breaker transitioning to HALF_OPEN.');
+        await env.DB.prepare(`UPDATE circuit_breaker SET state = 'HALF_OPEN', updated_at = datetime('now') WHERE id = 1`).run();
+        await env.DB.prepare(`INSERT INTO audit_logs (action, module, details) VALUES ('CIRCUIT_BREAKER', 'Outbox', 'State changed to HALF_OPEN')`).run();
+      }
+    }
+
+    // 0c. PROCESSING Recovery (Stuck Events)
+    const stuckTimeoutMinutes = env.SYNC_STUCK_TIMEOUT || 5;
+    const stuckEvents = await env.DB.prepare(`
+      SELECT id FROM sync_outbox 
+      WHERE status = 'PROCESSING' AND updated_at < datetime('now', '-${stuckTimeoutMinutes} minutes')
+    `).all();
+    
+    if (stuckEvents.results && stuckEvents.results.length > 0) {
+      const ids = stuckEvents.results.map(e => e.id);
+      const placeholders = ids.map(() => '?').join(',');
+      await env.DB.batch([
+        env.DB.prepare(`
+          UPDATE sync_outbox 
+          SET status = 'PENDING', retry_count = retry_count + 1, updated_at = datetime('now'), last_error = 'Recovered from stuck processing (Timeout/Crash)'
+          WHERE id IN (${placeholders})
+        `).bind(...ids),
+        env.DB.prepare(`INSERT INTO audit_logs (action, module, details) VALUES ('PROCESSING_RECOVERY', 'Outbox', 'Recovered ${ids.length} stuck events')`)
+      ]);
+      console.log(`Recovered ${ids.length} stuck events to PENDING.`);
+    }
+
     // 1. Fetch pending or failed (but ready for retry) events
     const batchSize = env.SYNC_BATCH_SIZE || 50;
     const query = `
@@ -103,7 +167,6 @@ export async function processOutbox(env) {
       'Jadwal Reliefer': 9
     };
     
-    // Sort pending events based on dependency ranking, then by created_at
     pendingEvents.sort((a, b) => {
       const rankA = orderGraph[a.entity_name] || 99;
       const rankB = orderGraph[b.entity_name] || 99;
@@ -113,7 +176,6 @@ export async function processOutbox(env) {
 
     console.log(`Found ${pendingEvents.length} events to process.`);
 
-    // 2. Pessimistic Lock: Claim these events
     const idsToProcess = pendingEvents.map(e => e.id);
     const placeholders = idsToProcess.map(() => '?').join(',');
     
@@ -123,43 +185,42 @@ export async function processOutbox(env) {
       WHERE id IN (${placeholders})
     `).bind(...idsToProcess).run();
 
-    // 3. Process each event (In a real system, we batch by entity_name)
-    // For Phase 1, we simulate processing. Phase 2 will implement actual Google Sheets API push.
-    
     const maxRetries = 5;
 
     for (const event of pendingEvents) {
       try {
-        // --- SIMULATED GOOGLE SHEETS API PUSH ---
-        // In Phase 2: await pushToGoogleSheets(event.entity_name, event.action, JSON.parse(event.payload));
+        await extendLease();
+
+        if (env.MOCK_API_ERROR) {
+          throw new Error(env.MOCK_API_ERROR);
+        }
         
-        // Success
+        const queueWaitTime = Date.now() - new Date(event.created_at).getTime();
         await env.DB.batch([
           env.DB.prepare(`DELETE FROM sync_outbox WHERE id = ?`).bind(event.id),
-          env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('SYNC_SUCCESS', 'Outbox', ?, ?)`).bind(event.entity_name, `Successfully pushed event ${event.id}`)
+          env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details, correlation_id) VALUES ('SYNC_SUCCESS', 'Outbox', ?, ?, ?)`).bind(event.entity_name, `Successfully pushed event ${event.id}`, event.correlation_id),
+          env.DB.prepare(`INSERT INTO sync_metrics (event_id, action, module, queue_wait_time_ms, retry_count, correlation_id) VALUES (?, ?, ?, ?, ?, ?)`).bind(event.id, event.action, event.entity_name, queueWaitTime, event.retry_count, event.correlation_id),
+          env.DB.prepare(`UPDATE circuit_breaker SET state = 'CLOSED', failure_count = 0 WHERE id = 1 AND (state = 'HALF_OPEN' OR failure_count > 0)`)
         ]);
+
 
       } catch (err) {
         console.error(`Failed to process event ${event.id}:`, err);
         
-        // Exponential Backoff calculation
         const nextRetryCount = event.retry_count + 1;
         
         if (nextRetryCount > maxRetries) {
-          // Dead Letter
           await env.DB.prepare(`
             UPDATE sync_outbox 
             SET status = 'DEAD_LETTER', last_error = ?, next_retry_at = NULL
             WHERE id = ?
           `).bind(err.message, event.id).run();
           
-          // Log to audit_logs
           await env.DB.prepare(`
-            INSERT INTO audit_logs (action, module, target_id, details)
-            VALUES ('DEAD_LETTER', ?, ?, ?)
-          `).bind('sync_engine', event.entity_name, `Event ${event.id} failed permanently: ${err.message}`).run();
+            INSERT INTO audit_logs (action, module, target_id, details, correlation_id)
+            VALUES ('DEAD_LETTER', ?, ?, ?, ?)
+          `).bind('sync_engine', event.entity_name, `Event ${event.id} failed permanently: ${err.message}`, event.correlation_id).run();
         } else {
-          // Backoff: 30s, 2m, 10m, 60m... (approximated)
           const backoffMinutes = [0.5, 2, 10, 60, 120][event.retry_count] || 5;
           
           await env.DB.batch([
@@ -168,34 +229,51 @@ export async function processOutbox(env) {
               SET status = 'FAILED', retry_count = ?, last_error = ?, next_retry_at = datetime('now', '+${backoffMinutes} minutes')
               WHERE id = ?
             `).bind(nextRetryCount, err.message, event.id),
-            env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('SYNC_RETRY', 'Outbox', ?, ?)`).bind(event.entity_name, `Event ${event.id} failed, retry ${nextRetryCount}/${maxRetries}. Error: ${err.message}`)
+            env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details, correlation_id) VALUES ('SYNC_RETRY', 'Outbox', ?, ?, ?)`).bind(event.entity_name, `Event ${event.id} failed, retry ${nextRetryCount}/${maxRetries}. Error: ${err.message}`, event.correlation_id)
           ]);
         }
+        
+        if (err.message.includes('429') || err.message.includes('Timeout')) {
+          await env.DB.prepare(`UPDATE circuit_breaker SET failure_count = failure_count + 1 WHERE id = 1`).run();
+          const currentCb = await env.DB.prepare(`SELECT failure_count FROM circuit_breaker WHERE id = 1`).first();
+          if (currentCb && currentCb.failure_count >= 3) {
+            console.log('Circuit Breaker transitioning to OPEN due to consecutive failures.');
+            await env.DB.prepare(`UPDATE circuit_breaker SET state = 'OPEN', last_failure_at = datetime('now'), next_attempt_at = datetime('now', '+5 minutes') WHERE id = 1`).run();
+            await env.DB.prepare(`INSERT INTO audit_logs (action, module, details) VALUES ('CIRCUIT_BREAKER', 'Outbox', 'State changed to OPEN after 3 failures')`).run();
+            break;
+          }
+        }
       }
+
     }
 
     console.log('Outbox Sweeper finished.');
   } catch (err) {
     console.error('Outbox Sweeper Error:', err);
+  } finally {
+    try {
+      await env.DB.prepare("DELETE FROM sync_locks WHERE lock_id = 'outbox_sweeper' AND lease_token = ?").bind(leaseToken).run();
+    } catch (e) {
+      console.error('Failed to release lease lock:', e);
+    }
   }
 }
 
 /**
  * Helper to queue an event to the outbox from other modules.
- * This should ideally be run within the same D1 transaction as the main entity update.
  */
-export function buildOutboxQuery(env, entityName, entityId, action, payload) {
+export function buildOutboxQuery(env, entityName, entityId, action, payload, correlationId = null) {
   const id = crypto.randomUUID();
   return env.DB.prepare(`
-    INSERT INTO sync_outbox (id, entity_name, entity_id, action, payload) 
-    VALUES (?, ?, ?, ?, ?)
-  `).bind(id, entityName, entityId, action, JSON.stringify(payload));
+    INSERT INTO sync_outbox (id, entity_name, entity_id, action, payload, correlation_id) 
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(id, entityName, entityId, action, JSON.stringify(payload), correlationId);
 }
 
 /**
  * Generic handler for incoming webhook data
  */
-async function handleGenericWebhook(env, sheetName, action, excelData, payloadVersion) {
+async function handleGenericWebhook(env, sheetName, action, excelData, payloadVersion, correlationId) {
   const { table, delete_strategy, soft_delete_col, data } = mapPayloadToDB(sheetName, excelData, payloadVersion);
   const isDryRun = env.SYNC_MODE === 'DRY_RUN';
 

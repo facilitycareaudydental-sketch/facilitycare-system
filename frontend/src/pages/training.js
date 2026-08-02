@@ -114,7 +114,10 @@ export async function renderTraining(container) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.training_date && r.subject && r.branch_id);
         
-        const res = await apiFetch('/api/training/import', { method: 'POST', body: JSON.stringify(payload) });
+        const res = await apiFetch('/api/import/training', {
+          method: 'POST',
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+        });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }
     },

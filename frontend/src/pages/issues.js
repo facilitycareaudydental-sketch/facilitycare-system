@@ -141,9 +141,9 @@ export async function renderIssues(container, params) {
           status: String(row['Status'] || '').trim(),
         })).filter(row => row.report_date && row.complaint && row.category);
         
-        const res = await apiFetch('/api/issues/import', {
+        const res = await apiFetch('/api/import/issues', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
       }

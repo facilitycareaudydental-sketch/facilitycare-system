@@ -2,6 +2,8 @@ import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
 import { runSync } from '../utils/calendar.js';
+import { buildOutboxQuery } from '../utils/sync_engine.js';
+import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleRelievers(request, env, origin) {
   const user = await authenticate(request, env);
@@ -46,7 +48,7 @@ async function list(request, env, origin) {
   const search = url.searchParams.get('search') || '';
   const month = url.searchParams.get('month') || '';
 
-  let conditions = [];
+  let conditions = ['r.deleted_at IS NULL'];
   let values = [];
   if (branch_id) { conditions.push('r.branch_id = ?'); values.push(branch_id); }
   if (period) { conditions.push('r.period = ?'); values.push(period); }
@@ -91,11 +93,17 @@ async function create(request, env, origin) {
   if (!reliever_name || !backup_date) return error('reliever_name and backup_date required', 400, origin);
 
   const result = await env.DB.prepare(
-    'INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    "INSERT INTO relievers (branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'FCMS')"
   ).bind(branch_id || null, original_fc_name || null, period || null, reliever_name,
     backup_date, completion_date || null, reason || null, shift || null, status !== null && status !== undefined && status !== '' ? status : '').run();
 
   const newId = result.meta.last_row_id;
+  
+  const newRecord = await env.DB.prepare('SELECT * FROM relievers WHERE id = ?').bind(newId).first();
+  if (newRecord) {
+    const payload = mapDBToPayload('Jadwal Reliefer', newRecord);
+    await buildOutboxQuery(env, 'Jadwal Reliefer', newId, 'INSERT', payload).run();
+  }
   try {
     await runSync(env.DB, 'relievers', newId, {
       reliever_name, backup_date, status: status !== null && status !== undefined && status !== '' ? status : '', branch_id, original_fc_name, reason, shift
@@ -108,17 +116,23 @@ async function create(request, env, origin) {
 async function update(id, request, env, origin) {
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-  const existing = await env.DB.prepare('SELECT id FROM relievers WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM relievers WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
 
   const { branch_id, original_fc_name, period, reliever_name, backup_date, completion_date, reason, shift, status } = body;
-  await env.DB.prepare(
-    `UPDATE relievers SET branch_id = COALESCE(?, branch_id), original_fc_name = COALESCE(?, original_fc_name),
-     period = COALESCE(?, period), reliever_name = COALESCE(?, reliever_name), backup_date = COALESCE(?, backup_date),
-     completion_date = COALESCE(?, completion_date), reason = COALESCE(?, reason),
-     shift = COALESCE(?, shift), status = COALESCE(?, status), updated_at = datetime('now') WHERE id = ?`
-  ).bind(branch_id || null, original_fc_name || null, period || null, reliever_name || null,
-    backup_date || null, completion_date || null, reason || null, shift || null, status !== null && status !== undefined && status !== '' ? status : '', id).run();
+  
+  const updatedRecord = { ...existing, branch_id: branch_id || existing.branch_id, original_fc_name: original_fc_name || existing.original_fc_name, period: period || existing.period, reliever_name: reliever_name || existing.reliever_name, backup_date: backup_date || existing.backup_date, completion_date: completion_date || existing.completion_date, reason: reason || existing.reason, shift: shift || existing.shift, status: status !== null && status !== undefined && status !== '' ? status : existing.status };
+  
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE relievers SET branch_id = COALESCE(?, branch_id), original_fc_name = COALESCE(?, original_fc_name),
+       period = COALESCE(?, period), reliever_name = COALESCE(?, reliever_name), backup_date = COALESCE(?, backup_date),
+       completion_date = COALESCE(?, completion_date), reason = COALESCE(?, reason),
+       shift = COALESCE(?, shift), status = COALESCE(?, status), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`
+    ).bind(branch_id || null, original_fc_name || null, period || null, reliever_name || null,
+      backup_date || null, completion_date || null, reason || null, shift || null, status !== null && status !== undefined && status !== '' ? status : '', id),
+    buildOutboxQuery(env, 'Jadwal Reliefer', id, 'UPDATE', mapDBToPayload('Jadwal Reliefer', updatedRecord))
+  ]);
 
   const updated = await env.DB.prepare('SELECT * FROM relievers WHERE id = ?').bind(id).first();
   if (updated) {
@@ -129,9 +143,15 @@ async function update(id, request, env, origin) {
 }
 
 async function remove(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT id FROM relievers WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM relievers WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  await env.DB.prepare('DELETE FROM relievers WHERE id = ?').bind(id).run();
+  
+  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE relievers SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id),
+    buildOutboxQuery(env, 'Jadwal Reliefer', id, 'DELETE', mapDBToPayload('Jadwal Reliefer', deletedRecord))
+  ]);
+  
   try { await runSync(env.DB, 'relievers', id, null); } catch (e) { /* non-fatal */ }
   return ok({ message: 'Deleted' }, 200, origin);
 }

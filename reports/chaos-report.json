@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "Google API 429",
+    "status": "PASS",
+    "fallback": "Circuit Breaker OPEN"
+  },
+  {
+    "scenario": "Network Timeout",
+    "status": "PASS",
+    "fallback": "Outbox Retry Backoff"
+  },
+  {
+    "scenario": "Worker Restart",
+    "status": "PASS",
+    "fallback": "Lease Lock Recovery"
+  },
+  {
+    "scenario": "Cron Overlap",
+    "status": "PASS",
+    "fallback": "Distributed Lock Collision Prevented"
+  },
+  {
+    "scenario": "Replay Attack",
+    "status": "PASS",
+    "fallback": "Idempotency Blocked"
+  },
+  {
+    "scenario": "Expired HMAC",
+    "status": "PASS",
+    "fallback": "Webhook Rejected (403)"
+  }
+]

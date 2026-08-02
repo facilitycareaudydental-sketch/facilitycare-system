@@ -1,6 +1,8 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { buildOutboxQuery } from '../utils/sync_engine.js';
+import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleIssues(request, env, origin) {
   const user = await authenticate(request, env);
@@ -44,7 +46,7 @@ async function listIssues(request, env, origin) {
   const search = url.searchParams.get('search') || '';
   const year = url.searchParams.get('year') || '';
 
-  let conditions = [];
+  let conditions = ['i.deleted_at IS NULL'];
   let values = [];
   if (branch_id) { conditions.push('i.branch_id = ?'); values.push(branch_id); }
   if (category) { conditions.push('i.category = ?'); values.push(category); }
@@ -88,11 +90,18 @@ async function createIssue(request, env, origin) {
   }
 
   const result = await env.DB.prepare(
-    'INSERT INTO issues (report_date, branch_id, category, source, complaint, employee_name, fc_specialist, solution, status, completion_date, day_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    "INSERT INTO issues (report_date, branch_id, category, source, complaint, employee_name, fc_specialist, solution, status, completion_date, day_count, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'FCMS')"
   ).bind(report_date, branch_id || null, category, source || null, complaint, employee_name || null,
     fc_specialist || null, solution || null, status !== null && status !== undefined && status !== '' ? status : '', completion_date || null, day_count).run();
 
-  return ok({ id: result.meta.last_row_id }, 201, origin);
+  const newId = result.meta.last_row_id;
+  const newRecord = await env.DB.prepare('SELECT * FROM issues WHERE id = ?').bind(newId).first();
+  if (newRecord) {
+    const payload = mapDBToPayload('Permasalahan', newRecord);
+    await buildOutboxQuery(env, 'Permasalahan', newId, 'INSERT', payload).run();
+  }
+
+  return ok({ id: newId }, 201, origin);
 }
 
 async function updateIssue(id, request, env, origin) {
@@ -110,24 +119,35 @@ async function updateIssue(id, request, env, origin) {
     day_count = Math.floor((new Date(cd) - new Date(rd)) / (1000 * 60 * 60 * 24));
   }
 
-  await env.DB.prepare(
-    `UPDATE issues SET report_date = COALESCE(?, report_date), branch_id = COALESCE(?, branch_id),
-     category = COALESCE(?, category), source = COALESCE(?, source), complaint = COALESCE(?, complaint),
-     employee_name = COALESCE(?, employee_name), fc_specialist = COALESCE(?, fc_specialist),
-     solution = COALESCE(?, solution), status = COALESCE(?, status),
-     completion_date = COALESCE(?, completion_date), day_count = ?, updated_at = datetime('now')
-     WHERE id = ?`
-  ).bind(report_date || null, branch_id || null, category || null, source || null, complaint || null,
-    employee_name || null, fc_specialist || null, solution || null, status !== null && status !== undefined && status !== '' ? status : '',
-    completion_date || null, day_count, id).run();
+  const updatedRecord = { ...existing, report_date: report_date || existing.report_date, branch_id: branch_id || existing.branch_id, category: category || existing.category, source: source || existing.source, complaint: complaint || existing.complaint, employee_name: employee_name || existing.employee_name, fc_specialist: fc_specialist || existing.fc_specialist, solution: solution || existing.solution, status: status !== null && status !== undefined && status !== '' ? status : existing.status, completion_date: completion_date || existing.completion_date, day_count };
+  
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE issues SET report_date = COALESCE(?, report_date), branch_id = COALESCE(?, branch_id),
+       category = COALESCE(?, category), source = COALESCE(?, source), complaint = COALESCE(?, complaint),
+       employee_name = COALESCE(?, employee_name), fc_specialist = COALESCE(?, fc_specialist),
+       solution = COALESCE(?, solution), status = COALESCE(?, status),
+       completion_date = COALESCE(?, completion_date), day_count = ?, updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS'
+       WHERE id = ?`
+    ).bind(report_date || null, branch_id || null, category || null, source || null, complaint || null,
+      employee_name || null, fc_specialist || null, solution || null, status !== null && status !== undefined && status !== '' ? status : '',
+      completion_date || null, day_count, id),
+    buildOutboxQuery(env, 'Permasalahan', id, 'UPDATE', mapDBToPayload('Permasalahan', updatedRecord))
+  ]);
 
   return ok({ message: 'Issue updated' }, 200, origin);
 }
 
 async function deleteIssue(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT id FROM issues WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM issues WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  await env.DB.prepare('DELETE FROM issues WHERE id = ?').bind(id).run();
+  
+  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
+  
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE issues SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id),
+    buildOutboxQuery(env, 'Permasalahan', id, 'DELETE', mapDBToPayload('Permasalahan', deletedRecord))
+  ]);
   return ok({ message: 'Issue deleted' }, 200, origin);
 }
 
