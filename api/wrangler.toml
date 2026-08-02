@@ -21,4 +21,4 @@ port = 8787
 local_protocol = "http"
 
 [triggers]
-crons = ["0 17 * * *"] # Runs at midnight UTC+7 (17:00 UTC)
+crons = ["0 17 * * *", "*/1 * * * *"] # Midnight + Every 1 minute for sync sweeper
