@@ -88,7 +88,7 @@ export async function renderSchedule(container, params) {
     filterFields: [
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Kegiatan', options: [
-        'Inspeksi Hygiene & Aset Bangunan', 'General Cleaning', 'Deep Cleaning', 'Fogging'
+        'Inspeksi Hygiene', 'General Cleaning', 'Deep Cleaning', 'Fogging'
       ]},
       { type: 'select', name: 'month', label: 'Bulan', options: [
         { value: '2026-01', label: 'Jan 2026' },
@@ -113,7 +113,7 @@ export async function renderSchedule(container, params) {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
           { name: 'activity_type', label: 'Jenis Kegiatan', type: 'select', required: true, options: [
-            'Inspeksi Hygiene & Aset Bangunan', 'General Cleaning', 'Deep Cleaning', 'Fogging'
+            'Inspeksi Hygiene', 'General Cleaning', 'Deep Cleaning', 'Fogging'
           ], value: data?.activity_type },
         ]
       },
