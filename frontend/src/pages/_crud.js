@@ -227,12 +227,12 @@ export function buildCrudPage({
         let inserted = 0, skipped = 0, failed = 0;
         const total = json.length;
         
-        textEl.textContent = \`Ditemukan \${total} baris data. Memulai import...\`;
+        textEl.textContent = `Ditemukan ${total} baris data. Memulai import...`;
         
         for (let i = 0; i < total; i += CHUNK_SIZE) {
           const chunk = json.slice(i, i + CHUNK_SIZE);
-          textEl.textContent = \`Mengimport baris \${i + 1} - \${Math.min(i + CHUNK_SIZE, total)} dari \${total}...\`;
-          barEl.style.width = \`\${Math.round((i / total) * 100)}%\`;
+          textEl.textContent = `Mengimport baris ${i + 1} - ${Math.min(i + CHUNK_SIZE, total)} dari ${total}...`;
+          barEl.style.width = `${Math.round((i / total) * 100)}%`;
           
           try {
             // onImport should return { inserted, skipped } or throw
