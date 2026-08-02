@@ -48,14 +48,17 @@ export const SYNC_MAPPER = {
  */
 export function mapPayloadToDB(sheetName, excelPayload) {
   const mapDefinition = SYNC_MAPPER[sheetName];
-  if (!mapDefinition) throw new Error(`No mapping defined for sheet: ${sheetName}`);
+  if (!mapDefinition) throw new Error(`MappingError: No mapping defined for sheet: ${sheetName}`);
   
   const dbObject = {};
   for (const [excelCol, val] of Object.entries(excelPayload)) {
+    if (!excelCol || excelCol.trim() === '') continue; // Ignore empty headers
+    
     const dbCol = mapDefinition.columns[excelCol];
-    if (dbCol) {
-      dbObject[dbCol] = val;
+    if (!dbCol) {
+      throw new Error(`MappingError: Unknown column header '${excelCol}' in sheet '${sheetName}'. Update SYNC_MAPPER or delete the column in Google Sheets.`);
     }
+    dbObject[dbCol] = val;
   }
   return {
     table: mapDefinition.table,

@@ -92,6 +92,27 @@ export async function processOutbox(env) {
       return;
     }
 
+    // Dependency Graph Ranking (Lowest runs first)
+    const orderGraph = {
+      'Data Cabang': 1,
+      'Master Karyawan': 2,
+      'Master Kontrak': 3,
+      'PIC': 4,
+      'Master SOP': 5,
+      'Master Checklist': 6,
+      'Master Form': 7,
+      'Time Line': 8,
+      'Jadwal Reliefer': 9
+    };
+    
+    // Sort pending events based on dependency ranking, then by created_at
+    pendingEvents.sort((a, b) => {
+      const rankA = orderGraph[a.entity_name] || 99;
+      const rankB = orderGraph[b.entity_name] || 99;
+      if (rankA !== rankB) return rankA - rankB;
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+
     console.log(`Found ${pendingEvents.length} events to process.`);
 
     // 2. Pessimistic Lock: Claim these events
@@ -115,9 +136,10 @@ export async function processOutbox(env) {
         // In Phase 2: await pushToGoogleSheets(event.entity_name, event.action, JSON.parse(event.payload));
         
         // Success
-        await env.DB.prepare(`
-          DELETE FROM sync_outbox WHERE id = ?
-        `).bind(event.id).run();
+        await env.DB.batch([
+          env.DB.prepare(`DELETE FROM sync_outbox WHERE id = ?`).bind(event.id),
+          env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('SYNC_SUCCESS', 'Outbox', ?, ?)`).bind(event.entity_name, `Successfully pushed event ${event.id}`)
+        ]);
 
       } catch (err) {
         console.error(`Failed to process event ${event.id}:`, err);
@@ -142,14 +164,14 @@ export async function processOutbox(env) {
           // Backoff: 30s, 2m, 10m, 60m... (approximated)
           const backoffMinutes = [0.5, 2, 10, 60, 120][event.retry_count] || 5;
           
-          await env.DB.prepare(`
-            UPDATE sync_outbox 
-            SET status = 'FAILED', 
-                retry_count = ?, 
-                last_error = ?, 
-                next_retry_at = datetime('now', '+${backoffMinutes} minutes')
-            WHERE id = ?
-          `).bind(nextRetryCount, err.message, event.id).run();
+          await env.DB.batch([
+            env.DB.prepare(`
+              UPDATE sync_outbox 
+              SET status = 'FAILED', retry_count = ?, last_error = ?, next_retry_at = datetime('now', '+${backoffMinutes} minutes')
+              WHERE id = ?
+            `).bind(nextRetryCount, err.message, event.id),
+            env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('SYNC_RETRY', 'Outbox', ?, ?)`).bind(event.entity_name, `Event ${event.id} failed, retry ${nextRetryCount}/${maxRetries}. Error: ${err.message}`)
+          ]);
         }
       }
     }
@@ -183,9 +205,10 @@ async function handleKaryawanWebhook(env, action, excelData) {
     const placeholders = Object.keys(data).map(() => '?').join(', ');
     const values = Object.values(data);
     
-    await env.DB.prepare(
-      `INSERT INTO ${table} (${keys}) VALUES (${placeholders})`
-    ).bind(...values).run();
+    await env.DB.batch([
+      env.DB.prepare(`INSERT INTO ${table} (${keys}) VALUES (${placeholders})`).bind(...values),
+      env.DB.prepare(`INSERT INTO audit_logs (action, module, details) VALUES ('WEBHOOK_INSERT', 'Master Karyawan', 'Inserted from sheets')`)
+    ]);
     
   } else if (action === 'UPDATE') {
     const id = data['id'];
@@ -194,12 +217,27 @@ async function handleKaryawanWebhook(env, action, excelData) {
     const values = Object.values(data);
     values.push(id);
     
-    await env.DB.prepare(
-      `UPDATE ${table} SET ${sets}, updated_at = datetime('now') WHERE id = ?`
-    ).bind(...values).run();
+    // Check for conflict (OCC)
+    const existing = await env.DB.prepare(`SELECT row_version FROM ${table} WHERE id = ?`).bind(id).first();
+    const incomingVersion = data['row_version'];
+    
+    if (existing && incomingVersion && incomingVersion < existing.row_version) {
+      // Conflict! Log it and do not update
+      await env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('CONFLICT', 'Master Karyawan', ?, 'Ignored webhook due to outdated row_version')`).bind(String(id)).run();
+      return;
+    }
+    
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE ${table} SET ${sets}, updated_at = datetime('now') WHERE id = ?`).bind(...values),
+      env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('WEBHOOK_UPDATE', 'Master Karyawan', ?, 'Updated from sheets')`).bind(String(id))
+    ]);
     
   } else if (action === 'DELETE') {
     const id = data['id'];
-    await env.DB.prepare(`UPDATE ${table} SET status = 'Tidak Aktif', updated_at = datetime('now') WHERE id = ?`).bind(id).run();
+    // Soft Delete Implementation
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE ${table} SET status = 'Tidak Aktif', updated_at = datetime('now') WHERE id = ?`).bind(id),
+      env.DB.prepare(`INSERT INTO audit_logs (action, module, target_id, details) VALUES ('WEBHOOK_DELETE', 'Master Karyawan', ?, 'Soft deleted from sheets')`).bind(String(id))
+    ]);
   }
 }
