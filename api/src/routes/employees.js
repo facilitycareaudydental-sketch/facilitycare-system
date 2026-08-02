@@ -1,6 +1,8 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination, getSearchParam } from '../utils/pagination.js';
+import { buildOutboxQuery } from '../utils/sync_engine.js';
+import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleEmployees(request, env, origin) {
   const user = await authenticate(request, env);
@@ -92,10 +94,17 @@ async function createEmployee(request, env, origin) {
   if (!full_name) return error('full_name required', 400, origin);
 
   const result = await env.DB.prepare(
-    'INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, ?, ?, 1, "FCMS")'
   ).bind(full_name, branch_id || null, division || 'FACILITY CARE', phone || null, join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
 
-  return ok({ id: result.meta.last_row_id }, 201, origin);
+  const newId = result.meta.last_row_id;
+  const newRecord = await env.DB.prepare('SELECT * FROM employees WHERE id = ?').bind(newId).first();
+  if (newRecord) {
+    const payload = mapDBToPayload('Master Karyawan', newRecord);
+    await buildOutboxQuery(env, 'Master Karyawan', newId, 'INSERT', payload).run();
+  }
+
+  return ok({ id: newId }, 201, origin);
 }
 
 async function updateEmployee(id, request, env, origin) {
@@ -114,18 +123,33 @@ async function updateEmployee(id, request, env, origin) {
       join_date = COALESCE(?, join_date),
       status = COALESCE(?, status),
       notes = COALESCE(?, notes),
-      updated_at = datetime('now')
+      updated_at = datetime('now'),
+      row_version = COALESCE(row_version, 0) + 1,
+      last_sync_source = 'FCMS'
      WHERE id = ?`
   ).bind(full_name || null, branch_id || null, division || null, phone || null,
     join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
+
+  const updatedRecord = await env.DB.prepare('SELECT * FROM employees WHERE id = ?').bind(id).first();
+  if (updatedRecord) {
+    const payload = mapDBToPayload('Master Karyawan', updatedRecord);
+    await buildOutboxQuery(env, 'Master Karyawan', id, 'UPDATE', payload).run();
+  }
 
   return ok({ message: 'Employee updated' }, 200, origin);
 }
 
 async function deleteEmployee(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT id FROM employees WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM employees WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  await env.DB.prepare("UPDATE employees SET status = 'Tidak Aktif', updated_at = datetime('now') WHERE id = ?").bind(id).run();
+  await env.DB.prepare("UPDATE employees SET status = 'Tidak Aktif', updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?").bind(id).run();
+  
+  const deletedRecord = await env.DB.prepare('SELECT * FROM employees WHERE id = ?').bind(id).first();
+  if (deletedRecord) {
+    const payload = mapDBToPayload('Master Karyawan', deletedRecord);
+    await buildOutboxQuery(env, 'Master Karyawan', id, 'UPDATE', payload).run(); // Setting status = 'Tidak Aktif' is technically an UPDATE in sheets
+  }
+  
   return ok({ message: 'Employee deactivated' }, 200, origin);
 }
 

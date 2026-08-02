@@ -1,4 +1,5 @@
 import { error, ok } from './response.js';
+import { mapPayloadToDB } from './sync_mapper.js';
 
 /**
  * Handle incoming Webhook from Google Apps Script (Sheets -> FCMS)
@@ -53,11 +54,10 @@ export async function receiveWebhook(request, env) {
       return ok({ message: 'Event already processed', event_id }, 200);
     }
 
-    // 2. We don't implement the business logic here yet (that's Phase 2 onwards)
-    // For Phase 1, we just acknowledge the webhook and mark idempotency.
-    
-    // In Phase 2, we will route `sheet_name` to the correct entity handler.
-    // e.g. if (sheet_name === 'Master Karyawan') await handleKaryawanWebhook(...)
+    // Phase 2: Route webhook to handler
+    if (sheet_name === 'Master Karyawan') {
+      await handleKaryawanWebhook(env, action, data);
+    }
 
     // Mark as processed
     await env.DB.prepare('INSERT INTO sync_idempotency (event_id) VALUES (?)').bind(event_id).run();
@@ -170,4 +170,36 @@ export function buildOutboxQuery(env, entityName, entityId, action, payload) {
     INSERT INTO sync_outbox (id, entity_name, entity_id, action, payload) 
     VALUES (?, ?, ?, ?, ?)
   `).bind(id, entityName, entityId, action, JSON.stringify(payload));
+}
+
+/**
+ * Handle incoming webhook data for Master Karyawan
+ */
+async function handleKaryawanWebhook(env, action, excelData) {
+  const { table, data } = mapPayloadToDB('Master Karyawan', excelData);
+  
+  if (action === 'INSERT') {
+    const keys = Object.keys(data).join(', ');
+    const placeholders = Object.keys(data).map(() => '?').join(', ');
+    const values = Object.values(data);
+    
+    await env.DB.prepare(
+      `INSERT INTO ${table} (${keys}) VALUES (${placeholders})`
+    ).bind(...values).run();
+    
+  } else if (action === 'UPDATE') {
+    const id = data['id'];
+    delete data['id'];
+    const sets = Object.keys(data).map(k => `${k} = ?`).join(', ');
+    const values = Object.values(data);
+    values.push(id);
+    
+    await env.DB.prepare(
+      `UPDATE ${table} SET ${sets}, updated_at = datetime('now') WHERE id = ?`
+    ).bind(...values).run();
+    
+  } else if (action === 'DELETE') {
+    const id = data['id'];
+    await env.DB.prepare(`UPDATE ${table} SET status = 'Tidak Aktif', updated_at = datetime('now') WHERE id = ?`).bind(id).run();
+  }
 }
