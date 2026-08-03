@@ -684,7 +684,13 @@ function renderContractMiniBar(contractChart) {
   destroyChart('contractMiniBar');
   
   contractChart = contractChart || {};
-  const labels = (contractChart.labels || []).map(monthShort);
+  const customMonths = {
+      '06': 'JUN', '07': 'JUL', '08': 'AGST', '09': 'SEPT', '10': 'OKT', '11': 'NOV', '12': 'DES'
+    };
+    const labels = (contractChart.labels || []).map(ym => {
+      const m = ym.split('-')[1];
+      return customMonths[m] || ym;
+    });
   const data = (contractChart.data || []).map(v => safeNum(v));
   if (!labels.length) { showEmpty(canvas, 'Belum ada data'); return; }
   
@@ -716,7 +722,7 @@ function renderContractMiniBar(contractChart) {
       },
       plugins:{ legend:{ display:false } },
       scales:{ 
-        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:0 } },
+        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:0, autoSkip: false } },
         y:{ grid:{color:GRID, borderDash:[4,4], drawBorder:false}, ticks:{ font:FONT, color:TICK, precision:0, maxTicksLimit:5 }, min:0 } 
       },
       animation: {
