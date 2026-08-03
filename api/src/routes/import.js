@@ -285,7 +285,7 @@ async function importEmployees(rows, onDuplicate, env, origin) {
     importedNames.push(full_name);
 
     const key = full_name.toLowerCase().trim();
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const division = safeStr(row.division) || 'FACILITY CARE';
     const phone = safeStr(row.phone);
     const join_date = safeDate(row.join_date);
@@ -352,7 +352,7 @@ async function importContracts(rows, onDuplicate, env, origin) {
     importedKeys.push(key);
 
     const employee_id = matchEmployee(employee_name);
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const division = safeStr(row.division) || 'FACILITY CARE';
     const contract_type = safeStr(row.contract_type);
     const pkwt_number = safeStr(row.pkwt_number);
@@ -451,7 +451,7 @@ async function importRelievers(rows, onDuplicate, env, origin) {
   let inserted = 0;
 
   for (const row of validRows) {
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const original_fc_name = safeStr(row.original_fc_name);
     const period = safeStr(row.period);
     const completion_date = safeDate(row.completion_date);
@@ -495,7 +495,7 @@ async function importSchedule(rows, onDuplicate, env, origin) {
     if (!activity_type) { skipped++; continue; }
 
     const target_date = safeDate(row.target_date);
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const period = safeStr(row.period);
     const key = activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim() + '_' + branch_id;
     importedKeys.push(key);
@@ -554,7 +554,7 @@ async function importIssues(rows, onDuplicate, env, origin) {
     if (!complaint) { skipped++; continue; }
 
     const report_date = safeDate(row.report_date) || today();
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const key = complaint.toLowerCase().trim() + '_' + report_date + '_' + branch_id;
     importedKeys.push(key);
 
@@ -622,7 +622,7 @@ async function importOneOnOne(rows, onDuplicate, env, origin) {
     const key = employee_name.toLowerCase().trim() + '_' + meeting_date;
     importedKeys.push(key);
 
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const pic = safeStr(row.pic);
     const problem = safeStr(row.problem) || '-';
     const solution = safeStr(row.solution);
@@ -688,7 +688,7 @@ async function importTraining(rows, onDuplicate, env, origin) {
     const key = subject.toLowerCase().trim() + '_' + training_date + '_' + batch.toLowerCase().trim();
     importedKeys.push(key);
 
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const participants = safeStr(row.participants);
     const trainer = safeStr(row.trainer);
     const score = row.score != null ? parseFloat(row.score) : null;
@@ -880,10 +880,13 @@ async function importInspection(rows, onDuplicate, env, origin) {
   let skipped = 0;
 
   for (const row of rows) {
-    const branch_name = safeStr(row.branch_name);
-    if (!branch_name) { skipped++; continue; }
-
-    const branch_id = matchBranch(branch_name);
+    let branch_id = row.branch_id || null;
+    if (!branch_id) {
+      const branch_name = safeStr(row.branch_name);
+      if (!branch_name) { skipped++; continue; }
+      branch_id = matchBranch(branch_name);
+    }
+    if (!branch_id) { skipped++; continue; }
     const period = safeStr(row.period) || '-';
     const inspection_date = safeDate(row.inspection_date) || today();
     const key = branch_id + '_' + period.toLowerCase().trim() + '_' + inspection_date;
@@ -939,10 +942,13 @@ async function importCleaning(rows, onDuplicate, env, origin) {
   let skipped = 0;
 
   for (const row of rows) {
-    const branch_name = safeStr(row.branch_name);
-    if (!branch_name) { skipped++; continue; }
-
-    const branch_id = matchBranch(branch_name);
+    let branch_id = row.branch_id || null;
+    if (!branch_id) {
+      const branch_name = safeStr(row.branch_name);
+      if (!branch_name) { skipped++; continue; }
+      branch_id = matchBranch(branch_name);
+    }
+    if (!branch_id) { skipped++; continue; }
     const activity_type = safeStr(row.activity_type) || 'General Cleaning';
     const period = safeStr(row.period) || '-';
     const activity_date = safeDate(row.activity_date) || today();
@@ -1057,7 +1063,7 @@ async function importBasecamp(rows, onDuplicate, env, origin) {
     const problem = safeStr(row.problem);
     if (!problem) { skipped++; continue; }
 
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const info_date = safeDate(row.info_date) || today();
     const key = branch_id + '_' + problem.toLowerCase().trim() + '_' + info_date;
     importedKeys.push(key);
@@ -1117,7 +1123,7 @@ async function importSupply(rows, onDuplicate, env, origin) {
     const key = submitter_name.toLowerCase().trim() + '_' + submitted_at;
     importedKeys.push(key);
 
-    const branch_id = matchBranch(row.branch_name);
+    let branch_id = row.branch_id || matchBranch(row.branch_name);
     const branchObj = branch_id ? bRows.results.find(b => b.id === branch_id) : null;
     const branch_name = branchObj ? branchObj.full_name : safeStr(row.branch_name);
     const tools_items = safeStr(row.tools_items);
