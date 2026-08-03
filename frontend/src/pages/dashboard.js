@@ -351,14 +351,7 @@ export async function renderDashboard(container) {
           </div>
           <div id="widget-agenda" class="dash-table-wrap" style="height:160px;overflow-y:auto;overflow-x:hidden">${skelTable(3)}</div>
         </div>
-        <!-- KPI Kebersihan -->
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <div class="chart-card-title">KPI Kebersihan</div>
-          </div>
-          <div id="widget-kpi-kebersihan" style="margin-top:0px">${skelTable(4)}</div>
-        </div>
-        <!-- Permasalahan Terbaru -->
+          <!-- Permasalahan Terbaru -->
         <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Permasalahan Terbaru</div>
@@ -496,7 +489,6 @@ async function fetchAll(container) {
   } catch(e) { console.warn('ContractsTable render:', e); }
 
   try { renderAgenda(Array.isArray(calendarData) ? calendarData : []); } catch(e) { console.warn('Agenda render:', e); }
-  try { renderKPIKebersihan(kpi); } catch(e) { console.warn('KPI Kebersihan render:', e); }
   try { renderQuickActions(); } catch(e) { console.warn('Quick Actions render:', e); }
 }
 
