@@ -86,7 +86,7 @@ async function getKPI(env, origin) {
 
   // All 16 counts run in parallel — no sequential blocking
   const [
-    empActive, empPrevMonth,
+    empActive, empPrevMonth, relieverActive,
     contractActive, contractPrev, contractExp30,
     issuesOpen, issuesPrevOpen,
     oo1Open, oo1PrevOpen,
@@ -111,6 +111,8 @@ async function getKPI(env, origin) {
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
     // Uses idx_employees_status + strftime filter
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
+    // Query Reliefer Aktif
+    env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif' AND division='FC - RELIEFER'").first(),
 
     // Uses idx_contracts_status_end
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date>=date('now')").first(),
@@ -209,7 +211,7 @@ async function getKPI(env, origin) {
     inspection_month:{ current: inspCur?.c||0 },
     cleaning_month:  { current: cleanCur?.c||0 },
     fogging_month:   { current: fogCur?.c||0 },
-    reliever_total:  { current: 3 },
+    reliever_total:  { current: relieverActive?.c || 0 },
     checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
     kebersihan: {
       area: { avg_fc: kebAreaCur?.avg_fc || 0, avg_spv: kebAreaCur?.avg_spv || 0 },
