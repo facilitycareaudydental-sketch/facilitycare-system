@@ -63,12 +63,7 @@ async function list(request, env, origin) {
     env.DB.prepare(`SELECT COUNT(*) as total FROM relievers r ${where}`).bind(...values).first(),
     env.DB.prepare(
       `SELECT r.*, b.full_name as branch_name,
-       CASE 
-         WHEN (r.status IS NULL OR r.status = '' OR LOWER(TRIM(r.status)) = 'pending') 
-              AND date(r.backup_date) IS NOT NULL 
-              AND date(r.backup_date) <= date('now', 'localtime') THEN 'Done'
-         ELSE COALESCE(r.status, 'Pending')
-       END as status
+       COALESCE(r.status, 'Pending') as status
        FROM relievers r
        LEFT JOIN branches b ON r.branch_id = b.id
        ${where} ORDER BY r.period DESC, r.backup_date DESC LIMIT ? OFFSET ?`

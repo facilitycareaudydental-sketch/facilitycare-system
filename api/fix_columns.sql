@@ -1,0 +1,14 @@
+ALTER TABLE branches ADD COLUMN row_version INTEGER DEFAULT 1;
+ALTER TABLE branches ADD COLUMN last_sync_source TEXT DEFAULT 'FCMS';
+ALTER TABLE issues ADD COLUMN row_version INTEGER DEFAULT 1;
+ALTER TABLE issues ADD COLUMN last_sync_source TEXT DEFAULT 'FCMS';
+ALTER TABLE master_checklist ADD COLUMN row_version INTEGER DEFAULT 1;
+ALTER TABLE master_checklist ADD COLUMN last_sync_source TEXT DEFAULT 'FCMS';
+ALTER TABLE master_forms ADD COLUMN row_version INTEGER DEFAULT 1;
+ALTER TABLE master_forms ADD COLUMN last_sync_source TEXT DEFAULT 'FCMS';
+ALTER TABLE one_on_one ADD COLUMN row_version INTEGER DEFAULT 1;
+ALTER TABLE one_on_one ADD COLUMN last_sync_source TEXT DEFAULT 'FCMS';
+ALTER TABLE activity_schedule ADD COLUMN row_version INTEGER DEFAULT 1;
+ALTER TABLE activity_schedule ADD COLUMN last_sync_source TEXT DEFAULT 'FCMS';
+ALTER TABLE training ADD COLUMN row_version INTEGER DEFAULT 1;
+ALTER TABLE training ADD COLUMN last_sync_source TEXT DEFAULT 'FCMS';

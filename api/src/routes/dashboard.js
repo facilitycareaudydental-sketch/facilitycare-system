@@ -183,16 +183,7 @@ async function getKPI(env, origin) {
 
       let status = (r.status || '').trim().toLowerCase();
       
-      if (!status || status === 'pending') {
-        const bd = new Date(parsedDate);
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        if (!isNaN(bd) && bd <= today) {
-          status = 'done';
-        }
-      }
-
-      if (status === 'done') {
+      if (status === 'done' || status === 'selesai') {
         relieverCount++;
       }
     }
