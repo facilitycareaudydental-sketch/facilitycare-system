@@ -339,7 +339,7 @@ async function getContractsChart(env, origin) {
   const labels = futureMonthLabels(6);
   const map    = Object.fromEntries((rows.results||[]).map(r=>[r.m, r.c]));
 
-  return ok({ labels, counts: labels.map(l => map[l] || 0) }, 200, origin);
+  return ok({ labels, data: labels.map(l => map[l] || 0) }, 200, origin);
 }
 
 // ─── /issues-summary — donut + by_status + by_branch ─────────────────────────
