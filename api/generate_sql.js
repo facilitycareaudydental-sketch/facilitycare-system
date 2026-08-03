@@ -1,0 +1,138 @@
+const fs = require('fs');
+
+const rawData = `ACHMAD NURYAINI	007. Bekasi
+ADAM JHORDY	032. Cawang
+ADE MUSTIKA REZDAFITRA	016. Cibubur
+ADITYA	026. Tangerang City
+ADITYA PRATAMA	054. Bogor Gunung Batu
+AGUNG SEPTIADI	000. Management
+AGUS LEO SAGITA	021. Kelapa Gading Boulevard
+AHMAD FARHAN	062. Summarecon Bekasi
+AHMAD REZA	001. Pondok Bambu
+AHMAD SARIP HIDAYATULOH	004. Cipete
+AHMAD SUBHAN	004. Cipete
+ALDI	009. Bintaro
+ALDO	033. Taman Mini
+ALIF RIFQI ZAMARSYAH	012. BSD
+AMBAR MUJITO	003. Depok
+ANANTA SEPTRIANTO	023. Semarang
+ANDRE MAULANA	002. Kemang
+ANGEL KASENDA	000. Management
+ANGGA ADITYA SAPUTRA	002. Kemang
+ANGGI ADITYA	016. Cibubur
+ANJAS PRIANTO	000. Management
+ARDIANSYAH	063. Pasar Minggu
+ARI SUYANTO	004. Cipete
+ARIE JULIANTO	022. Cikarang
+ASEP ALIF	013. Bandung Gatsu
+AULIA AZKA	056. Citra Garden 2
+AVIV AMAR	000. Management
+BAYU PRAKOSO	016. Cibubur
+BENY TEGOEH WIJAYA	059. Malang Suhat
+CARLOS BENYGUUS SITOHANG	001. Pondok Bambu
+CAYA	004. Cipete
+CHANDRA AJI KURNIAWAN	016. Cibubur
+DADAN NURJAMAN	013. Bandung Gatsu
+DANI ALFIAN	031. Sawangan
+DANIEL SOEDIRA	003. Depok
+DEDE	007. Bekasi
+DEDE AHDORI	045. FX Mall
+DEDE PUTRA IRAWAN	029. Karawang
+DEDY SUPANDI	034. Puri Indah
+DENIS WILLIAMS JAYA	007. Bekasi
+DINO FAIZAL YURID	002. Kemang
+DINO IRAWAN	005. Greenville
+DWI PURNOMO	004. Cipete
+EDO FIRMANSYAH	031. Sawangan
+ELVAN JANGGA PRAMANA	055. Gajah Mada
+ERI FEBRIANSYAH	058. Solo Baru
+FADLY	015. Gading Serpong
+FAJAR SIDIK	039. Bandung Mekarwangi
+FARHAN SENA	000. Management
+FEBBY TRI PRASTIYO	038. Greenlake
+GEMA AZAN SAPUTRA	021. Kelapa Gading Boulevard
+HADI APRIYANTO	019. Cinere
+HARI JUMADI	035. Ciledug
+HARIS SUPRATMAN	003. Depok
+HARTONO	040. Bekasi Timur
+HASJMI FERDIAN	004. Cipete
+HENDRA DWI SAPUTRA	014. Sunter
+HENDRA MARTONO	030. Ciputat
+HERDI HERMAWAN	043. Tebet
+I PUTU NGURAH DANISWARA D	021. Kelapa Gading Boulevard
+IHWAN HASANUDIN	002. Kemang
+IQBAL AL BANNA	000. Management
+IRFANSYAH	010. Bogor
+IWAN	014. Sunter
+JAMAL PRATAMA PUTRA	028. Taman Palem
+JAYADIH	002. Kemang
+JENDRI NELVI	004. Cipete
+JUNIANSYAH SYAPUTRA	024. Grand Wisata
+KAMALLUDIN	011. Kuningan
+KRISNA	010. Bogor
+M. FIRMANSYAH	025. Bogor Baru
+MAULANA MALIK	019. Cinere
+MIZWAR ALAMSYAH	057. Cikupa
+MOHAMMAD HERWIN DWI SAPUTRA	044. Depok GDC
+MUHAMAD FARID	022. Cikarang
+MUHAMAD FATHAN MUBIN	067. Agora Mall
+MUHAMAD HAFIDZ FADILLAH	050. Cibinong
+MUHAMAD HUSNI	015. Gading Serpong
+MUHAMAD KEMAL RIZQULLAH ALGHIFARI	036. Jagakarsa
+MUHAMAD NAZAR	005. Greenville
+MUHAMAD NOVIAR NURSHOLIHIN	000. Management
+MUHAMAD VICKRI FATHURROZI	051. Bintaro Sektor 9
+MUHAMMAD DIAN EKA PAKSI	049. Surabaya Merr
+MUHAMMAD ERLANGGA PUTRA PRATAMA	013. Bandung Gatsu
+MUHAMMAD FAZA PRATAMA	002. Kemang
+MUHAMMAD INDRA HASAN	014. Sunter
+MUHAMMAD PRAKAS AGAZI	006. Kelapa Gading MOI
+MUHAMMAD TRI ISMANDANU	000. Management
+MUHASABAH	009. Bintaro
+MULTAZAM RIZQY RADIANSYAH	064. Pondok Indah
+NUR HIDAYAT SURYA PRANATA	052. BSD Rawa Buntu
+RESTU DINAR PUJIYANTI	004. Cipete
+REZA RIZKI	025. Bogor Baru
+REZA SUHELMI AN NUR	000. Management
+RINA WARSI	000. Management
+RISKY ANNISA	007. Bekasi
+RIVALDI	012. BSD
+ROBI APRIYADI	001. Pondok Bambu
+SAEFUL MAHENDRA SUCIPTA	001. Pondok Bambu
+SAHRUL ICHSANI	042. Muara Karang
+SANDI NAYA KUSUMA	007. Bekasi
+SARIF HIDAYAT	061. Cirebon
+SAYYIDU SYUHADA	008. PIK
+SLAMET	002. Kemang
+SOPYAN HARIS	053. Alam Sutera
+SUTRISNA	048. PIK 2
+TANTO SUTRISNO	065. Kebon Sirih
+TAUFIK HIDAYAT	012. BSD
+TEGUH ARIYANDI	018. Harapan Indah
+VIARDICA SAPUTRA	041. Karawaci
+WASRIKIN	000. Management
+WIDYA ASTUTI	007. Bekasi
+YAKUB SYAIFUL ANWAR	020. Surabaya
+YUDA WILDAN WIGUNA	047. Bogor Tajur
+YUSMAN SYAHRUL	027. Rawamangun
+YUSUP APRILIANDI	017. Bandung Setrasari
+ZAINAL ABIDIN	002. Kemang
+ZAKARIA	043. Tebet
+ZULFIAN AFDILLAH	003. Depok
+ZULI ROBIANTO	046. Kaliurang Jogja`;
+
+const lines = rawData.split('\n');
+let sql = '';
+
+for (const line of lines) {
+    if (!line.trim()) continue;
+    const parts = line.split('\t');
+    if (parts.length === 2) {
+        const name = parts[0].trim().replace(/'/g, "''");
+        const branch = parts[1].trim().replace(/'/g, "''");
+        sql += `UPDATE employees SET branch_id = (SELECT id FROM branches WHERE full_name = '${branch}') WHERE full_name = '${name}';\n`;
+    }
+}
+
+fs.writeFileSync('update_employees_branch.sql', sql);
+console.log('SQL generated!');

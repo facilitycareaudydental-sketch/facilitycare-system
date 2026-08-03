@@ -307,10 +307,12 @@ export function buildCrudPage({
     let items = res.data?.data || res.data || [];
     let pagination = res.data?.pagination;
     const originalTotal = items.length;
+    let fullItems = items;
     
     if (isClientSide) {
        // 1. Terapkan filter khusus (Client-Side)
        items = onDataLoaded(items);
+       fullItems = items;
        
        // 2. Hitung jumlah total data setelah difilter
        const filteredTotal = items.length;
@@ -356,6 +358,7 @@ export function buildCrudPage({
     const table = createTable({
       columns,
       data: items,
+      fullData: fullItems,
       onEdit: canEdit ? (row) => openForm(row) : null,
       // Individual onDelete removed
       actions: extraActions.map(a => ({ ...a, handler: (row) => a.handler(row, load) })),
