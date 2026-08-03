@@ -45,6 +45,7 @@ async function listIssues(request, env, origin) {
   const status = url.searchParams.get('status') || '';
   const search = url.searchParams.get('search') || '';
   const year = url.searchParams.get('year') || '';
+  const month = url.searchParams.get('month') || '';
 
   let conditions = ['i.deleted_at IS NULL'];
   let values = [];
@@ -53,6 +54,7 @@ async function listIssues(request, env, origin) {
   if (status) { conditions.push('i.status = ?'); values.push(status); }
   if (search) { conditions.push('(i.complaint LIKE ? OR i.employee_name LIKE ?)'); values.push(`%${search}%`, `%${search}%`); }
   if (year) { conditions.push("strftime('%Y', i.report_date) = ?"); values.push(year); }
+  if (month) { conditions.push("strftime('%Y-%m', i.report_date) = ?"); values.push(month); }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
