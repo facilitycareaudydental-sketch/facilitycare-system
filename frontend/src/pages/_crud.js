@@ -142,6 +142,7 @@ export function buildCrudPage({
     searchTimer = setTimeout(() => {
       filters.search = e.target.value;
       page = 1;
+      selectedIds.clear();
       load();
     }, 400);
   });
@@ -151,6 +152,7 @@ export function buildCrudPage({
       document.getElementById(`filter-${f.name}`)?.addEventListener('change', (e) => {
         filters[f.name] = e.target.value;
         page = 1;
+        selectedIds.clear();
         load();
       });
     }
@@ -164,6 +166,7 @@ export function buildCrudPage({
       if (el) el.value = '';
     });
     page = 1;
+    selectedIds.clear();
     load();
   });
 
@@ -281,7 +284,6 @@ export function buildCrudPage({
   }
 
   async function load() {
-    selectedIds.clear();
     updateBulkToolbar();
     
     const tableContainer = document.getElementById('table-container');

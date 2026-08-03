@@ -1,7 +1,7 @@
 import { confirmDialog } from './modal.js';
 
 // Reusable data table with pagination
-export function createTable({ columns, data, fullData, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data', bulkSelect = null }) {
+export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data', bulkSelect = null }) {
   const wrapper = document.createElement('div');
   wrapper.className = 'table-wrapper';
 
@@ -27,8 +27,7 @@ export function createTable({ columns, data, fullData, onEdit, onDelete, onView,
     selectAll.id = 'select-all-checkbox';
     selectAll.title = 'Pilih semua';
     selectAll.addEventListener('change', () => {
-      const targetData = fullData || data;
-      targetData.forEach(row => {
+      data.forEach(row => {
         if (selectAll.checked) bulkSelect.selectedIds.add(row.id);
         else bulkSelect.selectedIds.delete(row.id);
       });
