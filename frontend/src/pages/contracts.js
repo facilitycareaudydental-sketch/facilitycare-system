@@ -91,6 +91,8 @@ export async function renderContracts(container, params) {
       { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
       { type: 'select', name: 'month_expiry', label: 'Bulan Habis', options: [
+        { value: '2026-06', label: 'Jun 2026' },
+        { value: '2026-07', label: 'Jul 2026' },
         { value: '2026-08', label: 'Agu 2026' },
         { value: '2026-09', label: 'Sep 2026' },
         { value: '2026-10', label: 'Okt 2026' },

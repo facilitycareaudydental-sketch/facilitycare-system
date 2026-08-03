@@ -329,15 +329,25 @@ async function getIssuesTrend(env, origin) {
 // ─── /contracts-chart — contracts expiring next 6 months ─────────────────────
 // Uses idx_contracts_status_end
 async function getContractsChart(env, origin) {
+  const y = new Date().getFullYear();
+  const startMonth = `${y}-06`;
+  const endMonth = `${y}-12`;
+
   const rows = await env.DB.prepare(
     `SELECT strftime('%Y-%m', end_date) m, COUNT(*) c
      FROM contracts
-     WHERE status='Aktif' AND end_date >= date('now') AND end_date <= date('now','+6 months')
+     WHERE status='Aktif' 
+       AND strftime('%Y-%m', end_date) >= ? 
+       AND strftime('%Y-%m', end_date) <= ?
      GROUP BY m ORDER BY m`
-  ).all();
+  ).bind(startMonth, endMonth).all();
 
-  const labels = futureMonthLabels(6);
-  const map    = Object.fromEntries((rows.results||[]).map(r=>[r.m, r.c]));
+  const labels = [];
+  for (let m = 6; m <= 12; m++) {
+    labels.push(`${y}-${String(m).padStart(2,'0')}`);
+  }
+  
+  const map = Object.fromEntries((rows.results||[]).map(r=>[r.m, r.c]));
 
   return ok({ labels, data: labels.map(l => map[l] || 0) }, 200, origin);
 }
