@@ -66,7 +66,7 @@ async function list(request, env, origin) {
        COALESCE(r.status, 'Pending') as status
        FROM relievers r
        LEFT JOIN branches b ON r.branch_id = b.id
-       ${where} ORDER BY r.period DESC, r.backup_date DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY r.period ASC, r.backup_date DESC LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 
