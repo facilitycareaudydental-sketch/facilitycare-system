@@ -319,7 +319,7 @@ export async function renderDashboard(container) {
               <div class="chart-card-subtitle" style="font-size:0.65rem">Skor rata-rata SCM & Cleaning</div>
             </div>
             <select id="filter-insp-month" class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer">
-              <option value="">Bulan Ini</option>
+              <option value="">Pilih Bulan</option>
               <option value="01">Januari</option>
               <option value="02">Februari</option>
               <option value="03">Maret</option>
