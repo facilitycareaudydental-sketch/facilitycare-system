@@ -284,7 +284,7 @@ export async function renderDashboard(container) {
           <div class="chart-card-header">
             <div class="chart-card-title">Permasalahan per Kategori</div>
           </div>
-          <div style="display:flex; gap:20px; align-items:center; height:140px">
+          <div style="display:flex; gap:20px; align-items:center; height:100px">
             <div class="chart-canvas-wrap" style="flex:1;height:100%;position:relative">
               <div id="skel-donut" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
               <canvas id="chart-donut" style="display:none"></canvas>
@@ -303,7 +303,7 @@ export async function renderDashboard(container) {
                <div style="display:flex;align-items:center;gap:6px"><div style="width:16px;height:8px;border:2px solid #10B981;border-radius:2px"></div> Closed</div>
             </div>
           </div>
-          <div class="chart-canvas-wrap" style="height:140px;position:relative">
+          <div class="chart-canvas-wrap" style="height:100px;position:relative">
             <div id="skel-trend" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-trend" style="display:none"></canvas>
           </div>
@@ -334,7 +334,7 @@ export async function renderDashboard(container) {
               <option value="12">Desember</option>
             </select>
           </div>
-          <div class="chart-canvas-wrap" style="height:140px;position:relative;margin-top:10px">
+          <div class="chart-canvas-wrap" style="height:280px;position:relative;margin-top:10px">
             <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-insp" style="display:none"></canvas>
           </div>
