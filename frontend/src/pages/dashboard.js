@@ -690,9 +690,7 @@ function renderContractMiniBar(contractChart) {
   
   const ctx = canvas.getContext('2d');
   
-  const grad = ctx.createLinearGradient(0,0,0,200);
-  grad.addColorStop(0, '#60A5FA'); // Light blue
-  grad.addColorStop(1, '#2563EB'); // Primary blue
+  
   
   _charts.contractMiniBar = new Chart(canvas, {
     type:'bar',
@@ -701,7 +699,7 @@ function renderContractMiniBar(contractChart) {
       datasets:[{ 
         label:'Kontrak Habis', 
         data, 
-        backgroundColor: grad, 
+        backgroundColor: '#3B82F6', 
         borderRadius: 4, 
         borderSkipped: false,
         barPercentage: 0.6,
