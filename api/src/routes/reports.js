@@ -63,7 +63,7 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
     env.DB.prepare(
       `SELECT t.*, b.full_name as branch_name FROM ${table} t
        LEFT JOIN branches b ON t.branch_id = b.id
-       ${where} ORDER BY t.id DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY t.period DESC, t.id DESC LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 
