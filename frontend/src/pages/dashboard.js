@@ -677,7 +677,7 @@ function renderContractMiniBar(contractChart) {
   
   contractChart = contractChart || {};
   const customMonths = {
-      '06': 'JUN', '07': 'JUL', '08': 'AGST', '09': 'SEPT', '10': 'OKT', '11': 'NOV', '12': 'DES'
+      '06': 'Jun', '07': 'Jul', '08': 'Agu', '09': 'Sep', '10': 'Okt', '11': 'Nov', '12': 'Des'
     };
     const labels = (contractChart.labels || []).map(ym => {
       const m = ym.split('-')[1];
