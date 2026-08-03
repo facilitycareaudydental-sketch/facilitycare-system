@@ -334,7 +334,7 @@ export async function renderDashboard(container) {
               <option value="12">Desember</option>
             </select>
           </div>
-          <div class="chart-canvas-wrap" style="height:280px;position:relative;margin-top:10px">
+          <div class="chart-canvas-wrap" style="height:200px;position:relative;margin-top:10px">
             <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-insp" style="display:none"></canvas>
           </div>
