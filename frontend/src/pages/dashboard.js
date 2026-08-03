@@ -880,7 +880,14 @@ function hideSkel(skelId, canvasId) {
   const skel = document.getElementById(skelId);
   const cvs  = document.getElementById(canvasId);
   if (skel) { skel.style.display = 'none'; skel.style.position = ''; }
-  if (cvs)  cvs.style.display = 'block';
+  if (cvs) {
+    cvs.style.display = 'block';
+    const wrap = cvs.parentElement;
+    if (wrap) {
+      const emptyMsg = wrap.querySelector('.chart-empty');
+      if (emptyMsg) emptyMsg.remove();
+    }
+  }
 }
 function showEmpty(canvas, msg='Belum ada data') {
   if (!canvas) return;
