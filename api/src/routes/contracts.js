@@ -45,6 +45,7 @@ async function listContracts(request, env, origin) {
   const branch_id = url.searchParams.get('branch_id') || '';
   const status = url.searchParams.get('status') || '';
   const expiring_days = url.searchParams.get('expiring_days') || '';
+  const month_expiry = url.searchParams.get('month_expiry') || '';
 
   let conditions = ['1=1'];
   let values = [];
@@ -55,6 +56,10 @@ async function listContracts(request, env, origin) {
   if (expiring_days) {
     conditions.push("c.end_date <= date('now', '+' || ? || ' days') AND c.end_date >= date('now')");
     values.push(expiring_days);
+  }
+  if (month_expiry) {
+    conditions.push("strftime('%Y-%m', c.end_date) = ?");
+    values.push(month_expiry);
   }
 
   const where = 'WHERE ' + conditions.join(' AND ') + ' AND c.deleted_at IS NULL';

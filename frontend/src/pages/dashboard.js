@@ -690,8 +690,6 @@ function renderContractMiniBar(contractChart) {
   
   const ctx = canvas.getContext('2d');
   
-  
-  
   _charts.contractMiniBar = new Chart(canvas, {
     type:'bar',
     data: { 
@@ -707,6 +705,15 @@ function renderContractMiniBar(contractChart) {
       }]
     },
     options: chartOpts({ 
+      onClick: (e, activeEls) => {
+        if (activeEls && activeEls.length > 0) {
+          const index = activeEls[0].index;
+          const originalMonth = (contractChart.labels || [])[index]; // YYYY-MM
+          if (originalMonth) {
+            window.location.hash = '#/contracts?month_expiry=' + originalMonth;
+          }
+        }
+      },
       plugins:{ legend:{ display:false } },
       scales:{ 
         x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:0 } },
