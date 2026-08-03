@@ -212,6 +212,7 @@ async function getKPI(env, origin) {
     cleaning_month:  { current: cleanCur?.c||0 },
     fogging_month:   { current: fogCur?.c||0 },
     reliever_total:  { current: relieverActive?.c || 0 },
+    reliever_completed: { current: relieverCount },
     checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
     kebersihan: {
       area: { avg_fc: kebAreaCur?.avg_fc || 0, avg_spv: kebAreaCur?.avg_spv || 0 },
