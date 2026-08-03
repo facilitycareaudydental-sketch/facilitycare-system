@@ -500,6 +500,7 @@ function renderKPI(kpi) {
 
   const cards = [
     { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',       href:'#/employees?dash_filter=active',   color:'kpi-blue',   key:'employees',  trendPct:'+2%', trendColor:'#10B981', points:'0,20 10,18 20,22 30,12 40,15 50,8 60,10 70,5 80,6 90,2 100,0' },
+      { icon:'🔄', label:'Reliefer Aktif',        sub:'Karyawan reliefer',       href:'#/employees?dash_filter=reliefer',   color:'kpi-purple',   key:'reliever_total',  trendPct:'0%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
     { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',href:'#/contracts?dash_filter=active',   color:'kpi-green',  key:'contracts',  trendPct:'+1%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
     { icon:'⏳', label:'Kontrak Habis 30 Hari',  sub:'Akan segera berakhir',       href:'#/contracts?dash_filter=expiring30',   color:'kpi-warn',   key:'expiring30', trendPct:'+25%',trendColor:'#F59E0B', points:'0,25 20,22 40,24 60,15 80,18 100,5' },
     { icon:'⚠️', label:'Permasalahan Open',    sub:'Belum diselesaikan',         href:'#/issues?dash_filter=open',      color:'kpi-red',    key:'issues',     trendPct:'0%',  trendColor:'#EF4444', points:'0,20 20,18 40,22 60,19 80,21 100,20' },
