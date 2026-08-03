@@ -684,7 +684,7 @@ function renderContractMiniBar(contractChart) {
   destroyChart('contractMiniBar');
   
   contractChart = contractChart || {};
-  const labels = contractChart.labels || [];
+  const labels = (contractChart.labels || []).map(monthShort);
   const data = (contractChart.data || []).map(v => safeNum(v));
   if (!labels.length) { showEmpty(canvas, 'Belum ada data'); return; }
   
