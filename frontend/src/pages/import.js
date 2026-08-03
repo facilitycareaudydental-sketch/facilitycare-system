@@ -189,15 +189,18 @@ export function renderImportPage(container) {
     try {
       const res = await apiFetch('/api/import/backup');
       if (res.ok) {
-        const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `FCMS_Database_Backup_${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        if (!window.XLSX) {
+          toastError('Library SheetJS belum termuat. Refresh halaman dan coba lagi.');
+          return;
+        }
+        const XLSX = window.XLSX;
+        const wb = XLSX.utils.book_new();
+        Object.entries(res.data.database).forEach(([tableName, rows]) => {
+          const sheetData = rows.length > 0 ? rows : [{}];
+          const sheet = XLSX.utils.json_to_sheet(sheetData);
+          XLSX.utils.book_append_sheet(wb, sheet, tableName.substring(0, 31));
+        });
+        XLSX.writeFile(wb, `FCMS_Database_Backup_${new Date().toISOString().slice(0,10)}.xlsx`);
         toastSuccess('Backup berhasil diunduh!');
       } else {
         toastError('Gagal memproses backup: ' + (res.data?.error || 'Unknown error'));
