@@ -47,8 +47,6 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
     conditions.push(`strftime('%Y', t.${dateField}) = ?`);
     values.push(year);
   }
-  
-  const month = url.searchParams.get('month') || '';
   if (month) {
     const dateField = table === 'basecamp_reports' ? 'info_date' : 
                       table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
