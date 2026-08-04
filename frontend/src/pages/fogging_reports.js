@@ -4,9 +4,18 @@ import { getCachedBranches } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
-export async function renderFoggingReports(container) {
+export async function renderFoggingReports(container, params) {
   const branchOptions = await getCachedBranches();
   const years = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - i));
+  
+  const dashFilter = params ? params.get('dash_filter') : null;
+  let defFilters = {};
+  if (dashFilter === 'fogging') {
+    const now = new Date();
+    const curM = String(now.getMonth() + 1).padStart(2, '0');
+    const curY = String(now.getFullYear());
+    defFilters = { status: 'Done', month: curM, year: curY };
+  }
 
   buildCrudPage({
     container,
@@ -15,6 +24,7 @@ export async function renderFoggingReports(container) {
     apiPath: '/api/reports/fogging',
     itemLabel: 'Fogging',
     bulkDelete: true,
+    defaultFilters: defFilters,
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'activity_type', label: 'Jenis', render: v => `<span class="badge badge-warning">${v}</span>` },

@@ -52,11 +52,14 @@ export async function renderSchedule(container, params) {
   const activePeriod = getActivePeriod(scheduleData);
   
   const dashFilter = params ? params.get('dash_filter') : null;
+  const now = new Date();
+  const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
   let defFilters = { period: activePeriod };
   if (dashFilter === 'inspeksi') {
-    defFilters = { period: 'Q3', status: 'Done', activity_type: 'Inspeksi Hygiene' };
+    defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', month: curM };
   } else if (dashFilter === 'gcdc') {
-    defFilters = { period: 'Q3', status: 'Done' }; // Let user pick GC or DC manually, or we could add a custom search
+    defFilters = { status: 'Done', activity_type: 'General Cleaning', month: curM };
   }
 
   buildCrudPage({
