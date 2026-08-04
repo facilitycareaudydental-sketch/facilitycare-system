@@ -27,7 +27,21 @@ export async function renderInspectionReports(container) {
     filterFields: [
       { type: 'search', placeholder: 'Cari cabang / PIC...' },
       { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
-      { type: 'select', name: 'period', label: 'Periode / Bulan', options: ['Q1', 'Q2', 'Q3', 'Q4', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'] },
+      { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
+      { type: 'select', name: 'month', label: 'Bulan', options: [
+          { value: '01', label: 'Jan' },
+          { value: '02', label: 'Feb' },
+          { value: '03', label: 'Mar' },
+          { value: '04', label: 'Apr' },
+          { value: '05', label: 'Mei' },
+          { value: '06', label: 'Jun' },
+          { value: '07', label: 'Jul' },
+          { value: '08', label: 'Agu' },
+          { value: '09', label: 'Sep' },
+          { value: '10', label: 'Okt' },
+          { value: '11', label: 'Nov' },
+          { value: '12', label: 'Des' }
+      ]},
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done'] },
       { type: 'select', name: 'year', label: 'Tahun', options: years },
     ],
@@ -35,7 +49,7 @@ export async function renderInspectionReports(container) {
       {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
-          { name: 'period', label: 'Periode / Bulan', type: 'select', required: true, options: ['Q1', 'Q2', 'Q3', 'Q4', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], value: data?.period },
+          { name: 'period', label: 'Periode', type: 'select', required: true, options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
         ]
       },
       {
