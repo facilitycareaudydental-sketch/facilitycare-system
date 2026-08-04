@@ -8,6 +8,7 @@ export async function renderBasecampReports(container) {
   const branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
   const rawPicOptions = employeeOptions;
+  const years = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - i));
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
