@@ -284,7 +284,7 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header" style="align-items:flex-start">
             <div>
-              <div class="chart-card-title">REPORT TIME LINE</div>
+              <div class="chart-card-title">Jadwal Kegiatan</div>
             </div>
             <select id="filter-jadwal-year" class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--primary)">
               <option value="2026">2026</option>
