@@ -14,8 +14,10 @@ export async function renderRelievers(container, params) {
   
   let defFilters = {};
   if (dashFilter === 'reliever') {
-    // If arriving from dashboard, default to Done status
-    defFilters = { status: 'Done' };
+    // If arriving from dashboard, default to Done status and current month
+    const now = new Date();
+    const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    defFilters = { status: 'Done', month: curM };
   }
 
   console.log("RAW", await getCachedEmployees());
