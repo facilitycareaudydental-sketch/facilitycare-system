@@ -11,6 +11,12 @@ export async function renderRelievers(container, params) {
   const employeeOptions = await getCachedEmployeeNames();
   
   const dashFilter = params ? params.get('dash_filter') : null;
+  
+  let defFilters = {};
+  if (dashFilter === 'reliever') {
+    // If arriving from dashboard, default to Done status
+    defFilters = { status: 'Done' };
+  }
 
   console.log("RAW", await getCachedEmployees());
   console.log("OPTIONS", employeeOptions);
@@ -39,27 +45,14 @@ export async function renderRelievers(container, params) {
     bulkDelete: true,
     itemLabel: 'Reliefer',
     paginationMode: 'client',
+    defaultFilters: defFilters,
     onDataLoaded: (items) => {
-      if (dashFilter === 'reliever') {
-        const now = new Date();
-        const curY = now.getFullYear();
-        const curM = String(now.getMonth() + 1).padStart(2, '0');
-        return items.filter(d => {
-          if (String(d.status || '').toLowerCase() !== 'done') return false;
-          let bd = d.backup_date || '';
-          if (bd.includes('/')) {
-            const parts = bd.split('/');
-            if (parts.length === 3) {
-              const yyyy = parts[2].length === 4 ? parts[2] : `20${parts[2]}`;
-              if (yyyy == curY && parts[1].padStart(2, '0') == curM) return true;
-            }
-          } else if (bd.includes('-')) {
-            if (bd.startsWith(`${curY}-${curM}`)) return true;
-          }
-          return false;
-        });
-      }
-      return items;
+      // Sort descending by backup_date
+      return items.sort((a, b) => {
+        const da = a.backup_date ? new Date(a.backup_date).getTime() : 0;
+        const db = b.backup_date ? new Date(b.backup_date).getTime() : 0;
+        return db - da;
+      });
     },
     columns: [
       { key: 'branch_name', label: 'Cabang' },
