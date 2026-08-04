@@ -52,6 +52,12 @@ export async function renderSchedule(container, params) {
   const activePeriod = getActivePeriod(scheduleData);
   
   const dashFilter = params ? params.get('dash_filter') : null;
+  let defFilters = { period: activePeriod };
+  if (dashFilter === 'inspeksi') {
+    defFilters = { period: 'Q3', status: 'Done', activity_type: 'Inspeksi Hygiene' };
+  } else if (dashFilter === 'gcdc') {
+    defFilters = { period: 'Q3', status: 'Done' }; // Let user pick GC or DC manually, or we could add a custom search
+  }
 
   buildCrudPage({
     container,
@@ -61,14 +67,9 @@ export async function renderSchedule(container, params) {
     bulkDelete: true,
     itemLabel: 'Jadwal',
     paginationMode: 'client',
-    defaultFilters: dashFilter ? { period: 'Q3' } : { period: activePeriod },
+    defaultFilters: defFilters,
     onDataLoaded: (items) => {
-      // 1. Filter dataset directly if dash_filter is set
-      if (dashFilter) {
-        items = items.filter(s => filterDashboardItem(s, dashFilter));
-      }
-
-      // 2. Sort descending by opening_date, so newest year/date is first
+      // Sort descending by opening_date, so newest year/date is first
       return items.sort((a, b) => {
         const da = a.opening_date ? new Date(a.opening_date).getTime() : 0;
         const db = b.opening_date ? new Date(b.opening_date).getTime() : 0;
