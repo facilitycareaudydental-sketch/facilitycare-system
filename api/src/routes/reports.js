@@ -32,11 +32,15 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
   const year = url.searchParams.get('year') || '';
   const search = url.searchParams.get('search') || '';
 
+  const month = url.searchParams.get('month') || '';
+  const pic = url.searchParams.get('pic') || '';
+
   let conditions = [...extraConditions];
   let values = [];
   if (branch_id) { conditions.push('t.branch_id = ?'); values.push(branch_id); }
   if (period) { conditions.push('t.period = ?'); values.push(period); }
   if (status) { conditions.push('t.status = ?'); values.push(status); }
+  if (pic) { conditions.push('t.pic = ?'); values.push(pic); }
   if (year) {
     const dateField = table === 'basecamp_reports' ? 'info_date' : 
                       table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
