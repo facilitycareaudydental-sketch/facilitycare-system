@@ -284,7 +284,7 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header" style="align-items:flex-start">
             <div>
-              <div class="chart-card-title">Jadwal Kegiatan per Bulan (<span id="jadwal-year-label">2026</span>)</div>
+              <div class="chart-card-title">REPORT TIME LINE</div>
             </div>
             <select id="filter-jadwal-year" class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--primary)">
               <option value="2026">2026</option>
@@ -414,7 +414,8 @@ export async function renderDashboard(container) {
 
   document.getElementById('filter-jadwal-year')?.addEventListener('change', async (e) => {
     const year = e.target.value;
-    document.getElementById('jadwal-year-label').textContent = year;
+    const labelEl = document.getElementById('jadwal-year-label');
+    if (labelEl) labelEl.textContent = year;
     const skel = document.getElementById('skel-jadwal');
     const cvs = document.getElementById('chart-jadwal');
     if (skel) { skel.style.display = 'block'; skel.style.position = 'absolute'; }
