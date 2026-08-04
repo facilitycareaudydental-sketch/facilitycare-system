@@ -1,5 +1,5 @@
 // Generic CRUD page builder - used by all modules
-import { apiFetch } from '../config.js';
+import { apiFetch, CLIENT_SIDE_MAX_ROWS, IS_DEVELOPMENT } from '../config.js';
 import { createTable, createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { buildFormHTML, getFormData, populateForm } from '../components/form.js';
@@ -21,10 +21,12 @@ export function buildCrudPage({
   canDelete = true,
   onBeforeSubmit,
   onAfterLoad,
+  onDataLoaded,
   extraActions = [],
   initialSearch = '',
   exportOptions = null, // { moduleName, onExport, onImport, onTemplate }
   bulkDelete = false,   // true => enable checkbox bulk-delete using DELETE apiPath/bulk
+  paginationMode = 'server', // 'server' or 'client'
 }) {
   let page = 1;
   let filters = { ...defaultFilters };
@@ -40,10 +42,10 @@ export function buildCrudPage({
     </div>
 
     ${bulkDelete ? `
-    <div class="bulk-toolbar" id="bulk-toolbar" style="display:none">
-      <span id="bulk-count">0 dipilih</span>
-      <button class="btn btn-danger btn-sm" id="btn-bulk-delete">🗑️ Hapus Terpilih</button>
-      <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel">Batalkan</button>
+    <div class="bulk-toolbar" id="bulk-toolbar" style="display:flex; align-items:center; gap:1rem; background:var(--bg-card); padding:0.75rem 1.25rem; border-radius:var(--radius-lg); border:1px solid var(--border-color); margin-bottom:1rem;">
+      <span id="bulk-count" style="font-weight:600; font-size:0.9rem;">0 item dipilih</span>
+      <button class="btn btn-danger btn-sm" id="btn-bulk-delete" disabled>🗑️ Hapus Terpilih</button>
+      <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel" disabled>Batalkan</button>
     </div>` : ''}
     
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
@@ -73,11 +75,16 @@ export function buildCrudPage({
     const toolbar = document.getElementById('bulk-toolbar');
     if (!toolbar) return;
     const countEl = document.getElementById('bulk-count');
+    const btnDelete = document.getElementById('btn-bulk-delete');
+    const btnCancel = document.getElementById('btn-bulk-cancel');
+    
+    countEl.textContent = `${selectedIds.size} item dipilih`;
     if (selectedIds.size > 0) {
-      toolbar.style.display = 'flex';
-      countEl.textContent = `${selectedIds.size} item dipilih`;
+      btnDelete.disabled = false;
+      btnCancel.disabled = false;
     } else {
-      toolbar.style.display = 'none';
+      btnDelete.disabled = true;
+      btnCancel.disabled = true;
     }
   }
 
@@ -185,35 +192,108 @@ export function buildCrudPage({
     fileInput?.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const label = fileInput.parentElement;
-      const originalText = label.innerHTML;
-      label.innerHTML = '⏳ Memproses...';
-      label.style.pointerEvents = 'none';
       fileInput.disabled = true;
       
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
+      overlay.innerHTML = `
+        <div style="background:var(--bg-card);border-radius:var(--radius-xl);padding:32px;width:90%;max-width:500px;box-shadow:var(--shadow-lg);text-align:center;">
+          <h3 style="margin:0 0 16px;color:var(--text-1);font-size:1.2rem">🔄 Memproses Import Data</h3>
+          <div style="margin-bottom:16px;color:var(--text-2);font-size:0.9rem" id="import-progress-text">Membaca file Excel...</div>
+          <div style="background:var(--bg-body);border-radius:999px;height:12px;overflow:hidden;margin-bottom:24px">
+            <div id="import-progress-bar" style="background:var(--primary);height:100%;width:0%;transition:width 0.3s"></div>
+          </div>
+          <div id="import-summary" style="display:none;text-align:left;background:var(--bg-body);padding:16px;border-radius:8px;margin-bottom:24px;font-size:0.9rem"></div>
+          <button id="import-close-btn" class="btn btn-primary" style="display:none;width:100%">Selesai</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      const textEl = overlay.querySelector('#import-progress-text');
+      const barEl = overlay.querySelector('#import-progress-bar');
+      const summaryEl = overlay.querySelector('#import-summary');
+      const closeBtn = overlay.querySelector('#import-close-btn');
+
+      closeBtn.addEventListener('click', () => {
+        overlay.remove();
+        load();
+      });
+
       try {
         const json = await parseExcel(file);
         if (json.length === 0) throw new Error('File kosong atau format salah');
-        await exportOptions.onImport(json);
-        toastSuccess('Import berhasil!');
-        load();
-      } catch (err) {
-        toastError(err.message || 'Gagal import data');
-      } finally {
-        label.innerHTML = originalText;
-        label.style.pointerEvents = 'auto';
-        fileInput.disabled = false;
+        
+        // Chunking Logic (Stress Test Ready: 100 - 10,000 rows)
+        const CHUNK_SIZE = 500;
+        let inserted = 0, skipped = 0, failed = 0;
+        const total = json.length;
+        
+        textEl.textContent = `Ditemukan ${total} baris data. Memulai import...`;
+        
+        for (let i = 0; i < total; i += CHUNK_SIZE) {
+          const chunk = json.slice(i, i + CHUNK_SIZE);
+          textEl.textContent = `Mengimport baris ${i + 1} - ${Math.min(i + CHUNK_SIZE, total)} dari ${total}...`;
+          barEl.style.width = `${Math.round((i / total) * 100)}%`;
+          
+          try {
+            // onImport should return { inserted, skipped } or throw
+            const result = await exportOptions.onImport(chunk);
+            if (result) {
+              inserted += result.inserted || result.metrics?.inserted || chunk.length;
+              skipped += result.skipped || result.metrics?.updated || 0;
+            } else {
+              inserted += chunk.length; // fallback
+            }
+          } catch (err) {
+            console.error('Chunk import failed:', err);
+            failed += chunk.length;
+          }
+        }
+        
+        barEl.style.width = '100%';
+        textEl.innerHTML = `<strong style="color:var(--success)">✅ Import Selesai!</strong>`;
+        
+        summaryEl.style.display = 'block';
+        summaryEl.innerHTML = `
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total Data:</span> <strong>${total}</strong></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:var(--success)"><span>Berhasil Diimport:</span> <strong>${inserted}</strong></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:var(--warning)"><span>Dilewati (Duplikat):</span> <strong>${skipped}</strong></div>
+          <div style="display:flex;justify-content:space-between;color:var(--danger)"><span>Gagal:</span> <strong>${failed}</strong></div>
+        `;
+        if (failed > 0) {
+          summaryEl.innerHTML += `<p style="margin-top:12px;font-size:0.8rem;color:var(--danger)">Sebagian data gagal diimport. Pastikan format kolom sesuai template dan tidak ada data kosong pada kolom wajib.</p>`;
+        }
+        
+        closeBtn.style.display = 'block';
         fileInput.value = ''; // reset
+      } catch (err) {
+        textEl.innerHTML = \`<strong style="color:var(--danger)">❌ Gagal Memproses File</strong><br>\${err.message}\`;
+        barEl.style.background = 'var(--danger)';
+        barEl.style.width = '100%';
+        closeBtn.style.display = 'block';
+        fileInput.value = ''; // reset
+      } finally {
+        fileInput.disabled = false;
       }
     });
   }
 
   async function load() {
+    selectedIds.clear();
+    updateBulkToolbar();
+    
     const tableContainer = document.getElementById('table-container');
     if (!tableContainer) return;
     tableContainer.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
-    const params = new URLSearchParams({ page, limit: 20, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
+    // FIX: Tentukan mode paginasi (Hybrid Architecture)
+    // Mode ditentukan dari konfigurasi (default: server).
+    // Jika 'client', kita butuh semua data di frontend (Client-Side).
+    // Jika 'server', kita gunakan paginasi Backend yang scalable untuk data raksasa.
+    const isClientSide = paginationMode === 'client';
+    const apiPage = isClientSide ? 1 : page;
+    const apiLimit = isClientSide ? CLIENT_SIDE_MAX_ROWS : 20;
+    
+    const params = new URLSearchParams({ page: apiPage, limit: apiLimit, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
     const res = await apiFetch(`${apiPath}?${params}`);
 
     if (!res.ok) {
@@ -221,8 +301,52 @@ export function buildCrudPage({
       return;
     }
 
-    const items = res.data?.data || [];
-    const pagination = res.data?.pagination;
+    let items = res.data?.data || res.data || [];
+    let pagination = res.data?.pagination;
+    const originalTotal = items.length;
+    
+    if (isClientSide) {
+       // 1. Terapkan filter khusus (Client-Side)
+       items = onDataLoaded(items);
+       
+       // 2. Hitung jumlah total data setelah difilter
+       const filteredTotal = items.length;
+       const limit = 20;
+       const pages = Math.ceil(filteredTotal / limit);
+       
+       // 3. Pastikan current page tidak melebihi total pages
+       if (page > pages && pages > 0) page = pages;
+       
+       // 4. Hitung index slicing
+       const startIndex = (page - 1) * limit;
+       const endIndex = page * limit;
+       
+       // 5. Potong array data sesuai halaman
+       items = items.slice(startIndex, endIndex);
+       
+       // 6. Tumpuk pagination object milik backend dengan milik frontend
+       pagination = { 
+          page: page, 
+          limit: limit, 
+          total: filteredTotal, 
+          pages: pages 
+       };
+    }
+
+    if (IS_DEVELOPMENT) {
+      console.log({
+        mode: isClientSide ? 'Client-Side' : 'Server-Side',
+        module: apiPath,
+        totalData: originalTotal,
+        filteredData: items.length,
+        currentPage: page,
+        pageSize: pagination ? pagination.limit : 20,
+        totalPages: pagination ? pagination.pages : 1,
+        startIndex: isClientSide ? (page - 1) * 20 : 0,
+        endIndex: isClientSide ? page * 20 : items.length,
+        rowsRendered: items.length
+      });
+    }
 
     if (onAfterLoad) onAfterLoad(items);
 
@@ -230,9 +354,9 @@ export function buildCrudPage({
       columns,
       data: items,
       onEdit: canEdit ? (row) => openForm(row) : null,
-      onDelete: canDelete ? (row) => handleDelete(row) : null,
+      // Individual onDelete removed
       actions: extraActions.map(a => ({ ...a, handler: (row) => a.handler(row, load) })),
-      emptyText: `Tidak ada ${itemLabel.toLowerCase()}`,
+      emptyText: `Tidak ada ${String(itemLabel || '').toLowerCase()}`,
       bulkSelect: bulkDelete ? { selectedIds, onToggle: updateBulkToolbar } : null,
     });
 
@@ -285,6 +409,42 @@ export function buildCrudPage({
         confirmBtn.textContent = 'Menyimpan...';
 
         let body = getFormData(formEl);
+
+        const fields = typeof formFields === 'function' ? formFields(data) : formFields;
+        const processComboboxes = async (fList) => {
+          for (const f of fList) {
+            if (f.type === 'row') await processComboboxes(f.fields);
+            else if (f.type === 'combobox' && body[f.name]) {
+              const valStr = body[f.name];
+              const existing = (f.options || []).find(o => {
+                 const v = typeof o === 'object' ? String(o.value) : String(o);
+                 const l = typeof o === 'object' ? String(o.label) : String(o);
+                 return v === valStr || l === valStr;
+              });
+              if (existing) {
+                 body[f.name] = typeof existing === 'object' ? existing.value : existing;
+              } else if (f.createApi) {
+                 const payload = {};
+                 payload[f.createApi.field] = valStr;
+                 if (f.createApi.extra) Object.assign(payload, f.createApi.extra);
+                 const cRes = await apiFetch(f.createApi.path, { method: 'POST', body: JSON.stringify(payload) });
+                 if (cRes.ok && cRes.data?.id) body[f.name] = cRes.data.id;
+                 else if (cRes.ok && !cRes.data?.id) body[f.name] = valStr;
+                 else throw new Error(`Gagal membuat master data: ${cRes.data?.error || 'Unknown error'}`);
+              }
+            }
+          }
+        };
+
+        try {
+          await processComboboxes(fields);
+        } catch(e) {
+          toastError(e.message);
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = isEdit ? 'Simpan Perubahan' : `Tambah ${itemLabel}`;
+          return;
+        }
+
         if (onBeforeSubmit) body = await onBeforeSubmit(body, data);
 
         const method = isEdit ? 'PUT' : 'POST';

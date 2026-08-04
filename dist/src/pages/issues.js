@@ -1,23 +1,22 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { statusBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
 let branchOptions = [];
 let employeeOptions = [];
 
-export async function renderIssues(container) {
-  const [bRes, eRes, pRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000'),
-    apiFetch('/api/pic')
-  ]);
-  branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  
-  employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
-  
-  const fcOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
-  const pelaporOptions = (pRes.data?.data || []).filter(p => p.role === 'Pelapor').map(p => ({ value: p.name, label: p.name }));
+export function filterDashboardItem(s, type) {
+  const status = String(s.status || '').toLowerCase();
+  if (type === 'open') return status === 'open';
+  return false;
+}
+
+export async function renderIssues(container, params) {
+  const dashFilter = params ? params.get('dash_filter') : null;
+  branchOptions = await getCachedBranches();
+  employeeOptions = await getCachedEmployeeNames();
 
   // Helper to ensure existing value is in options (prevents blank selects on old data)
   const getEmpOptions = (val) => {
@@ -25,20 +24,6 @@ export async function renderIssues(container) {
       return [...employeeOptions, { value: val, label: val }];
     }
     return employeeOptions;
-  };
-  
-  const getFcOptions = (val) => {
-    if (val && !fcOptions.find(o => o.value === val)) {
-      return [...fcOptions, { value: val, label: val }];
-    }
-    return fcOptions;
-  };
-
-  const getPelaporOptions = (val) => {
-    if (val && !pelaporOptions.find(o => o.value === val)) {
-      return [...pelaporOptions, { value: val, label: val }];
-    }
-    return pelaporOptions;
   };
 
   const currentYear = new Date().getFullYear();
@@ -51,6 +36,13 @@ export async function renderIssues(container) {
     apiPath: '/api/issues',
     bulkDelete: true,
     itemLabel: 'Permasalahan',
+    paginationMode: 'client',
+    onDataLoaded: (items) => {
+      if (dashFilter) {
+        return items.filter(s => filterDashboardItem(s, dashFilter));
+      }
+      return items;
+    },
     columns: [
       { key: 'report_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
@@ -66,7 +58,7 @@ export async function renderIssues(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari keluhan / nama FC...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'category', label: 'Kategori', options: ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Open', 'In Progress', 'Done'] },
       { type: 'select', name: 'year', label: 'Tahun', options: years },
@@ -75,20 +67,20 @@ export async function renderIssues(container) {
       {
         type: 'row', fields: [
           { name: 'report_date', label: 'Tanggal Info', type: 'date', required: true, value: data?.report_date },
-          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
         ]
       },
       {
         type: 'row', fields: [
           { name: 'category', label: 'Kategori', type: 'select', required: true, options: ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'], value: data?.category },
-          { name: 'source', label: 'Sumber Laporan', type: 'select', options: [...getPelaporOptions(data?.source), {value: 'Lainnya', label: 'Lainnya'}], value: data?.source },
+          { name: 'source', label: 'Sumber Laporan', type: 'combobox', options: ['SPV', 'AM', 'RCP', 'Perawat', 'FC', 'Berlin', 'Ade', 'Pattrel', 'Dentrel'], value: data?.source },
         ]
       },
       { name: 'complaint', label: 'Keluhan', type: 'textarea', required: true, rows: 3, value: data?.complaint },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama FC / Security', type: 'select', options: getEmpOptions(data?.employee_name), value: data?.employee_name },
-          { name: 'fc_specialist', label: 'FC Spesialis', type: 'select', options: getFcOptions(data?.fc_specialist), value: data?.fc_specialist },
+          { name: 'employee_name', label: 'Nama FC / Security', type: 'combobox', options: getEmpOptions(data?.employee_name), value: data?.employee_name },
+          { name: 'fc_specialist', label: 'FC Spesialis', type: 'combobox', options: getEmpOptions(data?.fc_specialist), value: data?.fc_specialist },
         ]
       },
       { name: 'solution', label: 'Solusi / Tindakan', type: 'textarea', rows: 3, value: data?.solution },
@@ -102,7 +94,7 @@ export async function renderIssues(container) {
     exportOptions: {
       moduleName: 'issues',
       onExport: async () => {
-        const res = await apiFetch('/api/issues?limit=10000');
+        const res = await apiFetch(`/api/issues${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
             'Tanggal': d.report_date || '',
@@ -131,8 +123,8 @@ export async function renderIssues(container) {
         
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
+          const s = String(str || '').toLowerCase();
+          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
           return b ? b.id : null;
         };
 
@@ -149,11 +141,12 @@ export async function renderIssues(container) {
           status: String(row['Status'] || '').trim(),
         })).filter(row => row.report_date && row.complaint && row.category);
         
-        const res = await apiFetch('/api/issues/import', {
+        const res = await apiFetch('/api/import/issues', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     }
   });

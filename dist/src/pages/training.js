@@ -1,15 +1,11 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 
 export async function renderTraining(container) {
-  const [bRes, eRes, pRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000'),
-    apiFetch('/api/pic')
-  ]);
-  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
-  const picOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
+  const branchOptions = await getCachedBranches();
+  const employeeOptions = await getCachedEmployeeNames();
+  const picOptions = ['Ade', 'Berlin'];
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -19,8 +15,8 @@ export async function renderTraining(container) {
   };
   
   const getPicOptions = (val) => {
-    if (val && !picOptions.find(o => o.value === val)) {
-      return [...picOptions, { value: val, label: val }];
+    if (val && !picOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
+      return [...picOptions, val];
     }
     return picOptions;
   };
@@ -83,9 +79,9 @@ export async function renderTraining(container) {
       onImport: async (json) => {
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = bRes.data?.data.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
-          return b ? b.id : null;
+          const s = String(str || '').toLowerCase();
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         const parseDate = (v) => {
           if (!v) return '';
@@ -118,8 +114,12 @@ export async function renderTraining(container) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.training_date && r.subject && r.branch_id);
         
-        const res = await apiFetch('/api/training/import', { method: 'POST', body: JSON.stringify(payload) });
+        const res = await apiFetch('/api/import/training', {
+          method: 'POST',
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+        });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     formFields: (data) => [
@@ -132,8 +132,8 @@ export async function renderTraining(container) {
       { name: 'subject', label: 'Materi / Topik Training', required: true, placeholder: 'Judul materi training', value: data?.subject },
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
-          { name: 'trainer', label: 'Trainer', type: 'select', options: getPicOptions(data?.trainer), value: data?.trainer },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
+          { name: 'trainer', label: 'Trainer', type: 'combobox', options: getPicOptions(data?.trainer), value: data?.trainer },
         ]
       },
       { name: 'participants', label: 'Peserta (pisahkan dengan koma)', type: 'textarea', rows: 3, placeholder: 'Nama Peserta 1, Nama Peserta 2, ...', value: (() => { try { const arr = JSON.parse(data?.participants); return Array.isArray(arr) ? arr.join(', ') : (data?.participants || ''); } catch { return data?.participants || ''; } })() },

@@ -63,7 +63,7 @@ export async function renderUsers(container) {
     exportOptions: {
       moduleName: 'users',
       onExport: async () => {
-        const res = await apiFetch('/api/users?limit=10000');
+        const res = await apiFetch(`/api/users${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
             'Nama Lengkap': d.full_name || '',
@@ -95,6 +95,7 @@ export async function renderUsers(container) {
           body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     }
   });

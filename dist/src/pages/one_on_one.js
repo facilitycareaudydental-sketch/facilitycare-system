@@ -1,17 +1,21 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { statusBadge } from '../components/badges.js';
 
-export async function renderOneOnOne(container) {
-  const [bRes, eRes, pRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000'),
-    apiFetch('/api/pic')
-  ]);
-  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  
-  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
-  const rawPicOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
+let branchOptions = [];
+
+export function filterDashboardItem(s, type) {
+  const status = String(s.status || '').toLowerCase();
+  if (type === 'pending') return status === 'pending';
+  return false;
+}
+
+export async function renderOneOnOne(container, params) {
+  const dashFilter = params ? params.get('dash_filter') : null;
+  branchOptions = await getCachedBranches();
+  const employeeOptions = await getCachedEmployeeNames();
+  const rawPicOptions = ['Ade', 'Berlin'];
   
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -21,8 +25,8 @@ export async function renderOneOnOne(container) {
   };
   
   const getPicOptions = (val) => {
-    if (val && !rawPicOptions.find(o => o.value === val)) {
-      return [...rawPicOptions, { value: val, label: val }];
+    if (val && !rawPicOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
+      return [...rawPicOptions, val];
     }
     return rawPicOptions;
   };
@@ -34,6 +38,13 @@ export async function renderOneOnOne(container) {
     apiPath: '/api/one-on-one',
     bulkDelete: true,
     itemLabel: 'One on One',
+    paginationMode: 'client',
+    onDataLoaded: (items) => {
+      if (dashFilter) {
+        return items.filter(s => filterDashboardItem(s, dashFilter));
+      }
+      return items;
+    },
     columns: [
       { key: 'meeting_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
@@ -48,7 +59,7 @@ export async function renderOneOnOne(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama / masalah...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'status', label: 'Status', options: ['Open', 'Done'] },
     ],
     exportOptions: {
@@ -82,9 +93,9 @@ export async function renderOneOnOne(container) {
       onImport: async (json) => {
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = bRes.data?.data.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
-          return b ? b.id : null;
+          const s = String(str || '').toLowerCase();
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         const parseDate = (v) => {
           if (!v) return '';
@@ -118,21 +129,25 @@ export async function renderOneOnOne(container) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.meeting_date && r.employee_name && r.branch_id);
         
-        const res = await apiFetch('/api/one-on-one/import', { method: 'POST', body: JSON.stringify(payload) });
+        const res = await apiFetch('/api/import/one_on_one', {
+          method: 'POST',
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+        });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     formFields: (data) => [
       {
         type: 'row', fields: [
           { name: 'meeting_date', label: 'Tanggal', type: 'date', required: true, value: data?.meeting_date },
-          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama Karyawan', type: 'select', required: true, options: getEmpOptions(data?.employee_name), value: data?.employee_name },
-          { name: 'pic', label: 'PIC', type: 'select', options: getPicOptions(data?.pic), value: data?.pic },
+          { name: 'employee_name', label: 'Nama Karyawan', type: 'combobox', required: true, options: getEmpOptions(data?.employee_name), value: data?.employee_name },
+          { name: 'pic', label: 'PIC', type: 'combobox', options: getPicOptions(data?.pic), createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
         ]
       },
       { name: 'problem', label: 'Masalah', type: 'textarea', required: true, rows: 3, value: data?.problem },

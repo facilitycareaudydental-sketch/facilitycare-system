@@ -22,6 +22,7 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/stats' || path === '') return getStats(env, origin);
   if (path === '/issues-trend')      return getIssuesTrend(env, origin);
   if (path === '/contracts-chart')   return getContractsChart(env, origin);
+  if (path === '/schedule-chart')    return getScheduleChart(request, env, origin);
   if (path === '/issues-summary')    return getIssuesSummary(env, origin);
   if (path === '/inspection-bar')    return getInspectionBar(request, env, origin);
   if (path === '/contracts-expiring') return getContractsExpiring(env, origin);
@@ -150,7 +151,7 @@ async function getKPI(env, origin) {
     env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
 
     // Uses idx_fogging_date
-    env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE strftime('%Y',activity_date)=?").bind(curM.substring(0, 4)).first(),
 
     // Fetch all relievers to parse dates exactly like the UI
     env.DB.prepare("SELECT backup_date, status FROM relievers").all(),
@@ -344,6 +345,53 @@ async function getContractsChart(env, origin) {
   const map = Object.fromEntries((rows.results||[]).map(r=>[r.m, r.c]));
 
   return ok({ labels, data: labels.map(l => map[l] || 0) }, 200, origin);
+}
+
+// ─── /schedule-chart — monthly activity schedule ─────────────────────────────
+async function getScheduleChart(request, env, origin) {
+  const url = new URL(request.url);
+  const year = url.searchParams.get('year') || String(new Date().getFullYear());
+  
+  const [rows, foggingRows] = await Promise.all([
+    env.DB.prepare(
+      `SELECT strftime('%m', target_date) as month, activity_type, COUNT(*) as count 
+       FROM activity_schedule 
+       WHERE target_date LIKE ? 
+       GROUP BY month, activity_type`
+    ).bind(`${year}-%`).all(),
+    env.DB.prepare(
+      `SELECT strftime('%m', activity_date) as month, COUNT(*) as count 
+       FROM fogging_reports 
+       WHERE activity_date LIKE ? 
+       GROUP BY month`
+    ).bind(`${year}-%`).all()
+  ]);
+
+  // Parse results into monthly datasets
+  const data = {
+    'Inspeksi Hygiene': Array(12).fill(0),
+    'General Cleaning': Array(12).fill(0),
+    'Deep Cleaning': Array(12).fill(0),
+    'Fogging': Array(12).fill(0)
+  };
+
+  (rows.results || []).forEach(r => {
+    const monthIdx = parseInt(r.month, 10) - 1;
+    if (monthIdx >= 0 && monthIdx <= 11) {
+      if (data[r.activity_type]) {
+        data[r.activity_type][monthIdx] = r.count;
+      }
+    }
+  });
+
+  (foggingRows.results || []).forEach(r => {
+    const monthIdx = parseInt(r.month, 10) - 1;
+    if (monthIdx >= 0 && monthIdx <= 11) {
+      data['Fogging'][monthIdx] += r.count;
+    }
+  });
+
+  return ok(data, 200, origin);
 }
 
 // ─── /issues-summary — donut + by_status + by_branch ─────────────────────────

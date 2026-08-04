@@ -1,15 +1,19 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames, getCachedEmployees } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
-export async function renderRelievers(container) {
-  const [bRes, eRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000')
-  ]);
-  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
+export async function renderRelievers(container, params) {
+  window.__RELIEVER_BUILD__ = "V3";
+  console.log("RELIEVER PAGE LOADED");
+  const branchOptions = await getCachedBranches();
+  const employeeOptions = await getCachedEmployeeNames();
+  
+  const dashFilter = params ? params.get('dash_filter') : null;
+
+  console.log("RAW", await getCachedEmployees());
+  console.log("OPTIONS", employeeOptions);
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -18,20 +22,13 @@ export async function renderRelievers(container) {
     return employeeOptions;
   };
 
-  const relieverOptions = [
-    'Krishna Aryaan Permana',
-    'Agung Septiadi',
-    'Indra Saputro',
-    'Wariskin',
-    'Iqbal'
-  ];
-
+  const relieverOptions = ['Agung Septiadi', 'Wasrikin', 'IQBAL AL BANNA'];
+  
   const getRelieverOptions = (val) => {
-    const opts = relieverOptions.map(name => ({ value: name, label: name }));
-    if (val && !opts.find(o => o.value === val)) {
-      return [...opts, { value: val, label: val }];
+    if (val && !relieverOptions.includes(val)) {
+      return [...relieverOptions, val];
     }
-    return opts;
+    return relieverOptions;
   };
 
   buildCrudPage({
@@ -41,71 +38,103 @@ export async function renderRelievers(container) {
     apiPath: '/api/relievers',
     bulkDelete: true,
     itemLabel: 'Reliefer',
+    paginationMode: 'client',
+    onDataLoaded: (items) => {
+      if (dashFilter === 'reliever') {
+        const now = new Date();
+        const curY = now.getFullYear();
+        const curM = String(now.getMonth() + 1).padStart(2, '0');
+        return items.filter(d => {
+          if (String(d.status || '').toLowerCase() !== 'done') return false;
+          let bd = d.backup_date || '';
+          if (bd.includes('/')) {
+            const parts = bd.split('/');
+            if (parts.length === 3) {
+              const yyyy = parts[2].length === 4 ? parts[2] : `20${parts[2]}`;
+              if (yyyy == curY && parts[1].padStart(2, '0') == curM) return true;
+            }
+          } else if (bd.includes('-')) {
+            if (bd.startsWith(`${curY}-${curM}`)) return true;
+          }
+          return false;
+        });
+      }
+      return items;
+    },
     columns: [
-      { key: 'backup_date', label: 'Tanggal Backup', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
-      { key: 'original_fc_name', label: 'FC Digantikan' },
+      { key: 'original_fc_name', label: 'Nama Facility care' },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },
-      { key: 'reliever_name', label: 'Reliefer' },
+      { key: 'reliever_name', label: 'Relifer' },
+      { key: 'backup_date', label: 'Tanggal Back Up', nowrap: true , render: v => window.formatDate(v) },
+      { key: 'completion_date', label: 'Tanggal Selesai', nowrap: true , render: v => window.formatDate(v) },
       { key: 'reason', label: 'Keterangan' },
       { key: 'shift', label: 'Shift', render: v => v ? `<span class="badge badge-info">${v}</span>` : '-' },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari reliefer / FC...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done', 'Tidak Datang'] },
     ],
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
-          { name: 'period', label: 'Periode', type: 'select', options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'period', label: 'Periode', type: 'combobox', options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'original_fc_name', label: 'FC yang Digantikan', type: 'select', options: [{value:'', label:'BELUM ADA FC'}, ...getEmpOptions(data?.original_fc_name)], value: data?.original_fc_name },
-          { name: 'reliever_name', label: 'Nama Reliefer', type: 'select', required: true, options: getRelieverOptions(data?.reliever_name), value: data?.reliever_name },
+          { name: 'original_fc_name', label: 'Nama Facility care', type: 'combobox', options: getEmpOptions(data?.original_fc_name), value: data?.original_fc_name },
+          { name: 'reliever_name', label: 'Relifer', type: 'combobox', required: true, options: getRelieverOptions(data?.reliever_name), value: data?.reliever_name },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'backup_date', label: 'Tanggal Backup', type: 'date', required: true, value: data?.backup_date },
+          { name: 'backup_date', label: 'Tanggal Back Up', type: 'date', required: true, value: data?.backup_date },
           { name: 'completion_date', label: 'Tanggal Selesai', type: 'date', value: data?.completion_date },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'reason', label: 'Keterangan', type: 'select', options: ['Cuti', 'Mengisi Kekosongan', 'Back Up Training', 'Deep Cleaning', 'Training Praktek Skill', 'Sakit', 'Lainnya'], value: data?.reason },
-          { name: 'shift', label: 'Shift', type: 'select', options: ['Pagi', 'Siang', 'Full Shift', 'Middle'], value: data?.shift },
+          { name: 'reason', label: 'Keterangan', type: 'combobox', options: ['Cuti', 'Mengisi Kekosongan', 'Back Up Training', 'Deep Cleaning', 'Training Praktek Skill', 'Sakit', 'Lainnya'], value: data?.reason },
+          { name: 'shift', label: 'Shift', type: 'combobox', options: ['Pagi', 'Siang', 'Full Shift', 'Middle'], value: data?.shift },
         ]
       },
-      { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done', 'Tidak Datang'], value: data?.status || '' },
+      { name: 'status', label: 'Status', type: 'combobox', required: true, options: ['Pending', 'Done', 'Tidak Datang'], value: data?.status || '' },
     ],
     exportOptions: {
       moduleName: 'relievers',
       onExport: async () => {
-        const res = await apiFetch('/api/relievers?limit=10000');
+        const res = await apiFetch(`/api/relievers${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
-            'Tanggal Backup': d.backup_date || '',
             'Cabang': d.branch_name || '',
-            'FC Digantikan': d.original_fc_name || '',
+            'Nama Facility care': d.original_fc_name || '',
             'Periode': d.period || '',
-            'Reliefer': d.reliever_name || '',
+            'Relifer': d.reliever_name || '',
+            'Tanggal Back Up': d.backup_date || '',
+            'Tanggal Selesai': d.completion_date || '',
             'Keterangan': d.reason || '',
             'Shift': d.shift || '',
-            'Tanggal Selesai': d.completion_date || '',
             'Status': d.status || ''
           }));
+          
+          if (data.length === 0) {
+            // Include headers even if empty
+            data.push({
+              'Cabang': '', 'Nama Facility care': '', 'Periode': '', 'Relifer': '',
+              'Tanggal Back Up': '', 'Tanggal Selesai': '', 'Keterangan': '', 'Shift': '', 'Status': ''
+            });
+          }
           downloadExcel(data, 'Data_Reliefer');
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Tanggal Backup': '2024-03-10', 'Cabang': '001. Pondok Bambu', 'FC Digantikan': 'Budi Santoso', 'Periode': 'Q1', 'Reliefer': 'Andi', 'Keterangan': 'Sakit', 'Shift': 'Pagi', 'Tanggal Selesai': '2024-03-10', 'Status': 'Done' }
+          { 'Cabang': '001. Pondok Bambu', 'Nama Facility care': 'Budi Santoso', 'Periode': 'Q1', 'Relifer': 'Andi', 'Tanggal Back Up': '2024-03-10', 'Tanggal Selesai': '2024-03-10', 'Keterangan': 'Sakit', 'Shift': 'Pagi', 'Status': 'Done' }
         ];
         downloadExcel(template, 'Template_Import_Reliefer');
       },
@@ -115,16 +144,16 @@ export async function renderRelievers(container) {
         
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
+          const s = String(str || '').toLowerCase();
+          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
           return b ? b.id : null;
         };
 
         const payload = json.map(row => ({
-          branch_id: matchBranch(String(row['Cabang'] || '').trim()),
-          backup_date: String(row['Tanggal Backup'] || '').trim(),
-          original_fc_name: String(row['FC Digantikan'] || '').trim(),
-          reliever_name: String(row['Reliefer'] || '').trim(),
+          branch_name: String(row['Cabang'] || '').trim(),
+          backup_date: String(row['Tanggal Back Up'] || row['Tanggal Backup'] || '').trim(),
+          original_fc_name: String(row['Nama Facility care'] || row['FC Digantikan'] || '').trim(),
+          reliever_name: String(row['Relifer'] || row['Reliefer'] || '').trim(),
           period: String(row['Periode'] || '').trim(),
           reason: String(row['Keterangan'] || '').trim(),
           shift: String(row['Shift'] || '').trim(),
@@ -132,11 +161,12 @@ export async function renderRelievers(container) {
           status: String(row['Status'] || '').trim(),
         })).filter(row => row.reliever_name && row.backup_date);
         
-        const res = await apiFetch('/api/relievers/import', {
+        const res = await apiFetch('/api/import/relievers', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     }
   });

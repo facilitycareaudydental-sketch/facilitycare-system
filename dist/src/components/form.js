@@ -2,6 +2,7 @@
 export function buildFormHTML(fields) {
   return fields.map(field => {
     if (field.type === 'hidden') return `<input type="hidden" name="${field.name}" value="${field.value || ''}">`;
+    if (field.type === 'html') return field.html || '';
     if (field.type === 'row') return `<div class="form-row">${buildFormHTML(field.fields)}</div>`;
 
     const required = field.required ? 'required' : '';
@@ -21,11 +22,36 @@ export function buildFormHTML(fields) {
         }).join('');
         input = `<select name="${field.name}" class="form-control" ${required}><option value="">-- Pilih ${field.label || ''} --</option>${opts}</select>`;
         break;
+      case 'combobox':
+        const dlId = `dl-${field.name}-${Math.random().toString(36).substring(7)}`;
+        const cbOpts = (field.options || []).map(o => {
+          const val = typeof o === 'object' ? o.value : o;
+          let lbl = typeof o === 'object' ? (o.label || o.value || '') : (o || '');
+          if (lbl === 'undefined' || lbl === '[object Object]' || lbl === 'null') lbl = '';
+          if (!lbl) return '';
+          return `<option value="${lbl}"></option>`;
+        }).join('');
+        let displayVal = field.value || '';
+        if (field.value) {
+            const found = (field.options || []).find(o => (typeof o === 'object' ? o.value : o) == field.value);
+            if (found) {
+               let foundLbl = typeof found === 'object' ? (found.label || found.value || '') : (found || '');
+               if (foundLbl && foundLbl !== 'undefined' && foundLbl !== '[object Object]' && foundLbl !== 'null') {
+                  displayVal = foundLbl;
+               }
+            }
+        }
+        input = `
+          <input type="text" name="${field.name}" list="${dlId}" class="form-control" value="${displayVal}" placeholder="Pilih atau ketik baru..." ${required} autocomplete="off">
+          <datalist id="${dlId}">${cbOpts}</datalist>
+        `;
+        break;
       case 'checkbox':
         input = `<label class="checkbox-label"><input type="checkbox" name="${field.name}" value="1" ${field.value ? 'checked' : ''}> ${field.checkLabel || field.label}</label>`;
         break;
       case 'date':
-        input = `<input type="date" name="${field.name}" class="form-control" value="${field.value || ''}" ${required}>`;
+        const safeVal = (window.parseFlexibleDate && field.value) ? window.parseFlexibleDate(field.value) : (field.value || '');
+        input = `<input type="date" name="${field.name}" class="form-control" value="${safeVal}" ${required}>`;
         break;
       case 'number':
         input = `<input type="number" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" min="${field.min || ''}" max="${field.max || ''}" step="${field.step || '1'}" ${required}>`;
@@ -73,7 +99,9 @@ export function populateForm(form, data) {
   Object.entries(data).forEach(([key, val]) => {
     const el = form.querySelector(`[name="${key}"]`);
     if (!el) return;
+    if (el.hasAttribute('list')) return; // Do not overwrite combobox display labels with raw IDs
     if (el.type === 'checkbox') el.checked = !!val;
+    else if (el.type === 'date' && val && window.parseFlexibleDate) el.value = window.parseFlexibleDate(val);
     else el.value = val !== null && val !== undefined ? val : '';
   });
 }

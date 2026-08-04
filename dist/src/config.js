@@ -1,7 +1,8 @@
-// Force API calls through Same-Origin Pages Proxy to bypass strict CORS/Firewalls
-const API_BASE_URL = '';
-
+export const IS_DEVELOPMENT = false;
+const API_BASE_URL = 'https://fm-operations-api.facilitycare-audydental.workers.dev';
 export const API = API_BASE_URL;
+
+export const CLIENT_SIDE_MAX_ROWS = 10000;
 
 export function getToken() {
   return localStorage.getItem('fm_token');

@@ -74,7 +74,7 @@ async function renderSupplyRequests(container) {
         {
           type: 'row', fields: [
             { name: 'submitter_name', label: 'Nama Pengirim', required: true, value: data?.submitter_name },
-            { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
+            { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
           ]
         },
         {
@@ -131,8 +131,8 @@ async function renderSupplyRequests(container) {
         
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
+          const s = String(str || '').toLowerCase();
+          const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
           return b ? b.id : null;
         };
         
@@ -174,6 +174,7 @@ async function renderSupplyRequests(container) {
           body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     extraActions: [

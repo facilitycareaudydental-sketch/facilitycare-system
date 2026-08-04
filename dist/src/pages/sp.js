@@ -1,11 +1,13 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 
 let branchOptions = [];
+let employeeOptions = [];
 
 export async function renderSP(container) {
-  const res = await apiFetch('/api/branches?all=1');
-  branchOptions = (res.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  branchOptions = await getCachedBranches();
+  employeeOptions = await getCachedEmployeeNames();
 
   buildCrudPage({
     container,
@@ -15,16 +17,17 @@ export async function renderSP(container) {
     itemLabel: 'SP',
     bulkDelete: true,
     columns: [
-      { key: 'tanggal', label: 'Tanggal', render: v => v ? new Date(v).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-' },
       { key: 'employee_name', label: 'Nama Karyawan' },
+      { key: 'division', label: 'Divisi', render: (v) => v ? `<span class="badge badge-info">${v}</span>` : '-' },
       { key: 'branch_name', label: 'Cabang' },
-      { key: 'sp_type', label: 'Jenis SP', render: v => `<span class="badge badge-warning">${v || '-'}</span>` },
-      { key: 'status', label: 'Status', render: v => `<span class="badge ${v === 'Aktif' ? 'badge-danger' : 'badge-success'}">${v || '-'}</span>` },
-      { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" class="text-primary hover-underline">Lihat</a>` : '-' }
+      { key: 'tanggal', label: 'Tanggal Sp', render: v => v ? new Date(v).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-' },
+      { key: 'akhir_sp', label: 'Akhir Sp', render: v => v ? new Date(v).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-' },
+      { key: 'sp_type', label: 'Jenis Sp', render: v => `<span class="badge badge-warning">${v || '-'}</span>` },
+      { key: 'document_link', label: 'Link Document / Foto', render: v => v ? `<a href="${v}" target="_blank" class="text-primary hover-underline">Lihat</a>` : '-' }
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
     ],
     exportOptions: {
       moduleName: 'sp_data',
@@ -33,12 +36,13 @@ export async function renderSP(container) {
         const res = await apiFetch(`/api/sp?limit=10000&${qs}`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
-            'Tanggal': d.tanggal || '',
             'Nama Karyawan': d.employee_name || '',
+            'Divisi': d.division || '',
             'Cabang': d.branch_name || '',
-            'Jenis SP': d.sp_type || '',
-            'Status': d.status || '',
-            'Dokumen': d.document_link || ''
+            'Tanggal Sp': d.tanggal || '',
+            'Akhir Sp': d.akhir_sp || '',
+            'Jenis Sp': d.sp_type || '',
+            'Link Document / Foto': d.document_link || ''
           }));
           const { downloadExcel } = await import('../utils/excel.js');
           downloadExcel(data, `Data_SP_${new Date().toISOString().slice(0,10)}`);
@@ -46,19 +50,17 @@ export async function renderSP(container) {
       },
       onTemplate: async () => {
         const template = [
-          { 'Tanggal': '2026-01-08', 'Nama Karyawan': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Jenis SP': 'SP 1', 'Status': 'Aktif', 'Dokumen': 'https://link.doc' }
+          { 'Nama Karyawan': 'Budi Santoso', 'Divisi': 'FACILITY CARE', 'Cabang': '001. Pondok Bambu', 'Tanggal Sp': '2026-01-08', 'Akhir Sp': '2026-07-08', 'Jenis Sp': 'SP 1', 'Link Document / Foto': 'https://link.doc' }
         ];
         const { downloadExcel } = await import('../utils/excel.js');
         downloadExcel(template, 'Template_Import_SP');
       },
       onImport: async (json) => {
-        const bRes = await apiFetch('/api/branches?all=1');
-        const rawBranches = bRes.data?.data || [];
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
-          return b ? b.id : null;
+          const s = String(str || '').toLowerCase();
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         const parseDate = (v) => {
           if (!v) return '';
@@ -81,25 +83,28 @@ export async function renderSP(container) {
           return s;
         };
         const payload = json.map(row => ({
-          tanggal: parseDate(row['Tanggal']),
           employee_name: String(row['Nama Karyawan'] || '').trim(),
+          division: String(row['Divisi'] || '').trim(),
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
-          sp_type: String(row['Jenis SP'] || '').trim(),
-          status: String(row['Status'] || '').trim(),
-          document_link: String(row['Dokumen'] || '').trim(),
-        })).filter(r => r.tanggal && r.employee_name && r.branch_id);
+          tanggal: parseDate(row['Tanggal Sp']),
+          akhir_sp: parseDate(row['Akhir Sp']),
+          sp_type: String(row['Jenis Sp'] || '').trim(),
+          document_link: String(row['Link Document / Foto'] || '').trim(),
+        })).filter(r => r.employee_name && r.branch_id);
         
-        const res = await apiFetch('/api/sp/import', { method: 'POST', body: JSON.stringify(payload) });
+        const res = await apiFetch('/api/import/sp', { method: 'POST', body: JSON.stringify({ rows: payload, onDuplicate: 'update' }) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     formFields: [
-      { type: 'date', name: 'tanggal', label: 'Tanggal', required: true },
-      { type: 'text', name: 'employee_name', label: 'Nama Karyawan', required: true },
-      { type: 'select', name: 'branch_id', label: 'Cabang', required: true, options: branchOptions },
-      { type: 'select', name: 'sp_type', label: 'Jenis Surat Peringatan', required: true, options: ['SP 1', 'SP 2', 'SP 3', 'Teguran Lisan'] },
-      { type: 'select', name: 'status', label: 'Status', required: true, options: ['Aktif', 'Selesai'] },
-      { type: 'url', name: 'document_link', label: 'Link Dokumen (Opsional)' }
+      { type: 'combobox', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions },
+      { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY'], required: true },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
+      { type: 'date', name: 'tanggal', label: 'Tanggal Sp', required: true },
+      { type: 'date', name: 'akhir_sp', label: 'Akhir Sp', required: true },
+      { type: 'select', name: 'sp_type', label: 'Jenis Sp', required: true, options: ['SP 1', 'SP 2', 'SP 3', 'Teguran Lisan'] },
+      { type: 'url', name: 'document_link', label: 'Link Document / Foto' }
     ]
   });
 }

@@ -3,21 +3,44 @@ import { initRouter, registerRoute, navigate } from './router.js';
 import { toastError } from './components/toast.js';
 import { createModal } from './components/modal.js';
 
-window.formatDate = (d) => {
+window.parseFlexibleDate = (d) => {
   if (!d || d === '-') return '';
-  const p = d.split('-');
-  if (p.length === 3 && p[0].length === 4) return `${p[2]}-${p[1]}-${p[0]}`;
-  return d;
+  d = String(d).trim();
+  // Handle Excel serial numbers (e.g. 45208)
+  if (/^\d{5}$/.test(d)) {
+    const utc_days = Math.floor(Number(d) - 25569);
+    const date_info = new Date(utc_days * 86400 * 1000);
+    return date_info.toISOString().split('T')[0];
+  }
+  // Handle DD/MM/YYYY or DD-MM-YYYY
+  if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
+    const p = d.split(/[\/\-]/);
+    return `${p[2]}-${p[1]}-${p[0]}`;
+  }
+  return d.split('T')[0];
+};
+
+window.formatDate = (d) => {
+  const iso = window.parseFlexibleDate(d);
+  if (!iso) return '';
+  const p = iso.split('-');
+  if (p.length === 3 && p[0].length === 4) {
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const day = parseInt(p[2], 10);
+    const month = months[parseInt(p[1], 10) - 1];
+    return `${day} ${month} ${p[0]}`;
+  }
+  return iso;
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js';
+import { renderDashboard } from './pages/dashboard.js?v=force60';
 import { renderLogin } from './pages/login.js';
-import { renderEmployees } from './pages/employees.js';
-import { renderContracts } from './pages/contracts.js';
-import { renderSchedule } from './pages/schedule.js';
-import { renderIssues } from './pages/issues.js';
-import { renderOneOnOne } from './pages/one_on_one.js';
+import { renderEmployees } from './pages/employees.js?v=force60';
+import { renderContracts } from './pages/contracts.js?v=force60';
+import { renderSchedule } from './pages/schedule.js?v=force60';
+import { renderIssues } from './pages/issues.js?v=force60';
+import { renderOneOnOne } from './pages/one_on_one.js?v=force60';
 import { renderTraining } from './pages/training.js';
 import { renderRelievers } from './pages/relievers.js';
 import { renderInspectionReports } from './pages/inspection_reports.js';
@@ -34,6 +57,7 @@ import { renderProfile } from './pages/profile.js';
 import { renderImportPage } from './pages/import.js';
 import { renderSP } from './pages/sp.js';
 import { renderMutasi } from './pages/mutasi.js';
+import { renderSyncDashboard } from './pages/sync_dashboard.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
@@ -318,10 +342,10 @@ function renderLayout() {
 
         <div class="sidebar-footer">
           <div class="sidebar-user">
-            <div class="sidebar-avatar">${initial}</div>
+            <div class="sidebar-avatar">BA</div>
             <div class="sidebar-user-info">
-              <div class="sidebar-user-name">${user?.full_name || 'User'}</div>
-              <div class="sidebar-user-role">${user?.role || ''}</div>
+              <div class="sidebar-user-name">Berlin Ariansyah</div>
+              <div class="sidebar-user-role">Administrator</div>
             </div>
           </div>
           <button class="sidebar-logout" id="logout-btn">
@@ -342,7 +366,20 @@ function renderLayout() {
             <button class="topbar-menu-btn" id="topbar-menu-btn" aria-label="Menu">
               <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <div class="topbar-page-title" id="topbar-title">Dashboard</div>
+            <div class="topbar-welcome">
+              <div class="topbar-greeting">
+                <span class="topbar-greeting-time">${(() => {
+                  const h = new Date().getHours();
+                  if (h >= 4 && h < 11) return 'Selamat Pagi';
+                  if (h >= 11 && h < 15) return 'Selamat Siang';
+                  if (h >= 15 && h < 18) return 'Selamat Sore';
+                  return 'Selamat Malam';
+                })()}, </span><span class="topbar-greeting-name">Berlin Ariansyah</span> 👋
+              </div>
+              <div class="topbar-subtitle">
+                Ringkasan Operasional FCMS Hari Ini
+              </div>
+            </div>
           </div>
 
           <div class="topbar-center" id="topbar-clock">
@@ -361,8 +398,12 @@ function renderLayout() {
               <span class="notif-dot" id="notif-dot" style="display:none"></span>
             </button>
             <a href="#/profile" class="topbar-user-btn" title="Profil">
-              <span class="topbar-avatar">${initial}</span>
-              <span class="topbar-user-name">${user?.full_name?.split(' ')[0] || 'User'}</span>
+              <img src="https://ui-avatars.com/api/?name=Berlin+Ariansyah&background=2563EB&color=fff&bold=true" class="topbar-avatar" alt="Avatar" />
+              <div class="topbar-user-text">
+                <span class="topbar-user-name">Berlin Ariansyah</span>
+                <span class="topbar-user-role-mini">Administrator</span>
+              </div>
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:4px;color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
             </a>
           </div>
         </header>
@@ -431,15 +472,16 @@ async function init() {
   registerRoute('/login',              ({ main }) => renderLogin(main));
   registerRoute('/dashboard',          requireAuth(({ main }) => renderDashboard(main)));
   registerRoute('/calendar',           requireAuth(({ main }) => renderCalendar(main)));
-  registerRoute('/employees',          requireAuth(({ main }) => renderEmployees(main)));
-  registerRoute('/contracts',          requireAuth(({ main }) => renderContracts(main)));
+  registerRoute('/employees',          requireAuth(({ main, params }) => renderEmployees(main, params)));
+  registerRoute('/contracts',          requireAuth(({ main, params }) => renderContracts(main, params)));
   registerRoute('/sp',                 requireAuth(({ main }) => renderSP(main)));
   registerRoute('/mutasi',             requireAuth(({ main }) => renderMutasi(main)));
-  registerRoute('/timeline',           requireAuth(({ main }) => renderSchedule(main)));
-  registerRoute('/issues',             requireAuth(({ main }) => renderIssues(main)));
-  registerRoute('/one-on-one',         requireAuth(({ main }) => renderOneOnOne(main)));
+  registerRoute('/sync-dashboard',     requireAuth(({ main }) => renderSyncDashboard(main)));
+  registerRoute('/timeline',           requireAuth(({ main, params }) => renderSchedule(main, params)));
+  registerRoute('/issues',             requireAuth(({ main, params }) => renderIssues(main, params)));
+  registerRoute('/one-on-one',         requireAuth(({ main, params }) => renderOneOnOne(main, params)));
   registerRoute('/training',           requireAuth(({ main }) => renderTraining(main)));
-  registerRoute('/relievers',          requireAuth(({ main }) => renderRelievers(main)));
+  registerRoute('/relievers',          requireAuth(({ main, params }) => renderRelievers(main, params)));
   registerRoute('/reports/inspection', requireAuth(({ main }) => renderInspectionReports(main)));
   registerRoute('/reports/cleaning',   requireAuth(({ main }) => renderCleaningReports(main)));
   registerRoute('/reports/fogging',    requireAuth(({ main }) => renderFoggingReports(main)));

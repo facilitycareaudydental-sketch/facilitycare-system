@@ -381,6 +381,7 @@ export function generateTemplate() {
     'Data Kontrak': [{ 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Div / Bagian': 'FACILITY CARE', 'Tanggal Mulai': '2024-01-01', 'Tanggal Selesai': '2024-12-31', 'Sisa Kontrak': '365', 'Status': 'Aktif', 'keterangan': '' }],
     'Permasalahan': [{ 'Tanggal Info': '2024-03-01', 'Cabang': '001. Pondok Bambu', 'Kategori': 'Cleaning', 'Sumber Laporan': 'SPV', 'Keluhan': 'Lantai kotor', 'Nama FC': 'Budi', 'FC Spesialis': 'Fajar', 'Solusi': 'Teguran', 'Status': 'Done', 'Tanggal Selesai': '2024-03-02', 'Day': '1' }],
     'One on One': [{ 'Tanggal': '2024-03-05', 'Cabang': '001. Pondok Bambu', 'Nama Karyawan': 'Budi Santoso', 'Pic': 'Berlin', 'Masalah': 'Keterlambatan', 'Solusi': 'Coaching', 'Status': 'Done', 'Tanggal Selesai': '2024-03-06', 'Day': '1', 'Link Document': '' }],
+    'Jadwal Reliefer': [{ 'Cabang': '001. Pondok Bambu', 'Nama Facility care': 'Budi Santoso', 'Periode': 'Januari', 'Relifer': 'Agung Septiadi', 'Tanggal Back Up': '2024-03-01', 'Tanggal Selesai': '2024-03-02', 'Keterangan': 'Cuti', 'Shift': 'Pagi', 'Status': 'Done' }],
   };
   Object.entries(TEMPLATES).forEach(([sn, data]) => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), sn);

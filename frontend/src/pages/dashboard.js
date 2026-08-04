@@ -217,11 +217,11 @@ async function safeFetch(path, fallback, timeoutMs=8000) {
 
 // ── Force remove all skeletons (max 5s timeout safety net) ────────────────
 function forceRemoveSkeletons() {
-  ['skel-donut','skel-trend','skel-insp','skel-contract'].forEach(id => {
+  ['skel-donut','skel-trend','skel-insp','skel-contract','skel-jadwal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  ['chart-donut','chart-trend','chart-insp','chart-contract'].forEach(id => {
+  ['chart-donut','chart-trend','chart-insp','chart-contract','chart-jadwal'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.style.display === 'none') {
       el.style.display = 'block';
@@ -279,31 +279,55 @@ export async function renderDashboard(container) {
       <div class="mini-stats-row" id="mini-stats-row">${skelMini()}</div>
 
       <!-- Charts Row -->
-      <div class="charts-row" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+      <div class="charts-row" style="grid-template-columns: 5fr 3fr 5fr;">
+        <!-- Jadwal Kegiatan Chart -->
         <div class="chart-card">
+          <div class="chart-card-header" style="align-items:flex-start">
+            <div>
+              <div class="chart-card-title">Jadwal Kegiatan per Bulan (<span id="jadwal-year-label">2026</span>)</div>
+            </div>
+            <select id="filter-jadwal-year" class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--primary)">
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+            </select>
+          </div>
+          <div class="chart-canvas-wrap" style="height:140px;position:relative;margin-top:10px">
+            <div id="skel-jadwal" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+            <canvas id="chart-jadwal" style="display:none"></canvas>
+          </div>
+          <div id="jadwal-legend" style="display:flex;justify-content:center;gap:6px;margin-top:10px;font-size:0.55rem;font-weight:600;color:var(--text-2);flex-wrap:nowrap;white-space:nowrap;">
+            <div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:8px;border-radius:2px;background:#3B82F6"></div> Inspeksi</div>
+            <div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:8px;border-radius:2px;background:#10B981"></div> General Cleaning</div>
+            <div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:8px;border-radius:2px;background:#F59E0B"></div> Deep Cleaning</div>
+            <div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:8px;border-radius:2px;background:#EF4444"></div> Fogging</div>
+          </div>
+        </div>
+        <div class="chart-card" style="display:flex; flex-direction:column;">
           <div class="chart-card-header">
             <div class="chart-card-title">Permasalahan per Kategori</div>
           </div>
-          <div style="display:flex; gap:20px; align-items:center; height:100px">
-            <div class="chart-canvas-wrap" style="flex:1;height:100%;position:relative">
-              <div id="skel-donut" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-              <canvas id="chart-donut" style="display:none"></canvas>
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+            <div style="display:flex; align-items:center; justify-content:center; gap:0px;">
+              <div class="chart-canvas-wrap" style="width:110px;height:110px;position:relative">
+                <div id="skel-donut" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+                <canvas id="chart-donut" style="display:none"></canvas>
+              </div>
+              <div id="donut-legend" class="donut-legend" style="width:65px; margin-left:8px"></div>
             </div>
-            <div id="donut-legend" class="donut-legend" style="width:110px"></div>
           </div>
           <div style="text-align:center; font-size:0.75rem; color:var(--text-3); margin-top:16px">
             Periode: 22 Juni - 22 Juli 2026
           </div>
         </div>
         <div class="chart-card">
-          <div class="chart-card-header">
-            <div class="chart-card-title">Trend Permasalahan 12 Bulan</div>
-            <div style="display:flex;align-items:center;gap:16px;font-size:0.75rem;font-weight:600;color:var(--text-2)">
-               <div style="display:flex;align-items:center;gap:6px"><div style="width:16px;height:8px;border:2px solid #EF4444;border-radius:2px"></div> Open</div>
-               <div style="display:flex;align-items:center;gap:6px"><div style="width:16px;height:8px;border:2px solid #10B981;border-radius:2px"></div> Closed</div>
+          <div class="chart-card-header" style="align-items:flex-start">
+            <div class="chart-card-title" style="font-size:0.85rem">Trend Permasalahan 12 Bulan</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:0.6rem;font-weight:600;color:var(--text-2)">
+               <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:#EF4444"></div> Open</div>
+               <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:#10B981"></div> Closed</div>
             </div>
           </div>
-          <div class="chart-canvas-wrap" style="height:100px;position:relative">
+          <div class="chart-canvas-wrap" style="height:140px;position:relative;margin-top:10px">
             <div id="skel-trend" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-trend" style="display:none"></canvas>
           </div>
@@ -388,6 +412,18 @@ export async function renderDashboard(container) {
   document.getElementById('btn-dash-refresh')
     ?.addEventListener('click', () => fetchAll(container));
 
+  document.getElementById('filter-jadwal-year')?.addEventListener('change', async (e) => {
+    const year = e.target.value;
+    document.getElementById('jadwal-year-label').textContent = year;
+    const skel = document.getElementById('skel-jadwal');
+    const cvs = document.getElementById('chart-jadwal');
+    if (skel) { skel.style.display = 'block'; skel.style.position = 'absolute'; }
+    if (cvs) cvs.style.display = 'none';
+    
+    const jadwalData = await safeFetch(`/api/dashboard/schedule-chart?year=${year}`, {}, 8000);
+    try { renderScheduleChart(jadwalData); } catch(err) { console.warn('ScheduleChart render:', err); hideSkel('skel-jadwal','chart-jadwal'); }
+  });
+
   document.getElementById('filter-insp-month')?.addEventListener('change', async (e) => {
     const month = e.target.value;
     const url = month ? `/api/dashboard/inspection-bar?month=${month}` : '/api/dashboard/inspection-bar';
@@ -422,12 +458,11 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, contractChart] =
+  const [kpi, trend, issuesSum, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, contractChart, scheduleChartData] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
       safeFetch('/api/dashboard/issues-summary',     {}, 8000),
-      safeFetch('/api/dashboard/inspection-bar',     {}, 8000),
       safeFetch('/api/dashboard/stats',              {}, 8000),
       safeFetch('/api/dashboard/calendar',           [], 8000),
       safeFetch('/api/schedule?limit=10000',         {data: []}, 8000),
@@ -436,7 +471,13 @@ async function fetchAll(container) {
       safeFetch('/api/issues?limit=10000',           {data: []}, 8000),
       safeFetch('/api/one-on-one?limit=10000',       {data: []}, 8000),
       safeFetch('/api/dashboard/contracts-chart',    {labels:[], data:[]}, 8000),
+      safeFetch(`/api/dashboard/schedule-chart?year=${document.getElementById('filter-jadwal-year')?.value || new Date().getFullYear()}`, {}, 8000),
     ]);
+    
+  const inspSelect = document.getElementById('filter-insp-month');
+  const inspMonth = inspSelect ? inspSelect.value : '';
+  const inspUrl = inspMonth ? `/api/dashboard/inspection-bar?month=${inspMonth}` : '/api/dashboard/inspection-bar';
+  const inspBar = await safeFetch(inspUrl, {}, 8000);
 
   // Override KPIs with single source of truth from their respective modules
   if (kpi) {
@@ -472,6 +513,7 @@ async function fetchAll(container) {
   // Render each section independently — one failure never breaks others
   try { renderKPI(kpi); } catch(e) { console.warn('KPI render:', e); }
   try { renderMiniStats(kpi); } catch(e) { console.warn('MiniStats render:', e); }
+  try { renderScheduleChart(scheduleChartData); } catch(e) { console.warn('ScheduleChart render:', e); hideSkel('skel-jadwal','chart-jadwal'); }
   try { renderDonut(Array.isArray(issuesSum?.by_category) ? issuesSum.by_category : []); } catch(e) { console.warn('Donut render:', e); hideSkel('skel-donut','chart-donut'); }
   try { renderTrend(trend); } catch(e) { console.warn('Trend render:', e); hideSkel('skel-trend','chart-trend'); }
   try { renderInspBar(inspBar); } catch(e) { console.warn('InspBar render:', e); hideSkel('skel-insp','chart-insp'); }
@@ -597,13 +639,13 @@ function renderDonut(categories) {
       const text = total.toString(),
             textX = Math.round((width - ctx.measureText(text).width) / 2),
             textY = height / 2;
-      ctx.fillText(text, textX, textY - 10);
+      ctx.fillText(text, textX, textY - 4);
       
       ctx.font = "600 " + (fontSize * 0.35).toFixed(2) + "em Inter";
       ctx.fillStyle = "#64748B"; // var(--text-2)
       const labelText = "Total",
             labelX = Math.round((width - ctx.measureText(labelText).width) / 2);
-      ctx.fillText(labelText, labelX, textY + 15);
+      ctx.fillText(labelText, labelX, textY + 10);
       ctx.save();
     }
   };
@@ -631,17 +673,70 @@ function renderTrend(trend) {
   if (!canvas) return;
   destroyChart('trend');
   trend = trend || {};
-  const labels = (trend.labels||[]).map(monthShort);
+  // Use short month+year labels like "Sep 25" but abbrev to fit
+  const MONTH_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const labels = (trend.labels||[]).map(ym => {
+    if (!ym || typeof ym !== 'string') return '';
+    try {
+      const [y, m] = ym.split('-');
+      const monthName = MONTH_ID[Number(m)-1] || m;
+      return monthName + ' ' + String(y).slice(-2);
+    } catch { return ym; }
+  });
   const open   = (trend.open  ||[]).map(v=>safeNum(v));
   const closed = (trend.closed||[]).map(v=>safeNum(v));
   if (!labels.length) { showEmpty(canvas,'Belum ada data trend'); return; }
   _charts.trend = new Chart(canvas, {
     type:'line',
     data:{ labels, datasets:[
-      { label:'Open',   data:open,   borderColor:'#EF4444', backgroundColor:'rgba(239,68,68,.08)',  fill:true, tension:0.4, pointRadius:2, pointHoverRadius:4, pointBackgroundColor:'#EF4444', borderWidth:2 },
-      { label:'Closed', data:closed, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,.08)', fill:true, tension:0.4, pointRadius:2, pointHoverRadius:4, pointBackgroundColor:'#10B981', borderWidth:2 },
+      { label:'Open',   data:open,   borderColor:'#EF4444', backgroundColor:'rgba(239,68,68,.08)',  fill:true, tension:0.4, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:'#EF4444', borderWidth:2 },
+      { label:'Closed', data:closed, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:0.4, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:'#10B981', borderWidth:2 },
     ]},
-    options: chartOpts({ plugins:{ legend:{ display:false } } }),
+    options: chartOpts({ 
+      plugins:{ legend:{ display:false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK, maxRotation: 0, autoSkip: false } },
+        y: { grid: { color: GRID }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK }, beginAtZero: true }
+      }
+    }),
+  });
+}
+
+// ── Schedule Chart ─────────────────────────────────────────────────────────
+function renderScheduleChart(data) {
+  hideSkel('skel-jadwal','chart-jadwal');
+  const canvas = document.getElementById('chart-jadwal');
+  if (!canvas) return;
+  destroyChart('jadwal');
+  data = data || {};
+  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const isEmpty = !Object.values(data).some(arr => Array.isArray(arr) && arr.some(v => v > 0));
+  if (isEmpty) { showEmpty(canvas, 'Belum ada data jadwal'); return; }
+
+  const insp = data['Inspeksi Hygiene'] || Array(12).fill(0);
+  const gcl  = data['General Cleaning'] || Array(12).fill(0);
+  const dcl  = data['Deep Cleaning']    || Array(12).fill(0);
+  const fog  = data['Fogging']          || Array(12).fill(0);
+
+  _charts.jadwal = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Inspeksi',         data: insp, backgroundColor: '#3B82F6' },
+        { label: 'General Cleaning', data: gcl,  backgroundColor: '#10B981' },
+        { label: 'Deep Cleaning',    data: dcl,  backgroundColor: '#F59E0B' },
+        { label: 'Fogging',          data: fog,  backgroundColor: '#EF4444' },
+      ]
+    },
+    options: chartOpts({
+      plugins: { legend: { display: false } },
+      datasets: { bar: { barPercentage: 0.85, categoryPercentage: 0.9 } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK, maxRotation: 0, autoSkip: false } },
+        y: { stacked: true, grid: { color: GRID }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK }, min: 0 }
+      }
+    }),
   });
 }
 

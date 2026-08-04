@@ -1,18 +1,13 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { statusBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
 export async function renderBasecampReports(container) {
-  const [bRes, eRes, pRes] = await Promise.all([
-    apiFetch('/api/branches?all=1'),
-    apiFetch('/api/employees?limit=10000'),
-    apiFetch('/api/pic')
-  ]);
-  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
-  
-  const employeeOptions = (eRes.data?.data || []).map(e => ({ value: e.full_name, label: e.full_name }));
-  const rawPicOptions = (pRes.data?.data || []).filter(p => p.role === 'FC Spesialis').map(p => ({ value: p.name, label: p.name }));
+  const branchOptions = await getCachedBranches();
+  const employeeOptions = await getCachedEmployeeNames();
+  const rawPicOptions = employeeOptions;
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -26,19 +21,34 @@ export async function renderBasecampReports(container) {
       return [...rawPicOptions, { value: val, label: val }];
     }
     return rawPicOptions;
+  };
+
+  buildCrudPage({
+    container,
+    title: 'Rekap Laporan Basecamp',
+    icon: '📝',
+    apiPath: '/api/reports/basecamp',
+    bulkDelete: true,
+    itemLabel: 'Laporan Basecamp',
+    columns: [
+      { key: 'info_date', label: 'Tgl Info', nowrap: true , render: v => window.formatDate(v) },
+      { key: 'branch_name', label: 'Cabang' },
+      { key: 'problem', label: 'Permasalahan', render: v => `<span title="${v || ''}">${v?.length > 60 ? v.slice(0, 60) + '…' : (v || '-')}</span>` },
+      { key: 'pic', label: 'PIC' },
+      { key: 'done_date', label: 'Tgl Done', nowrap: true , render: v => window.formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
       { key: 'notes', label: 'Keterangan', render: v => v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-') },
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari permasalahan / PIC...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'status', label: 'Status', options: ['Open', 'In Progress', 'Done'] },
     ],
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
-          { name: 'pic', label: 'PIC', type: 'select', options: getPicOptions(data?.pic), value: data?.pic },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'pic', label: 'PIC', type: 'combobox', options: getPicOptions(data?.pic), value: data?.pic },
         ]
       },
       { name: 'problem', label: 'Permasalahan', type: 'textarea', required: true, rows: 3, value: data?.problem },
@@ -76,14 +86,11 @@ export async function renderBasecampReports(container) {
         downloadExcel(template, 'Template_Import_Basecamp');
       },
       onImport: async (json) => {
-        const bRes = await apiFetch('/api/branches?all=1');
-        const rawBranches = bRes.data?.data || [];
-        
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
-          return b ? b.id : null;
+          const s = String(str || '').toLowerCase();
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         
         const parseDate = (v) => {
@@ -123,6 +130,7 @@ export async function renderBasecampReports(container) {
           body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     }
   });

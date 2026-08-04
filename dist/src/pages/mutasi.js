@@ -1,11 +1,13 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 
 let branchOptions = [];
+let employeeOptions = [];
 
 export async function renderMutasi(container) {
-  const res = await apiFetch('/api/branches?all=1');
-  branchOptions = (res.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  branchOptions = await getCachedBranches();
+  employeeOptions = await getCachedEmployeeNames();
 
   buildCrudPage({
     container,
@@ -24,8 +26,8 @@ export async function renderMutasi(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'select', name: 'from_branch_id', label: 'Cabang Asal', options: branchOptions },
-      { type: 'select', name: 'to_branch_id', label: 'Cabang Tujuan', options: branchOptions },
+      { type: 'combobox', name: 'from_branch_id', label: 'Cabang Asal', options: branchOptions },
+      { type: 'combobox', name: 'to_branch_id', label: 'Cabang Tujuan', options: branchOptions },
     ],
     exportOptions: {
       moduleName: 'mutasi_data',
@@ -53,13 +55,11 @@ export async function renderMutasi(container) {
         downloadExcel(template, 'Template_Import_Mutasi');
       },
       onImport: async (json) => {
-        const bRes = await apiFetch('/api/branches?all=1');
-        const rawBranches = bRes.data?.data || [];
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
-          return b ? b.id : null;
+          const s = String(str || '').toLowerCase();
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         const parseDate = (v) => {
           if (!v) return '';
@@ -90,15 +90,16 @@ export async function renderMutasi(container) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.tanggal && r.employee_name && r.from_branch_id && r.to_branch_id);
         
-        const res = await apiFetch('/api/mutasi/import', { method: 'POST', body: JSON.stringify(payload) });
+        const res = await apiFetch('/api/import/mutasi', { method: 'POST', body: JSON.stringify({ rows: payload, onDuplicate: 'update' }) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     },
     formFields: [
       { type: 'date', name: 'tanggal', label: 'Tanggal', required: true },
-      { type: 'text', name: 'employee_name', label: 'Nama Karyawan', required: true },
-      { type: 'select', name: 'from_branch_id', label: 'Cabang Asal', required: true, options: branchOptions },
-      { type: 'select', name: 'to_branch_id', label: 'Cabang Tujuan', required: true, options: branchOptions },
+      { type: 'combobox', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions },
+      { type: 'combobox', name: 'from_branch_id', label: 'Cabang Asal', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
+      { type: 'combobox', name: 'to_branch_id', label: 'Cabang Tujuan', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'select', name: 'status', label: 'Status', required: true, options: ['Proses', 'Selesai'] },
       { type: 'url', name: 'document_link', label: 'Link Dokumen (Opsional)' }
     ]

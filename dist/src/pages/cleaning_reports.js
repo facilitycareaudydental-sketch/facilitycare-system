@@ -1,11 +1,11 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { getCachedBranches } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
 
 export async function renderCleaningReports(container) {
-  const bRes = await apiFetch('/api/branches?all=1');
-  const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
+  const branchOptions = await getCachedBranches();
   const years = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - i));
 
   buildCrudPage({
@@ -24,7 +24,8 @@ export async function renderCleaningReports(container) {
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
     filterFields: [
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'search', placeholder: 'Cari nama cabang/lokasi...' },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Jenis', options: ['General Cleaning', 'Deep Cleaning'] },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done'] },
@@ -33,7 +34,7 @@ export async function renderCleaningReports(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
           { name: 'activity_type', label: 'Jenis Kegiatan', type: 'select', required: true, options: ['General Cleaning', 'Deep Cleaning'], value: data?.activity_type },
         ]
       },
@@ -59,27 +60,23 @@ export async function renderCleaningReports(container) {
             'Periode': d.period || '',
             'Tanggal': d.activity_date || '',
             'Status': d.status || '',
-            'Link Dokumen': d.document_link || '',
-            'Catatan': d.notes || ''
+            'Link Dokumen': d.document_link || ''
           }));
           downloadExcel(data, `Laporan_GCDC_${new Date().toISOString().slice(0,10)}`);
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Cabang': '001. Pondok Bambu', 'Jenis': 'General Cleaning', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...', 'Catatan': 'Pembersihan lantai' }
+          { 'Cabang': '001. Pondok Bambu', 'Jenis': 'General Cleaning', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...', 'Catatan': '' }
         ];
         downloadExcel(template, 'Template_Import_GCDC');
       },
       onImport: async (json) => {
-        const bRes = await apiFetch('/api/branches?all=1');
-        const rawBranches = bRes.data?.data || [];
-        
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = str.toLowerCase();
-          const b = rawBranches.find(r => r.full_name.toLowerCase() === s || r.code.toLowerCase() === s || r.name.toLowerCase() === s);
-          return b ? b.id : null;
+          const s = String(str || '').toLowerCase();
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          return b ? b.value : null;
         };
         
         const parseDate = (v) => {
@@ -114,11 +111,12 @@ export async function renderCleaningReports(container) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.branch_id && row.activity_type && row.period && row.activity_date);
         
-        const res = await apiFetch('/api/reports/cleaning/import', {
+        const res = await apiFetch('/api/import/cleaning', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        return res.data;
       }
     }
   });
