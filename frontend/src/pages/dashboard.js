@@ -580,7 +580,7 @@ function renderMiniStats(kpi) {
   const items = [
     { icon:'📅', label:'Jadwal',       val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
     { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
-    { icon:'🔄', label:'Report Reliefer Bulan Ini',   val:kpi.reliever_completed?.current,    href:'#/relievers?dash_filter=reliever',  color:'mini-teal' },
+    { icon:'🔄', label:'Report Reliefer',   val:kpi.reliever_completed?.current,    href:'#/relievers?dash_filter=reliever',  color:'mini-teal' },
     { icon:'🔍', label:'Inspeksi',     val:kpi.inspection_month?.current,  href:'#/timeline?dash_filter=inspeksi',  color:'mini-blue' },
     { icon:'🧹', label:'GCDC',         val:kpi.cleaning_month?.current,    href:'#/timeline?dash_filter=gcdc',    color:'mini-green' },
     { icon:'💨', label:'Fogging',      val:kpi.fogging_month?.current,     href:'#/reports/fogging',     color:'mini-purple' },
