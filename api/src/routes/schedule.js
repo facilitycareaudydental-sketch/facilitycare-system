@@ -55,7 +55,7 @@ async function listSchedule(request, env, origin) {
   if (period) { conditions.push('s.period = ?'); values.push(period); }
   if (status) { conditions.push('s.status = ?'); values.push(status); }
   if (pic) { conditions.push('s.pic = ?'); values.push(pic); }
-  if (month) { conditions.push("strftime('%Y-%m', s.opening_date) = ?"); values.push(month); }
+  if (month) { conditions.push("strftime('%Y-%m', COALESCE(s.opening_date, s.target_date)) = ?"); values.push(month); }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
