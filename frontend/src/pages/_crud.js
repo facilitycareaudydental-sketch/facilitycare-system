@@ -1,5 +1,5 @@
 // Generic CRUD page builder - used by all modules
-import { apiFetch, CLIENT_SIDE_MAX_ROWS, IS_DEVELOPMENT } from '../config.js';
+import { apiFetch, CLIENT_SIDE_MAX_ROWS, IS_DEVELOPMENT, getUser } from '../config.js';
 import { createTable, createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { buildFormHTML, getFormData, populateForm } from '../components/form.js';
@@ -28,6 +28,14 @@ export function buildCrudPage({
   bulkDelete = false,   // true => enable checkbox bulk-delete using DELETE apiPath/bulk
   paginationMode = 'server', // 'server' or 'client'
 }) {
+  const user = getUser();
+  if (user && typeof user === 'object' && user.role === 'viewer') {
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+    bulkDelete = false;
+    exportOptions = null;
+  }
   let page = 1;
   let filters = { ...defaultFilters };
   if (initialSearch) filters.search = initialSearch;
