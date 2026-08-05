@@ -462,14 +462,16 @@ img, svg, canvas, video, iframe { max-width: 100%; }
 }
 
 /* ── TASK 2: MOBILE FILTER BOTTOM SHEET ARCHITECTURE ──────── */
-@media (min-width: 769px) {
-  /* Di Desktop, wrapper hilang secara visual (transparan terhadap Flexbox parent-nya) */
-  .filter-options { display: contents; }
-  .bottom-sheet-header { display: none; }
+/* DEFAULT: Sembunyikan wrapper secara visual (transparan terhadap Flexbox) untuk Desktop & Halaman tanpa Feature Flag */
+.filter-options { 
+  display: contents; 
+}
+.bottom-sheet-header { 
+  display: none; 
 }
 
 @media (max-width: 768px) {
-  /* Layout bar pencarian utama di Mobile */
+  /* Layout bar pencarian utama di Mobile (hanya jika aktif) */
   .filter-bar.has-mobile-sheet {
     display: flex !important;
     flex-direction: row !important;
@@ -494,8 +496,10 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     display: inline-flex !important;
   }
 
-  /* Desain Bottom Sheet */
+  /* Desain Bottom Sheet (Menimpa display: contents) */
   .filter-bar.has-mobile-sheet .filter-options {
+    display: flex; /* Menimpa display: contents bawaan */
+    flex-direction: column;
     position: fixed;
     bottom: 0;
     left: 0;
@@ -506,12 +510,9 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     padding: 20px;
     box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
     z-index: 9999;
-    
-    display: flex;
-    flex-direction: column;
     gap: 12px;
     
-    /* Animasi 0.25s ease-out sesuai standar */
+    /* Animasi ringan 0.25s ease-out */
     transform: translateY(100%);
     transition: transform 0.25s ease-out;
     visibility: hidden;
@@ -528,8 +529,9 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     max-width: none !important;
   }
   
-  .bottom-sheet-header {
-    display: flex;
+  /* Munculkan header bottom sheet saat aktif di mobile */
+  .filter-bar.has-mobile-sheet .bottom-sheet-header {
+    display: flex; /* Menimpa display: none bawaan */
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border-color);
