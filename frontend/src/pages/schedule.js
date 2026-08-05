@@ -64,6 +64,8 @@ export async function renderSchedule(container, params) {
     defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', month: curM };
   } else if (dashFilter === 'gcdc') {
     defFilters = { status: 'Done', activity_type: 'General Cleaning', month: curM };
+  } else if (dashFilter && dashFilter.startsWith('period_')) {
+    defFilters = { period: dashFilter.replace('period_', '').toUpperCase() };
   }
 
   buildCrudPage({

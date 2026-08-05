@@ -483,6 +483,7 @@ async function fetchAll(container) {
   // Override KPIs with single source of truth from their respective modules
   if (kpi) {
     const schedules = Array.isArray(scheduleData?.data) ? scheduleData.data : (Array.isArray(scheduleData) ? scheduleData : []);
+    window.dashboardSchedules = schedules;
     const employees = Array.isArray(empData?.data) ? empData.data : (Array.isArray(empData) ? empData : []);
     const contracts = Array.isArray(contrData?.data) ? contrData.data : (Array.isArray(contrData) ? contrData : []);
     const issues = Array.isArray(issData?.data) ? issData.data : (Array.isArray(issData) ? issData : []);
@@ -577,8 +578,24 @@ function renderMiniStats(kpi) {
   if (!row) return;
   kpi = kpi || {};
 
+  const curQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
   const items = [
-    { icon:'📅', label:'Jadwal',       val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
+    { 
+      id: 'mini-jadwal',
+      icon:'📅', 
+      label:`<div style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Jadwal</span>
+          <select id="dash-jadwal-period" style="padding:0 4px; font-size:0.75rem; height:20px; border-radius:4px; background:rgba(255,255,255,0.6); border:none; margin-left:8px; color:var(--text-1); font-weight:600; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation();">
+            <option value="Q1" ${curQ === 'Q1' ? 'selected' : ''}>Q1</option>
+            <option value="Q2" ${curQ === 'Q2' ? 'selected' : ''}>Q2</option>
+            <option value="Q3" ${curQ === 'Q3' ? 'selected' : ''}>Q3</option>
+            <option value="Q4" ${curQ === 'Q4' ? 'selected' : ''}>Q4</option>
+          </select>
+        </div>`,
+      val:kpi.schedule?.current,
+      href:`#/timeline?dash_filter=period_${curQ.toLowerCase()}`,
+      color:'mini-blue' 
+    },
     { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
     { icon:'🔄', label:'Report Reliefer',   val:kpi.reliever_completed?.current,    href:'#/relievers?dash_filter=reliever',  color:'mini-teal' },
     { icon:'🔍', label:'Report Inspeksi',     val:kpi.inspection_month?.current,  href:'#/timeline?dash_filter=inspeksi',  color:'mini-blue' },
@@ -588,7 +605,7 @@ function renderMiniStats(kpi) {
   ];
 
   row.innerHTML = items.map(s => `
-    <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none">
+    <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none" id="${s.id || ''}">
       <div class="mini-stat-icon">${s.icon}</div>
       <div class="mini-stat-body">
         <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
@@ -597,6 +614,22 @@ function renderMiniStats(kpi) {
     </a>`).join('');
 
   row.querySelectorAll('.mini-stat-value').forEach(el => animateCount(el, parseInt(el.dataset.target)||0, 700));
+
+  // Add event listener for the Jadwal period dropdown
+  const jadwalSelect = document.getElementById('dash-jadwal-period');
+  if (jadwalSelect) {
+    jadwalSelect.addEventListener('change', (e) => {
+      const p = e.target.value;
+      const count = (window.dashboardSchedules || []).filter(s => s.period === p).length;
+      const valEl = document.querySelector('#mini-jadwal .mini-stat-value');
+      if (valEl) {
+        valEl.dataset.target = count;
+        valEl.textContent = count;
+      }
+      const a = document.getElementById('mini-jadwal');
+      if (a) a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
+    });
+  }
 }
 
 // ── Donut ──────────────────────────────────────────────────────────────────
