@@ -144,14 +144,14 @@ async function getKPI(env, origin) {
     // Uses idx_training_date
     env.DB.prepare("SELECT COUNT(*) c FROM training WHERE strftime('%Y-%m',training_date)=?").bind(curM).first(),
 
-    // Uses idx_inspection_date
-    env.DB.prepare("SELECT COUNT(*) c FROM inspection_reports WHERE strftime('%Y-%m',inspection_date)=?").bind(curM).first(),
+    // Inspeksi is now tracked in activity_schedule (timeline)
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type='Inspeksi Hygiene' AND status IN ('Done', 'Selesai') AND strftime('%Y-%m', COALESCE(opening_date, target_date))=?").bind(curM).first(),
 
-    // Uses idx_cleaning_date
-    env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
+    // GCDC is now tracked in activity_schedule (timeline)
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type='General Cleaning' AND status IN ('Done', 'Selesai') AND strftime('%Y-%m', COALESCE(opening_date, target_date))=?").bind(curM).first(),
 
-    // Uses idx_fogging_date
-    env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE strftime('%Y',activity_date)=?").bind(curM.substring(0, 4)).first(),
+    // Fogging tracks fogging_reports for this month
+    env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE status IN ('Done', 'Selesai') AND strftime('%Y-%m',activity_date)=?").bind(curM).first(),
 
     // Fetch all relievers to parse dates exactly like the UI
     env.DB.prepare("SELECT backup_date, status FROM relievers").all(),
