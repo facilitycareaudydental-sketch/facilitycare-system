@@ -136,7 +136,7 @@ export async function renderContracts(container, params) {
             ]);
             
             if (activeEmps.length > 0) {
-              const activeContracts = allContracts.filter(c => c.status === 'Aktif');
+              const activeContracts = allContracts.filter(c => c.status === 'Aktif' && (c.days_remaining == null || c.days_remaining >= 0 || String(c.end_date).startsWith('2099')));
               const activeConEmpIds = new Set(activeContracts.map(c => c.employee_id));
               
               const missing = activeEmps.filter(e => !activeConEmpIds.has(e.id));
@@ -165,7 +165,8 @@ export async function renderContracts(container, params) {
               empsWithExpiredContract.forEach(item => {
                  const m = item.emp;
                  const last = item.lastContract;
-                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:var(--text-2)">Cabang: ${m.branch_name || '-'} | Status Terakhir: <b style="color:#EF4444">${last.status}</b>, Expired: ${window.formatDate(last.end_date)}</span></li>`;
+                 const displayStatus = (last.status === 'Aktif' && last.days_remaining < 0) ? 'Aktif (Masa Habis)' : last.status;
+                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:var(--text-2)">Cabang: ${m.branch_name || '-'} | Status Terakhir: <b style="color:#EF4444">${displayStatus}</b>, Tgl Berakhir: ${window.formatDate(last.end_date)}</span></li>`;
               });
               
               html += '</ul>';
