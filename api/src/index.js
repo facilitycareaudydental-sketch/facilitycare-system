@@ -180,6 +180,7 @@ export default {
          }
       }
 
+      if (response) return response;
       
       // Manual sync trigger
       if (path === '/api/emergency-fix-dates' && request.method === 'GET') {
