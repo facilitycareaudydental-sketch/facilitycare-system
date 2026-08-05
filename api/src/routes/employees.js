@@ -66,7 +66,7 @@ async function listEmployees(request, env, origin) {
     `SELECT e.*, b.full_name as branch_name 
      FROM employees e 
      LEFT JOIN branches b ON e.branch_id = b.id 
-     ${where} ORDER BY e.full_name LIMIT ? OFFSET ?`
+     ${where} ORDER BY e.full_name ASC, e.id ASC LIMIT ? OFFSET ?`
   ).bind(...values, limit, offset).all();
 
   return paginated(rows.results, countResult.total, page, limit, origin);

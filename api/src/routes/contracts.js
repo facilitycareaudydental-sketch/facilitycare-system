@@ -74,7 +74,7 @@ async function listContracts(request, env, origin) {
      FROM contracts c 
      LEFT JOIN employees e ON c.employee_id = e.id
      LEFT JOIN branches b ON c.branch_id = b.id
-     ${where} ORDER BY c.end_date ASC LIMIT ? OFFSET ?`
+     ${where} ORDER BY c.end_date ASC, c.id ASC LIMIT ? OFFSET ?`
   ).bind(...values, limit, offset).all();
 
   return paginated(rows.results, countResult.total, page, limit, origin);
