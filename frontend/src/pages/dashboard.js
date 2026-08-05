@@ -666,8 +666,8 @@ function renderMiniStats(kpi) {
   row.innerHTML = items.map(s => `
     <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none" id="${s.id || ''}">
       <div class="mini-stat-icon">${s.icon}</div>
-      <div class="mini-stat-body" style="flex:1; min-width:0;">
-        <div style="display:flex; align-items:baseline; gap:6px;">
+      <div class="mini-stat-body" style="flex:1; min-width:0; overflow:visible;">
+        <div style="display:flex; align-items:baseline; gap:3px;">
           <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
           ${s.dropdown ? s.dropdown : ''}
         </div>
