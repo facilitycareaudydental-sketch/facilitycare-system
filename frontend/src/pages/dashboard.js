@@ -583,15 +583,15 @@ function renderMiniStats(kpi) {
     { 
       id: 'mini-jadwal',
       icon:'📅', 
-      label:`<div style="display:flex; justify-content:space-between; align-items:center;">
-          <span>Jadwal</span>
-          <select id="dash-jadwal-period" style="padding:0 4px; font-size:0.75rem; height:20px; border-radius:4px; background:rgba(255,255,255,0.6); border:none; margin-left:8px; color:var(--text-1); font-weight:600; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation();">
-            <option value="Q1" ${curQ === 'Q1' ? 'selected' : ''}>Q1</option>
-            <option value="Q2" ${curQ === 'Q2' ? 'selected' : ''}>Q2</option>
-            <option value="Q3" ${curQ === 'Q3' ? 'selected' : ''}>Q3</option>
-            <option value="Q4" ${curQ === 'Q4' ? 'selected' : ''}>Q4</option>
-          </select>
-        </div>`,
+      label: 'Jadwal',
+      dropdown: `
+        <select id="dash-jadwal-period" style="padding:0; font-size:1rem; height:24px; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.preventDefault(); event.stopPropagation();">
+          <option value="Q1" ${curQ === 'Q1' ? 'selected' : ''}>Q1</option>
+          <option value="Q2" ${curQ === 'Q2' ? 'selected' : ''}>Q2</option>
+          <option value="Q3" ${curQ === 'Q3' ? 'selected' : ''}>Q3</option>
+          <option value="Q4" ${curQ === 'Q4' ? 'selected' : ''}>Q4</option>
+        </select>
+      `,
       val:kpi.schedule?.current,
       href:`#/timeline?dash_filter=period_${curQ.toLowerCase()}`,
       color:'mini-blue' 
@@ -607,8 +607,11 @@ function renderMiniStats(kpi) {
   row.innerHTML = items.map(s => `
     <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none" id="${s.id || ''}">
       <div class="mini-stat-icon">${s.icon}</div>
-      <div class="mini-stat-body">
-        <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
+      <div class="mini-stat-body" style="flex:1; min-width:0;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
+          ${s.dropdown ? s.dropdown : ''}
+        </div>
         <div class="mini-stat-text">${s.label}</div>
       </div>
     </a>`).join('');
