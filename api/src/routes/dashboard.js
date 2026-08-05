@@ -79,11 +79,17 @@ function futureMonthLabels(count = 6) {
   return labels;
 }
 
+function curQuarterStr() {
+  const n = new Date();
+  return `Q${Math.ceil((n.getMonth() + 1) / 3)}`;
+}
+
 // ─── /kpi — 12 counters + prev-month trend ───────────────────────────────────
 // All queries use indexed columns. COUNT(*) is fastest in SQLite.
 async function getKPI(env, origin) {
   const curM  = curMonthStr();
   const prevM = prevMonthStr();
+  const curQ  = curQuarterStr();
 
   // All 16 counts run in parallel — no sequential blocking
   const [
@@ -132,8 +138,8 @@ async function getKPI(env, origin) {
     env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done'").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done' AND strftime('%Y-%m',meeting_date)=?").bind(prevM).first(),
 
-    // Matches total data in schedule table
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule").first(),
+    // Matches the default filter in schedule.js (Current Quarter)
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE period=?").bind(curQ).first(),
 
     // Uses idx_supply_status
     env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status='Pending'").first(),
