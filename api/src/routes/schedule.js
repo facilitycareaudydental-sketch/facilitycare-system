@@ -112,6 +112,7 @@ async function updateSchedule(id, request, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM activity_schedule WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
 
+  const { branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes } = body;
   const updatedRecord = { ...existing, branch_id: branch_id || existing.branch_id, activity_type: activity_type || existing.activity_type, period: period || existing.period, pic: pic || existing.pic, opening_date: opening_date || existing.opening_date, target_date: target_date || existing.target_date, completion_date: completion_date || existing.completion_date, status: status !== null && status !== undefined && status !== '' ? status : existing.status, notes: notes || existing.notes };
   
   await env.DB.batch([
