@@ -114,24 +114,72 @@ export default {
         }
       }
 
-      if (path.startsWith('/api/auth')) return await handleAuth(request, env, origin);
-      if (path.startsWith('/api/users')) return await handleUsers(request, env, origin);
-      if (path.startsWith('/api/branches')) return await handleBranches(request, env, origin);
-      if (path.startsWith('/api/employees')) return await handleEmployees(request, env, origin);
-      if (path.startsWith('/api/contracts')) return await handleContracts(request, env, origin);
-      if (path.startsWith('/api/schedule')) return await handleSchedule(request, env, origin);
-      if (path.startsWith('/api/issues')) return await handleIssues(request, env, origin);
-      if (path.startsWith('/api/one-on-one')) return await handleOneOnOne(request, env, origin);
-      if (path.startsWith('/api/training')) return await handleTraining(request, env, origin);
-      if (path.startsWith('/api/relievers')) return await handleRelievers(request, env, origin);
-      if (path.startsWith('/api/reports')) return await handleReports(request, env, origin);
-      if (path === '/api/dashboard/debug-56') return await handleDebug56(request, env, origin);
-      if (path === '/api/dashboard/reliever-audit') return await handleRelieverAudit(request, env, origin);
-      if (path.startsWith('/api/dashboard')) return await handleDashboard(request, env, origin);
-      if (path.startsWith('/api/import')) return await handleImport(request, env, origin);
-      if (path.startsWith('/api/sp')) return await handleSP(request, env, origin);
-      if (path.startsWith('/api/mutasi')) return await handleMutasi(request, env, origin);
-      if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || path.startsWith('/api/forms') || path.startsWith('/api/pic') || path.startsWith('/api/options')) return await handleMisc(request, env, origin);
+      let oldData = null;
+      let targetId = null;
+      let moduleName = 'unknown';
+      let action = request.method === 'POST' ? 'CREATE' : request.method === 'PUT' ? 'UPDATE' : 'DELETE';
+
+      // Capture ID and Old Data before modifying
+      if (['PUT', 'DELETE'].includes(request.method) && !path.startsWith('/api/auth')) {
+         const parts = path.split('/').filter(Boolean); 
+         if (parts.length >= 3) {
+            moduleName = parts[1];
+            targetId = parts[parts.length - 1];
+            if (!isNaN(targetId) || targetId.length > 5) { 
+               try {
+                  const res = await env.DB.prepare(`SELECT * FROM ${moduleName} WHERE id = ?`).bind(targetId).first();
+                  if (res) oldData = res;
+               } catch (e) { /* table might not exist exactly as module name, ignore */ }
+            }
+         }
+      } else if (request.method === 'POST') {
+         const parts = path.split('/').filter(Boolean);
+         if (parts.length >= 2) moduleName = parts[1];
+      }
+
+      let response;
+      if (path.startsWith('/api/auth')) response = await handleAuth(request, env, origin);
+      else if (path.startsWith('/api/users')) response = await handleUsers(request, env, origin);
+      else if (path.startsWith('/api/branches')) response = await handleBranches(request, env, origin);
+      else if (path.startsWith('/api/employees')) response = await handleEmployees(request, env, origin);
+      else if (path.startsWith('/api/contracts')) response = await handleContracts(request, env, origin);
+      else if (path.startsWith('/api/schedule')) response = await handleSchedule(request, env, origin);
+      else if (path.startsWith('/api/issues')) response = await handleIssues(request, env, origin);
+      else if (path.startsWith('/api/one-on-one')) response = await handleOneOnOne(request, env, origin);
+      else if (path.startsWith('/api/training')) response = await handleTraining(request, env, origin);
+      else if (path.startsWith('/api/relievers')) response = await handleRelievers(request, env, origin);
+      else if (path.startsWith('/api/reports')) response = await handleReports(request, env, origin);
+      else if (path === '/api/dashboard/debug-56') response = await handleDebug56(request, env, origin);
+      else if (path === '/api/dashboard/reliever-audit') response = await handleRelieverAudit(request, env, origin);
+      else if (path.startsWith('/api/dashboard')) response = await handleDashboard(request, env, origin);
+      else if (path.startsWith('/api/import')) response = await handleImport(request, env, origin);
+      else if (path.startsWith('/api/sp')) response = await handleSP(request, env, origin);
+      else if (path.startsWith('/api/mutasi')) response = await handleMutasi(request, env, origin);
+      else if (path.startsWith('/api/audit-logs')) response = await (await import('./routes/audit_logs.js')).handleAuditLogs(request, env, origin);
+      else if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || path.startsWith('/api/forms') || path.startsWith('/api/pic') || path.startsWith('/api/options')) response = await handleMisc(request, env, origin);
+      
+      // Post-processing for Audit Logging
+      if (['POST', 'PUT', 'DELETE'].includes(request.method) && !path.startsWith('/api/auth') && response && response.status >= 200 && response.status < 300) {
+         try {
+           const user = await authenticate(request, env);
+           if (user) {
+             let newData = null;
+             if (request.method !== 'DELETE') {
+               try {
+                  const cloned = response.clone();
+                  const resBody = await cloned.json();
+                  if (resBody && resBody.data) newData = resBody.data;
+               } catch(e) {}
+             }
+             if (request.method === 'POST' && newData && newData.id) targetId = newData.id;
+             const { logAudit } = await import('./utils/audit.js');
+             await logAudit(env, user, action, moduleName, targetId, oldData, newData);
+           }
+         } catch(e) {
+           console.error('Audit Log Error:', e);
+         }
+      }
+
       
       // Manual sync trigger
       if (path === '/api/emergency-fix-dates' && request.method === 'GET') {

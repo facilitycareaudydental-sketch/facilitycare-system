@@ -50,6 +50,7 @@ import { renderBasecampReports } from './pages/basecamp_reports.js';
 import { renderSOP } from './pages/sop.js';
 import { renderChecklist } from './pages/checklist.js';
 import { renderForms } from './pages/forms.js';
+import { renderAuditLogs } from './pages/audit_logs.js';
 import { renderUsers } from './pages/users.js';
 import { renderBranches } from './pages/branches.js';
 import { renderCalendar } from './pages/calendar.js';
@@ -337,6 +338,12 @@ function renderLayout() {
               </span>
               <span class="nav-label">Import Data Awal</span>
             </a>
+            <a href="#/audit-logs" class="nav-item" data-route="/audit-logs">
+              <span class="nav-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </span>
+              <span class="nav-label">Riwayat Aktivitas</span>
+            </a>
           </div>` : ''}
         </nav>
 
@@ -494,6 +501,7 @@ async function init() {
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));
   registerRoute('/profile',            requireAuth(({ main }) => renderProfile(main)));
   registerRoute('/settings/import',    requireAuth(({ main }) => renderImportPage(main)));
+  registerRoute('/audit-logs',         requireAuth(({ main }) => renderAuditLogs(main)));
 
   const token = getToken();
   if (!token && window.location.hash !== '#/login') { navigate('/login'); }
