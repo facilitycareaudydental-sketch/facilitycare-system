@@ -585,7 +585,7 @@ function renderMiniStats(kpi) {
       icon:'📅', 
       label: 'Jadwal',
       dropdown: `
-        <select id="dash-jadwal-period" style="padding:0; font-size:1rem; height:24px; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.preventDefault(); event.stopPropagation();">
+        <select id="dash-jadwal-period" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.preventDefault(); event.stopPropagation();">
           <option value="Q1" ${curQ === 'Q1' ? 'selected' : ''}>Q1</option>
           <option value="Q2" ${curQ === 'Q2' ? 'selected' : ''}>Q2</option>
           <option value="Q3" ${curQ === 'Q3' ? 'selected' : ''}>Q3</option>
@@ -608,7 +608,7 @@ function renderMiniStats(kpi) {
     <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none" id="${s.id || ''}">
       <div class="mini-stat-icon">${s.icon}</div>
       <div class="mini-stat-body" style="flex:1; min-width:0;">
-        <div style="display:flex; align-items:center; gap:6px;">
+        <div style="display:flex; align-items:baseline; gap:6px;">
           <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
           ${s.dropdown ? s.dropdown : ''}
         </div>
