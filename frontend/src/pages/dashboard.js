@@ -721,34 +721,22 @@ function renderMiniStats(kpi) {
   };
 
   setupMonthDropdown('dash-reliefer-month', 'mini-reliefer', window.dashboardRelievers, 
-    (item, m) => {
-      // Logic matches handleRelieverAudit
-      const d = item.backup_date || '';
-      // A simple startsWith works since backend also uses startsWith after parsing
-      let dStr = d;
-      const p = String(d).split('-');
-      if (p.length === 3 && p[0].length === 4) dStr = `${p[2]}-${p[1]}-${p[0]}`; // try to parse DD-MM-YYYY to YYYY-MM-DD
-      if (d.includes('/')) {
-         const parts = d.split('/');
-         if (parts.length === 3) dStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
-      }
-      return dStr.startsWith(m) && isDone(item);
-    }, 
+    (item, m) => window.parseFlexibleDate(item.backup_date).startsWith(m) && isDone(item), 
     '#/relievers?dash_filter=reliever'
   );
 
   setupMonthDropdown('dash-inspeksi-month', 'mini-inspeksi', window.dashboardSchedules, 
-    (item, m) => item.activity_type === 'Inspeksi Hygiene' && isDone(item) && String(item.opening_date || item.target_date || '').startsWith(m), 
+    (item, m) => item.activity_type === 'Inspeksi Hygiene' && isDone(item) && window.parseFlexibleDate(item.opening_date || item.target_date).startsWith(m), 
     '#/timeline?dash_filter=inspeksi'
   );
 
   setupMonthDropdown('dash-gcdc-month', 'mini-gcdc', window.dashboardSchedules, 
-    (item, m) => (item.activity_type === 'General Cleaning' || item.activity_type === 'Deep Cleaning') && isDone(item) && String(item.opening_date || item.target_date || '').startsWith(m), 
+    (item, m) => (item.activity_type === 'General Cleaning' || item.activity_type === 'Deep Cleaning') && isDone(item) && window.parseFlexibleDate(item.opening_date || item.target_date).startsWith(m), 
     '#/timeline?dash_filter=gcdc'
   );
 
   setupMonthDropdown('dash-fogging-month', 'mini-fogging', window.dashboardFogging, 
-    (item, m) => isDone(item) && String(item.activity_date || '').startsWith(m), 
+    (item, m) => isDone(item) && window.parseFlexibleDate(item.activity_date).startsWith(m), 
     '#/reports/fogging?dash_filter=fogging'
   );
 }
