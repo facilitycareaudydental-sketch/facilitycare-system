@@ -59,12 +59,12 @@ export async function renderSchedule(container, params) {
   const now = new Date();
   const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
-  let defFilters = { period: activePeriod };
-  const targetMonth = params && params.get('month') ? params.get('month') : curM;
+  let defFilters = {};
+  const targetMonth = params && params.get('month') ? params.get('month') : null;
   if (dashFilter === 'inspeksi') {
     defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', month: targetMonth };
   } else if (dashFilter === 'gcdc') {
-    defFilters = { status: 'Done', activity_type: 'General Cleaning', month: targetMonth };
+    defFilters = { status: 'Done', activity_type: 'GCDC', month: targetMonth };
   } else if (dashFilter && dashFilter.startsWith('period_')) {
     defFilters = { period: dashFilter.replace('period_', '').toUpperCase() };
   }
@@ -99,7 +99,11 @@ export async function renderSchedule(container, params) {
     filterFields: [
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Kegiatan', options: [
-        'Inspeksi Hygiene', 'General Cleaning', 'Deep Cleaning', 'Fogging'
+        { value: 'Inspeksi Hygiene', label: 'Inspeksi Hygiene' },
+        { value: 'General Cleaning', label: 'General Cleaning' },
+        { value: 'Deep Cleaning', label: 'Deep Cleaning' },
+        { value: 'Fogging', label: 'Fogging' },
+        { value: 'GCDC', label: 'GCDC (GC & DC)' }
       ]},
       { type: 'select', name: 'month', label: 'Bulan', options: [
         { value: '2026-01', label: 'Jan 2026' },

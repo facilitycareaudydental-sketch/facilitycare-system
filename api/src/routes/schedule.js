@@ -51,11 +51,25 @@ async function listSchedule(request, env, origin) {
   let conditions = ['s.deleted_at IS NULL'];
   let values = [];
   if (branch_id) { conditions.push('s.branch_id = ?'); values.push(branch_id); }
-  if (activity_type) { conditions.push('s.activity_type = ?'); values.push(activity_type); }
-  if (period) { conditions.push('s.period = ?'); values.push(period); }
+  if (activity_type) {
+    if (activity_type === 'GCDC') {
+      conditions.push("s.activity_type IN ('General Cleaning', 'Deep Cleaning')");
+    } else {
+      conditions.push('s.activity_type = ?'); 
+      values.push(activity_type);
+    }
+  }
   if (status) { conditions.push('s.status = ?'); values.push(status); }
   if (pic) { conditions.push('s.pic = ?'); values.push(pic); }
-  if (month) { conditions.push("strftime('%Y-%m', COALESCE(s.opening_date, s.target_date)) = ?"); values.push(month); }
+  
+  if (month) { 
+    conditions.push("strftime('%Y-%m', COALESCE(s.opening_date, s.target_date)) = ?"); 
+    values.push(month); 
+    // Ignore period filter if month is explicitly requested to prevent conflicts
+  } else if (period) { 
+    conditions.push('s.period = ?'); 
+    values.push(period); 
+  }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 

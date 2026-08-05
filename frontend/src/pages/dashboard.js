@@ -743,7 +743,7 @@ function renderMiniStats(kpi) {
   );
 
   setupMonthDropdown('dash-gcdc-month', 'mini-gcdc', window.dashboardSchedules, 
-    (item, m) => item.activity_type === 'General Cleaning' && isDone(item) && String(item.opening_date || item.target_date || '').startsWith(m), 
+    (item, m) => (item.activity_type === 'General Cleaning' || item.activity_type === 'Deep Cleaning') && isDone(item) && String(item.opening_date || item.target_date || '').startsWith(m), 
     '#/timeline?dash_filter=gcdc'
   );
 
