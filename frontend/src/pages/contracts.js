@@ -122,7 +122,7 @@ export async function renderContracts(container, params) {
         const btn = document.createElement('button');
         btn.id = 'btn-find-missing';
         btn.className = 'btn btn-ghost';
-        btn.innerHTML = '🔍 Cek Selisih Karyawan';
+        btn.innerHTML = '🔍 Detail Kontrak';
         btn.style.marginLeft = '8px';
         btn.style.color = '#EF4444';
         btn.style.border = '1px solid currentColor';
@@ -140,25 +140,42 @@ export async function renderContracts(container, params) {
               const activeConEmpIds = new Set(activeContracts.map(c => c.employee_id));
               
               const missing = activeEmps.filter(e => !activeConEmpIds.has(e.id));
-              let html = `<p style="margin-bottom:12px">Data yang terbaca: <b>${activeEmps.length}</b> Karyawan Aktif, dan <b>${activeContracts.length}</b> Kontrak Aktif.</p>
-              <p style="margin-bottom:12px">Terdapat <b>${missing.length}</b> karyawan aktif yang tidak memiliki "Kontrak Aktif". Berikut daftarnya:</p><ul style="padding-left:20px; max-height:400px; overflow-y:auto">`;
+              
+              const empsWithoutAnyContract = [];
+              const empsWithExpiredContract = [];
+
               missing.forEach(m => {
                  const theirContracts = allContracts.filter(c => c.employee_id === m.id);
-                 let conInfo = '<span style="color:#F59E0B">Belum pernah di-input kontrak</span>';
-                 if (theirContracts.length > 0) {
-                    const last = theirContracts[0];
-                    conInfo = `Pernah ada kontrak (Status: <b style="color:#EF4444">${last.status}</b>, Selesai: ${window.formatDate(last.end_date)})`;
+                 if (theirContracts.length === 0) {
+                    empsWithoutAnyContract.push(m);
+                 } else {
+                    empsWithExpiredContract.push({ emp: m, lastContract: theirContracts[0] });
                  }
-                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:var(--text-2)">Cabang: ${m.branch_name || '-'} | ${conInfo}</span></li>`;
               });
+
+              let html = `<p style="margin-bottom:12px">Data yang terbaca: <b>${activeEmps.length}</b> Karyawan Aktif, dan <b>${activeContracts.length}</b> Kontrak Aktif.</p>
+              <p style="margin-bottom:6px">Terdapat <b>${empsWithoutAnyContract.length}</b> karyawan aktif tanpa kontrak.</p>
+              <p style="margin-bottom:12px">Terdapat <b>${empsWithExpiredContract.length}</b> karyawan aktif yang memiliki masa kontrak Expired.</p>
+              <ul style="padding-left:20px; max-height:400px; overflow-y:auto">`;
+              
+              empsWithoutAnyContract.forEach(m => {
+                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:#F59E0B">Cabang: ${m.branch_name || '-'} | Belum pernah di-input kontrak</span></li>`;
+              });
+
+              empsWithExpiredContract.forEach(item => {
+                 const m = item.emp;
+                 const last = item.lastContract;
+                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:var(--text-2)">Cabang: ${m.branch_name || '-'} | Status Terakhir: <b style="color:#EF4444">${last.status}</b>, Expired: ${window.formatDate(last.end_date)}</span></li>`;
+              });
+              
               html += '</ul>';
               
-              import('../components/modal.js').then(m => m.createModal({ title: 'Karyawan Tanpa Kontrak Aktif', content: html, cancelText: 'Tutup' }));
+              import('../components/modal.js').then(m => m.createModal({ title: 'Detail Karyawan Tanpa Kontrak Aktif', content: html, cancelText: 'Tutup' }));
             }
           } catch(e) {
              console.error(e);
           }
-          btn.innerHTML = '🔍 Cek Selisih Karyawan';
+          btn.innerHTML = '🔍 Detail Kontrak';
           btn.disabled = false;
         };
         const actionsEl = document.querySelector('.page-actions');
