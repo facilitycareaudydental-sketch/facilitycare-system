@@ -60,10 +60,11 @@ export async function renderSchedule(container, params) {
   const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
   let defFilters = { period: activePeriod };
+  const targetMonth = params && params.get('month') ? params.get('month') : curM;
   if (dashFilter === 'inspeksi') {
-    defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', month: curM };
+    defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', month: targetMonth };
   } else if (dashFilter === 'gcdc') {
-    defFilters = { status: 'Done', activity_type: 'General Cleaning', month: curM };
+    defFilters = { status: 'Done', activity_type: 'General Cleaning', month: targetMonth };
   } else if (dashFilter && dashFilter.startsWith('period_')) {
     defFilters = { period: dashFilter.replace('period_', '').toUpperCase() };
   }

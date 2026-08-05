@@ -12,8 +12,15 @@ export async function renderFoggingReports(container, params) {
   let defFilters = {};
   if (dashFilter === 'fogging') {
     const now = new Date();
-    const curM = String(now.getMonth() + 1).padStart(2, '0');
-    const curY = String(now.getFullYear());
+    let curM = String(now.getMonth() + 1).padStart(2, '0');
+    let curY = String(now.getFullYear());
+    
+    const targetMonth = params ? params.get('month') : null;
+    if (targetMonth && targetMonth.length === 7) {
+      curY = targetMonth.split('-')[0];
+      curM = targetMonth.split('-')[1];
+    }
+    
     defFilters = { status: 'Done', month: curM, year: curY };
   }
 

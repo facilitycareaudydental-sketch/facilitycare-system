@@ -459,7 +459,7 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, contractChart, scheduleChartData] =
+  const [kpi, trend, issuesSum, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, contractChart, scheduleChartData, relieversData, foggingData] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
@@ -473,6 +473,8 @@ async function fetchAll(container) {
       safeFetch('/api/one-on-one?limit=10000',       {data: []}, 8000),
       safeFetch('/api/dashboard/contracts-chart',    {labels:[], data:[]}, 8000),
       safeFetch(`/api/dashboard/schedule-chart?year=${document.getElementById('filter-jadwal-year')?.value || new Date().getFullYear()}`, {}, 8000),
+      safeFetch('/api/relievers?limit=10000',        {data: []}, 8000),
+      safeFetch('/api/reports/fogging?limit=10000',  {data: []}, 8000),
     ]);
     
   const inspSelect = document.getElementById('filter-insp-month');
@@ -488,6 +490,10 @@ async function fetchAll(container) {
     const contracts = Array.isArray(contrData?.data) ? contrData.data : (Array.isArray(contrData) ? contrData : []);
     const issues = Array.isArray(issData?.data) ? issData.data : (Array.isArray(issData) ? issData : []);
     const oneOnOnes = Array.isArray(oooData?.data) ? oooData.data : (Array.isArray(oooData) ? oooData : []);
+    const relievers = Array.isArray(relieversData?.data) ? relieversData.data : (Array.isArray(relieversData) ? relieversData : []);
+    window.dashboardRelievers = relievers;
+    const fogging = Array.isArray(foggingData?.data) ? foggingData.data : (Array.isArray(foggingData) ? foggingData : []);
+    window.dashboardFogging = fogging;
     
     if (kpi.employees) {
       kpi.employees.current = employees.filter(s => filterEmp(s, 'active')).length;
@@ -579,6 +585,27 @@ function renderMiniStats(kpi) {
   kpi = kpi || {};
 
   const curQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
+  const curY = new Date().getFullYear();
+  const curM = String(new Date().getMonth() + 1).padStart(2, '0');
+  const curYM = `${curY}-${curM}`;
+  
+  const renderMonthDropdown = (id) => `
+    <select id="${id}" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.preventDefault(); event.stopPropagation();">
+      <option value="${curY}-01" ${curYM === `${curY}-01` ? 'selected' : ''}>Jan</option>
+      <option value="${curY}-02" ${curYM === `${curY}-02` ? 'selected' : ''}>Feb</option>
+      <option value="${curY}-03" ${curYM === `${curY}-03` ? 'selected' : ''}>Mar</option>
+      <option value="${curY}-04" ${curYM === `${curY}-04` ? 'selected' : ''}>Apr</option>
+      <option value="${curY}-05" ${curYM === `${curY}-05` ? 'selected' : ''}>Mei</option>
+      <option value="${curY}-06" ${curYM === `${curY}-06` ? 'selected' : ''}>Jun</option>
+      <option value="${curY}-07" ${curYM === `${curY}-07` ? 'selected' : ''}>Jul</option>
+      <option value="${curY}-08" ${curYM === `${curY}-08` ? 'selected' : ''}>Agu</option>
+      <option value="${curY}-09" ${curYM === `${curY}-09` ? 'selected' : ''}>Sep</option>
+      <option value="${curY}-10" ${curYM === `${curY}-10` ? 'selected' : ''}>Okt</option>
+      <option value="${curY}-11" ${curYM === `${curY}-11` ? 'selected' : ''}>Nov</option>
+      <option value="${curY}-12" ${curYM === `${curY}-12` ? 'selected' : ''}>Des</option>
+    </select>
+  `;
+
   const items = [
     { 
       id: 'mini-jadwal',
@@ -597,10 +624,42 @@ function renderMiniStats(kpi) {
       color:'mini-blue' 
     },
     { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
-    { icon:'🔄', label:'Report Reliefer',   val:kpi.reliever_completed?.current,    href:'#/relievers?dash_filter=reliever',  color:'mini-teal' },
-    { icon:'🔍', label:'Report Inspeksi',     val:kpi.inspection_month?.current,  href:'#/timeline?dash_filter=inspeksi',  color:'mini-blue' },
-    { icon:'🧹', label:'Report GCDC',         val:kpi.cleaning_month?.current,    href:'#/timeline?dash_filter=gcdc',    color:'mini-green' },
-    { icon:'💨', label:'Report Fogging',      val:kpi.fogging_month?.current,     href:'#/reports/fogging?dash_filter=fogging',     color:'mini-purple' },
+    { 
+      id: 'mini-reliefer',
+      icon:'🔄', 
+      label:'Report Reliefer',   
+      dropdown: renderMonthDropdown('dash-reliefer-month'),
+      val:kpi.reliever_completed?.current,    
+      href:`#/relievers?dash_filter=reliever&month=${curYM}`,  
+      color:'mini-teal' 
+    },
+    { 
+      id: 'mini-inspeksi',
+      icon:'🔍', 
+      label:'Report Inspeksi',     
+      dropdown: renderMonthDropdown('dash-inspeksi-month'),
+      val:kpi.inspection_month?.current,  
+      href:`#/timeline?dash_filter=inspeksi&month=${curYM}`,  
+      color:'mini-blue' 
+    },
+    { 
+      id: 'mini-gcdc',
+      icon:'🧹', 
+      label:'Report GCDC',         
+      dropdown: renderMonthDropdown('dash-gcdc-month'),
+      val:kpi.cleaning_month?.current,    
+      href:`#/timeline?dash_filter=gcdc&month=${curYM}`,    
+      color:'mini-green' 
+    },
+    { 
+      id: 'mini-fogging',
+      icon:'💨', 
+      label:'Report Fogging',      
+      dropdown: renderMonthDropdown('dash-fogging-month'),
+      val:kpi.fogging_month?.current,     
+      href:`#/reports/fogging?dash_filter=fogging&month=${curYM}`,     
+      color:'mini-purple' 
+    },
     { icon:'🏢', label:'Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal' },
   ];
 
@@ -633,6 +692,61 @@ function renderMiniStats(kpi) {
       if (a) a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
     });
   }
+
+  // Helper for month dropdowns
+  const setupMonthDropdown = (selectId, cardId, dataArr, countLogic, hrefBase) => {
+    const sel = document.getElementById(selectId);
+    if (sel) {
+      sel.addEventListener('change', (e) => {
+        const m = e.target.value; // YYYY-MM
+        const count = (dataArr || []).filter(item => countLogic(item, m)).length;
+        const valEl = document.querySelector(`#${cardId} .mini-stat-value`);
+        if (valEl) {
+          valEl.dataset.target = count;
+          valEl.textContent = count;
+        }
+        const a = document.getElementById(cardId);
+        if (a) a.href = `${hrefBase}&month=${m}`;
+      });
+    }
+  };
+
+  const isDone = (s) => {
+    const st = String(s.status || '').toLowerCase();
+    return st === 'done' || st === 'selesai' || st === 'completed';
+  };
+
+  setupMonthDropdown('dash-reliefer-month', 'mini-reliefer', window.dashboardRelievers, 
+    (item, m) => {
+      // Logic matches handleRelieverAudit
+      const d = item.backup_date || '';
+      // A simple startsWith works since backend also uses startsWith after parsing
+      let dStr = d;
+      const p = String(d).split('-');
+      if (p.length === 3 && p[0].length === 4) dStr = `${p[2]}-${p[1]}-${p[0]}`; // try to parse DD-MM-YYYY to YYYY-MM-DD
+      if (d.includes('/')) {
+         const parts = d.split('/');
+         if (parts.length === 3) dStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return dStr.startsWith(m) && isDone(item);
+    }, 
+    '#/relievers?dash_filter=reliever'
+  );
+
+  setupMonthDropdown('dash-inspeksi-month', 'mini-inspeksi', window.dashboardSchedules, 
+    (item, m) => item.activity_type === 'Inspeksi Hygiene' && isDone(item) && String(item.opening_date || item.target_date || '').startsWith(m), 
+    '#/timeline?dash_filter=inspeksi'
+  );
+
+  setupMonthDropdown('dash-gcdc-month', 'mini-gcdc', window.dashboardSchedules, 
+    (item, m) => item.activity_type === 'General Cleaning' && isDone(item) && String(item.opening_date || item.target_date || '').startsWith(m), 
+    '#/timeline?dash_filter=gcdc'
+  );
+
+  setupMonthDropdown('dash-fogging-month', 'mini-fogging', window.dashboardFogging, 
+    (item, m) => isDone(item) && String(item.activity_date || '').startsWith(m), 
+    '#/reports/fogging?dash_filter=fogging'
+  );
 }
 
 // ── Donut ──────────────────────────────────────────────────────────────────
