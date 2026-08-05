@@ -689,7 +689,10 @@ function renderMiniStats(kpi) {
         valEl.textContent = count;
       }
       const a = document.getElementById('mini-jadwal');
-      if (a) a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
+      if (a) {
+        a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
+        window.location.hash = `/timeline?dash_filter=period_${p.toLowerCase()}`;
+      }
     });
   }
 
@@ -706,7 +709,11 @@ function renderMiniStats(kpi) {
           valEl.textContent = count;
         }
         const a = document.getElementById(cardId);
-        if (a) a.href = `${hrefBase}&month=${m}`;
+        if (a) {
+          a.href = `${hrefBase}&month=${m}`;
+          const hashPath = a.href.substring(a.href.indexOf('#') + 1);
+          window.location.hash = hashPath;
+        }
       });
     }
   };
