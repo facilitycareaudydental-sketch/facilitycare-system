@@ -459,6 +459,8 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .toast, #toast-container, .btn, .page-actions,
   .filter-bar, .bulk-toolbar, .excel-btns { display: none !important; }
   .main-content { padding: 0 !important; }
+}
+
 /* ── TASK 2: MOBILE FILTER BOTTOM SHEET ARCHITECTURE ──────── */
 @media (min-width: 769px) {
   /* Di Desktop, wrapper hilang secara visual (transparan terhadap Flexbox parent-nya) */
