@@ -30,10 +30,10 @@ export function filterDashboardItem(s, type) {
 export async function renderSchedule(container, params) {
   branchOptions = await getCachedBranches();
   const allEmployees = await getCachedEmployeeNames();
-  picOptions = ['BERLIN ARIANSYAH', 'ADE SURAHMAN'];
+  picOptions = ['Berlin Ariansyah', 'Ade Surahman'];
 
   const getPicOptions = (val) => {
-    if (val && !picOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
+    if (val && !picOptions.find(o => String(typeof o === 'object' ? o.value : o).toLowerCase() === String(val).toLowerCase())) {
       return [...picOptions, val];
     }
     return picOptions;
