@@ -15,6 +15,7 @@ export function buildCrudPage({
   formFields,
   filterFields,
   defaultFilters = {},
+  enableMobileFilterSheet = false,
   itemLabel = 'Data',
   canCreate = true,
   canEdit = true,
@@ -59,18 +60,29 @@ export function buildCrudPage({
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
     ${filterFields && filterFields.length > 0 ? `
-    <div class="filter-bar card" style="padding: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        ${filterFields.map(f => {
+    <div class="filter-bar card ${enableMobileFilterSheet ? 'has-mobile-sheet' : ''}" style="padding: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        ${filterFields.filter(f => f.type === 'search' || f.type === 'search-combo').map(f => {
           if (f.type === 'search') return `<div class="filter-search" style="flex:1; min-width:120px;"><input type="text" class="form-control" autocomplete="off" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"></div>`;
           if (f.type === 'search-combo') {
             const dlId = `dl-filter-search`;
             const opts = (f.options || []).map(o => `<option value="${typeof o === 'object' ? o.label : o}"></option>`).join('');
             return `<div class="filter-search" style="flex:1; min-width:120px;"><input type="text" list="${dlId}" class="form-control" autocomplete="off" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"><datalist id="${dlId}">${opts}</datalist></div>`;
           }
-          if (f.type === 'select') return `<select class="form-control filter-select" style="flex:1; min-width:100px;" name="${f.name}" id="filter-${f.name}"><option value="">Pilih ${f.label}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
           return '';
         }).join('')}
-        <button class="btn btn-ghost btn-sm" id="btn-reset-filter">Reset</button>
+        
+        <div class="filter-options" id="filter-options-wrapper">
+          <div class="bottom-sheet-header">
+            <h3 style="margin:0; font-size:1rem;">Filter Data</h3>
+            <button class="btn-close-sheet" id="btn-close-filter-sheet" style="background:none;border:none;font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
+          </div>
+          ${filterFields.filter(f => f.type !== 'search' && f.type !== 'search-combo').map(f => {
+            if (f.type === 'select') return `<select class="form-control filter-select" style="flex:1; min-width:100px;" name="${f.name}" id="filter-${f.name}"><option value="">Pilih ${f.label}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
+            return '';
+          }).join('')}
+          <button class="btn btn-ghost btn-sm" id="btn-reset-filter">Reset</button>
+        </div>
+        ${enableMobileFilterSheet ? `<button id="btn-mobile-filter" class="btn btn-outline" style="display:none; align-items:center; gap:0.25rem;">⚙️ Filter</button>` : ''}
     </div>` : ''}
 
     <div class="card">
@@ -177,6 +189,24 @@ export function buildCrudPage({
     selectedIds.clear();
     load();
   });
+
+  // Mobile Filter Sheet Logic
+  const btnMobileFilter = document.getElementById('btn-mobile-filter');
+  const filterOptionsWrapper = document.getElementById('filter-options-wrapper');
+  const btnCloseFilterSheet = document.getElementById('btn-close-filter-sheet');
+  
+  if (btnMobileFilter && filterOptionsWrapper) {
+    btnMobileFilter.addEventListener('click', (e) => {
+      e.preventDefault();
+      filterOptionsWrapper.classList.add('sheet-open');
+    });
+    if (btnCloseFilterSheet) {
+      btnCloseFilterSheet.addEventListener('click', (e) => {
+        e.preventDefault();
+        filterOptionsWrapper.classList.remove('sheet-open');
+      });
+    }
+  }
 
   // Create button
   document.getElementById('btn-create')?.addEventListener('click', () => openForm(null));

@@ -77,6 +77,7 @@ export async function renderSchedule(container, params) {
     bulkDelete: true,
     itemLabel: 'Jadwal',
     paginationMode: 'client',
+    enableMobileFilterSheet: true,
     defaultFilters: defFilters,
     onDataLoaded: (items) => {
       // Sort descending by opening_date, so newest year/date is first

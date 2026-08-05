@@ -459,63 +459,80 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .toast, #toast-container, .btn, .page-actions,
   .filter-bar, .bulk-toolbar, .excel-btns { display: none !important; }
   .main-content { padding: 0 !important; }
+/* ── TASK 2: MOBILE FILTER BOTTOM SHEET ARCHITECTURE ──────── */
+@media (min-width: 769px) {
+  /* Di Desktop, wrapper hilang secara visual (transparan terhadap Flexbox parent-nya) */
+  .filter-options { display: contents; }
+  .bottom-sheet-header { display: none; }
 }
 
-/* ── TASK 1: LAYOUT MOBILE JADWAL KEGIATAN ────────────────── */
 @media (max-width: 768px) {
-  /* Menggunakan :has() untuk menargetkan halaman yang memiliki id="filter-activity_type" (Jadwal Kegiatan) */
-  #main-content:has(#filter-activity_type) {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Pindahkan Filter Bar (Pencarian & Tombol) ke urutan paling atas */
-  #main-content:has(#filter-activity_type) .filter-bar {
-    order: -1;
+  /* Layout bar pencarian utama di Mobile */
+  .filter-bar.has-mobile-sheet {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     flex-wrap: nowrap !important;
     justify-content: space-between !important;
     gap: 12px !important;
-    padding-bottom: 0 !important;
-    border-bottom: none !important;
-    margin-bottom: 12px;
   }
-
-  /* Sembunyikan semua dropdown Select dan tombol Reset bawaan di Mobile khusus halaman ini */
-  #main-content:has(#filter-activity_type) .filter-select,
-  #main-content:has(#filter-activity_type) #btn-reset-filter {
-    display: none !important;
-  }
-
-  /* Kustomisasi Search Bar agar ukurannya proporsional di kiri */
-  #main-content:has(#filter-activity_type) .filter-search {
+  
+  .filter-bar.has-mobile-sheet .filter-search {
     flex: 1;
     min-width: 0 !important;
     margin: 0 !important;
   }
   
-  #main-content:has(#filter-activity_type) .filter-search input {
+  .filter-bar.has-mobile-sheet .filter-search input {
     width: 100% !important;
   }
+  
+  /* Tampilkan tombol trigger di Mobile */
+  .filter-bar.has-mobile-sheet #btn-mobile-filter {
+    display: inline-flex !important;
+  }
 
-  /* Buat Tombol "⚙️ Filter" virtual menggunakan pseudo-element (untuk visual sementara) */
-  #main-content:has(#filter-activity_type) .filter-bar::after {
-    content: '⚙️ Filter';
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  /* Desain Bottom Sheet */
+  .filter-bar.has-mobile-sheet .filter-options {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
     background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-1);
-    font-size: 0.875rem;
-    font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-md);
-    white-space: nowrap;
-    cursor: pointer;
-    height: 38px; /* Menyamakan tinggi dengan input */
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
+    z-index: 9999;
+    
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    
+    /* Animasi 0.25s ease-out sesuai standar */
+    transform: translateY(100%);
+    transition: transform 0.25s ease-out;
+    visibility: hidden;
+  }
+  
+  /* Kelas aktif saat sheet terbuka */
+  .filter-bar.has-mobile-sheet .filter-options.sheet-open {
+    transform: translateY(0);
+    visibility: visible;
+  }
+  
+  .filter-bar.has-mobile-sheet .filter-options .filter-select {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  .bottom-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+    margin-bottom: 4px;
   }
 }
 
