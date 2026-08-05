@@ -51,7 +51,7 @@ export function buildCrudPage({
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
     ${filterFields && filterFields.length > 0 ? `
-    <div class="filter-bar card" style="padding: 1rem;">
+    <div class="filter-bar card" style="padding: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
         ${filterFields.map(f => {
           if (f.type === 'search') return `<div class="filter-search" style="flex:1; min-width:120px;"><input type="text" class="form-control" autocomplete="off" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"></div>`;
           if (f.type === 'search-combo') {
@@ -59,7 +59,7 @@ export function buildCrudPage({
             const opts = (f.options || []).map(o => `<option value="${typeof o === 'object' ? o.label : o}"></option>`).join('');
             return `<div class="filter-search" style="flex:1; min-width:120px;"><input type="text" list="${dlId}" class="form-control" autocomplete="off" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"><datalist id="${dlId}">${opts}</datalist></div>`;
           }
-          if (f.type === 'select') return `<select class="form-control filter-select" style="flex:1; min-width:100px;" name="${f.name}" id="filter-${f.name}"><option value="">-- ${f.label} --</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
+          if (f.type === 'select') return `<select class="form-control filter-select" style="flex:1; min-width:100px;" name="${f.name}" id="filter-${f.name}"><option value="">Pilih ${f.label}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
           return '';
         }).join('')}
         <button class="btn btn-ghost btn-sm" id="btn-reset-filter">Reset</button>
