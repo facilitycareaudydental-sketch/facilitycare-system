@@ -17,7 +17,11 @@ export function getActivePeriod(data) {
 }
 
 export function filterDashboardItem(s, type) {
-  if (s.period !== 'Q3') return false;
+  const now = new Date();
+  const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const d = s.target_date || s.opening_date || '';
+  if (!d.startsWith(curM)) return false;
+
   const status = String(s.status || '').toLowerCase();
   if (status !== 'selesai' && status !== 'completed' && status !== 'done') return false;
   
