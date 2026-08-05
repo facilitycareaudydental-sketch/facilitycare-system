@@ -37,7 +37,7 @@ window.formatDate = (d) => {
 import { renderDashboard } from './pages/dashboard.js?v=force60';
 import { renderLogin } from './pages/login.js';
 import { renderEmployees } from './pages/employees.js?v=force60';
-import { renderContracts } from './pages/contracts.js?v=force60';
+import { renderContracts } from './pages/contracts.js?v=force61';
 import { renderSchedule } from './pages/schedule.js?v=force60';
 import { renderIssues } from './pages/issues.js?v=force60';
 import { renderOneOnOne } from './pages/one_on_one.js?v=force60';
