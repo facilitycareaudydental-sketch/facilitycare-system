@@ -624,15 +624,7 @@ function renderMiniStats(kpi) {
       color:'mini-blue' 
     },
 
-    { 
-      id: 'mini-reliefer',
-      icon:'🔄', 
-      label:'Report Reliefer',   
-      dropdown: renderMonthDropdown('dash-reliefer-month'),
-      val:kpi.reliever_completed?.current,    
-      href:`#/relievers?dash_filter=reliever&month=${curYM}`,  
-      color:'mini-teal' 
-    },
+
     { 
       id: 'mini-inspeksi',
       icon:'🔍', 
@@ -650,6 +642,15 @@ function renderMiniStats(kpi) {
       val:kpi.cleaning_month?.current,    
       href:`#/timeline?dash_filter=gcdc&month=${curYM}`,    
       color:'mini-green' 
+    },
+    { 
+      id: 'mini-reliefer',
+      icon:'🔄', 
+      label:'Report Reliefer',   
+      dropdown: renderMonthDropdown('dash-reliefer-month'),
+      val:kpi.reliever_completed?.current,    
+      href:`#/relievers?dash_filter=reliever&month=${curYM}`,  
+      color:'mini-teal' 
     },
     { 
       id: 'mini-fogging',
