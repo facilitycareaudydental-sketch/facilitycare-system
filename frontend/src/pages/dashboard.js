@@ -623,7 +623,7 @@ function renderMiniStats(kpi) {
       href:`#/timeline?dash_filter=period_${curQ.toLowerCase()}`,
       color:'mini-blue' 
     },
-    { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
+
     { 
       id: 'mini-reliefer',
       icon:'🔄', 
@@ -660,6 +660,7 @@ function renderMiniStats(kpi) {
       href:`#/reports/fogging?dash_filter=fogging&month=${curYM}`,     
       color:'mini-purple' 
     },
+    { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
     { icon:'🏢', label:'Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal' },
   ];
 
