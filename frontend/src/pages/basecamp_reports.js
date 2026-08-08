@@ -7,7 +7,7 @@ import { downloadExcel } from '../utils/excel.js';
 export async function renderBasecampReports(container) {
   const branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
-  const rawPicOptions = employeeOptions;
+  const rawPicOptions = ['Berlin', 'Ade'];
   const years = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - i));
 
   const getEmpOptions = (val) => {
@@ -42,7 +42,7 @@ export async function renderBasecampReports(container) {
       { key: 'notes', label: 'Keterangan', render: v => v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-') },
     ],
     filterFields: [
-      { type: 'select', name: 'pic', label: 'PIC', options: ['Berlin', 'Ade', 'Mizwar'] },
+      { type: 'select', name: 'pic', label: 'PIC', options: ['Berlin', 'Ade'] },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'month', label: 'Bulan', options: [
