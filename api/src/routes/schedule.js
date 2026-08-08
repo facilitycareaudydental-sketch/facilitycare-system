@@ -63,7 +63,7 @@ async function listSchedule(request, env, origin) {
   if (pic) { conditions.push('s.pic = ?'); values.push(pic); }
   
   if (month) { 
-    conditions.push("strftime('%Y-%m', COALESCE(s.opening_date, s.target_date)) = ?"); 
+    conditions.push("strftime('%Y-%m', COALESCE(s.completion_date, s.target_date)) = ?"); 
     values.push(month); 
     // Ignore period filter if month is explicitly requested to prevent conflicts
   } else if (period) { 
