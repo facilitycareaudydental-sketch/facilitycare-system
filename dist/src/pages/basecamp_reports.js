@@ -8,6 +8,7 @@ export async function renderBasecampReports(container) {
   const branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
   const rawPicOptions = employeeOptions;
+  const years = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - i));
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -40,9 +41,25 @@ export async function renderBasecampReports(container) {
       { key: 'notes', label: 'Keterangan', render: v => v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-') },
     ],
     filterFields: [
-      { type: 'search', placeholder: 'Cari permasalahan / PIC...' },
+      { type: 'select', name: 'pic', label: 'PIC', options: ['Berlin', 'Ade', 'Mizwar'] },
       { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
+      { type: 'select', name: 'month', label: 'Bulan', options: [
+          { value: '01', label: 'Jan' },
+          { value: '02', label: 'Feb' },
+          { value: '03', label: 'Mar' },
+          { value: '04', label: 'Apr' },
+          { value: '05', label: 'Mei' },
+          { value: '06', label: 'Jun' },
+          { value: '07', label: 'Jul' },
+          { value: '08', label: 'Agu' },
+          { value: '09', label: 'Sep' },
+          { value: '10', label: 'Okt' },
+          { value: '11', label: 'Nov' },
+          { value: '12', label: 'Des' }
+      ]},
       { type: 'select', name: 'status', label: 'Status', options: ['Open', 'In Progress', 'Done'] },
+      { type: 'select', name: 'year', label: 'Tahun', options: years },
     ],
     formFields: (data) => [
       {

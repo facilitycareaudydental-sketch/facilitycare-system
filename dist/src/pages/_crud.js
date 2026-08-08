@@ -1,5 +1,5 @@
 // Generic CRUD page builder - used by all modules
-import { apiFetch, CLIENT_SIDE_MAX_ROWS, IS_DEVELOPMENT } from '../config.js';
+import { apiFetch, CLIENT_SIDE_MAX_ROWS, IS_DEVELOPMENT, getUser } from '../config.js';
 import { createTable, createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { buildFormHTML, getFormData, populateForm } from '../components/form.js';
@@ -28,6 +28,14 @@ export function buildCrudPage({
   bulkDelete = false,   // true => enable checkbox bulk-delete using DELETE apiPath/bulk
   paginationMode = 'server', // 'server' or 'client'
 }) {
+  const user = getUser();
+  if (user && typeof user === 'object' && user.role === 'viewer') {
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+    bulkDelete = false;
+    exportOptions = null;
+  }
   let page = 1;
   let filters = { ...defaultFilters };
   if (initialSearch) filters.search = initialSearch;
@@ -51,15 +59,18 @@ export function buildCrudPage({
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
     ${filterFields && filterFields.length > 0 ? `
-    <div class="filter-bar card">
-      <div class="filter-bar-inner">
+    <div class="filter-bar card" style="padding: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
         ${filterFields.map(f => {
-          if (f.type === 'search') return `<div class="filter-search"><input type="search" class="form-control" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"></div>`;
-          if (f.type === 'select') return `<select class="form-control filter-select" name="${f.name}" id="filter-${f.name}"><option value="">-- ${f.label} --</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
+          if (f.type === 'search') return `<div class="filter-search" style="flex:1; min-width:120px;"><input type="text" class="form-control" autocomplete="off" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"></div>`;
+          if (f.type === 'search-combo') {
+            const dlId = `dl-filter-search`;
+            const opts = (f.options || []).map(o => `<option value="${typeof o === 'object' ? o.label : o}"></option>`).join('');
+            return `<div class="filter-search" style="flex:1; min-width:120px;"><input type="text" list="${dlId}" class="form-control" autocomplete="off" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"><datalist id="${dlId}">${opts}</datalist></div>`;
+          }
+          if (f.type === 'select') return `<select class="form-control filter-select" style="flex:1; min-width:100px;" name="${f.name}" id="filter-${f.name}"><option value="">Pilih ${f.label}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
           return '';
         }).join('')}
         <button class="btn btn-ghost btn-sm" id="btn-reset-filter">Reset</button>
-      </div>
     </div>` : ''}
 
     <div class="card">
@@ -139,6 +150,7 @@ export function buildCrudPage({
     searchTimer = setTimeout(() => {
       filters.search = e.target.value;
       page = 1;
+      selectedIds.clear();
       load();
     }, 400);
   });
@@ -148,6 +160,7 @@ export function buildCrudPage({
       document.getElementById(`filter-${f.name}`)?.addEventListener('change', (e) => {
         filters[f.name] = e.target.value;
         page = 1;
+        selectedIds.clear();
         load();
       });
     }
@@ -161,6 +174,7 @@ export function buildCrudPage({
       if (el) el.value = '';
     });
     page = 1;
+    selectedIds.clear();
     load();
   });
 
@@ -266,7 +280,7 @@ export function buildCrudPage({
         closeBtn.style.display = 'block';
         fileInput.value = ''; // reset
       } catch (err) {
-        textEl.innerHTML = \`<strong style="color:var(--danger)">❌ Gagal Memproses File</strong><br>\${err.message}\`;
+        textEl.innerHTML = `<strong style="color:var(--danger)">❌ Gagal Memproses File</strong><br>${err.message}`;
         barEl.style.background = 'var(--danger)';
         barEl.style.width = '100%';
         closeBtn.style.display = 'block';
@@ -278,7 +292,6 @@ export function buildCrudPage({
   }
 
   async function load() {
-    selectedIds.clear();
     updateBulkToolbar();
     
     const tableContainer = document.getElementById('table-container');
@@ -304,10 +317,12 @@ export function buildCrudPage({
     let items = res.data?.data || res.data || [];
     let pagination = res.data?.pagination;
     const originalTotal = items.length;
+    let fullItems = items;
     
     if (isClientSide) {
        // 1. Terapkan filter khusus (Client-Side)
        items = onDataLoaded(items);
+       fullItems = items;
        
        // 2. Hitung jumlah total data setelah difilter
        const filteredTotal = items.length;
@@ -353,6 +368,7 @@ export function buildCrudPage({
     const table = createTable({
       columns,
       data: items,
+      fullData: fullItems,
       onEdit: canEdit ? (row) => openForm(row) : null,
       // Individual onDelete removed
       actions: extraActions.map(a => ({ ...a, handler: (row) => a.handler(row, load) })),

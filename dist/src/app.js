@@ -42,7 +42,7 @@ import { renderSchedule } from './pages/schedule.js?v=force60';
 import { renderIssues } from './pages/issues.js?v=force60';
 import { renderOneOnOne } from './pages/one_on_one.js?v=force60';
 import { renderTraining } from './pages/training.js';
-import { renderRelievers } from './pages/relievers.js';
+import { renderRelievers } from './pages/relievers.js?v=v2';
 import { renderInspectionReports } from './pages/inspection_reports.js';
 import { renderCleaningReports } from './pages/cleaning_reports.js';
 import { renderFoggingReports } from './pages/fogging_reports.js';
@@ -50,6 +50,7 @@ import { renderBasecampReports } from './pages/basecamp_reports.js';
 import { renderSOP } from './pages/sop.js';
 import { renderChecklist } from './pages/checklist.js';
 import { renderForms } from './pages/forms.js';
+import { renderAuditLogs } from './pages/audit_logs.js';
 import { renderUsers } from './pages/users.js';
 import { renderBranches } from './pages/branches.js';
 import { renderCalendar } from './pages/calendar.js';
@@ -337,15 +338,21 @@ function renderLayout() {
               </span>
               <span class="nav-label">Import Data Awal</span>
             </a>
+            <a href="#/audit-logs" class="nav-item" data-route="/audit-logs">
+              <span class="nav-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </span>
+              <span class="nav-label">Riwayat Aktivitas</span>
+            </a>
           </div>` : ''}
         </nav>
 
         <div class="sidebar-footer">
           <div class="sidebar-user">
-            <div class="sidebar-avatar">BA</div>
+            <div class="sidebar-avatar">${initial}</div>
             <div class="sidebar-user-info">
-              <div class="sidebar-user-name">Berlin Ariansyah</div>
-              <div class="sidebar-user-role">Administrator</div>
+              <div class="sidebar-user-name">${user?.full_name || 'Admin'}</div>
+              <div class="sidebar-user-role" style="text-transform:capitalize">${user?.role || 'Administrator'}</div>
             </div>
           </div>
           <button class="sidebar-logout" id="logout-btn">
@@ -374,7 +381,7 @@ function renderLayout() {
                   if (h >= 11 && h < 15) return 'Selamat Siang';
                   if (h >= 15 && h < 18) return 'Selamat Sore';
                   return 'Selamat Malam';
-                })()}, </span><span class="topbar-greeting-name">Berlin Ariansyah</span> 👋
+                })()}, </span><span class="topbar-greeting-name">${user?.full_name || 'Admin'}</span> 👋
               </div>
               <div class="topbar-subtitle">
                 Ringkasan Operasional FCMS Hari Ini
@@ -398,10 +405,10 @@ function renderLayout() {
               <span class="notif-dot" id="notif-dot" style="display:none"></span>
             </button>
             <a href="#/profile" class="topbar-user-btn" title="Profil">
-              <img src="https://ui-avatars.com/api/?name=Berlin+Ariansyah&background=2563EB&color=fff&bold=true" class="topbar-avatar" alt="Avatar" />
+              <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Admin')}&background=2563EB&color=fff&bold=true" class="topbar-avatar" alt="Avatar" />
               <div class="topbar-user-text">
-                <span class="topbar-user-name">Berlin Ariansyah</span>
-                <span class="topbar-user-role-mini">Administrator</span>
+                <span class="topbar-user-name">${user?.full_name || 'Admin'}</span>
+                <span class="topbar-user-role-mini" style="text-transform:capitalize">${user?.role || 'Administrator'}</span>
               </div>
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:4px;color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
             </a>
@@ -494,6 +501,7 @@ async function init() {
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));
   registerRoute('/profile',            requireAuth(({ main }) => renderProfile(main)));
   registerRoute('/settings/import',    requireAuth(({ main }) => renderImportPage(main)));
+  registerRoute('/audit-logs',         requireAuth(({ main }) => renderAuditLogs(main)));
 
   const token = getToken();
   if (!token && window.location.hash !== '#/login') { navigate('/login'); }

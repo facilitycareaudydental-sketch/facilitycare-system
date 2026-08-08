@@ -375,13 +375,22 @@ export function generateTemplate() {
   const XLSX = window.XLSX;
   const wb   = XLSX.utils.book_new();
   const TEMPLATES = {
-    'Validasi': [{ 'CABANG': '001. Pondok Bambu', 'NAMA KARYAWAN': 'Budi Santoso', 'PIC': 'Berlin', 'KEGIATAN': 'General Cleaning', 'QUARTAL': 'Q1', 'PIC PELAPOR': 'Berlin', 'KONTRAK': 'PKWT 1', 'MASA PKWT': '1 Tahun' }],
+    'Validasi': [{ 'CABANG': '001. Pondok Bambu', 'PIC': 'Berlin', 'KEGIATAN': 'General Cleaning', 'QUARTAL': 'Q1', 'PIC PELAPOR': 'Berlin', 'KONTRAK': 'PKWT 1', 'MASA PKWT': '1 Tahun' }],
     'SOP': [{ 'Nama SOP': 'SOP Pembersihan Toilet', 'Kategori': 'Cleaning', 'Link Document': 'https://...' }],
     'Master Karyawan': [{ 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Div / Bagian': 'FACILITY CARE', 'No. Hp': '081234567890', 'Tanggal Masuk': '2024-01-15', 'Status': 'Aktif' }],
-    'Data Kontrak': [{ 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Div / Bagian': 'FACILITY CARE', 'Tanggal Mulai': '2024-01-01', 'Tanggal Selesai': '2024-12-31', 'Sisa Kontrak': '365', 'Status': 'Aktif', 'keterangan': '' }],
-    'Permasalahan': [{ 'Tanggal Info': '2024-03-01', 'Cabang': '001. Pondok Bambu', 'Kategori': 'Cleaning', 'Sumber Laporan': 'SPV', 'Keluhan': 'Lantai kotor', 'Nama FC': 'Budi', 'FC Spesialis': 'Fajar', 'Solusi': 'Teguran', 'Status': 'Done', 'Tanggal Selesai': '2024-03-02', 'Day': '1' }],
-    'One on One': [{ 'Tanggal': '2024-03-05', 'Cabang': '001. Pondok Bambu', 'Nama Karyawan': 'Budi Santoso', 'Pic': 'Berlin', 'Masalah': 'Keterlambatan', 'Solusi': 'Coaching', 'Status': 'Done', 'Tanggal Selesai': '2024-03-06', 'Day': '1', 'Link Document': '' }],
+    'Data Kontrak': [{ 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Div / Bagian': 'FACILITY CARE', 'Tanggal Mulai': '2024-01-01', 'Tanggal Selesai': '2024-12-31', 'Tipe Kontrak': 'PKWT 1', 'PKWT': '001/PKWT/2024', 'Status': 'Aktif', 'keterangan': '' }],
+    'Permasalahan': [{ 'Tanggal Info': '2024-03-01', 'Cabang': '001. Pondok Bambu', 'Kategori': 'Cleaning', 'Sumber Laporan': 'SPV', 'Keluhan': 'Lantai kotor', 'Nama FC': 'Budi', 'FC Spesialis': 'Fajar', 'Solusi': 'Teguran', 'Status': 'Done', 'Tanggal Selesai': '2024-03-02' }],
+    'One on One': [{ 'Tanggal': '2024-03-05', 'Cabang': '001. Pondok Bambu', 'Nama Karyawan': 'Budi Santoso', 'Pic': 'Berlin', 'Masalah': 'Keterlambatan', 'Solusi': 'Coaching', 'Status': 'Done', 'Tanggal Selesai': '2024-03-06', 'Link Document': '' }],
+    'Time Line': [{ 'Cabang': '001. Pondok Bambu', 'Kegiatan': 'General Cleaning', 'Periode': 'Januari', 'Pic': 'Berlin', 'Tanggal Opening': '2024-01-01', 'Tanggal Target': '2024-01-10', 'Tanggal Selesai': '2024-01-09', 'Status': 'Done', 'Keterangan': '' }],
+    'Report Inspeksi Hygiene 2026': [{ 'Tanggal': '2026-01-15', 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Status': 'Done', 'Point FC': '85.5', 'Point SPV': '90.0', 'Link Dokumen': 'https://...' }],
+    'Report GC-DC 2026': [{ 'Tanggal': '2026-01-20', 'Cabang': '001. Pondok Bambu', 'Jenis Kegiatan': 'General Cleaning', 'Periode': 'Q1', 'Status': 'Done', 'Link Dokumen': 'https://...' }],
+    'Report Fogging 2026': [{ 'Tanggal': '2026-01-25', 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Status': 'Done', 'Link Dokumen': 'https://...' }],
+    'Rekap Laporan Basecamp': [{ 'Tgl Info': '2024-02-01', 'Cabang': '001. Pondok Bambu', 'Permasalahan': 'Lampu mati', 'PIC': 'Berlin', 'Tgl Done': '2024-02-02', 'Status': 'Done', 'Ket': '' }],
     'Jadwal Reliefer': [{ 'Cabang': '001. Pondok Bambu', 'Nama Facility care': 'Budi Santoso', 'Periode': 'Januari', 'Relifer': 'Agung Septiadi', 'Tanggal Back Up': '2024-03-01', 'Tanggal Selesai': '2024-03-02', 'Keterangan': 'Cuti', 'Shift': 'Pagi', 'Status': 'Done' }],
+    'Training': [{ 'Tanggal': '2024-04-10', 'Batch': 'Batch 1', 'Materi': 'Basic Cleaning', 'Peserta': '5', 'Cabang': '001. Pondok Bambu', 'Trainer': 'Fajar', 'Nilai': '85', 'Keterangan': '' }],
+    'Master Checklist': [{ 'Master Checklist': 'Checklist Kebersihan Toilet', 'Link Document': 'https://...' }],
+    'Master Form': [{ 'Master Form': 'Form Izin Keluar', 'Link Document': 'https://...' }],
+    'Permintaan Chemical': [{ 'Timestamp': '2024-05-01', 'Nama Lengkap': 'Budi Santoso', 'Kebutuhan Untuk Cabang': '001. Pondok Bambu', 'Alat - Alat / Barang': 'Sapu', 'Jumlah Permintaan Alat / Barang': '2', 'Chemical': 'Karbol', 'Jumlah Permintaan Chemical': '1 Liter', 'Tambahan  Alat / Chemical Jika Ada Permintaan Diluar List.': '', 'Status': 'Pending' }],
   };
   Object.entries(TEMPLATES).forEach(([sn, data]) => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), sn);

@@ -15,6 +15,7 @@ async function loadBranches() {
 export function filterDashboardItem(s, type) {
   const status = String(s.status || '').toLowerCase();
   if (type === 'active') return status === 'aktif';
+  if (type === 'reliefer') return s.division === 'FC - RELIEFER' && status === 'aktif';
   return false;
 }
 
@@ -48,7 +49,7 @@ export async function renderEmployees(container, params) {
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
       { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
-      { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY'] },
+      { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY', 'FC - RELIEFER'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
     ],
     formFields: (data) => [
@@ -61,7 +62,7 @@ export async function renderEmployees(container, params) {
       {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
-          { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY'], value: data?.division || 'FACILITY CARE' },
+          { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY', 'FC - RELIEFER'], value: data?.division || 'FACILITY CARE' },
         ]
       },
       {

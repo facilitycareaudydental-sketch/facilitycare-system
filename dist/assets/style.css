@@ -685,10 +685,9 @@ strong { font-weight: 600; }
   font-weight: 500;
   color: var(--text-3);
   margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  word-break: normal;
+  white-space: normal;
+  line-height: 1.2;
+  word-break: break-word;
 }
 
 /* ── Charts Row ─────────────────────────────────────────────── */

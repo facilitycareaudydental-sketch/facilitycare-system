@@ -699,8 +699,7 @@ function renderMiniStats(kpi) {
   const setupMonthDropdown = (selectId, cardId, dataArr, countLogic, hrefBase) => {
     const sel = document.getElementById(selectId);
     if (sel) {
-      sel.addEventListener('change', (e) => {
-        const m = e.target.value; // YYYY-MM
+      const refreshCount = (m) => {
         const count = (dataArr || []).filter(item => countLogic(item, m)).length;
         const valEl = document.querySelector(`#${cardId} .mini-stat-value`);
         if (valEl) {
@@ -708,10 +707,12 @@ function renderMiniStats(kpi) {
           valEl.textContent = count;
         }
         const a = document.getElementById(cardId);
-        if (a) {
-          a.href = `${hrefBase}&month=${m}`;
-        }
-      });
+        if (a) a.href = `${hrefBase}&month=${m}`;
+      };
+      // Run immediately with the currently selected month
+      refreshCount(sel.value);
+      // Also run on every dropdown change
+      sel.addEventListener('change', (e) => refreshCount(e.target.value));
     }
   };
 

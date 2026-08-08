@@ -17,7 +17,11 @@ export function getActivePeriod(data) {
 }
 
 export function filterDashboardItem(s, type) {
-  if (s.period !== 'Q3') return false;
+  const now = new Date();
+  const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const d = s.target_date || s.opening_date || '';
+  if (!d.startsWith(curM)) return false;
+
   const status = String(s.status || '').toLowerCase();
   if (status !== 'selesai' && status !== 'completed' && status !== 'done') return false;
   
@@ -30,10 +34,10 @@ export function filterDashboardItem(s, type) {
 export async function renderSchedule(container, params) {
   branchOptions = await getCachedBranches();
   const allEmployees = await getCachedEmployeeNames();
-  picOptions = ['Ade', 'Berlin'];
+  picOptions = ['Berlin Ariansyah', 'Ade Surahman'];
 
   const getPicOptions = (val) => {
-    if (val && !picOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
+    if (val && !picOptions.find(o => String(typeof o === 'object' ? o.value : o).toLowerCase() === String(val).toLowerCase())) {
       return [...picOptions, val];
     }
     return picOptions;
@@ -52,6 +56,18 @@ export async function renderSchedule(container, params) {
   const activePeriod = getActivePeriod(scheduleData);
   
   const dashFilter = params ? params.get('dash_filter') : null;
+  const now = new Date();
+  const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  let defFilters = {};
+  const targetMonth = params && params.get('month') ? params.get('month') : null;
+  if (dashFilter === 'inspeksi') {
+    defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', month: targetMonth };
+  } else if (dashFilter === 'gcdc') {
+    defFilters = { status: 'Done', activity_type: 'GCDC', month: targetMonth };
+  } else if (dashFilter && dashFilter.startsWith('period_')) {
+    defFilters = { period: dashFilter.replace('period_', '').toUpperCase() };
+  }
 
   buildCrudPage({
     container,
@@ -61,14 +77,9 @@ export async function renderSchedule(container, params) {
     bulkDelete: true,
     itemLabel: 'Jadwal',
     paginationMode: 'client',
-    defaultFilters: dashFilter ? { period: 'Q3' } : { period: activePeriod },
+    defaultFilters: defFilters,
     onDataLoaded: (items) => {
-      // 1. Filter dataset directly if dash_filter is set
-      if (dashFilter) {
-        items = items.filter(s => filterDashboardItem(s, dashFilter));
-      }
-
-      // 2. Sort descending by opening_date, so newest year/date is first
+      // Sort descending by opening_date, so newest year/date is first
       return items.sort((a, b) => {
         const da = a.opening_date ? new Date(a.opening_date).getTime() : 0;
         const db = b.opening_date ? new Date(b.opening_date).getTime() : 0;
@@ -86,20 +97,38 @@ export async function renderSchedule(container, params) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Kegiatan', options: [
-        'Inspeksi Hygiene & Aset Bangunan', 'General Cleaning', 'Deep Cleaning', 'Fogging'
+        { value: 'Inspeksi Hygiene', label: 'Inspeksi Hygiene' },
+        { value: 'General Cleaning', label: 'General Cleaning' },
+        { value: 'Deep Cleaning', label: 'Deep Cleaning' },
+        { value: 'Fogging', label: 'Fogging' },
+        { value: 'GCDC', label: 'GCDC (GC & DC)' }
+      ]},
+      { type: 'select', name: 'month', label: 'Bulan', options: [
+        { value: '2026-01', label: 'Jan 2026' },
+        { value: '2026-02', label: 'Feb 2026' },
+        { value: '2026-03', label: 'Mar 2026' },
+        { value: '2026-04', label: 'Apr 2026' },
+        { value: '2026-05', label: 'Mei 2026' },
+        { value: '2026-06', label: 'Jun 2026' },
+        { value: '2026-07', label: 'Jul 2026' },
+        { value: '2026-08', label: 'Agu 2026' },
+        { value: '2026-09', label: 'Sep 2026' },
+        { value: '2026-10', label: 'Okt 2026' },
+        { value: '2026-11', label: 'Nov 2026' },
+        { value: '2026-12', label: 'Des 2026' },
       ]},
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'In Progress', 'Done'] },
-      { type: 'combobox', name: 'pic', label: 'PIC', options: picOptions },
+      { type: 'select', name: 'pic', label: 'PIC', options: picOptions },
     ],
     formFields: (data) => [
       {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
           { name: 'activity_type', label: 'Jenis Kegiatan', type: 'select', required: true, options: [
-            'Inspeksi Hygiene & Aset Bangunan', 'General Cleaning', 'Deep Cleaning', 'Fogging'
+            'Inspeksi Hygiene', 'General Cleaning', 'Deep Cleaning', 'Fogging'
           ], value: data?.activity_type },
         ]
       },

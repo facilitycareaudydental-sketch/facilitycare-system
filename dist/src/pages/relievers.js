@@ -1,4 +1,4 @@
-import { buildCrudPage } from './_crud.js';
+import { buildCrudPage } from './_crud.js?v=v3';
 import { apiFetch } from '../config.js';
 import { getCachedBranches, getCachedEmployeeNames, getCachedEmployees } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
@@ -11,6 +11,15 @@ export async function renderRelievers(container, params) {
   const employeeOptions = await getCachedEmployeeNames();
   
   const dashFilter = params ? params.get('dash_filter') : null;
+  
+  let defFilters = {};
+  if (dashFilter === 'reliever') {
+    // If arriving from dashboard, default to Done status and selected month
+    const now = new Date();
+    const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const targetMonth = params && params.get('month') ? params.get('month') : curM;
+    defFilters = { status: 'Done', month: targetMonth };
+  }
 
   console.log("RAW", await getCachedEmployees());
   console.log("OPTIONS", employeeOptions);
@@ -22,7 +31,7 @@ export async function renderRelievers(container, params) {
     return employeeOptions;
   };
 
-  const relieverOptions = ['Agung Septiadi', 'Wasrikin', 'IQBAL AL BANNA'];
+  const relieverOptions = ['Agung Septiadi', 'Wasrikin', 'Iqbal Al Banna', 'Muhammad Tri Ismandanu'];
   
   const getRelieverOptions = (val) => {
     if (val && !relieverOptions.includes(val)) {
@@ -39,27 +48,14 @@ export async function renderRelievers(container, params) {
     bulkDelete: true,
     itemLabel: 'Reliefer',
     paginationMode: 'client',
+    defaultFilters: defFilters,
     onDataLoaded: (items) => {
-      if (dashFilter === 'reliever') {
-        const now = new Date();
-        const curY = now.getFullYear();
-        const curM = String(now.getMonth() + 1).padStart(2, '0');
-        return items.filter(d => {
-          if (String(d.status || '').toLowerCase() !== 'done') return false;
-          let bd = d.backup_date || '';
-          if (bd.includes('/')) {
-            const parts = bd.split('/');
-            if (parts.length === 3) {
-              const yyyy = parts[2].length === 4 ? parts[2] : `20${parts[2]}`;
-              if (yyyy == curY && parts[1].padStart(2, '0') == curM) return true;
-            }
-          } else if (bd.includes('-')) {
-            if (bd.startsWith(`${curY}-${curM}`)) return true;
-          }
-          return false;
-        });
-      }
-      return items;
+      // Sort descending by backup_date
+      return items.sort((a, b) => {
+        const da = a.backup_date ? new Date(a.backup_date).getTime() : 0;
+        const db = b.backup_date ? new Date(b.backup_date).getTime() : 0;
+        return db - da;
+      });
     },
     columns: [
       { key: 'branch_name', label: 'Cabang' },
@@ -73,8 +69,22 @@ export async function renderRelievers(container, params) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
-      { type: 'search', placeholder: 'Cari reliefer / FC...' },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'reliever_name', label: 'Cari reliefer / FC...', options: relieverOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'month', label: 'Bulan', options: [
+        { value: '2026-01', label: 'Jan 2026' },
+        { value: '2026-02', label: 'Feb 2026' },
+        { value: '2026-03', label: 'Mar 2026' },
+        { value: '2026-04', label: 'Apr 2026' },
+        { value: '2026-05', label: 'Mei 2026' },
+        { value: '2026-06', label: 'Jun 2026' },
+        { value: '2026-07', label: 'Jul 2026' },
+        { value: '2026-08', label: 'Agu 2026' },
+        { value: '2026-09', label: 'Sep 2026' },
+        { value: '2026-10', label: 'Okt 2026' },
+        { value: '2026-11', label: 'Nov 2026' },
+        { value: '2026-12', label: 'Des 2026' },
+      ]},
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done', 'Tidak Datang'] },
     ],

@@ -1,3 +1,5 @@
+import { confirmDialog } from './modal.js';
+
 // Reusable data table with pagination
 export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data', bulkSelect = null }) {
   const wrapper = document.createElement('div');
