@@ -19,7 +19,7 @@ export function getActivePeriod(data) {
 export function filterDashboardItem(s, type) {
   const now = new Date();
   const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const d = s.target_date || s.opening_date || '';
+  const d = s.completion_date || s.target_date || s.opening_date || '';
   if (!d.startsWith(curM)) return false;
 
   const status = String(s.status || '').toLowerCase();
