@@ -16,6 +16,7 @@ export async function renderUsers(container) {
     icon: '🔐',
     apiPath: '/api/users',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     itemLabel: 'User',
     columns: [
       { key: 'full_name', label: 'Nama Lengkap' },

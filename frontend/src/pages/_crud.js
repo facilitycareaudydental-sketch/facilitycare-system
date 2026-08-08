@@ -43,21 +43,30 @@ export function buildCrudPage({
   let selectedIds = new Set();
 
   container.innerHTML = `
-    <div class="page-header">
+    <div class="crud-layout-wrapper ${enableMobileFilterSheet ? 'mobile-active' : ''}">
+      <div class="page-header">
       <h1 class="page-title">${icon} ${title}</h1>
       <div class="page-actions">
         ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${itemLabel}</button>` : ''}
+        ${exportOptions ? `<button class="btn btn-outline" id="btn-mobile-aksi" style="display:none; align-items:center; justify-content:center; gap:0.25rem;">⋮ Aksi</button>` : ''}
       </div>
     </div>
 
     ${bulkDelete ? `
-    <div class="bulk-toolbar" id="bulk-toolbar" style="display:flex; align-items:center; gap:1rem; background:var(--bg-card); padding:0.75rem 1.25rem; border-radius:var(--radius-lg); border:1px solid var(--border-color); margin-bottom:1rem;">
+    <div class="bulk-toolbar" id="bulk-toolbar" style="display:none; align-items:center; gap:1rem; background:var(--bg-card); padding:0.75rem 1.25rem; border-radius:var(--radius-lg); border:1px solid var(--border-color); margin-bottom:1rem;">
       <span id="bulk-count" style="font-weight:600; font-size:0.9rem;">0 item dipilih</span>
       <button class="btn btn-danger btn-sm" id="btn-bulk-delete" disabled>🗑️ Hapus Terpilih</button>
       <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel" disabled>Batalkan</button>
     </div>` : ''}
     
-    ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
+    ${exportOptions ? `
+    <div class="excel-actions-wrapper" id="excel-actions-wrapper">
+      <div class="bottom-sheet-header aksi-header" style="display:none;">
+        <h3 style="margin:0; font-size:1rem;">Aksi</h3>
+        <button class="btn-close-sheet" id="btn-close-aksi-sheet" style="background:none;border:none;font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      ${renderExcelButtons(exportOptions.moduleName)}
+    </div>` : ''}
 
     ${filterFields && filterFields.length > 0 ? `
     <div class="filter-bar card ${enableMobileFilterSheet ? 'has-mobile-sheet' : ''}" style="padding: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -78,9 +87,35 @@ export function buildCrudPage({
           </div>
           ${filterFields.filter(f => f.type !== 'search' && f.type !== 'search-combo').map(f => {
             if (f.type === 'select') return `<select class="form-control filter-select" style="flex:1; min-width:100px;" name="${f.name}" id="filter-${f.name}"><option value="">Pilih ${f.label}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
+            if (f.type === 'combobox') {
+              const dlId = `dl-filter-${f.name}`;
+              const cbOpts = (f.options || []).map(o => {
+                let lbl = typeof o === 'object' ? (o.label || o.value || '') : (o || '');
+                if (lbl === 'undefined' || lbl === '[object Object]' || lbl === 'null') lbl = '';
+                if (!lbl) return '';
+                return `<option value="${lbl}"></option>`;
+              }).join('');
+              let displayVal = filters[f.name] || '';
+              if (filters[f.name]) {
+                  const found = (f.options || []).find(o => (typeof o === 'object' ? String(o.value) : String(o)) == String(filters[f.name]));
+                  if (found) {
+                     let foundLbl = typeof found === 'object' ? (found.label || found.value || '') : (found || '');
+                     if (foundLbl && foundLbl !== 'undefined' && foundLbl !== '[object Object]' && foundLbl !== 'null') {
+                        displayVal = foundLbl;
+                     }
+                  }
+              }
+              return `<div class="filter-combobox" style="flex:1; min-width:120px;">
+                <input type="text" name="${f.name}" id="filter-${f.name}" list="${dlId}" class="form-control filter-combobox-input" value="${displayVal}" placeholder="Pilih ${f.label}..." autocomplete="off">
+                <datalist id="${dlId}">${cbOpts}</datalist>
+              </div>`;
+            }
             return '';
           }).join('')}
-          <button class="btn btn-ghost btn-sm" id="btn-reset-filter">Reset</button>
+          <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+            <button class="btn btn-outline" id="btn-reset-filter" style="flex:1;">Reset</button>
+            <button class="btn btn-primary" id="btn-apply-filter" style="flex:1;">✓ Terapkan (OK)</button>
+          </div>
         </div>
         ${enableMobileFilterSheet ? `<button id="btn-mobile-filter" class="btn btn-outline" style="display:none; align-items:center; gap:0.25rem;">⚙️ Filter</button>` : ''}
     </div>` : ''}
@@ -90,6 +125,7 @@ export function buildCrudPage({
         <div class="loading-spinner"><div class="spinner"></div></div>
       </div>
       <div class="card-footer" id="pagination-container"></div>
+    </div>
     </div>
   `;
 
@@ -103,9 +139,22 @@ export function buildCrudPage({
     
     countEl.textContent = `${selectedIds.size} item dipilih`;
     if (selectedIds.size > 0) {
+      toolbar.style.display = 'flex';
+      toolbar.classList.add('has-items');
       btnDelete.disabled = false;
       btnCancel.disabled = false;
+      
+      // Bypassing aggressive mobile CSS cache by forcing position inline
+      if (window.innerWidth <= 768) {
+        toolbar.style.setProperty('top', 'auto', 'important');
+        toolbar.style.setProperty('bottom', '0', 'important');
+      } else {
+        toolbar.style.removeProperty('top');
+        toolbar.style.removeProperty('bottom');
+      }
     } else {
+      toolbar.style.display = 'none';
+      toolbar.classList.remove('has-items');
       btnDelete.disabled = true;
       btnCancel.disabled = true;
     }
@@ -176,6 +225,24 @@ export function buildCrudPage({
         load();
       });
     }
+    if (f.type === 'combobox') {
+      document.getElementById(`filter-${f.name}`)?.addEventListener('change', (e) => {
+        let valStr = e.target.value;
+        const existing = (f.options || []).find(o => {
+           const v = typeof o === 'object' ? String(o.value) : String(o);
+           const l = typeof o === 'object' ? String(o.label) : String(o);
+           return v === valStr || l === valStr;
+        });
+        if (!valStr) {
+           filters[f.name] = '';
+        } else {
+           filters[f.name] = existing ? (typeof existing === 'object' ? existing.value : existing) : valStr;
+        }
+        page = 1;
+        selectedIds.clear();
+        load();
+      });
+    }
   });
 
   document.getElementById('btn-reset-filter')?.addEventListener('click', () => {
@@ -204,6 +271,32 @@ export function buildCrudPage({
       btnCloseFilterSheet.addEventListener('click', (e) => {
         e.preventDefault();
         filterOptionsWrapper.classList.remove('sheet-open');
+      });
+    }
+    const btnApplyFilter = document.getElementById('btn-apply-filter');
+    if (btnApplyFilter) {
+      btnApplyFilter.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Since filtering is auto-applied on change, we just need to close the sheet here
+        filterOptionsWrapper.classList.remove('sheet-open');
+      });
+    }
+  }
+
+  // Mobile Aksi Sheet Logic
+  const btnMobileAksi = document.getElementById('btn-mobile-aksi');
+  const excelActionsWrapper = document.getElementById('excel-actions-wrapper');
+  const btnCloseAksiSheet = document.getElementById('btn-close-aksi-sheet');
+
+  if (btnMobileAksi && excelActionsWrapper) {
+    btnMobileAksi.addEventListener('click', (e) => {
+      e.preventDefault();
+      excelActionsWrapper.classList.add('sheet-open');
+    });
+    if (btnCloseAksiSheet) {
+      btnCloseAksiSheet.addEventListener('click', (e) => {
+        e.preventDefault();
+        excelActionsWrapper.classList.remove('sheet-open');
       });
     }
   }

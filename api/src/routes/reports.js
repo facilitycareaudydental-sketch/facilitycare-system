@@ -34,6 +34,7 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
 
   const month = url.searchParams.get('month') || '';
   const pic = url.searchParams.get('pic') || '';
+  const activity_type = url.searchParams.get('activity_type') || '';
 
   let conditions = [...extraConditions];
   let values = [];
@@ -41,6 +42,7 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
   if (period) { conditions.push('t.period = ?'); values.push(period); }
   if (status) { conditions.push('t.status = ?'); values.push(status); }
   if (pic) { conditions.push('t.pic = ?'); values.push(pic); }
+  if (activity_type) { conditions.push('t.activity_type = ?'); values.push(activity_type); }
   if (year) {
     const dateField = table === 'basecamp_reports' ? 'info_date' : 
                       table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
@@ -54,12 +56,9 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
     values.push(month);
   }
   if (search) {
-    if (table === 'inspection_reports') {
-      conditions.push('(b.full_name LIKE ? OR t.pic_cleaner LIKE ? OR t.pic_spesialis LIKE ?)');
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
-    } else if (table === 'cleaning_reports' || table === 'fogging_reports') {
-      conditions.push('(b.full_name LIKE ? OR t.activity_type LIKE ? OR t.location LIKE ?)');
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    if (table === 'cleaning_reports' || table === 'fogging_reports') {
+      conditions.push('(b.full_name LIKE ? OR t.activity_type LIKE ?)');
+      values.push(`%${search}%`, `%${search}%`);
     } else {
       conditions.push('(b.full_name LIKE ?)');
       values.push(`%${search}%`);
@@ -69,7 +68,7 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
   const [countResult, rows] = await Promise.all([
-    env.DB.prepare(`SELECT COUNT(*) as total FROM ${table} t ${joinClause} ${where}`).bind(...values).first(),
+    env.DB.prepare(`SELECT COUNT(*) as total FROM ${table} t LEFT JOIN branches b ON t.branch_id = b.id ${joinClause} ${where}`).bind(...values).first(),
     env.DB.prepare(
       `SELECT t.*, b.full_name as branch_name FROM ${table} t
        LEFT JOIN branches b ON t.branch_id = b.id

@@ -151,10 +151,10 @@ async function getKPI(env, origin) {
     env.DB.prepare("SELECT COUNT(*) c FROM training WHERE strftime('%Y-%m',training_date)=?").bind(curM).first(),
 
     // Inspeksi is now tracked in activity_schedule (timeline)
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type='Inspeksi Hygiene' AND status IN ('Done', 'Selesai') AND strftime('%Y-%m', COALESCE(opening_date, target_date))=?").bind(curM).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type='Inspeksi Hygiene' AND status IN ('Done', 'Selesai') AND strftime('%Y-%m', COALESCE(completion_date, target_date))=?").bind(curM).first(),
 
     // GCDC is now tracked in activity_schedule (timeline)
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type='General Cleaning' AND status IN ('Done', 'Selesai') AND strftime('%Y-%m', COALESCE(opening_date, target_date))=?").bind(curM).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type='General Cleaning' AND status IN ('Done', 'Selesai') AND strftime('%Y-%m', COALESCE(completion_date, target_date))=?").bind(curM).first(),
 
     // Fogging tracks fogging_reports for this month
     env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE status IN ('Done', 'Selesai') AND strftime('%Y-%m',activity_date)=?").bind(curM).first(),

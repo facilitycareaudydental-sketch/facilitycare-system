@@ -474,6 +474,37 @@ function renderLayout() {
   });
 }
 
+// ── Global Select Keyboard Jump ──────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'SELECT' && e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+    const char = e.key.toLowerCase();
+    const options = Array.from(e.target.options);
+    if (options.length === 0) return;
+
+    let startIndex = e.target.selectedIndex + 1;
+    if (startIndex >= options.length || startIndex < 0) startIndex = 0;
+    
+    let foundIndex = -1;
+    // Try to find the next match starting from the current selection
+    for (let i = 0; i < options.length; i++) {
+       const index = (startIndex + i) % options.length;
+       const text = options[index].text.toLowerCase();
+       // Strip leading numbers, dots, spaces, hyphens
+       const namePart = text.replace(/^[\d\.\s\-]+/, '');
+       if (namePart.startsWith(char)) {
+           foundIndex = index;
+           break;
+       }
+    }
+    
+    if (foundIndex !== -1 && foundIndex !== e.target.selectedIndex) {
+       e.target.selectedIndex = foundIndex;
+       e.preventDefault();
+       e.target.dispatchEvent(new Event('change'));
+    }
+  }
+});
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 async function init() {
   registerRoute('/login',              ({ main }) => renderLogin(main));

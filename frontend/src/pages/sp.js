@@ -12,8 +12,9 @@ export async function renderSP(container) {
   buildCrudPage({
     container,
     title: 'Data SP (Surat Peringatan)',
-    icon: '✉️',
+    icon: '📜',
     apiPath: '/api/sp',
+    enableMobileFilterSheet: true,
     itemLabel: 'SP',
     bulkDelete: true,
     columns: [
@@ -27,7 +28,7 @@ export async function renderSP(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
     ],
     exportOptions: {
       moduleName: 'sp_data',
@@ -98,9 +99,9 @@ export async function renderSP(container) {
       }
     },
     formFields: [
-      { type: 'combobox', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions },
+      { type: 'select', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions },
       { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY'], required: true },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
+      { type: 'select', name: 'branch_id', label: 'Cabang', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'date', name: 'tanggal', label: 'Tanggal Sp', required: true },
       { type: 'date', name: 'akhir_sp', label: 'Akhir Sp', required: true },
       { type: 'select', name: 'sp_type', label: 'Jenis Sp', required: true, options: ['SP 1', 'SP 2', 'SP 3', 'Teguran Lisan'] },

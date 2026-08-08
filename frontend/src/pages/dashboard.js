@@ -726,12 +726,12 @@ function renderMiniStats(kpi) {
   );
 
   setupMonthDropdown('dash-inspeksi-month', 'mini-inspeksi', window.dashboardSchedules, 
-    (item, m) => item.activity_type === 'Inspeksi Hygiene' && isDone(item) && window.parseFlexibleDate(item.opening_date || item.target_date).startsWith(m), 
+    (item, m) => item.activity_type === 'Inspeksi Hygiene' && isDone(item) && window.parseFlexibleDate(item.completion_date || item.target_date).startsWith(m), 
     '#/timeline?dash_filter=inspeksi'
   );
 
   setupMonthDropdown('dash-gcdc-month', 'mini-gcdc', window.dashboardSchedules, 
-    (item, m) => (item.activity_type === 'General Cleaning' || item.activity_type === 'Deep Cleaning') && isDone(item) && window.parseFlexibleDate(item.opening_date || item.target_date).startsWith(m), 
+    (item, m) => (item.activity_type === 'General Cleaning' || item.activity_type === 'Deep Cleaning') && isDone(item) && window.parseFlexibleDate(item.completion_date || item.target_date).startsWith(m), 
     '#/timeline?dash_filter=gcdc'
   );
 

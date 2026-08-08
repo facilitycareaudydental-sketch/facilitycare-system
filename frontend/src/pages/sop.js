@@ -4,9 +4,10 @@ export async function renderSOP(container) {
   buildCrudPage({
     container,
     title: 'SOP',
-    icon: '📖',
+    icon: '📚',
     apiPath: '/api/sop',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     itemLabel: 'SOP',
     columns: [
       { key: 'name', label: 'Nama SOP' },

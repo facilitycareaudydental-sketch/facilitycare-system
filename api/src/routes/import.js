@@ -476,11 +476,11 @@ async function importSchedule(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, activity_type, period, branch_id FROM activity_schedule').all();
+  const existing = await env.DB.prepare('SELECT id, activity_type, period, branch_id, target_date FROM activity_schedule').all();
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
     if (s.activity_type && s.period) {
-      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.branch_id, s.id);
+      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.branch_id + '_' + (s.target_date || ''), s.id);
     }
   });
 
@@ -497,7 +497,7 @@ async function importSchedule(rows, onDuplicate, env, origin) {
     const target_date = safeDate(row.target_date);
     let branch_id = row.branch_id || matchBranch(row.branch_name);
     const period = safeStr(row.period);
-    const key = activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim() + '_' + branch_id;
+    const key = activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim() + '_' + branch_id + '_' + (target_date || '');
     importedKeys.push(key);
 
     const pic = safeStr(row.pic);
@@ -510,8 +510,8 @@ async function importSchedule(rows, onDuplicate, env, origin) {
       const id = existingMap.get(key);
       if (onDuplicate === 'update') {
         stmts.push(env.DB.prepare(
-          `UPDATE activity_schedule SET period = ?, pic = ?, opening_date = ?, completion_date = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
-        ).bind(period, pic, opening_date, completion_date, status, notes, id));
+          `UPDATE activity_schedule SET period = ?, pic = ?, opening_date = ?, target_date = ?, completion_date = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(period, pic, opening_date, target_date, completion_date, status, notes, id));
         updated++;
       } else {
         skipped++;

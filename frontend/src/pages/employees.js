@@ -29,6 +29,7 @@ export async function renderEmployees(container, params) {
     title: 'Karyawan',
     icon: '👥',
     apiPath: '/api/employees',
+    enableMobileFilterSheet: true,
     itemLabel: 'Karyawan',
     bulkDelete: true,
     paginationMode: 'client',
@@ -48,7 +49,7 @@ export async function renderEmployees(container, params) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY', 'FC - RELIEFER'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
     ],
@@ -61,7 +62,7 @@ export async function renderEmployees(container, params) {
       },
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
           { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY', 'FC - RELIEFER'], value: data?.division || 'FACILITY CARE' },
         ]
       },

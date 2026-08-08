@@ -13,6 +13,7 @@ export async function renderInspectionReports(container) {
     title: 'Laporan Inspeksi Hygiene',
     icon: '🔍',
     apiPath: '/api/reports/inspection',
+    enableMobileFilterSheet: true,
     itemLabel: 'Laporan Inspeksi',
     bulkDelete: true,
     columns: [
@@ -25,8 +26,8 @@ export async function renderInspectionReports(container) {
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
     filterFields: [
-      { type: 'search', placeholder: 'Cari cabang / PIC...' },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'search', placeholder: 'Cari cabang...' },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'month', label: 'Bulan', options: [
           { value: '01', label: 'Jan' },
@@ -48,7 +49,7 @@ export async function renderInspectionReports(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
           { name: 'period', label: 'Periode', type: 'select', required: true, options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
         ]
       },

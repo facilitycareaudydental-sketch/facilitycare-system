@@ -10,11 +10,12 @@ export async function renderCleaningReports(container) {
 
   buildCrudPage({
     container,
-    title: 'Laporan General Cleaning & Deep Cleaning',
+    title: 'Laporan GC & DC',
     icon: '🧹',
     apiPath: '/api/reports/cleaning',
     itemLabel: 'Laporan GC/DC',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'activity_type', label: 'Jenis', render: v => `<span class="badge ${v === 'Deep Cleaning' ? 'badge-purple' : 'badge-success'}">${v}</span>` },

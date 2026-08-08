@@ -34,9 +34,10 @@ export async function renderOneOnOne(container, params) {
   buildCrudPage({
     container,
     title: 'One on One',
-    icon: '🤝',
+    icon: '💬',
     apiPath: '/api/one-on-one',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     itemLabel: 'One on One',
     paginationMode: 'client',
     onDataLoaded: (items) => {
@@ -59,7 +60,7 @@ export async function renderOneOnOne(container, params) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama / masalah...' },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'status', label: 'Status', options: ['Open', 'Done'] },
     ],
     exportOptions: {
@@ -141,13 +142,13 @@ export async function renderOneOnOne(container, params) {
       {
         type: 'row', fields: [
           { name: 'meeting_date', label: 'Tanggal', type: 'date', required: true, value: data?.meeting_date },
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'select', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
         ]
       },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama Karyawan', type: 'combobox', required: true, options: getEmpOptions(data?.employee_name), value: data?.employee_name },
-          { name: 'pic', label: 'PIC', type: 'combobox', options: getPicOptions(data?.pic), createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
+          { name: 'employee_name', label: 'Nama Karyawan', type: 'select', required: true, options: getEmpOptions(data?.employee_name), value: data?.employee_name },
+          { name: 'pic', label: 'PIC', type: 'select', options: getPicOptions(data?.pic), createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
         ]
       },
       { name: 'problem', label: 'Masalah', type: 'textarea', required: true, rows: 3, value: data?.problem },

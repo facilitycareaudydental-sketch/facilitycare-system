@@ -197,7 +197,7 @@ export async function handleMisc(request, env, origin) {
 
       await del('relievers', 'SELECT branch_id, reliever_name, backup_date, COUNT(*) as c, MAX(id) as max_id FROM relievers GROUP BY branch_id, reliever_name, backup_date HAVING c > 1', 'DELETE FROM relievers WHERE (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) AND reliever_name = ? AND backup_date = ? AND id != ?', ['branch_id', 'branch_id', 'reliever_name', 'backup_date']);
       
-      await del('activity_schedule', 'SELECT branch_id, activity_type, period, COUNT(*) as c, MAX(id) as max_id FROM activity_schedule GROUP BY branch_id, activity_type, period HAVING c > 1', 'DELETE FROM activity_schedule WHERE branch_id = ? AND activity_type = ? AND period = ? AND id != ?', ['branch_id', 'activity_type', 'period']);
+      await del('activity_schedule', 'SELECT branch_id, activity_type, period, target_date, COUNT(*) as c, MAX(id) as max_id FROM activity_schedule GROUP BY branch_id, activity_type, period, target_date HAVING c > 1', 'DELETE FROM activity_schedule WHERE branch_id = ? AND activity_type = ? AND period = ? AND target_date = ? AND id != ?', ['branch_id', 'activity_type', 'period', 'target_date']);
       
       await del('issues', 'SELECT branch_id, report_date, category, complaint, COUNT(*) as c, MAX(id) as max_id FROM issues GROUP BY branch_id, report_date, category, complaint HAVING c > 1', 'DELETE FROM issues WHERE (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) AND report_date = ? AND category = ? AND complaint = ? AND id != ?', ['branch_id', 'branch_id', 'report_date', 'category', 'complaint']);
       
@@ -295,7 +295,7 @@ export async function handleMisc(request, env, origin) {
       await q('employees', 'SELECT full_name, COUNT(*) as c FROM employees GROUP BY full_name HAVING c > 1');
       await q('contracts', 'SELECT employee_id, COUNT(*) as c FROM contracts GROUP BY employee_id HAVING c > 1');
       await q('relievers', 'SELECT branch_id, reliever_name, backup_date, COUNT(*) as c FROM relievers GROUP BY branch_id, reliever_name, backup_date HAVING c > 1');
-      await q('activity_schedule', 'SELECT branch_id, activity_type, period, COUNT(*) as c FROM activity_schedule GROUP BY branch_id, activity_type, period HAVING c > 1');
+      await q('activity_schedule', 'SELECT branch_id, activity_type, period, target_date, COUNT(*) as c FROM activity_schedule GROUP BY branch_id, activity_type, period, target_date HAVING c > 1');
       await q('issues', 'SELECT branch_id, report_date, category, complaint, COUNT(*) as c FROM issues GROUP BY branch_id, report_date, category, complaint HAVING c > 1');
       await q('one_on_one', 'SELECT branch_id, meeting_date, employee_name, COUNT(*) as c FROM one_on_one GROUP BY branch_id, meeting_date, employee_name HAVING c > 1');
       await q('training', 'SELECT training_date, subject, branch_id, COUNT(*) as c FROM training GROUP BY training_date, subject, branch_id HAVING c > 1');

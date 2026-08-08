@@ -16,9 +16,10 @@ function renderMasterForms(container) {
   buildCrudPage({
     container,
     title: 'Master Form',
-    icon: '📄',
+    icon: '📑',
     apiPath: '/api/forms',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     itemLabel: 'Form',
     columns: [
       { key: 'name', label: 'Nama Form' },
@@ -97,7 +98,7 @@ async function renderSupplyRequests(container) {
         {
           type: 'row', fields: [
             { name: 'submitter_name', label: 'Nama Pengirim', required: true, value: data?.submitter_name },
-            { name: 'branch_id', label: 'Cabang', type: 'combobox', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
+            { name: 'branch_id', label: 'Cabang', type: 'select', options: (data?.branch_id && !branchOptions.find(o => o.value == data.branch_id)) ? [...branchOptions, { value: data.branch_id, label: data.branch_name || data.branch_id }] : branchOptions, createApi: { path: '/api/branches', field: 'full_name' }, value: data?.branch_id },
           ]
         },
         {

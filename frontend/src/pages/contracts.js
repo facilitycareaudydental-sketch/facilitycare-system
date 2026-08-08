@@ -66,9 +66,10 @@ export async function renderContracts(container, params) {
   buildCrudPage({
     container,
     title: 'Data Kontrak',
-    icon: '📋',
+    icon: '📄',
     apiPath: '/api/contracts',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     itemLabel: 'Kontrak',
     paginationMode: 'client',
     onDataLoaded: (items) => {
@@ -88,7 +89,7 @@ export async function renderContracts(container, params) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
       { type: 'select', name: 'month_expiry', label: 'Bulan Habis', options: [
         { value: '2026-06', label: 'Jun 2026' },
@@ -186,8 +187,8 @@ export async function renderContracts(container, params) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'employee_id', label: 'Nama Lengkap', type: 'combobox', required: true, options: employeeOptions, value: data?.employee_id },
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
+          { name: 'employee_id', label: 'Nama Lengkap', type: 'select', required: true, options: employeeOptions, value: data?.employee_id },
+          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
         ]
       },
       {

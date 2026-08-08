@@ -12,8 +12,9 @@ export async function renderMutasi(container) {
   buildCrudPage({
     container,
     title: 'Data Mutasi',
-    icon: '🔄',
+    icon: '🔁',
     apiPath: '/api/mutasi',
+    enableMobileFilterSheet: true,
     itemLabel: 'Mutasi',
     bulkDelete: true,
     columns: [
@@ -26,8 +27,8 @@ export async function renderMutasi(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'combobox', name: 'from_branch_id', label: 'Cabang Asal', options: branchOptions },
-      { type: 'combobox', name: 'to_branch_id', label: 'Cabang Tujuan', options: branchOptions },
+      { type: 'select', name: 'from_branch_id', label: 'Cabang Asal', options: branchOptions },
+      { type: 'select', name: 'to_branch_id', label: 'Cabang Tujuan', options: branchOptions },
     ],
     exportOptions: {
       moduleName: 'mutasi_data',
@@ -97,9 +98,9 @@ export async function renderMutasi(container) {
     },
     formFields: [
       { type: 'date', name: 'tanggal', label: 'Tanggal', required: true },
-      { type: 'combobox', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions },
-      { type: 'combobox', name: 'from_branch_id', label: 'Cabang Asal', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
-      { type: 'combobox', name: 'to_branch_id', label: 'Cabang Tujuan', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
+      { type: 'select', name: 'employee_name', label: 'Nama Karyawan', required: true, options: employeeOptions },
+      { type: 'select', name: 'from_branch_id', label: 'Cabang Asal', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
+      { type: 'select', name: 'to_branch_id', label: 'Cabang Tujuan', required: true, options: branchOptions, createApi: { path: '/api/branches', field: 'full_name' } },
       { type: 'select', name: 'status', label: 'Status', required: true, options: ['Proses', 'Selesai'] },
       { type: 'url', name: 'document_link', label: 'Link Dokumen (Opsional)' }
     ]

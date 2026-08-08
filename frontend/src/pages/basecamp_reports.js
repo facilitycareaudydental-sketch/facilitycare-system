@@ -30,6 +30,7 @@ export async function renderBasecampReports(container) {
     icon: '📝',
     apiPath: '/api/reports/basecamp',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     itemLabel: 'Laporan Basecamp',
     columns: [
       { key: 'info_date', label: 'Tgl Info', nowrap: true , render: v => window.formatDate(v) },
@@ -42,7 +43,7 @@ export async function renderBasecampReports(container) {
     ],
     filterFields: [
       { type: 'select', name: 'pic', label: 'PIC', options: ['Berlin', 'Ade', 'Mizwar'] },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'month', label: 'Bulan', options: [
           { value: '01', label: 'Jan' },
@@ -64,8 +65,8 @@ export async function renderBasecampReports(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
-          { name: 'pic', label: 'PIC', type: 'combobox', options: getPicOptions(data?.pic), value: data?.pic },
+          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'pic', label: 'PIC', type: 'select', options: getPicOptions(data?.pic), value: data?.pic },
         ]
       },
       { name: 'problem', label: 'Permasalahan', type: 'textarea', required: true, rows: 3, value: data?.problem },

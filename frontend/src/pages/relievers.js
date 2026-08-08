@@ -40,6 +40,13 @@ export async function renderRelievers(container, params) {
     return relieverOptions;
   };
 
+  const currentYear = new Date().getFullYear();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const monthOptions = monthNames.map((name, i) => {
+      const monthNum = String(i + 1).padStart(2, '0');
+      return { value: `${currentYear}-${monthNum}`, label: `${name} ${currentYear}` };
+  });
+
   buildCrudPage({
     container,
     title: 'Jadwal Reliefer',
@@ -48,6 +55,7 @@ export async function renderRelievers(container, params) {
     bulkDelete: true,
     itemLabel: 'Reliefer',
     paginationMode: 'client',
+    enableMobileFilterSheet: true,
     defaultFilters: defFilters,
     onDataLoaded: (items) => {
       // Sort descending by backup_date
@@ -71,20 +79,7 @@ export async function renderRelievers(container, params) {
     filterFields: [
       { type: 'select', name: 'reliever_name', label: 'Cari reliefer / FC...', options: relieverOptions },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
-      { type: 'select', name: 'month', label: 'Bulan', options: [
-        { value: '2026-01', label: 'Jan 2026' },
-        { value: '2026-02', label: 'Feb 2026' },
-        { value: '2026-03', label: 'Mar 2026' },
-        { value: '2026-04', label: 'Apr 2026' },
-        { value: '2026-05', label: 'Mei 2026' },
-        { value: '2026-06', label: 'Jun 2026' },
-        { value: '2026-07', label: 'Jul 2026' },
-        { value: '2026-08', label: 'Agu 2026' },
-        { value: '2026-09', label: 'Sep 2026' },
-        { value: '2026-10', label: 'Okt 2026' },
-        { value: '2026-11', label: 'Nov 2026' },
-        { value: '2026-12', label: 'Des 2026' },
-      ]},
+      { type: 'select', name: 'month', label: 'Bulan', options: monthOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done', 'Tidak Datang'] },
     ],

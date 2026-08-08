@@ -8,6 +8,7 @@ export async function renderBranches(container) {
     title: 'Manajemen Cabang',
     icon: '🏢',
     apiPath: '/api/branches',
+    enableMobileFilterSheet: true,
     itemLabel: 'Cabang',
     bulkDelete: true,
     columns: [

@@ -31,6 +31,7 @@ export async function renderFoggingReports(container, params) {
     apiPath: '/api/reports/fogging',
     itemLabel: 'Fogging',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     defaultFilters: defFilters,
     columns: [
       { key: 'branch_name', label: 'Cabang' },
@@ -43,7 +44,7 @@ export async function renderFoggingReports(container, params) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama cabang/lokasi...' },
-      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'month', label: 'Bulan', options: [
           { value: '01', label: 'Jan' },
@@ -65,7 +66,7 @@ export async function renderFoggingReports(container, params) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'combobox', required: true, options: branchOptions, value: data?.branch_id },
+          { name: 'branch_id', label: 'Cabang', type: 'select', required: true, options: branchOptions, value: data?.branch_id },
           { name: 'period', label: 'Periode', type: 'select', required: true, options: ['Q1', 'Q2', 'Q3', 'Q4'], value: data?.period },
         ]
       },

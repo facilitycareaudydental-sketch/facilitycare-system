@@ -28,6 +28,11 @@ export async function renderIssues(container, params) {
 
   const currentYear = new Date().getFullYear();
   const years = ['2025', '2026', '2027', '2028', '2029', '2030'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const monthOptions = monthNames.map((name, i) => {
+      const monthNum = String(i + 1).padStart(2, '0');
+      return { value: `${currentYear}-${monthNum}`, label: `${name} ${currentYear}` };
+  });
 
   buildCrudPage({
     container,
@@ -35,6 +40,7 @@ export async function renderIssues(container, params) {
     icon: '⚠️',
     apiPath: '/api/issues',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     itemLabel: 'Permasalahan',
     paginationMode: 'client',
     onDataLoaded: (items) => {
@@ -59,20 +65,7 @@ export async function renderIssues(container, params) {
     filterFields: [
       { type: 'search', placeholder: 'Cari keluhan / nama FC...' },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
-      { type: 'select', name: 'month', label: 'Bulan', options: [
-        { value: '2026-01', label: 'Jan 2026' },
-        { value: '2026-02', label: 'Feb 2026' },
-        { value: '2026-03', label: 'Mar 2026' },
-        { value: '2026-04', label: 'Apr 2026' },
-        { value: '2026-05', label: 'Mei 2026' },
-        { value: '2026-06', label: 'Jun 2026' },
-        { value: '2026-07', label: 'Jul 2026' },
-        { value: '2026-08', label: 'Agu 2026' },
-        { value: '2026-09', label: 'Sep 2026' },
-        { value: '2026-10', label: 'Okt 2026' },
-        { value: '2026-11', label: 'Nov 2026' },
-        { value: '2026-12', label: 'Des 2026' },
-      ]},
+      { type: 'select', name: 'month', label: 'Bulan', options: monthOptions },
       { type: 'select', name: 'category', label: 'Kategori', options: ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Open', 'In Progress', 'Done'] },
       { type: 'select', name: 'year', label: 'Tahun', options: years },

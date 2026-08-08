@@ -4,9 +4,10 @@ export async function renderChecklist(container) {
   buildCrudPage({
     container,
     title: 'Master Checklist',
-    icon: '✅',
+    icon: '📋',
     apiPath: '/api/checklist',
     bulkDelete: true,
+    enableMobileFilterSheet: true,
     itemLabel: 'Checklist',
     columns: [
       { key: 'name', label: 'Nama Checklist' },

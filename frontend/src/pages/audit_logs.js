@@ -11,8 +11,9 @@ export async function renderAuditLogs(container) {
   buildCrudPage({
     container,
     title: 'Riwayat Aktivitas',
-    icon: '🕵️‍♂️',
+    icon: '🛡️',
     apiPath: '/api/audit-logs',
+    enableMobileFilterSheet: true,
     itemLabel: 'Log',
     canCreate: false,
     canEdit: false,
