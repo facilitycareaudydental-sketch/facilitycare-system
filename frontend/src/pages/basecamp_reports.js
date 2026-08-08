@@ -7,7 +7,7 @@ import { downloadExcel } from '../utils/excel.js';
 export async function renderBasecampReports(container) {
   const branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
-  const rawPicOptions = ['Berlin', 'Ade'];
+  const rawPicOptions = [{ value: 'Berlin', label: 'Berlin' }, { value: 'Ade', label: 'Ade' }];
   const years = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - i));
 
   const getEmpOptions = (val) => {

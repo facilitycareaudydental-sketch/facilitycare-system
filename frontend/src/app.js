@@ -46,7 +46,7 @@ import { renderRelievers } from './pages/relievers.js?v=v2';
 import { renderInspectionReports } from './pages/inspection_reports.js';
 import { renderCleaningReports } from './pages/cleaning_reports.js';
 import { renderFoggingReports } from './pages/fogging_reports.js';
-import { renderBasecampReports } from './pages/basecamp_reports.js?v=force75';
+import { renderBasecampReports } from './pages/basecamp_reports.js?v=force76';
 import { renderSOP } from './pages/sop.js';
 import { renderChecklist } from './pages/checklist.js';
 import { renderForms } from './pages/forms.js';
