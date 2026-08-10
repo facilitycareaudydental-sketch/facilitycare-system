@@ -5,7 +5,7 @@ import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js
 export async function renderTraining(container) {
   const branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
-  const picOptions = ['Ade', 'Berlin'];
+  const picOptions = ['Ade Surahman', 'Berlin Ariansyah', 'Mizwar', 'Fajar', 'Ade', 'Berlin'];
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -21,6 +21,7 @@ export async function renderTraining(container) {
     return picOptions;
   };
   const years = Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - i));
+  const batches = ['Batch 1', 'Batch 2', 'Batch 3', 'Batch 4', 'Batch 5'];
 
   buildCrudPage({
     container,
@@ -28,7 +29,6 @@ export async function renderTraining(container) {
     icon: '🎓',
     apiPath: '/api/training',
     bulkDelete: true,
-    enableMobileFilterSheet: true,
     itemLabel: 'Training',
     columns: [
       { key: 'training_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
@@ -43,8 +43,11 @@ export async function renderTraining(container) {
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
     filterFields: [
-      { type: 'search', placeholder: 'Cari materi / trainer...' },
-      { type: 'select', name: 'year', label: 'Tahun', options: years },
+      { type: 'search', placeholder: 'Cari materi / trainer / peserta...' },
+      { type: 'select', name: 'batch', label: 'Pilih Batch', options: batches },
+      { type: 'combobox', name: 'branch_id', label: 'Pilih Cabang', options: branchOptions },
+      { type: 'select', name: 'trainer', label: 'Pilih Trainer', options: ['Berlin Ariansyah', 'Ade Surahman', 'Mizwar', 'Fajar'] },
+      { type: 'select', name: 'year', label: 'Pilih Tahun', options: years },
     ],
     exportOptions: {
       moduleName: 'training',
@@ -115,12 +118,8 @@ export async function renderTraining(container) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.training_date && r.subject && r.branch_id);
         
-        const res = await apiFetch('/api/import/training', {
-          method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
-        });
+        const res = await apiFetch('/api/training/import', { method: 'POST', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     },
     formFields: (data) => [
@@ -133,8 +132,8 @@ export async function renderTraining(container) {
       { name: 'subject', label: 'Materi / Topik Training', required: true, placeholder: 'Judul materi training', value: data?.subject },
       {
         type: 'row', fields: [
-          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
-          { name: 'trainer', label: 'Trainer', type: 'select', options: getPicOptions(data?.trainer), value: data?.trainer },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
+          { name: 'trainer', label: 'Trainer', type: 'combobox', options: getPicOptions(data?.trainer), value: data?.trainer },
         ]
       },
       { name: 'participants', label: 'Peserta (pisahkan dengan koma)', type: 'textarea', rows: 3, placeholder: 'Nama Peserta 1, Nama Peserta 2, ...', value: (() => { try { const arr = JSON.parse(data?.participants); return Array.isArray(arr) ? arr.join(', ') : (data?.participants || ''); } catch { return data?.participants || ''; } })() },

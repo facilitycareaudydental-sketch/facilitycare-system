@@ -95,16 +95,25 @@ async function list(request, env, origin) {
   const url = new URL(request.url);
   const search = url.searchParams.get('search') || '';
   const year = url.searchParams.get('year') || '';
+  const batch = url.searchParams.get('batch') || '';
+  const branch_id = url.searchParams.get('branch_id') || '';
+  const trainer = url.searchParams.get('trainer') || '';
 
   let conditions = [];
   let values = [];
-  if (search) { conditions.push('(t.subject LIKE ? OR t.trainer LIKE ? OR t.participants LIKE ?)'); values.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+  if (search) { 
+    conditions.push('(t.subject LIKE ? OR t.trainer LIKE ? OR t.participants LIKE ? OR b.full_name LIKE ? OR b.name LIKE ?)'); 
+    values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`); 
+  }
   if (year) { conditions.push("strftime('%Y', t.training_date) = ?"); values.push(year); }
+  if (batch) { conditions.push("t.batch = ?"); values.push(batch); }
+  if (branch_id) { conditions.push("t.branch_id = ?"); values.push(branch_id); }
+  if (trainer) { conditions.push("t.trainer = ?"); values.push(trainer); }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
   const [countResult, rows] = await Promise.all([
-    env.DB.prepare(`SELECT COUNT(*) as total FROM training t ${where}`).bind(...values).first(),
+    env.DB.prepare(`SELECT COUNT(*) as total FROM training t LEFT JOIN branches b ON t.branch_id = b.id ${where}`).bind(...values).first(),
     env.DB.prepare(
       `SELECT t.*, b.full_name as branch_name FROM training t
        LEFT JOIN branches b ON t.branch_id = b.id
