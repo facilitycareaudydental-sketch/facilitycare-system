@@ -35,40 +35,39 @@ export function buildCrudPage({
   let selectedIds = new Set();
 
   container.innerHTML = `
+    ${bulkDelete ? `
+    <div class="bulk-toolbar" id="bulk-toolbar" style="display:none; align-items:center; justify-content:space-between; background:#2563EB; padding:12px 16px; border-radius:8px; margin-bottom:16px; box-shadow:0 4px 6px -1px rgba(37,99,235,0.2);">
+      <button id="btn-bulk-cancel" style="background:transparent; border:none; color:white; display:flex; align-items:center; cursor:pointer; padding:4px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+      </button>
+      <span id="bulk-count" style="font-weight:500; font-size:0.95rem; color:white;">0 item dipilih</span>
+      <button id="btn-bulk-delete" style="background:transparent; border:none; color:white; display:flex; align-items:center; cursor:pointer; padding:4px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
+    </div>` : ''}
+
     <div class="page-header">
       <h1 class="page-title">${icon} ${title}</h1>
       <div class="page-actions" style="display:flex; gap:8px; align-items:center;">
         ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${itemLabel}</button>` : ''}
-        ${(exportOptions || bulkDelete) ? `
+        ${exportOptions ? `
           <div class="aksi-dropdown-container" style="position:relative; display:inline-block;">
             <button class="btn btn-ghost" id="btn-aksi-main" style="background:#fff; border:1px solid #E2E8F0; padding:8px 16px; border-radius:8px; font-weight:600; color:#334155; display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="document.getElementById('aksi-menu-main').classList.toggle('show-aksi-menu')">
               ⋮ Aksi
             </button>
             <div id="aksi-menu-main" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #E2E8F0; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); flex-direction:column; min-width:200px; z-index:999; padding:8px 0;">
               
-              ${exportOptions ? `
-                <button class="dropdown-item" id="btn-export-${exportOptions.moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
-                  📥 Export Excel
-                </button>
-                <button class="dropdown-item" id="btn-template-${exportOptions.moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
-                  📄 Download Template
-                </button>
-                <label class="dropdown-item" style="display:flex; width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; margin:0; gap:8px; align-items:center;" id="label-import-${exportOptions.moduleName}">
-                  📤 Import Excel
-                  <input type="file" id="input-import-${exportOptions.moduleName}" accept=".xlsx, .xls, .csv" style="display:none;">
-                </label>
-              ` : ''}
+              <button class="dropdown-item" id="btn-export-${exportOptions.moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+                📥 Export Excel
+              </button>
+              <button class="dropdown-item" id="btn-template-${exportOptions.moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+                📄 Download Template
+              </button>
+              <label class="dropdown-item" style="display:flex; width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; margin:0; gap:8px; align-items:center;" id="label-import-${exportOptions.moduleName}">
+                📤 Import Excel
+                <input type="file" id="input-import-${exportOptions.moduleName}" accept=".xlsx, .xls, .csv" style="display:none;">
+              </label>
 
-              ${(exportOptions && bulkDelete) ? `<div style="height:1px; background:#E2E8F0; margin:4px 0;"></div>` : ''}
-
-              ${bulkDelete ? `
-                <div id="bulk-toolbar" style="padding:10px 16px; display:flex; flex-direction:column; gap:8px;">
-                  <span id="bulk-count" style="font-weight:600; font-size:0.85rem; color:#64748b;">0 item dipilih</span>
-                  <button class="btn btn-danger btn-sm" id="btn-bulk-delete" disabled style="width:100%; padding:8px; display:flex; justify-content:center; gap:6px;">🗑️ Hapus Terpilih</button>
-                  <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel" disabled style="width:100%; padding:8px;">Batalkan</button>
-                </div>
-              ` : ''}
-              
             </div>
           </div>
           <style>
@@ -133,9 +132,11 @@ export function buildCrudPage({
     
     countEl.textContent = `${selectedIds.size} item dipilih`;
     if (selectedIds.size > 0) {
+      toolbar.style.display = 'flex';
       btnDelete.disabled = false;
       btnCancel.disabled = false;
     } else {
+      toolbar.style.display = 'none';
       btnDelete.disabled = true;
       btnCancel.disabled = true;
     }
@@ -280,7 +281,7 @@ export function buildCrudPage({
   document.getElementById('btn-create')?.addEventListener('click', () => openForm(null));
 
   // Aksi dropdown outside click
-  if (exportOptions || bulkDelete) {
+  if (exportOptions) {
     document.addEventListener('click', function(e) {
       const dropdown = document.getElementById('aksi-menu-main');
       const btn = document.getElementById('btn-aksi-main');
