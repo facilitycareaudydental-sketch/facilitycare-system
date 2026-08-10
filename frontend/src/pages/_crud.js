@@ -52,17 +52,18 @@ export function buildCrudPage({
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
     ${filterFields && filterFields.length > 0 ? `
-    <div class="filter-bar card">
-      <div class="filter-bar-inner">
+    <div class="filter-bar card" style="padding: 16px; margin-bottom: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+      <div class="filter-bar-inner" style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: center;">
         ${filterFields.map(f => {
-          if (f.type === 'search') return `<div class="filter-search"><input type="search" class="form-control" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"></div>`;
+          if (f.type === 'search') return `<div class="filter-search" style="flex:1; min-width:250px;"><input type="search" class="form-control" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}" style="border-radius:20px; background:#F8FAFC; border:1px solid #E2E8F0; padding:8px 16px;"></div>`;
           if (f.type === 'select' || f.type === 'combobox') {
             const placeholder = (f.label || '').startsWith('Pilih') ? f.label : `Pilih ${f.label || ''}`;
-            return `<select class="form-control filter-select" name="${f.name}" id="filter-${f.name}"><option value="">${placeholder}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
+            return `<select class="form-control filter-select" name="${f.name}" id="filter-${f.name}" style="border-radius:20px; background:#F8FAFC; border:1px solid #E2E8F0; padding:8px 16px;"><option value="">${placeholder}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
           }
           return '';
         }).join('')}
         <button class="btn btn-ghost btn-sm" id="btn-reset-filter">Reset</button>
+        <button class="btn btn-primary btn-sm" style="border-radius:20px; padding: 4px 16px; font-weight: 600;" id="btn-apply-filter">✓ Terapkan (OK)</button>
       </div>
     </div>` : ''}
 
@@ -170,12 +171,15 @@ export function buildCrudPage({
     if (f.type === 'select' || f.type === 'combobox') {
       document.getElementById(`filter-${f.name}`)?.addEventListener('change', (e) => {
         filters[f.name] = e.target.value;
-        page = 1;
-        selectedIds.clear(); // Clear pilihan saat filter dropdown berubah
-        updateBulkToolbar();
-        load();
       });
     }
+  });
+
+  document.getElementById('btn-apply-filter')?.addEventListener('click', () => {
+    page = 1;
+    selectedIds.clear();
+    updateBulkToolbar();
+    load();
   });
 
   document.getElementById('btn-reset-filter')?.addEventListener('click', () => {
