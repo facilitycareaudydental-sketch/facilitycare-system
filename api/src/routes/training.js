@@ -1,8 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
-import { buildOutboxQuery } from '../utils/sync_engine.js';
-import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleTraining(request, env, origin) {
   const user = await authenticate(request, env);
@@ -77,12 +75,28 @@ export async function handleTraining(request, env, origin) {
 }
 
 async function list(request, env, origin) {
+  // Auto-migrate legacy 2026-08-10 training dates to correct batch start dates
+  try {
+    const checkBadDates = await env.DB.prepare("SELECT COUNT(*) as c FROM training WHERE training_date = '2026-08-10'").first();
+    if (checkBadDates && checkBadDates.c > 0) {
+      await env.DB.batch([
+        env.DB.prepare("UPDATE training SET training_date = '2026-06-09', updated_at = datetime('now') WHERE batch = 'Batch 1' AND training_date = '2026-08-10'"),
+        env.DB.prepare("UPDATE training SET training_date = '2026-06-12', updated_at = datetime('now') WHERE (batch = 'Batch 2' OR participants LIKE '%DEDY SUPANDI%') AND training_date = '2026-08-10'"),
+        env.DB.prepare("UPDATE training SET training_date = '2026-06-17', updated_at = datetime('now') WHERE batch = 'Batch 3' AND participants NOT LIKE '%DEDY SUPANDI%' AND training_date = '2026-08-10'"),
+        env.DB.prepare("UPDATE training SET training_date = '2026-06-24', updated_at = datetime('now') WHERE batch = 'Batch 4' AND training_date = '2026-08-10'"),
+        env.DB.prepare("UPDATE training SET training_date = '2026-06-29', updated_at = datetime('now') WHERE batch = 'Batch 5' AND training_date = '2026-08-10'")
+      ]);
+    }
+  } catch (e) {
+    console.error('Training date auto-migration error:', e);
+  }
+
   const { page, limit, offset } = getPagination(request.url);
   const url = new URL(request.url);
   const search = url.searchParams.get('search') || '';
   const year = url.searchParams.get('year') || '';
 
-  let conditions = ['t.deleted_at IS NULL'];
+  let conditions = [];
   let values = [];
   if (search) { conditions.push('(t.subject LIKE ? OR t.trainer LIKE ? OR t.participants LIKE ?)'); values.push(`%${search}%`, `%${search}%`, `%${search}%`); }
   if (year) { conditions.push("strftime('%Y', t.training_date) = ?"); values.push(year); }
@@ -94,7 +108,7 @@ async function list(request, env, origin) {
     env.DB.prepare(
       `SELECT t.*, b.full_name as branch_name FROM training t
        LEFT JOIN branches b ON t.branch_id = b.id
-       ${where} ORDER BY t.training_date DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY t.training_date DESC, t.id ASC LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 
@@ -118,18 +132,11 @@ async function create(request, env, origin) {
   const participantsStr = Array.isArray(participants) ? JSON.stringify(participants) : (participants || null);
 
   const result = await env.DB.prepare(
-    "INSERT INTO training (training_date, batch, subject, participants, branch_id, trainer, score, notes, document_link, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'FCMS')"
+    'INSERT INTO training (training_date, batch, subject, participants, branch_id, trainer, score, notes, document_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(training_date, batch || null, subject, participantsStr, branch_id || null,
     trainer || null, score || null, notes || null, document_link || null).run();
 
-  const newId = result.meta.last_row_id;
-  const newRecord = await env.DB.prepare('SELECT * FROM training WHERE id = ?').bind(newId).first();
-  if (newRecord) {
-    const payload = mapDBToPayload('Training', newRecord);
-    await buildOutboxQuery(env, 'Training', newId, 'INSERT', payload).run();
-  }
-
-  return ok({ id: newId }, 201, origin);
+  return ok({ id: result.meta.last_row_id }, 201, origin);
 }
 
 async function update(id, request, env, origin) {
@@ -141,31 +148,21 @@ async function update(id, request, env, origin) {
   const { training_date, batch, subject, participants, branch_id, trainer, score, notes, document_link } = body;
   const participantsStr = Array.isArray(participants) ? JSON.stringify(participants) : (participants || null);
 
-  const updatedRecord = { ...existing, training_date: training_date || existing.training_date, batch: batch || existing.batch, subject: subject || existing.subject, participants: participantsStr !== null ? participantsStr : existing.participants, branch_id: branch_id || existing.branch_id, trainer: trainer || existing.trainer, score: score || existing.score, notes: notes || existing.notes, document_link: document_link || existing.document_link };
-  
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE training SET training_date = COALESCE(?, training_date), batch = COALESCE(?, batch),
-       subject = COALESCE(?, subject), participants = COALESCE(?, participants),
-       branch_id = COALESCE(?, branch_id), trainer = COALESCE(?, trainer),
-       score = COALESCE(?, score), notes = COALESCE(?, notes),
-       document_link = COALESCE(?, document_link), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`
-    ).bind(training_date || null, batch || null, subject || null, participantsStr,
-      branch_id || null, trainer || null, score || null, notes || null, document_link || null, id),
-    buildOutboxQuery(env, 'Training', id, 'UPDATE', mapDBToPayload('Training', updatedRecord))
-  ]);
+  await env.DB.prepare(
+    `UPDATE training SET training_date = COALESCE(?, training_date), batch = COALESCE(?, batch),
+     subject = COALESCE(?, subject), participants = COALESCE(?, participants),
+     branch_id = COALESCE(?, branch_id), trainer = COALESCE(?, trainer),
+     score = COALESCE(?, score), notes = COALESCE(?, notes),
+     document_link = COALESCE(?, document_link), updated_at = datetime('now') WHERE id = ?`
+  ).bind(training_date || null, batch || null, subject || null, participantsStr,
+    branch_id || null, trainer || null, score || null, notes || null, document_link || null, id).run();
 
   return ok({ message: 'Updated' }, 200, origin);
 }
 
 async function remove(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT * FROM training WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT id FROM training WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  
-  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
-  await env.DB.batch([
-    env.DB.prepare(`UPDATE training SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`).bind(id),
-    buildOutboxQuery(env, 'Training', id, 'DELETE', mapDBToPayload('Training', deletedRecord))
-  ]);
+  await env.DB.prepare('DELETE FROM training WHERE id = ?').bind(id).run();
   return ok({ message: 'Deleted' }, 200, origin);
 }
