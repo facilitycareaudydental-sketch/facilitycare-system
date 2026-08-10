@@ -52,16 +52,27 @@ export function buildCrudPage({
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
     ${filterFields && filterFields.length > 0 ? `
-    <div class="filter-bar" style="background: #F1F5F9; border-radius: 9999px; padding: 4px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; border: 1px solid #E2E8F0;">
-        ${filterFields.map(f => {
-          if (f.type === 'search') return `<input type="search" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}" style="flex:1; min-width: 150px; background: transparent; border: none; outline: none; font-size: 0.85rem; padding: 8px;">`;
-          if (f.type === 'select' || f.type === 'combobox') {
-            const placeholder = (f.label || '').startsWith('Pilih') ? f.label : `Pilih ${f.label || ''}`;
-            return `<select class="filter-select" name="${f.name}" id="filter-${f.name}" style="background: transparent; border: none; outline: none; font-size: 0.85rem; padding: 8px; color: #475569; font-weight: 500; cursor: pointer;"><option value="">${placeholder}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
-          }
-          return '';
+    <div class="filter-bar mobile-sheet-enabled" style="background: #F1F5F9; border-radius: 9999px; padding: 4px 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; border: 1px solid #E2E8F0;">
+        ${filterFields.filter(f => f.type === 'search').map(f => {
+          return `<input type="search" class="filter-search" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}" style="flex:1; min-width: 150px; background: transparent; border: none; outline: none; font-size: 0.85rem; padding: 8px;">`;
         }).join('')}
-        <button id="btn-reset-filter" style="background: transparent; border: none; color: #3B82F6; font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 8px;">Reset</button>
+        
+        <div class="filter-options-wrapper" id="filter-options-wrapper">
+          <div class="bottom-sheet-header">
+            <h3 style="margin:0; font-size:1rem;">Filter Data</h3>
+            <button class="btn-close-sheet" id="btn-close-filter-sheet" style="background:none;border:none;font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
+          </div>
+          ${filterFields.filter(f => f.type !== 'search').map(f => {
+            if (f.type === 'select' || f.type === 'combobox') {
+              const placeholder = (f.label || '').startsWith('Pilih') ? f.label : `Pilih ${f.label || ''}`;
+              return `<select class="filter-select" name="${f.name}" id="filter-${f.name}" style="background: transparent; border: none; outline: none; font-size: 0.85rem; padding: 8px; color: #475569; font-weight: 500; cursor: pointer;"><option value="">${placeholder}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
+            }
+            return '';
+          }).join('')}
+          <button id="btn-reset-filter" style="background: transparent; border: none; color: #3B82F6; font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 8px;">Reset</button>
+        </div>
+        
+        <button id="btn-mobile-filter" class="btn-mobile-filter" style="display:none;">⚙ Filter</button>
     </div>` : ''}
 
     <div class="card">
@@ -191,6 +202,24 @@ export function buildCrudPage({
 
   // Create button
   document.getElementById('btn-create')?.addEventListener('click', () => openForm(null));
+  
+  // Mobile Filter Sheet Logic
+  const btnMobileFilter = document.getElementById('btn-mobile-filter');
+  const filterOptionsWrapper = document.getElementById('filter-options-wrapper');
+  const btnCloseFilterSheet = document.getElementById('btn-close-filter-sheet');
+  
+  if (btnMobileFilter && filterOptionsWrapper) {
+    btnMobileFilter.addEventListener('click', (e) => {
+      e.preventDefault();
+      filterOptionsWrapper.classList.add('sheet-open');
+    });
+    if (btnCloseFilterSheet) {
+      btnCloseFilterSheet.addEventListener('click', (e) => {
+        e.preventDefault();
+        filterOptionsWrapper.classList.remove('sheet-open');
+      });
+    }
+  }
 
   // Export/Import buttons
   if (exportOptions) {
