@@ -234,19 +234,19 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     width: 100% !important; 
     display: flex !important;
     flex-wrap: nowrap !important; 
-    gap: 8px !important; 
+    gap: 8px !important;
+    justify-content: flex-start !important;
   }
   .page-actions > .btn-primary, 
   .page-actions > #btn-create {
-    flex: 1 !important;
-    width: 100% !important;
+    flex: 0 1 auto !important;
+    max-width: 65% !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-left: 4px;
-    padding-right: 4px;
   }
-  .page-actions > .excel-actions-dropdown {
+  .page-actions > .excel-actions-dropdown,
+  .page-actions > .aksi-dropdown-container {
     flex-shrink: 0 !important;
   }
   .section-header {

@@ -39,16 +39,45 @@ export function buildCrudPage({
       <h1 class="page-title">${icon} ${title}</h1>
       <div class="page-actions" style="display:flex; gap:8px; align-items:center;">
         ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${itemLabel}</button>` : ''}
-        ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
+        ${(exportOptions || bulkDelete) ? `
+          <div class="aksi-dropdown-container" style="position:relative; display:inline-block;">
+            <button class="btn btn-ghost" id="btn-aksi-main" style="background:#fff; border:1px solid #E2E8F0; padding:8px 16px; border-radius:8px; font-weight:600; color:#334155; display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="document.getElementById('aksi-menu-main').classList.toggle('show-aksi-menu')">
+              ⋮ Aksi
+            </button>
+            <div id="aksi-menu-main" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #E2E8F0; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); flex-direction:column; min-width:200px; z-index:999; padding:8px 0;">
+              
+              ${exportOptions ? `
+                <button class="dropdown-item" id="btn-export-${exportOptions.moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+                  📥 Export Excel
+                </button>
+                <button class="dropdown-item" id="btn-template-${exportOptions.moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+                  📄 Download Template
+                </button>
+                <label class="dropdown-item" style="display:flex; width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; margin:0; gap:8px; align-items:center;" id="label-import-${exportOptions.moduleName}">
+                  📤 Import Excel
+                  <input type="file" id="input-import-${exportOptions.moduleName}" accept=".xlsx, .xls, .csv" style="display:none;">
+                </label>
+              ` : ''}
+
+              ${(exportOptions && bulkDelete) ? `<div style="height:1px; background:#E2E8F0; margin:4px 0;"></div>` : ''}
+
+              ${bulkDelete ? `
+                <div id="bulk-toolbar" style="padding:10px 16px; display:flex; flex-direction:column; gap:8px;">
+                  <span id="bulk-count" style="font-weight:600; font-size:0.85rem; color:#64748b;">0 item dipilih</span>
+                  <button class="btn btn-danger btn-sm" id="btn-bulk-delete" disabled style="width:100%; padding:8px; display:flex; justify-content:center; gap:6px;">🗑️ Hapus Terpilih</button>
+                  <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel" disabled style="width:100%; padding:8px;">Batalkan</button>
+                </div>
+              ` : ''}
+              
+            </div>
+          </div>
+          <style>
+            .show-aksi-menu { display: flex !important; }
+            .dropdown-item:hover { background-color: #F8FAFC !important; color: #2563EB !important; }
+          </style>
+        ` : ''}
       </div>
     </div>
-
-    ${bulkDelete ? `
-    <div class="bulk-toolbar" id="bulk-toolbar" style="display:flex; align-items:center; gap:1rem; background:var(--bg-card); padding:0.75rem 1.25rem; border-radius:var(--radius-lg); border:1px solid var(--border-color); margin-bottom:1rem;">
-      <span id="bulk-count" style="font-weight:600; font-size:0.9rem;">0 item dipilih</span>
-      <button class="btn btn-danger btn-sm" id="btn-bulk-delete" disabled>🗑️ Hapus Terpilih</button>
-      <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel" disabled>Batalkan</button>
-    </div>` : ''}
     
 
     ${filterFields && filterFields.length > 0 ? `
@@ -251,10 +280,10 @@ export function buildCrudPage({
   document.getElementById('btn-create')?.addEventListener('click', () => openForm(null));
 
   // Aksi dropdown outside click
-  if (exportOptions) {
+  if (exportOptions || bulkDelete) {
     document.addEventListener('click', function(e) {
-      const dropdown = document.getElementById(`excel-menu-${exportOptions.moduleName}`);
-      const btn = document.getElementById(`btn-aksi-${exportOptions.moduleName}`);
+      const dropdown = document.getElementById('aksi-menu-main');
+      const btn = document.getElementById('btn-aksi-main');
       if (dropdown && btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.classList.remove('show-aksi-menu');
       }
