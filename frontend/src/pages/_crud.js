@@ -52,18 +52,16 @@ export function buildCrudPage({
     ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
     ${filterFields && filterFields.length > 0 ? `
-    <div class="filter-bar card">
-      <div class="filter-bar-inner">
+    <div class="filter-bar" style="background: #F1F5F9; border-radius: 9999px; padding: 4px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; border: 1px solid #E2E8F0;">
         ${filterFields.map(f => {
-          if (f.type === 'search') return `<div class="filter-search"><input type="search" class="form-control" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}"></div>`;
+          if (f.type === 'search') return `<input type="search" placeholder="${f.placeholder || 'Cari...'}" id="filter-search" value="${filters.search || ''}" style="flex:1; min-width: 150px; background: transparent; border: none; outline: none; font-size: 0.85rem; padding: 8px;">`;
           if (f.type === 'select' || f.type === 'combobox') {
             const placeholder = (f.label || '').startsWith('Pilih') ? f.label : `Pilih ${f.label || ''}`;
-            return `<select class="form-control filter-select" name="${f.name}" id="filter-${f.name}"><option value="">${placeholder}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
+            return `<select class="filter-select" name="${f.name}" id="filter-${f.name}" style="background: transparent; border: none; outline: none; font-size: 0.85rem; padding: 8px; color: #475569; font-weight: 500; cursor: pointer;"><option value="">${placeholder}</option>${(f.options || []).map(o => `<option value="${typeof o === 'object' ? o.value : o}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${typeof o === 'object' ? o.label : o}</option>`).join('')}</select>`;
           }
           return '';
         }).join('')}
-        <button class="btn btn-ghost btn-sm" id="btn-reset-filter">Reset</button>
-      </div>
+        <button id="btn-reset-filter" style="background: transparent; border: none; color: #3B82F6; font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 8px;">Reset</button>
     </div>` : ''}
 
     <div class="card">
