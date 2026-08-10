@@ -230,7 +230,25 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     align-items: flex-start !important;
     gap: 10px !important;
   }
-  .page-actions  { width: 100%; flex-wrap: wrap; gap: 6px; }
+  .page-actions { 
+    width: 100% !important; 
+    display: flex !important;
+    flex-wrap: nowrap !important; 
+    gap: 8px !important; 
+  }
+  .page-actions > .btn-primary, 
+  .page-actions > #btn-create {
+    flex: 1 !important;
+    width: 100% !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  .page-actions > .excel-actions-dropdown {
+    flex-shrink: 0 !important;
+  }
   .section-header {
     flex-direction: column !important;
     align-items: flex-start !important;
