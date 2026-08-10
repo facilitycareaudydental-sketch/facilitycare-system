@@ -41,7 +41,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js": {
-      "bytes": 18061,
+      "bytes": 18194,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -490,7 +490,7 @@
       "format": "esm"
     },
     "frontend/src/pages/training.js": {
-      "bytes": 7961,
+      "bytes": 7900,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -1088,7 +1088,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-YB4FTPI2.js": {
+    "frontend/dist/assets/app-BEULTR7U.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1115,7 +1115,7 @@
           "bytesInOutput": 33775
         },
         "frontend/src/pages/_crud.js": {
-          "bytesInOutput": 9040
+          "bytesInOutput": 9126
         },
         "frontend/src/components/table.js": {
           "bytesInOutput": 3443
@@ -1166,7 +1166,7 @@
           "bytesInOutput": 4762
         },
         "frontend/src/pages/training.js": {
-          "bytesInOutput": 4848
+          "bytesInOutput": 4790
         },
         "frontend/src/pages/relievers.js": {
           "bytesInOutput": 4726
@@ -1217,7 +1217,7 @@
           "bytesInOutput": 3554
         }
       },
-      "bytes": 205957
+      "bytes": 205985
     }
   }
 }

@@ -44,10 +44,10 @@ export async function renderTraining(container) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari materi / trainer / peserta...' },
-      { type: 'select', name: 'batch', label: 'Pilih Batch', options: batches },
-      { type: 'combobox', name: 'branch_id', label: 'Pilih Cabang', options: branchOptions },
-      { type: 'select', name: 'trainer', label: 'Pilih Trainer', options: ['Berlin Ariansyah', 'Ade Surahman', 'Mizwar', 'Fajar'] },
-      { type: 'select', name: 'year', label: 'Pilih Tahun', options: years },
+      { type: 'select', name: 'batch', label: 'Batch', options: batches },
+      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'select', name: 'trainer', label: 'Trainer', options: ['Berlin Ariansyah'] },
+      { type: 'select', name: 'year', label: 'Tahun', options: years },
     ],
     exportOptions: {
       moduleName: 'training',
