@@ -66,7 +66,7 @@ img, svg, canvas, video, iframe { max-width: 100%; }
 
 /* ── 1. ≥1280px Desktop — unchanged, sidebar always visible ────── */
 @media (min-width: 1280px) {
-  .kpi-row        { grid-template-columns: repeat(6, minmax(0,1fr)); }
+  .kpi-row        { grid-template-columns: repeat(5, minmax(0,1fr)); }
   .mini-stats-row { grid-template-columns: repeat(7, minmax(0,1fr)); }
   .tables-row     { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .topbar-menu-btn { display: none !important; }
@@ -459,204 +459,74 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .toast, #toast-container, .btn, .page-actions,
   .filter-bar, .bulk-toolbar, .excel-btns { display: none !important; }
   .main-content { padding: 0 !important; }
+  .kpi-row { grid-template-columns: repeat(4, 1fr) !important; }
 }
 
-/* ── TASK 2: MOBILE FILTER BOTTOM SHEET ARCHITECTURE ──────── */
-/* DEFAULT: Sembunyikan wrapper secara visual (transparan terhadap Flexbox) untuk Desktop & Halaman tanpa Feature Flag */
-.filter-options, .excel-actions-wrapper { 
-  display: contents; 
-}
-.bottom-sheet-header, .aksi-header { 
-  display: none; 
+
+/* MOBILE FILTER SHEET ARCHITECTURE */
+@media (min-width: 769px) {
+  .filter-options-wrapper { display: contents; }
+  .bottom-sheet-header { display: none; }
+  .btn-mobile-filter { display: none !important; }
 }
 
 @media (max-width: 768px) {
-  /* Layout bar pencarian utama di Mobile (hanya jika aktif) */
-  .filter-bar.has-mobile-sheet {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
+  .filter-bar.mobile-sheet-enabled {
+    border-radius: 12px !important;
+    background: var(--bg-card) !important;
+    padding: 12px !important;
     flex-wrap: nowrap !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
+    border: 1px solid var(--border) !important;
   }
-  
-  .filter-bar.has-mobile-sheet .filter-search {
+  .filter-bar.mobile-sheet-enabled .filter-search {
     flex: 1;
     min-width: 0 !important;
-    margin: 0 !important;
   }
-  
-  .filter-bar.has-mobile-sheet .filter-search input {
-    width: 100% !important;
+  .filter-bar.mobile-sheet-enabled .filter-search input {
+    background: #F8FAFC !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 8px !important;
   }
-  
-  /* Tampilkan tombol trigger di Mobile */
-  .filter-bar.has-mobile-sheet #btn-mobile-filter {
+  .btn-mobile-filter {
     display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    color: var(--text-1);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
   }
-
-  /* Desain Bottom Sheet (Menimpa display: contents) */
-  .filter-bar.has-mobile-sheet .filter-options {
-    display: flex; /* Menimpa display: contents bawaan */
-    flex-direction: column;
+  
+  .filter-options-wrapper {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
+    bottom: 0; left: 0; right: 0;
     background: var(--bg-card);
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
     padding: 20px;
     box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
     z-index: 9999;
-    gap: 12px;
-    
-    /* Animasi ringan 0.25s ease-out */
-    transform: translateY(100%);
-    transition: transform 0.25s ease-out;
-    visibility: hidden;
-  }
-  
-  /* Kelas aktif saat sheet terbuka */
-  .filter-bar.has-mobile-sheet .filter-options.sheet-open {
-    transform: translateY(0);
-    visibility: visible;
-  }
-  
-  .filter-bar.has-mobile-sheet .filter-options .filter-select {
-    width: 100% !important;
-    max-width: none !important;
-  }
-  
-  /* Munculkan header bottom sheet saat aktif di mobile */
-  .filter-bar.has-mobile-sheet .bottom-sheet-header {
-    display: flex; /* Menimpa display: none bawaan */
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 12px;
-    margin-bottom: 4px;
-  }
-  
-  /* Layout Keseluruhan Mobile (Mengikuti Mockup) */
-  .mobile-active .page-header {
     display: flex;
     flex-direction: column;
-    margin-bottom: 16px;
-  }
-  .mobile-active .page-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 16px;
-  }
-  .mobile-active .page-actions {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-  }
-  .mobile-active #btn-create {
-    flex: 1;
-    border-radius: 8px;
-    justify-content: center;
-  }
-  .mobile-active #btn-mobile-aksi {
-    display: inline-flex !important;
-    border-radius: 8px;
-    font-weight: 600;
-  }
-  
-  /* Aksi Bottom Sheet */
-  .mobile-active .excel-actions-wrapper {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    bottom: 0; left: 0; width: 100%;
-    background: var(--bg-card);
-    border-top-left-radius: 20px; border-top-right-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
-    z-index: 9999;
     gap: 12px;
     transform: translateY(100%);
     transition: transform 0.25s ease-out;
     visibility: hidden;
   }
-  .mobile-active .excel-actions-wrapper.sheet-open {
+  .filter-options-wrapper.sheet-open {
     transform: translateY(0);
     visibility: visible;
   }
-  .mobile-active .aksi-header {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 12px;
-    margin-bottom: 4px;
-  }
-  .mobile-active .excel-actions-wrapper .btn,
-  .mobile-active .excel-actions-wrapper label.btn {
-    width: 100%;
-    margin: 0 !important;
-    justify-content: center;
-  }
-  
-  /* Bulk Toolbar - hidden by default on mobile */
-  .mobile-active .bulk-toolbar {
-    display: none !important;
-  }
-  /* Bulk Toolbar - appears at BOTTOM of screen when items are selected */
-  .mobile-active .bulk-toolbar.has-items {
-    display: flex !important;
-    position: fixed !important;
-    bottom: 0 !important;
-    top: auto !important;
-    left: 0 !important;
+  .filter-options-wrapper .filter-select {
     width: 100% !important;
-    background: #1e40af !important;
-    color: white !important;
-    border-radius: 16px 16px 0 0 !important;
-    border: none !important;
-    z-index: 1000 !important;
-    padding: 14px 20px !important;
-    margin: 0 !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.25) !important;
+    background: #F8FAFC !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 8px !important;
   }
-  .mobile-active .bulk-toolbar.has-items #bulk-count {
-    color: white !important;
-    flex: 1;
-    text-align: center;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
+  .bottom-sheet-header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 4px;
   }
-  .mobile-active .bulk-toolbar.has-items #btn-bulk-cancel,
-  .mobile-active .bulk-toolbar.has-items #btn-bulk-delete {
-    width: 36px !important;
-    height: 36px !important;
-    padding: 0 !important;
-    background: rgba(255,255,255,0.15) !important;
-    border: none !important;
-    border-radius: 50% !important;
-    color: transparent !important;
-    position: relative !important;
-    overflow: hidden !important;
-    cursor: pointer !important;
-  }
-  .mobile-active .bulk-toolbar.has-items #btn-bulk-cancel::after {
-    content: '✕';
-    color: white;
-    font-size: 1.2rem;
-    position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%, -50%);
-  }
-  .mobile-active .bulk-toolbar.has-items #btn-bulk-delete::after {
-    content: '🗑️';
-    font-size: 1.2rem;
-    position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%, -50%);
-  }
-} /* end @media (max-width: 768px) */
+}
