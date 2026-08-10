@@ -77,17 +77,26 @@ export function downloadExcel(data, filename) {
  */
 export function renderExcelButtons(moduleName) {
   return `
-    <div class="excel-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
-      <button class="btn btn-secondary btn-sm" id="btn-export-${moduleName}">
-        📥 Export Excel
+    <div class="excel-actions-dropdown" style="position:relative; display:inline-block;">
+      <button class="btn" id="btn-aksi-${moduleName}" style="background:#fff; border:1px solid #E2E8F0; padding:8px 16px; border-radius:8px; font-weight:600; color:#334155; display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="document.getElementById('excel-menu-${moduleName}').classList.toggle('show-aksi-menu')">
+        ⋮ Aksi
       </button>
-      <button class="btn btn-secondary btn-sm" id="btn-template-${moduleName}">
-        📄 Download Template
-      </button>
-      <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0;" id="label-import-${moduleName}">
-        <span class="import-text">📤 Import Excel</span>
-        <input type="file" id="input-import-${moduleName}" accept=".xlsx, .xls, .csv" style="display:none;">
-      </label>
+      <div id="excel-menu-${moduleName}" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #E2E8F0; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); flex-direction:column; min-width:180px; z-index:999; padding:8px 0;">
+        <button class="dropdown-item" id="btn-export-${moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+          📥 Export Excel
+        </button>
+        <button class="dropdown-item" id="btn-template-${moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+          📄 Download Template
+        </button>
+        <label class="dropdown-item" style="display:flex; width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; margin:0; gap:8px; align-items:center;" id="label-import-${moduleName}">
+          📤 Import Excel
+          <input type="file" id="input-import-${moduleName}" accept=".xlsx, .xls, .csv" style="display:none;">
+        </label>
+      </div>
     </div>
+    <style>
+      .show-aksi-menu { display: flex !important; }
+      .dropdown-item:hover { background-color: #F8FAFC !important; color: #2563EB !important; }
+    </style>
   `;
 }

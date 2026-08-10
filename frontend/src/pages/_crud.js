@@ -37,8 +37,9 @@ export function buildCrudPage({
   container.innerHTML = `
     <div class="page-header">
       <h1 class="page-title">${icon} ${title}</h1>
-      <div class="page-actions">
+      <div class="page-actions" style="display:flex; gap:8px; align-items:center;">
         ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${itemLabel}</button>` : ''}
+        ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
       </div>
     </div>
 
@@ -49,7 +50,6 @@ export function buildCrudPage({
       <button class="btn btn-ghost btn-sm" id="btn-bulk-cancel" disabled>Batalkan</button>
     </div>` : ''}
     
-    ${exportOptions ? renderExcelButtons(exportOptions.moduleName) : ''}
 
     ${filterFields && filterFields.length > 0 ? `
     <div class="filter-bar" style="background: var(--bg-card, #fff); border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; border: 1px solid var(--border, #E2E8F0); box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
@@ -249,6 +249,17 @@ export function buildCrudPage({
 
   // Create button
   document.getElementById('btn-create')?.addEventListener('click', () => openForm(null));
+
+  // Aksi dropdown outside click
+  if (exportOptions) {
+    document.addEventListener('click', function(e) {
+      const dropdown = document.getElementById(`excel-menu-${exportOptions.moduleName}`);
+      const btn = document.getElementById(`btn-aksi-${exportOptions.moduleName}`);
+      if (dropdown && btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('show-aksi-menu');
+      }
+    });
+  }
   
   // Mobile Filter Sheet Logic
   const btnMobileFilter = document.getElementById('btn-mobile-filter');
