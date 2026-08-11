@@ -28,6 +28,7 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/contracts-expiring') return getContractsExpiring(env, origin);
   if (path === '/activity-log')      return getActivityLog(env, origin);
   if (path === '/calendar')          return getCalendarEvents(request, env, origin);
+  if (path === '/schedule-chart')    return getScheduleChart(request, env, origin);
   if (path === '/activity-by-period') return getActivityByPeriod(env, origin);
   if (path === '/inspection-scores') return getInspectionScores(request, env, origin);
   if (path === '/notifications')      return getNotifications(request, env, origin);
@@ -589,6 +590,41 @@ async function getActivityByPeriod(env, origin) {
      FROM activity_schedule GROUP BY activity_type,period`
   ).all();
   return ok(rows.results||[], 200, origin);
+}
+
+async function getScheduleChart(request, env, origin) {
+  const url = new URL(request.url);
+  const year = url.searchParams.get('year') || new Date().getFullYear().toString();
+  
+  // Use target_date to match activities scheduled in the given year
+  const rows = await env.DB.prepare(
+    `SELECT activity_type, strftime('%m', target_date) as month, COUNT(*) as count 
+     FROM activity_schedule 
+     WHERE strftime('%Y', target_date) = ?
+     GROUP BY activity_type, month`
+  ).bind(year).all();
+
+  const data = {
+    'Inspeksi Hygiene': Array(12).fill(0),
+    'General Cleaning': Array(12).fill(0),
+    'Deep Cleaning': Array(12).fill(0),
+    'Fogging': Array(12).fill(0)
+  };
+
+  if (rows && rows.results) {
+    for (const r of rows.results) {
+      let type = r.activity_type;
+      // Normalizing names to match the frontend expectations
+      if (type === 'Inspeksi') type = 'Inspeksi Hygiene';
+      
+      const m = parseInt(r.month, 10) - 1; // 0-11
+      if (data[type] !== undefined && m >= 0 && m < 12) {
+        data[type][m] = r.count;
+      }
+    }
+  }
+  
+  return ok(data, 200, origin);
 }
 
 async function getInspectionScores(request, env, origin) {
