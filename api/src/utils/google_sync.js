@@ -39,7 +39,8 @@ export async function syncGoogleSheets(env) {
 
     // 3. Process Employees
     const empStmts = [];
-    const currentEmp = (await env.DB.prepare('SELECT id, full_name FROM employees').all()).results;
+    // Fetch existing employees WITH status to protect 'Tidak Aktif' records
+    const currentEmp = (await env.DB.prepare('SELECT id, full_name, status FROM employees').all()).results;
     const sheetEmpNames = new Set();
 
     for (const row of empData) {
@@ -50,31 +51,37 @@ export async function syncGoogleSheets(env) {
        const bId = branchMap[bName] || null;
        const existing = currentEmp.find(e => e.full_name === name);
        if (existing) {
-          empStmts.push(env.DB.prepare('UPDATE employees SET branch_id=?, status=?, updated_at=datetime("now") WHERE id=?').bind(bId, 'Aktif', existing.id));
-       } else {
-          empStmts.push(env.DB.prepare('INSERT INTO employees (full_name, branch_id, status) VALUES (?, ?, ?)').bind(name, bId, 'Aktif'));
+          // 🔒 PERLINDUNGAN STATUS: Jangan ubah status non-aktif menjadi 'Aktif'
+          if (existing.status === 'Tidak Aktif' || existing.status === 'Resign' || existing.status === 'Cut') {
+            // Hanya update branch, JANGAN sentuh status
+            empStmts.push(env.DB.prepare('UPDATE employees SET branch_id=?, updated_at=datetime("now") WHERE id=?').bind(bId, existing.id));
+          } else {
+            empStmts.push(env.DB.prepare('UPDATE employees SET branch_id=?, status=?, updated_at=datetime("now") WHERE id=?').bind(bId, 'Aktif', existing.id));
+          }
        }
+       // 🔒 KUNCI DAFTAR: Karyawan baru dari Google Sheet TIDAK ditambahkan otomatis.
+       // Penambahan karyawan baru hanya bisa dilakukan secara MANUAL via UI atau Import Excel.
     }
 
-    // Add missing employees from Validasi sheet
+    // Validasi sheet: hanya update existing employees, JANGAN tambah baru
     valData.forEach(row => {
        const name = (row['NAMA KARYAWAN'] || '').trim();
        if (name && !sheetEmpNames.has(name)) {
           sheetEmpNames.add(name);
           const existing = currentEmp.find(e => e.full_name === name);
-          if (!existing) {
-             empStmts.push(env.DB.prepare('INSERT INTO employees (full_name, branch_id, status) VALUES (?, ?, ?)')
-               .bind(name, branchMap[(row['CABANG']||'').trim()] || null, 'Aktif'));
-          } else {
+          if (existing && existing.status !== 'Tidak Aktif' && existing.status !== 'Resign' && existing.status !== 'Cut') {
+             // 🔒 Hanya update existing, jangan insert baru
              empStmts.push(env.DB.prepare('UPDATE employees SET status=?, updated_at=datetime("now") WHERE id=?')
                .bind('Aktif', existing.id));
           }
+          // Jika tidak ada di DB → SKIP (tidak ditambahkan otomatis)
        }
     });
 
     for (let i = 0; i < empStmts.length; i += 100) {
       await env.DB.batch(empStmts.slice(i, i + 100));
     }
+
 
     // 4. Process PICs (Insert from both PIC and PIC PELAPOR)
     const picStmts = [];

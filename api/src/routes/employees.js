@@ -1,8 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination, getSearchParam } from '../utils/pagination.js';
-import { buildOutboxQuery } from '../utils/sync_engine.js';
-import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleEmployees(request, env, origin) {
   const user = await authenticate(request, env);
@@ -66,7 +64,7 @@ async function listEmployees(request, env, origin) {
     `SELECT e.*, b.full_name as branch_name 
      FROM employees e 
      LEFT JOIN branches b ON e.branch_id = b.id 
-     ${where} ORDER BY e.full_name ASC, e.id ASC LIMIT ? OFFSET ?`
+     ${where} ORDER BY e.full_name LIMIT ? OFFSET ?`
   ).bind(...values, limit, offset).all();
 
   return paginated(rows.results, countResult.total, page, limit, origin);
@@ -94,17 +92,10 @@ async function createEmployee(request, env, origin) {
   if (!full_name) return error('full_name required', 400, origin);
 
   const result = await env.DB.prepare(
-    'INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes, row_version, last_sync_source) VALUES (?, ?, ?, ?, ?, ?, ?, 1, "FCMS")'
+    'INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
   ).bind(full_name, branch_id || null, division || 'FACILITY CARE', phone || null, join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
 
-  const newId = result.meta.last_row_id;
-  const newRecord = await env.DB.prepare('SELECT * FROM employees WHERE id = ?').bind(newId).first();
-  if (newRecord) {
-    const payload = mapDBToPayload('Master Karyawan', newRecord);
-    await buildOutboxQuery(env, 'Master Karyawan', newId, 'INSERT', payload).run();
-  }
-
-  return ok({ id: newId }, 201, origin);
+  return ok({ id: result.meta.last_row_id }, 201, origin);
 }
 
 async function updateEmployee(id, request, env, origin) {
@@ -114,44 +105,27 @@ async function updateEmployee(id, request, env, origin) {
   if (!existing) return notFound(origin);
 
   const { full_name, branch_id, division, phone, join_date, status, notes } = body;
-  // Create updated object mapping for the outbox payload
-  const updatedRecord = { ...existing, full_name: full_name || existing.full_name, branch_id: branch_id || existing.branch_id, division: division || existing.division, phone: phone || existing.phone, join_date: join_date || existing.join_date, status: status !== null && status !== undefined && status !== '' ? status : existing.status, notes: notes || existing.notes };
-  const payload = mapDBToPayload('Master Karyawan', updatedRecord);
-  
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE employees SET 
-        full_name = COALESCE(?, full_name),
-        branch_id = COALESCE(?, branch_id),
-        division = COALESCE(?, division),
-        phone = COALESCE(?, phone),
-        join_date = COALESCE(?, join_date),
-        status = COALESCE(?, status),
-        notes = COALESCE(?, notes),
-        updated_at = datetime('now'),
-        row_version = COALESCE(row_version, 0) + 1,
-        last_sync_source = 'FCMS'
-       WHERE id = ?`
-    ).bind(full_name || null, branch_id || null, division || null, phone || null,
-      join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id),
-    buildOutboxQuery(env, 'Master Karyawan', id, 'UPDATE', payload)
-  ]);
+  await env.DB.prepare(
+    `UPDATE employees SET 
+      full_name = COALESCE(?, full_name),
+      branch_id = COALESCE(?, branch_id),
+      division = COALESCE(?, division),
+      phone = COALESCE(?, phone),
+      join_date = COALESCE(?, join_date),
+      status = COALESCE(?, status),
+      notes = COALESCE(?, notes),
+      updated_at = datetime('now')
+     WHERE id = ?`
+  ).bind(full_name || null, branch_id || null, division || null, phone || null,
+    join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
 
   return ok({ message: 'Employee updated' }, 200, origin);
 }
 
 async function deleteEmployee(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT * FROM employees WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT id FROM employees WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  
-  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
-  const payload = mapDBToPayload('Master Karyawan', deletedRecord);
-  
-  await env.DB.batch([
-    env.DB.prepare("UPDATE employees SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?").bind(id),
-    buildOutboxQuery(env, 'Master Karyawan', id, 'DELETE', payload)
-  ]);
-  
+  await env.DB.prepare("UPDATE employees SET status = 'Tidak Aktif', updated_at = datetime('now') WHERE id = ?").bind(id).run();
   return ok({ message: 'Employee deactivated' }, 200, origin);
 }
 
@@ -166,17 +140,24 @@ async function importEmployees(request, env, origin) {
     for (const item of body) {
       if (!item.full_name) continue;
       
-      const existing = await env.DB.prepare('SELECT id FROM employees WHERE full_name = ?').bind(item.full_name).first();
+      // Fetch existing record including current status
+      const existing = await env.DB.prepare('SELECT id, status FROM employees WHERE full_name = ?').bind(item.full_name).first();
       
       if (existing) {
+        // 🔒 PERLINDUNGAN: Jika karyawan sudah "Tidak Aktif", "Resign", atau "Cut" di database,
+        // import TIDAK BOLEH mengubahnya menjadi "Aktif" secara otomatis.
+        const finalStatus = (existing.status === 'Tidak Aktif' || existing.status === 'Resign' || existing.status === 'Cut') 
+          ? existing.status 
+          : (item.status !== null && item.status !== undefined && item.status !== '' ? item.status : 'Aktif');
+
         await env.DB.prepare(
-          `UPDATE employees SET branch_id = ?, division = ?, phone = ?, join_date = ?, status = ?, notes = ? WHERE id = ?`
+          `UPDATE employees SET branch_id = ?, division = ?, phone = ?, join_date = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
         ).bind(
           item.branch_id || null, 
           item.division || 'FACILITY CARE', 
           item.phone || null, 
           item.join_date || null, 
-          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '', 
+          finalStatus,
           item.notes || null,
           existing.id
         ).run();
@@ -190,7 +171,7 @@ async function importEmployees(request, env, origin) {
           item.division || 'FACILITY CARE', 
           item.phone || null, 
           item.join_date || null, 
-          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '', 
+          item.status !== null && item.status !== undefined && item.status !== '' ? item.status : 'Aktif', 
           item.notes || null
         ).run();
       }
