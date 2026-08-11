@@ -865,7 +865,7 @@ function renderTrend(trend) {
     options: chartOpts({ 
       plugins:{ legend:{ display:false } },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK, maxRotation: 0, autoSkip: false } },
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK, maxRotation: 45, autoSkip: true } },
         y: { grid: { color: GRID }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK }, beginAtZero: true }
       }
     }),
