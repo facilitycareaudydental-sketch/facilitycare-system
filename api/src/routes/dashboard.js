@@ -22,9 +22,9 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/stats' || path === '') return getStats(env, origin);
   if (path === '/issues-trend')      return getIssuesTrend(env, origin);
   if (path === '/contracts-chart')   return getContractsChart(env, origin);
-  if (path === '/schedule-chart')    return getScheduleChart(request, env, origin);
   if (path === '/issues-summary')    return getIssuesSummary(env, origin);
   if (path === '/inspection-bar')    return getInspectionBar(request, env, origin);
+  if (path === '/inspection-months') return getInspectionMonths(env, origin);
   if (path === '/contracts-expiring') return getContractsExpiring(env, origin);
   if (path === '/activity-log')      return getActivityLog(env, origin);
   if (path === '/calendar')          return getCalendarEvents(request, env, origin);
@@ -79,21 +79,15 @@ function futureMonthLabels(count = 6) {
   return labels;
 }
 
-function curQuarterStr() {
-  const n = new Date();
-  return `Q${Math.ceil((n.getMonth() + 1) / 3)}`;
-}
-
 // ─── /kpi — 12 counters + prev-month trend ───────────────────────────────────
 // All queries use indexed columns. COUNT(*) is fastest in SQLite.
 async function getKPI(env, origin) {
   const curM  = curMonthStr();
   const prevM = prevMonthStr();
-  const curQ  = curQuarterStr();
 
   // All 16 counts run in parallel — no sequential blocking
   const [
-    empActive, empPrevMonth, relieverActive,
+    empActive, empPrevMonth,
     contractActive, contractPrev, contractExp30,
     issuesOpen, issuesPrevOpen,
     oo1Open, oo1PrevOpen,
@@ -104,25 +98,15 @@ async function getKPI(env, origin) {
     inspCur,
     cleanCur,
     fogCur,
-    allRelieversRes,
-    kebAreaCur,
-    kebIssuesTotal,
-    kebIssuesClosed,
-    kebCleanReported,
-    kebCleanScheduled,
-    kebGcdcReported,
-    kebGcdcScheduled,
-    kebIssueCleanTotal
+    allRelieversRes
   ] = await Promise.all([
     // Uses idx_employees_status
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
     // Uses idx_employees_status + strftime filter
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
-    // Query Reliefer Aktif
-    env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif' AND division='FC - RELIEFER'").first(),
 
-    // Uses idx_contracts_status_end
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date>=date('now')").first(),
+    // Uses idx_contracts_status
+    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif'").first(),
 
     // Uses idx_contracts_created
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
@@ -138,8 +122,8 @@ async function getKPI(env, origin) {
     env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done'").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done' AND strftime('%Y-%m',meeting_date)=?").bind(prevM).first(),
 
-    // Matches the default filter in schedule.js (Current Quarter)
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE period=?").bind(curQ).first(),
+    // Matches total data in schedule table
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule").first(),
 
     // Uses idx_supply_status
     env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status='Pending'").first(),
@@ -147,38 +131,20 @@ async function getKPI(env, origin) {
     // branches is tiny table
     env.DB.prepare("SELECT COUNT(*) c FROM branches WHERE is_active=1").first(),
 
-    // Uses idx_training_date
-    env.DB.prepare("SELECT COUNT(*) c FROM training WHERE strftime('%Y-%m',training_date)=?").bind(curM).first(),
+    // Uses total count for training to match the module view
+    env.DB.prepare("SELECT COUNT(*) c FROM training").first(),
 
-    // Inspeksi is now tracked in activity_schedule (timeline)
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type='Inspeksi Hygiene' AND status IN ('Done', 'Selesai') AND strftime('%Y-%m', COALESCE(completion_date, target_date))=?").bind(curM).first(),
+    // Uses idx_inspection_date
+    env.DB.prepare("SELECT COUNT(*) c FROM inspection_reports WHERE strftime('%Y-%m',inspection_date)=?").bind(curM).first(),
 
-    // GCDC is now tracked in activity_schedule (timeline)
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type='General Cleaning' AND status IN ('Done', 'Selesai') AND strftime('%Y-%m', COALESCE(completion_date, target_date))=?").bind(curM).first(),
+    // Uses idx_cleaning_date
+    env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
 
-    // Fogging tracks fogging_reports for this month
-    env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE status IN ('Done', 'Selesai') AND strftime('%Y-%m',activity_date)=?").bind(curM).first(),
+    // Uses idx_fogging_date
+    env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
 
     // Fetch all relievers to parse dates exactly like the UI
     env.DB.prepare("SELECT backup_date, status FROM relievers").all(),
-    
-    // Kebersihan Area (Avg from inspection_reports)
-    env.DB.prepare("SELECT AVG(fc_score) as avg_fc, AVG(spv_score) as avg_spv FROM inspection_reports WHERE strftime('%Y-%m',inspection_date)=?").bind(curM).first(),
-    
-    // Penyelesaian Complaint
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE strftime('%Y-%m',created_at)=?").bind(curM).first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE strftime('%Y-%m',created_at)=? AND status='Done'").bind(curM).first(),
-    
-    // Complaint Cleaning
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE strftime('%Y-%m',created_at)=? AND category='Cleaning'").bind(curM).first(),
-    
-    // Kepatuhan Jadwal Cleaning
-    env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type IN ('cleaning','Cleaning') AND strftime('%Y-%m',target_date)=?").bind(curM).first(),
-    
-    // Kepatuhan GCDC
-    env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=? AND activity_type IN ('gcdc','GCDC')").bind(curM).first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE activity_type IN ('gcdc','GCDC') AND strftime('%Y-%m',target_date)=?").bind(curM).first(),
   ]);
 
   // JS-based count for relievers to perfectly match the UI Date logic without any auto-done
@@ -189,8 +155,8 @@ async function getKPI(env, origin) {
       if (!parsedDate || !parsedDate.startsWith(curM)) continue; // Must be this month
 
       let status = (r.status || '').trim().toLowerCase();
-      
-      if (status === 'done' || status === 'selesai') {
+      // Strictly only count actual 'Done' statuses, NO auto-done estimation
+      if (status === 'done') {
         relieverCount++;
       }
     }
@@ -209,15 +175,8 @@ async function getKPI(env, origin) {
     inspection_month:{ current: inspCur?.c||0 },
     cleaning_month:  { current: cleanCur?.c||0 },
     fogging_month:   { current: fogCur?.c||0 },
-    reliever_total:  { current: relieverActive?.c || 0 },
-    reliever_completed: { current: relieverCount },
+    reliever_total:  { current: relieverCount },
     checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
-    kebersihan: {
-      area: { avg_fc: kebAreaCur?.avg_fc || 0, avg_spv: kebAreaCur?.avg_spv || 0 },
-      issues: { total: kebIssuesTotal?.c || 0, closed: kebIssuesClosed?.c || 0, cleanTotal: kebIssueCleanTotal?.c || 0 },
-      cleaning: { reported: kebCleanReported?.c || 0, scheduled: kebCleanScheduled?.c || 0 },
-      gcdc: { reported: kebGcdcReported?.c || 0, scheduled: kebGcdcScheduled?.c || 0 }
-    }
   }, 200, origin);
 }
 
@@ -240,7 +199,7 @@ async function getStats(env, origin) {
   ] = await Promise.all([
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM branches WHERE is_active=1").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date >= date('now')").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif'").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date BETWEEN date('now') AND date('now','+30 days')").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status != 'Done'").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status != 'Done'").first(),
@@ -330,74 +289,17 @@ async function getIssuesTrend(env, origin) {
 // ─── /contracts-chart — contracts expiring next 6 months ─────────────────────
 // Uses idx_contracts_status_end
 async function getContractsChart(env, origin) {
-  const y = new Date().getFullYear();
-  const startMonth = `${y}-06`;
-  const endMonth = `${y}-12`;
-
   const rows = await env.DB.prepare(
     `SELECT strftime('%Y-%m', end_date) m, COUNT(*) c
      FROM contracts
-     WHERE status='Aktif' 
-       AND strftime('%Y-%m', end_date) >= ? 
-       AND strftime('%Y-%m', end_date) <= ?
+     WHERE status='Aktif' AND end_date >= date('now') AND end_date <= date('now','+6 months')
      GROUP BY m ORDER BY m`
-  ).bind(startMonth, endMonth).all();
+  ).all();
 
-  const labels = [];
-  for (let m = 6; m <= 12; m++) {
-    labels.push(`${y}-${String(m).padStart(2,'0')}`);
-  }
-  
-  const map = Object.fromEntries((rows.results||[]).map(r=>[r.m, r.c]));
+  const labels = futureMonthLabels(6);
+  const map    = Object.fromEntries((rows.results||[]).map(r=>[r.m, r.c]));
 
-  return ok({ labels, data: labels.map(l => map[l] || 0) }, 200, origin);
-}
-
-// ─── /schedule-chart — monthly activity schedule ─────────────────────────────
-async function getScheduleChart(request, env, origin) {
-  const url = new URL(request.url);
-  const year = url.searchParams.get('year') || String(new Date().getFullYear());
-  
-  const [rows, foggingRows] = await Promise.all([
-    env.DB.prepare(
-      `SELECT strftime('%m', target_date) as month, activity_type, COUNT(*) as count 
-       FROM activity_schedule 
-       WHERE target_date LIKE ? 
-       GROUP BY month, activity_type`
-    ).bind(`${year}-%`).all(),
-    env.DB.prepare(
-      `SELECT strftime('%m', activity_date) as month, COUNT(*) as count 
-       FROM fogging_reports 
-       WHERE activity_date LIKE ? 
-       GROUP BY month`
-    ).bind(`${year}-%`).all()
-  ]);
-
-  // Parse results into monthly datasets
-  const data = {
-    'Inspeksi Hygiene': Array(12).fill(0),
-    'General Cleaning': Array(12).fill(0),
-    'Deep Cleaning': Array(12).fill(0),
-    'Fogging': Array(12).fill(0)
-  };
-
-  (rows.results || []).forEach(r => {
-    const monthIdx = parseInt(r.month, 10) - 1;
-    if (monthIdx >= 0 && monthIdx <= 11) {
-      if (data[r.activity_type]) {
-        data[r.activity_type][monthIdx] = r.count;
-      }
-    }
-  });
-
-  (foggingRows.results || []).forEach(r => {
-    const monthIdx = parseInt(r.month, 10) - 1;
-    if (monthIdx >= 0 && monthIdx <= 11) {
-      data['Fogging'][monthIdx] += r.count;
-    }
-  });
-
-  return ok(data, 200, origin);
+  return ok({ labels, counts: labels.map(l => map[l] || 0) }, 200, origin);
 }
 
 // ─── /issues-summary — donut + by_status + by_branch ─────────────────────────
@@ -425,22 +327,33 @@ async function getIssuesSummary(env, origin) {
   }, 200, origin);
 }
 
-// ─── /inspection-bar — avg score per branch (last 6 months) ──────────────────
+// ─── /inspection-bar — avg score per branch ──────────────────────────────────
 // Uses idx_inspection_branch_date
+async function getInspectionMonths(env, origin) {
+  const rows = await env.DB.prepare(
+    `SELECT DISTINCT strftime('%Y-%m', inspection_date) mo
+     FROM inspection_reports
+     ORDER BY mo`
+  ).all();
+  return ok((rows.results||[]).map(r => r.mo), 200, origin);
+}
+
 async function getInspectionBar(request, env, origin) {
+
   const url = new URL(request.url);
   const month = url.searchParams.get('month');
   
-  let qParams = [];
-  let whereClause = "";
-  
+  let whereClause, bindVals;
   if (month) {
-    whereClause = "strftime('%m', r.inspection_date) = ? AND strftime('%Y', r.inspection_date) = ?";
-    qParams = [month, String(new Date().getFullYear())];
+    whereClause = "WHERE strftime('%Y-%m', r.inspection_date) = ?";
+    bindVals = [month];
   } else {
-    whereClause = "r.inspection_date >= ?";
-    const d = new Date(); d.setMonth(d.getMonth()-5);
-    qParams = [`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`];
+    const since = (() => {
+      const d = new Date(); d.setMonth(d.getMonth()-11);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
+    })();
+    whereClause = "WHERE r.inspection_date >= ?";
+    bindVals = [since];
   }
 
   const rows = await env.DB.prepare(
@@ -450,10 +363,10 @@ async function getInspectionBar(request, env, origin) {
      COUNT(*) total
      FROM inspection_reports r
      LEFT JOIN branches b ON r.branch_id=b.id
-     WHERE ${whereClause}
+     ${whereClause}
      GROUP BY r.branch_id
      ORDER BY avg_fc DESC LIMIT 15`
-  ).bind(...qParams).all();
+  ).bind(...bindVals).all();
 
   const results = rows.results || [];
   return ok({
@@ -519,7 +432,9 @@ async function getActivityLog(env, origin) {
       env.DB.prepare(
         `SELECT 'reliever' type, COALESCE(reliever_name,'Reliefer') label, created_at,
          branch_id, reason info
-         FROM relievers ORDER BY created_at DESC LIMIT 3`
+         FROM relievers 
+         WHERE LOWER(TRIM(status)) = 'done'
+         ORDER BY created_at DESC LIMIT 3`
       ).all(),
       env.DB.prepare(
         `SELECT 'inspection' type, period label, created_at,
@@ -586,7 +501,7 @@ async function getCalendarEvents(request, env, origin) {
       `SELECT r.id,'reliever' type,r.backup_date event_date,r.reliever_name title,
        r.status,b.full_name branch_name,'teal' color
        FROM relievers r LEFT JOIN branches b ON r.branch_id=b.id
-       WHERE ${dateFilter('r.backup_date')}`
+       WHERE ${dateFilter('r.backup_date')} AND LOWER(TRIM(r.status)) = 'done'`
     ).bind(...bind).all(),
     env.DB.prepare(
       `SELECT t.id,'training' type,t.training_date event_date,t.subject title,
@@ -670,11 +585,9 @@ async function getCalendarEvents(request, env, origin) {
   });
 
   const events = [
-    ...(sched.results||[]), ...(issR.results||[]),
-    ...(relR.results||[]),  ...(trainR.results||[]),
-    ...(oneR.results||[]),  ...(cleanR.results||[]),
-    ...(inspR.results||[]),  ...(fogR.results||[]),
-    ...(baseR.results||[]),  ...(supplyR.results||[]),
+    ...(sched.results||[]), ...(relR.results||[]),
+    ...(cleanR.results||[]), ...(inspR.results||[]),
+    ...(fogR.results||[]),
     ...contractEvents
   ].sort((a,b)=>(a.event_date||'').localeCompare(b.event_date||''));
 
