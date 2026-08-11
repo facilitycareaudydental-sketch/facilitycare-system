@@ -136,7 +136,7 @@ export async function renderTraining(container) {
           { name: 'trainer', label: 'Trainer', type: 'combobox', options: getPicOptions(data?.trainer), value: data?.trainer },
         ]
       },
-      { name: 'participants', label: 'Peserta (pisahkan dengan koma)', type: 'textarea', rows: 3, placeholder: 'Nama Peserta 1, Nama Peserta 2, ...', value: (() => { try { const arr = JSON.parse(data?.participants); return Array.isArray(arr) ? arr.join(', ') : (data?.participants || ''); } catch { return data?.participants || ''; } })() },
+      { name: 'participants', label: 'Peserta', type: 'textarea', rows: 3, placeholder: 'Nama Peserta 1, Nama Peserta 2, ...', value: (() => { try { const arr = JSON.parse(data?.participants); return Array.isArray(arr) ? arr.join(', ') : (data?.participants || ''); } catch { return data?.participants || ''; } })() },
       {
         type: 'row', fields: [
           { name: 'score', label: 'Nilai / Score', type: 'number', step: '0.1', min: '0', max: '100', value: data?.score },
@@ -146,10 +146,7 @@ export async function renderTraining(container) {
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],
     onBeforeSubmit: async (body) => {
-      // Convert comma-separated participants to JSON array
-      if (body.participants) {
-        body.participants = JSON.stringify(body.participants.split(',').map(s => s.trim()).filter(Boolean));
-      }
+      // Keep participants as plain text (no JSON conversion)
       return body;
     },
   });
