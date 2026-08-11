@@ -143,24 +143,12 @@ async function getKPI(env, origin) {
     // Uses idx_fogging_date
     env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
 
-    // Fetch all relievers to parse dates exactly like the UI
-    env.DB.prepare("SELECT backup_date, status FROM relievers").all(),
+    // Count active reliever employees
+    env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif' AND division='FC - RELIEFER'").first(),
   ]);
 
-  // JS-based count for relievers to perfectly match the UI Date logic without any auto-done
-  let relieverCount = 0;
-  if (allRelieversRes && allRelieversRes.results) {
-    for (const r of allRelieversRes.results) {
-      const parsedDate = parseFlexibleDate(r.backup_date);
-      if (!parsedDate || !parsedDate.startsWith(curM)) continue; // Must be this month
+  const relieverCount = allRelieversRes?.c || 0;
 
-      let status = (r.status || '').trim().toLowerCase();
-      // Strictly only count actual 'Done' statuses, NO auto-done estimation
-      if (status === 'done') {
-        relieverCount++;
-      }
-    }
-  }
 
   return ok({
     employees:       { current: empActive?.c||0,       prev: empPrevMonth?.c||0 },
