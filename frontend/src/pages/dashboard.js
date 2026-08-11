@@ -712,7 +712,6 @@ function renderMiniStats(kpi) {
         a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
       }
     });
-  }
 
   // Helper for month dropdowns
   const setupMonthDropdown = (selectId, cardId, dataArr, countLogic, hrefBase) => {
