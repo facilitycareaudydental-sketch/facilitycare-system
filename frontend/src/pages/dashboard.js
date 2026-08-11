@@ -89,7 +89,7 @@ function trendBadge(cur, prev) {
   return `<span class="kpi-trend neutral">= Sama</span>`;
 }
 
-// ── Status pill ────────────────────────────────────────────────────────────
+// ── Status pill ─��──────────────────────────────────────────────────────────
 const STATUS_CLS = {
   'Done':'pill-success','Aktif':'pill-success','Selesai':'pill-success',
   'Open':'pill-danger','Pending':'pill-warning','In Progress':'pill-info',
@@ -509,6 +509,10 @@ async function fetchAll(container) {
     }
     if (kpi.one_on_one) {
       kpi.one_on_one.current = oneOnOnes.filter(s => filterOoO(s, 'pending')).length;
+    }
+    if (kpi.schedule) {
+      const curQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
+      kpi.schedule.current = schedules.filter(s => s.period === curQ).length;
     }
     if (kpi.inspection_month) {
       kpi.inspection_month.current = schedules.filter(s => filterSched(s, 'inspeksi')).length;
@@ -1116,7 +1120,7 @@ function renderQuickActions() {
   `).join('');
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────��─────────────────────────
 function hideSkel(skelId, canvasId) {
   const skel = document.getElementById(skelId);
   const cvs  = document.getElementById(canvasId);
