@@ -41,7 +41,7 @@ export function filterDashboardItem(s, type) {
     if (status !== 'aktif') return false;
     
     if (type === 'active') {
-      return true; // TAMPILKAN SEMUA KONTRAK AKTIF WALAUPUN EXPIRED
+      return true; // All contracts with status 'Aktif' are considered active
     }
     
     if (type === 'expiring30') {
@@ -60,22 +60,18 @@ export function filterDashboardItem(s, type) {
 export async function renderContracts(container, params) {
   await loadOptions();
   
-  const dashFilter = params ? params.get('dash_filter') : null;
-
+  const defaultFilters = {};
 
   buildCrudPage({
     container,
     title: 'Data Kontrak',
-    icon: '📄',
+    icon: '📋',
     apiPath: '/api/contracts',
     bulkDelete: true,
-    enableMobileFilterSheet: true,
     itemLabel: 'Kontrak',
     paginationMode: 'client',
+    defaultFilters,
     onDataLoaded: (items) => {
-      if (dashFilter) {
-        return items.filter(s => filterDashboardItem(s, dashFilter));
-      }
       return items;
     },
     columns: [
@@ -89,24 +85,8 @@ export async function renderContracts(container, params) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
-      { type: 'select', name: 'month_expiry', label: 'Bulan Habis', options: [
-        { value: '2026-06', label: 'Jun 2026' },
-        { value: '2026-07', label: 'Jul 2026' },
-        { value: '2026-08', label: 'Agu 2026' },
-        { value: '2026-09', label: 'Sep 2026' },
-        { value: '2026-10', label: 'Okt 2026' },
-        { value: '2026-11', label: 'Nov 2026' },
-        { value: '2026-12', label: 'Des 2026' },
-        { value: '2027-01', label: 'Jan 2027' },
-        { value: '2027-02', label: 'Feb 2027' },
-        { value: '2027-03', label: 'Mar 2027' },
-        { value: '2027-04', label: 'Apr 2027' },
-        { value: '2027-05', label: 'Mei 2027' },
-        { value: '2027-06', label: 'Jun 2027' },
-        { value: '2027-07', label: 'Jul 2027' },
-      ]},
       { type: 'select', name: 'expiring_days', label: 'Akan Habis', options: [
         { value: '7', label: '7 Hari' },
         { value: '14', label: '14 Hari' },
@@ -123,7 +103,7 @@ export async function renderContracts(container, params) {
         const btn = document.createElement('button');
         btn.id = 'btn-find-missing';
         btn.className = 'btn btn-ghost';
-        btn.innerHTML = '🔍 Detail Kontrak';
+        btn.innerHTML = '🔍 Cek Selisih Karyawan';
         btn.style.marginLeft = '8px';
         btn.style.color = '#EF4444';
         btn.style.border = '1px solid currentColor';
@@ -137,47 +117,29 @@ export async function renderContracts(container, params) {
             ]);
             
             if (activeEmps.length > 0) {
-              const activeContracts = allContracts.filter(c => c.status === 'Aktif' && (c.days_remaining == null || c.days_remaining >= 0 || String(c.end_date).startsWith('2099')));
+              const activeContracts = allContracts.filter(c => c.status === 'Aktif');
               const activeConEmpIds = new Set(activeContracts.map(c => c.employee_id));
               
               const missing = activeEmps.filter(e => !activeConEmpIds.has(e.id));
-              
-              const empsWithoutAnyContract = [];
-              const empsWithExpiredContract = [];
-
+              let html = `<p style="margin-bottom:12px">Data yang terbaca: <b>${activeEmps.length}</b> Karyawan Aktif, dan <b>${activeContracts.length}</b> Kontrak Aktif.</p>
+              <p style="margin-bottom:12px">Terdapat <b>${missing.length}</b> karyawan aktif yang tidak memiliki "Kontrak Aktif". Berikut daftarnya:</p><ul style="padding-left:20px; max-height:400px; overflow-y:auto">`;
               missing.forEach(m => {
                  const theirContracts = allContracts.filter(c => c.employee_id === m.id);
-                 if (theirContracts.length === 0) {
-                    empsWithoutAnyContract.push(m);
-                 } else {
-                    empsWithExpiredContract.push({ emp: m, lastContract: theirContracts[0] });
+                 let conInfo = '<span style="color:#F59E0B">Belum pernah di-input kontrak</span>';
+                 if (theirContracts.length > 0) {
+                    const last = theirContracts[0];
+                    conInfo = `Pernah ada kontrak (Status: <b style="color:#EF4444">${last.status}</b>, Selesai: ${window.formatDate(last.end_date)})`;
                  }
+                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:var(--text-2)">Cabang: ${m.branch_name || '-'} | ${conInfo}</span></li>`;
               });
-
-              let html = `<p style="margin-bottom:12px">Data yang terbaca: <b>${activeEmps.length}</b> Karyawan Aktif, dan <b>${activeContracts.length}</b> Kontrak Aktif.</p>
-              <p style="margin-bottom:6px">Terdapat <b>${empsWithoutAnyContract.length}</b> karyawan aktif tanpa kontrak.</p>
-              <p style="margin-bottom:12px">Terdapat <b>${empsWithExpiredContract.length}</b> karyawan aktif yang memiliki masa kontrak Expired.</p>
-              <ul style="padding-left:20px; max-height:400px; overflow-y:auto">`;
-              
-              empsWithoutAnyContract.forEach(m => {
-                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:#F59E0B">Cabang: ${m.branch_name || '-'} | Belum pernah di-input kontrak</span></li>`;
-              });
-
-              empsWithExpiredContract.forEach(item => {
-                 const m = item.emp;
-                 const last = item.lastContract;
-                 const displayStatus = (last.status === 'Aktif' && last.days_remaining < 0) ? 'Aktif (Masa Habis)' : last.status;
-                 html += `<li style="margin-bottom:8px"><b>${m.full_name}</b> <br><span style="font-size:0.85em;color:var(--text-2)">Cabang: ${m.branch_name || '-'} | Status Terakhir: <b style="color:#EF4444">${displayStatus}</b>, Tgl Berakhir: ${window.formatDate(last.end_date)}</span></li>`;
-              });
-              
               html += '</ul>';
               
-              import('../components/modal.js').then(m => m.createModal({ title: 'Detail Karyawan Tanpa Kontrak Aktif', content: html, cancelText: 'Tutup' }));
+              import('../components/modal.js').then(m => m.createModal({ title: 'Karyawan Tanpa Kontrak Aktif', content: html, cancelText: 'Tutup' }));
             }
           } catch(e) {
              console.error(e);
           }
-          btn.innerHTML = '🔍 Detail Kontrak';
+          btn.innerHTML = '🔍 Cek Selisih Karyawan';
           btn.disabled = false;
         };
         const actionsEl = document.querySelector('.page-actions');
@@ -187,8 +149,8 @@ export async function renderContracts(container, params) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'employee_id', label: 'Nama Lengkap', type: 'select', required: true, options: employeeOptions, value: data?.employee_id },
-          { name: 'branch_id', label: 'Cabang', type: 'select', options: branchOptions, value: data?.branch_id },
+          { name: 'employee_id', label: 'Nama Lengkap', type: 'combobox', required: true, options: employeeOptions, value: data?.employee_id },
+          { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
         ]
       },
       {
@@ -367,10 +329,12 @@ export async function renderContracts(container, params) {
           let reason = null;
           if (!empId) {
              reason = `Karyawan tidak ditemukan di Database`;
+          } else if (!parsedStartDate) {
+             reason = `Tanggal Mulai kosong atau tidak berformat tanggal`;
           }
 
           return {
-            isValid: !!(empId),
+            isValid: !!(empId && parsedStartDate),
             invalidReason: reason,
             rowNum: rowNum,
             data: {
@@ -403,16 +367,42 @@ export async function renderContracts(container, params) {
         console.log(`Split Validation - Valid: ${validPayload.length}, Invalid: ${invalidList.length}`);
         
         if (validPayload.length === 0) {
-           return { inserted: 0, skipped: json.length, failed: json.length };
+           let errorMsg = `SEMUA BARIS GAGAL IMPORT!\n\nTotal Excel: ${json.length}\nValid: 0\nInvalid: ${invalidList.length}\n\nDaftar Kegagalan (Contoh):\n`;
+           invalidList.slice(0, 10).forEach(inv => {
+               errorMsg += `- Row ${inv.rowNum} | Nama: ${inv.name} | Alasan: ${inv.reason}\n`;
+           });
+           if (invalidList.length > 10) errorMsg += `- ... dan ${invalidList.length - 10} lainnya.\n`;
+           alert(errorMsg);
+           return;
         }
         
-        const res = await apiFetch('/api/import/contracts', {
+        const res = await apiFetch('/api/contracts/import', {
           method: 'POST',
-          body: JSON.stringify({ rows: validPayload, onDuplicate: 'update' })
+          body: JSON.stringify(validPayload)
         });
         
-        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
+        let summary = `IMPORT SUMMARY\n======================\n`;
+        summary += `Total Baris Excel : ${json.length}\n`;
+        summary += `Baris Valid       : ${validPayload.length}\n`;
+        summary += `Baris Invalid     : ${invalidList.length}\n\n`;
+        
+        if (res && res.data && res.data.metrics) {
+           summary += `Berhasil INSERT   : ${res.data.metrics.inserted}\n`;
+           summary += `Berhasil UPDATE   : ${res.data.metrics.updated}\n`;
+        } else {
+           summary += `Berhasil diproses : ${validPayload.length}\n`;
+        }
+        
+        if (invalidList.length > 0) {
+           summary += `\nDAFTAR DATA DILEWATI:\n`;
+           invalidList.forEach(inv => {
+               summary += `- Row ${inv.rowNum} | ${inv.name} | ${inv.reason}\n`;
+           });
+        }
+        
+        alert(summary);
+        
+        if (typeof renderContracts === 'function') renderContracts();
       }
     }
   });

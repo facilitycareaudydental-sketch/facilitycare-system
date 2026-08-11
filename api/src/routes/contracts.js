@@ -2,8 +2,6 @@ import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
 import { runSync } from '../utils/calendar.js';
-import { buildOutboxQuery } from '../utils/sync_engine.js';
-import { mapDBToPayload } from '../utils/sync_mapper.js';
 
 export async function handleContracts(request, env, origin) {
   const user = await authenticate(request, env);
@@ -45,7 +43,6 @@ async function listContracts(request, env, origin) {
   const branch_id = url.searchParams.get('branch_id') || '';
   const status = url.searchParams.get('status') || '';
   const expiring_days = url.searchParams.get('expiring_days') || '';
-  const month_expiry = url.searchParams.get('month_expiry') || '';
 
   let conditions = ['1=1'];
   let values = [];
@@ -57,12 +54,8 @@ async function listContracts(request, env, origin) {
     conditions.push("c.end_date <= date('now', '+' || ? || ' days') AND c.end_date >= date('now')");
     values.push(expiring_days);
   }
-  if (month_expiry) {
-    conditions.push("strftime('%Y-%m', c.end_date) = ?");
-    values.push(month_expiry);
-  }
 
-  const where = 'WHERE ' + conditions.join(' AND ') + ' AND c.deleted_at IS NULL';
+  const where = 'WHERE ' + conditions.join(' AND ');
 
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total FROM contracts c LEFT JOIN employees e ON c.employee_id = e.id ${where}`
@@ -70,11 +63,11 @@ async function listContracts(request, env, origin) {
 
   const rows = await env.DB.prepare(
     `SELECT c.*, e.full_name as employee_name, b.full_name as branch_name,
-      CAST(julianday(c.end_date) - julianday('now') AS INTEGER) as days_remaining
+      CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER) as days_remaining
      FROM contracts c 
      LEFT JOIN employees e ON c.employee_id = e.id
      LEFT JOIN branches b ON c.branch_id = b.id
-     ${where} ORDER BY c.end_date ASC, c.id ASC LIMIT ? OFFSET ?`
+     ${where} ORDER BY c.end_date ASC LIMIT ? OFFSET ?`
   ).bind(...values, limit, offset).all();
 
   return paginated(rows.results, countResult.total, page, limit, origin);
@@ -83,7 +76,7 @@ async function listContracts(request, env, origin) {
 async function getContract(id, env, origin) {
   const row = await env.DB.prepare(
     `SELECT c.*, e.full_name as employee_name, b.full_name as branch_name,
-      CAST(julianday(c.end_date) - julianday('now') AS INTEGER) as days_remaining
+      CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER) as days_remaining
      FROM contracts c 
      LEFT JOIN employees e ON c.employee_id = e.id
      LEFT JOIN branches b ON c.branch_id = b.id
@@ -119,12 +112,6 @@ async function createContract(request, env, origin) {
     console.error('Calendar sync error (non-fatal):', syncErr.message);
   }
 
-  const newRecord = await env.DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(newId).first();
-  if (newRecord) {
-    const payload = mapDBToPayload('Master Kontrak', newRecord);
-    await buildOutboxQuery(env, 'Master Kontrak', newId, 'INSERT', payload).run();
-  }
-
   return ok({ id: newId }, 201, origin);
 }
 
@@ -134,29 +121,22 @@ async function updateContract(id, request, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM contracts WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
 
-  const updatedRecord = { ...existing, employee_id: employee_id || existing.employee_id, branch_id: branch_id || existing.branch_id, division: division || existing.division, start_date: start_date || existing.start_date, end_date: end_date || existing.end_date, contract_type: contract_type || existing.contract_type, pkwt_number: pkwt_number || existing.pkwt_number, status: status !== null && status !== undefined && status !== '' ? status : existing.status, notes: notes || existing.notes };
-  const payload = mapDBToPayload('Master Kontrak', updatedRecord);
-
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE contracts SET 
-        employee_id = COALESCE(?, employee_id),
-        branch_id = COALESCE(?, branch_id),
-        division = COALESCE(?, division),
-        start_date = COALESCE(?, start_date),
-        end_date = COALESCE(?, end_date),
-        contract_type = COALESCE(?, contract_type),
-        pkwt_number = COALESCE(?, pkwt_number),
-        status = COALESCE(?, status),
-        notes = COALESCE(?, notes),
-        updated_at = datetime('now'),
-        row_version = COALESCE(row_version, 0) + 1,
-        last_sync_source = 'FCMS'
-       WHERE id = ?`
-    ).bind(employee_id || null, branch_id || null, division || null, start_date || null,
-      end_date || null, contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id),
-    buildOutboxQuery(env, 'Master Kontrak', id, 'UPDATE', payload)
-  ]);
+  const { employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes } = body;
+  await env.DB.prepare(
+    `UPDATE contracts SET 
+      employee_id = COALESCE(?, employee_id),
+      branch_id = COALESCE(?, branch_id),
+      division = COALESCE(?, division),
+      start_date = COALESCE(?, start_date),
+      end_date = COALESCE(?, end_date),
+      contract_type = COALESCE(?, contract_type),
+      pkwt_number = COALESCE(?, pkwt_number),
+      status = COALESCE(?, status),
+      notes = COALESCE(?, notes),
+      updated_at = datetime('now')
+     WHERE id = ?`
+  ).bind(employee_id || null, branch_id || null, division || null, start_date || null,
+    end_date || null, contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
 
   // Sync updated values
   const updatedContract = await env.DB.prepare('SELECT employee_id, branch_id, end_date, status FROM contracts WHERE id = ?').bind(id).first();
@@ -179,16 +159,9 @@ async function updateContract(id, request, env, origin) {
 }
 
 async function deleteContract(id, env, origin) {
-  const existing = await env.DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT id FROM contracts WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
-  
-  const deletedRecord = { ...existing, deleted_at: new Date().toISOString() };
-  const payload = mapDBToPayload('Master Kontrak', deletedRecord);
-
-  await env.DB.batch([
-    env.DB.prepare("UPDATE contracts SET deleted_at = datetime('now'), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?").bind(id),
-    buildOutboxQuery(env, 'Master Kontrak', id, 'DELETE', payload)
-  ]);
+  await env.DB.prepare('DELETE FROM contracts WHERE id = ?').bind(id).run();
   try { await runSync(env.DB, 'contracts', id, null); } catch (e) { /* non-fatal */ }
   return ok({ message: 'Contract deleted' }, 200, origin);
 }
@@ -206,7 +179,7 @@ async function importContracts(request, env, origin) {
     const countBefore = countBeforeRes.c;
     
     for (const item of body) {
-      if (!item.employee_id) continue;
+      if (!item.employee_id || !item.start_date || !item.end_date) continue;
 
       const existing = await env.DB.prepare('SELECT id FROM contracts WHERE employee_id = ? ORDER BY id DESC LIMIT 1').bind(item.employee_id).first();
       
