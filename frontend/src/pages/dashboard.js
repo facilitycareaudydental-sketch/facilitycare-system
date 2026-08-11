@@ -510,17 +510,6 @@ async function fetchAll(container) {
     if (kpi.one_on_one) {
       kpi.one_on_one.current = oneOnOnes.filter(s => filterOoO(s, 'pending')).length;
     }
-    if (kpi.schedule) {
-      const curQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
-      kpi.schedule.current = schedules.filter(s => {
-        if (s.period === curQ) return true;
-        if (s.target_date) {
-          const m = parseInt(s.target_date.split('-')[1], 10);
-          return m && `Q${Math.ceil(m / 3)}` === curQ;
-        }
-        return false;
-      }).length;
-    }
     if (kpi.inspection_month) {
       kpi.inspection_month.current = schedules.filter(s => filterSched(s, 'inspeksi')).length;
     }
@@ -692,17 +681,11 @@ function renderMiniStats(kpi) {
 
   // Add event listener for the Jadwal period dropdown
   const jadwalSelect = document.getElementById('dash-jadwal-period');
-  if (jadwalSelect) jadwalSelect.addEventListener('change', (e) => {
-        const p = e.target.value;
-        const count = (window.dashboardSchedules || []).filter(s => {
-          if (s.period === p) return true;
-          if (s.target_date) {
-            const m = parseInt(s.target_date.split('-')[1], 10);
-            return m && `Q${Math.ceil(m / 3)}` === p;
-          }
-          return false;
-        }).length;
-        const valEl = document.querySelector('#mini-jadwal .mini-stat-value');
+  if (jadwalSelect) {
+    jadwalSelect.addEventListener('change', (e) => {
+      const p = e.target.value;
+      const count = (window.dashboardSchedules || []).filter(s => s.period === p).length;
+      const valEl = document.querySelector('#mini-jadwal .mini-stat-value');
       if (valEl) {
         valEl.dataset.target = count;
         valEl.textContent = count;
@@ -712,6 +695,7 @@ function renderMiniStats(kpi) {
         a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
       }
     });
+  }
 
   // Helper for month dropdowns
   const setupMonthDropdown = (selectId, cardId, dataArr, countLogic, hrefBase) => {
