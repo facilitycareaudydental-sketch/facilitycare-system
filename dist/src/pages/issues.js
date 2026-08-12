@@ -27,7 +27,7 @@ export async function renderIssues(container, params) {
   };
 
   const currentYear = new Date().getFullYear();
-  const years = ['2025', '2026', '2027', '2028', '2029', '2030'];
+  const years = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
 
   buildCrudPage({
     container,
@@ -37,10 +37,8 @@ export async function renderIssues(container, params) {
     bulkDelete: true,
     itemLabel: 'Permasalahan',
     paginationMode: 'client',
+    defaultFilters: { status: dashFilter === 'open' ? 'Open' : '' },
     onDataLoaded: (items) => {
-      if (dashFilter) {
-        return items.filter(s => filterDashboardItem(s, dashFilter));
-      }
       return items;
     },
     columns: [
@@ -58,21 +56,7 @@ export async function renderIssues(container, params) {
     ],
     filterFields: [
       { type: 'search', placeholder: 'Cari keluhan / nama FC...' },
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
-      { type: 'select', name: 'month', label: 'Bulan', options: [
-        { value: '2026-01', label: 'Jan 2026' },
-        { value: '2026-02', label: 'Feb 2026' },
-        { value: '2026-03', label: 'Mar 2026' },
-        { value: '2026-04', label: 'Apr 2026' },
-        { value: '2026-05', label: 'Mei 2026' },
-        { value: '2026-06', label: 'Jun 2026' },
-        { value: '2026-07', label: 'Jul 2026' },
-        { value: '2026-08', label: 'Agu 2026' },
-        { value: '2026-09', label: 'Sep 2026' },
-        { value: '2026-10', label: 'Okt 2026' },
-        { value: '2026-11', label: 'Nov 2026' },
-        { value: '2026-12', label: 'Des 2026' },
-      ]},
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'category', label: 'Kategori', options: ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Open', 'In Progress', 'Done'] },
       { type: 'select', name: 'year', label: 'Tahun', options: years },
@@ -155,12 +139,11 @@ export async function renderIssues(container, params) {
           status: String(row['Status'] || '').trim(),
         })).filter(row => row.report_date && row.complaint && row.category);
         
-        const res = await apiFetch('/api/import/issues', {
+        const res = await apiFetch('/api/issues/import', {
           method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+          body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     }
   });

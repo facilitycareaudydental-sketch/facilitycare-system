@@ -15,7 +15,7 @@ export async function renderOneOnOne(container, params) {
   const dashFilter = params ? params.get('dash_filter') : null;
   branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
-  const rawPicOptions = ['Ade', 'Berlin'];
+  const rawPicOptions = ['Ade Surahman', 'Berlin Ariansyah', 'Mizwar', 'Fajar', 'Ade', 'Berlin'];
   
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -39,10 +39,8 @@ export async function renderOneOnOne(container, params) {
     bulkDelete: true,
     itemLabel: 'One on One',
     paginationMode: 'client',
+    defaultFilters: { status: dashFilter === 'pending' ? 'Open' : '' },
     onDataLoaded: (items) => {
-      if (dashFilter) {
-        return items.filter(s => filterDashboardItem(s, dashFilter));
-      }
       return items;
     },
     columns: [
@@ -129,12 +127,8 @@ export async function renderOneOnOne(container, params) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.meeting_date && r.employee_name && r.branch_id);
         
-        const res = await apiFetch('/api/import/one_on_one', {
-          method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
-        });
+        const res = await apiFetch('/api/one-on-one/import', { method: 'POST', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     },
     formFields: (data) => [

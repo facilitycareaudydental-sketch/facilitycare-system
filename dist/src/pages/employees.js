@@ -15,14 +15,14 @@ async function loadBranches() {
 export function filterDashboardItem(s, type) {
   const status = String(s.status || '').toLowerCase();
   if (type === 'active') return status === 'aktif';
-  if (type === 'reliefer') return s.division === 'FC - RELIEFER' && status === 'aktif';
   return false;
 }
 
 export async function renderEmployees(container, params) {
+  const dashFilter = params ? params.get('dash_filter') : null;
   const branchOptions = await loadBranches();
   
-  const dashFilter = params ? params.get('dash_filter') : null;
+  const defaultFilters = { status: dashFilter === 'active' ? 'Aktif' : '' };
 
   buildCrudPage({
     container,
@@ -32,10 +32,8 @@ export async function renderEmployees(container, params) {
     itemLabel: 'Karyawan',
     bulkDelete: true,
     paginationMode: 'client',
+    defaultFilters,
     onDataLoaded: (items) => {
-      if (dashFilter) {
-        return items.filter(s => filterDashboardItem(s, dashFilter));
-      }
       return items;
     },
     columns: [
@@ -49,7 +47,7 @@ export async function renderEmployees(container, params) {
     filterFields: [
       { type: 'search', placeholder: 'Cari nama karyawan...' },
       { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
-      { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY', 'FC - RELIEFER'] },
+      { type: 'select', name: 'division', label: 'Divisi', options: ['FACILITY CARE', 'SECURITY'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'] },
     ],
     formFields: (data) => [
@@ -62,7 +60,7 @@ export async function renderEmployees(container, params) {
       {
         type: 'row', fields: [
           { name: 'branch_id', label: 'Cabang', type: 'combobox', options: branchOptions, value: data?.branch_id },
-          { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY', 'FC - RELIEFER'], value: data?.division || 'FACILITY CARE' },
+          { name: 'division', label: 'Divisi', type: 'select', required: true, options: ['FACILITY CARE', 'SECURITY'], value: data?.division || 'FACILITY CARE' },
         ]
       },
       {
@@ -115,12 +113,11 @@ export async function renderEmployees(container, params) {
           notes: String(row['Catatan'] || '').trim(),
         })).filter(row => row.full_name);
         
-        const res = await apiFetch('/api/import/employees', {
+        const res = await apiFetch('/api/employees/import', {
           method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+          body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     }
   });

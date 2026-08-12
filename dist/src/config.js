@@ -38,9 +38,13 @@ export async function apiFetch(path, options = {}) {
   };
   
   try {
+    let finalPath = path;
+    if (finalPath.startsWith('/api/') && !finalPath.startsWith('/api/v1/')) {
+      finalPath = '/api/v1/' + finalPath.substring(5);
+    }
     const cacheBuster = `cb=${Date.now()}`;
-    const separator = path.includes('?') ? '&' : '?';
-    const finalUrl = `${API}${path}${separator}${cacheBuster}`;
+    const separator = finalPath.includes('?') ? '&' : '?';
+    const finalUrl = `${API}${finalPath}${separator}${cacheBuster}`;
     
     const res = await fetch(finalUrl, { ...options, headers });
     let data;

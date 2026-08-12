@@ -1,5 +1,3 @@
-import { confirmDialog } from './modal.js';
-
 // Reusable data table with pagination
 export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data', bulkSelect = null }) {
   const wrapper = document.createElement('div');
@@ -66,6 +64,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.className = 'row-checkbox';
+      cb.value = row.id; // ← penting: agar updateBulkToolbar bisa baca value
       cb.checked = bulkSelect.selectedIds.has(row.id);
       cb.addEventListener('change', () => {
         if (cb.checked) bulkSelect.selectedIds.add(row.id);

@@ -217,11 +217,11 @@ async function safeFetch(path, fallback, timeoutMs=8000) {
 
 // ── Force remove all skeletons (max 5s timeout safety net) ────────────────
 function forceRemoveSkeletons() {
-  ['skel-donut','skel-trend','skel-insp','skel-contract','skel-jadwal'].forEach(id => {
+  ['skel-donut','skel-trend','skel-insp','skel-contract'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  ['chart-donut','chart-trend','chart-insp','chart-contract','chart-jadwal'].forEach(id => {
+  ['chart-donut','chart-trend','chart-insp','chart-contract'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.style.display === 'none') {
       el.style.display = 'block';
@@ -279,86 +279,56 @@ export async function renderDashboard(container) {
       <div class="mini-stats-row" id="mini-stats-row">${skelMini()}</div>
 
       <!-- Charts Row -->
-      <div class="charts-row" style="grid-template-columns: 5fr 3fr 5fr;">
-        <!-- Jadwal Kegiatan Chart -->
+      <div class="charts-row">
         <div class="chart-card">
-          <div class="chart-card-header" style="align-items:flex-start">
-            <div>
-              <div class="chart-card-title">Jadwal Kegiatan</div>
-            </div>
-            <select id="filter-jadwal-year" class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--primary)">
-              <option value="2026">2026</option>
-              <option value="2027">2027</option>
-            </select>
-          </div>
-          <div class="chart-canvas-wrap" style="height:140px;position:relative;margin-top:10px">
-            <div id="skel-jadwal" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-            <canvas id="chart-jadwal" style="display:none"></canvas>
-          </div>
-          <div id="jadwal-legend" style="display:flex;justify-content:center;gap:6px;margin-top:10px;font-size:0.55rem;font-weight:600;color:var(--text-2);flex-wrap:nowrap;white-space:nowrap;">
-            <div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:8px;border-radius:2px;background:#3B82F6"></div> Inspeksi</div>
-            <div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:8px;border-radius:2px;background:#10B981"></div> General Cleaning</div>
-            <div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:8px;border-radius:2px;background:#F59E0B"></div> Deep Cleaning</div>
-            <div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:8px;border-radius:2px;background:#EF4444"></div> Fogging</div>
-          </div>
-        </div>
-        <div class="chart-card" style="display:flex; flex-direction:column;">
           <div class="chart-card-header">
             <div class="chart-card-title">Permasalahan per Kategori</div>
           </div>
-          <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-            <div style="display:flex; align-items:center; justify-content:center; gap:0px;">
-              <div class="chart-canvas-wrap" style="width:110px;height:110px;position:relative">
-                <div id="skel-donut" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-                <canvas id="chart-donut" style="display:none"></canvas>
-              </div>
-              <div id="donut-legend" class="donut-legend" style="width:65px; margin-left:8px"></div>
+          <div style="display:flex; gap:20px; align-items:center; height:140px">
+            <div class="chart-canvas-wrap" style="flex:1;height:100%;position:relative">
+              <div id="skel-donut" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+              <canvas id="chart-donut" style="display:none"></canvas>
             </div>
+            <div id="donut-legend" class="donut-legend" style="width:110px"></div>
           </div>
           <div style="text-align:center; font-size:0.75rem; color:var(--text-3); margin-top:16px">
             Periode: 22 Juni - 22 Juli 2026
           </div>
         </div>
         <div class="chart-card">
-          <div class="chart-card-header" style="align-items:flex-start">
-            <div class="chart-card-title" style="font-size:0.85rem">Trend Permasalahan 12 Bulan</div>
-            <div style="display:flex;align-items:center;gap:10px;font-size:0.6rem;font-weight:600;color:var(--text-2)">
-               <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:#EF4444"></div> Open</div>
-               <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:#10B981"></div> Closed</div>
+          <div class="chart-card-header" style="flex-wrap:wrap;gap:8px">
+            <div class="chart-card-title">Trend Permasalahan 12 Bulan</div>
+            <div class="trend-filters" style="display:flex;align-items:center;gap:5px;font-size:0.72rem;font-weight:600">
+               <button type="button" id="trend-filter-all" class="btn-trend-filter" style="padding:2px 8px;border-radius:6px;border:1px solid var(--primary,#2563EB);background:var(--primary,#2563EB);color:#fff;cursor:pointer;font-size:0.72rem;font-weight:600;transition:all 0.15s">Semua</button>
+               <button type="button" id="trend-filter-open" class="btn-trend-filter" style="display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;border:1px solid #EF4444;background:transparent;color:#EF4444;cursor:pointer;font-size:0.72rem;font-weight:600;transition:all 0.15s"><span style="width:7px;height:7px;border-radius:50%;background:#EF4444;display:inline-block"></span> Open</button>
+               <button type="button" id="trend-filter-closed" class="btn-trend-filter" style="display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;border:1px solid #10B981;background:transparent;color:#10B981;cursor:pointer;font-size:0.72rem;font-weight:600;transition:all 0.15s"><span style="width:7px;height:7px;border-radius:50%;background:#10B981;display:inline-block"></span> Closed</button>
             </div>
           </div>
-          <div class="chart-canvas-wrap" style="height:140px;position:relative;margin-top:10px">
+          <div class="chart-canvas-wrap" style="height:150px;position:relative">
             <div id="skel-trend" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-trend" style="display:none"></canvas>
           </div>
         </div>
-      </div>
-
-      <!-- Charts Row 2 -->
-      <div class="charts-row" style="grid-template-columns: 1fr; margin-top:16px;">
+        <!-- Kontrak Akan Habis -->
         <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title">Kontrak Akan Habis</div>
+            <a href="#/contracts" class="chart-link">Lihat Data</a>
+          </div>
+          <div class="chart-canvas-wrap" style="height:140px;position:relative;margin-top:10px">
+            <div id="skel-contract-mini" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
+            <canvas id="chart-contract-mini" style="display:none"></canvas>
+          </div>
+        </div>
+        <div class="chart-card" style="grid-column: 1 / -1;">
           <div class="chart-card-header" style="align-items:flex-start">
             <div>
               <a href="#/reports/inspection" class="chart-card-title" style="text-decoration:none; display:inline-block">Rata-rata Skor Inspeksi per Cabang <span style="font-size:0.8rem; color:var(--primary); font-weight:600; margin-left:8px">Lihat Laporan &rarr;</span></a>
               <div class="chart-card-subtitle" style="font-size:0.65rem">Skor rata-rata SCM & Cleaning</div>
             </div>
-            <select id="filter-insp-month" class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer">
-              <option value="">Pilih Bulan</option>
-              <option value="01">Januari</option>
-              <option value="02">Februari</option>
-              <option value="03">Maret</option>
-              <option value="04">April</option>
-              <option value="05">Mei</option>
-              <option value="06">Juni</option>
-              <option value="07">Juli</option>
-              <option value="08">Agustus</option>
-              <option value="09">September</option>
-              <option value="10">Oktober</option>
-              <option value="11">November</option>
-              <option value="12">Desember</option>
-            </select>
+            <select id="insp-month-filter" class="btn-ghost" style="padding:4px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;cursor:pointer"><option value="">Bulan Ini</option></select>
           </div>
-          <div class="chart-canvas-wrap" style="height:200px;position:relative;margin-top:10px">
+            <div class="chart-canvas-wrap" style="height:220px;position:relative;margin-top:10px;padding: 10px 0;">
             <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-insp" style="display:none"></canvas>
           </div>
@@ -375,24 +345,20 @@ export async function renderDashboard(container) {
           </div>
           <div id="widget-agenda" class="dash-table-wrap" style="height:160px;overflow-y:auto;overflow-x:hidden">${skelTable(3)}</div>
         </div>
-          <!-- Permasalahan Terbaru -->
+        <!-- KPI Kebersihan -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title">KPI Kebersihan</div>
+          </div>
+          <div id="widget-kpi-kebersihan" style="margin-top:0px">${skelTable(4)}</div>
+        </div>
+        <!-- Permasalahan Terbaru -->
         <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Permasalahan Terbaru</div>
             <a href="#/issues" class="chart-link">Lihat Semua</a>
           </div>
           <div id="table-issues" class="dash-table-wrap" style="height:160px;overflow-y:auto">${skelTable(3)}</div>
-        </div>
-        <!-- Kontrak Akan Habis -->
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <div class="chart-card-title">Kontrak Akan Habis</div>
-            <a href="#/contracts" class="chart-link">Lihat Data</a>
-          </div>
-          <div class="chart-canvas-wrap" style="height:160px;position:relative;margin-top:10px">
-            <div id="skel-contract-mini" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
-            <canvas id="chart-contract-mini" style="display:none"></canvas>
-          </div>
         </div>
       </div>
 
@@ -411,31 +377,6 @@ export async function renderDashboard(container) {
 
   document.getElementById('btn-dash-refresh')
     ?.addEventListener('click', () => fetchAll(container));
-
-  document.getElementById('filter-jadwal-year')?.addEventListener('change', async (e) => {
-    const year = e.target.value;
-    const labelEl = document.getElementById('jadwal-year-label');
-    if (labelEl) labelEl.textContent = year;
-    const skel = document.getElementById('skel-jadwal');
-    const cvs = document.getElementById('chart-jadwal');
-    if (skel) { skel.style.display = 'block'; skel.style.position = 'absolute'; }
-    if (cvs) cvs.style.display = 'none';
-    
-    const jadwalData = await safeFetch(`/api/dashboard/schedule-chart?year=${year}`, {}, 8000);
-    try { renderScheduleChart(jadwalData); } catch(err) { console.warn('ScheduleChart render:', err); hideSkel('skel-jadwal','chart-jadwal'); }
-  });
-
-  document.getElementById('filter-insp-month')?.addEventListener('change', async (e) => {
-    const month = e.target.value;
-    const url = month ? `/api/dashboard/inspection-bar?month=${month}` : '/api/dashboard/inspection-bar';
-    const skel = document.getElementById('skel-insp');
-    const cvs = document.getElementById('chart-insp');
-    if (skel) { skel.style.display = 'block'; skel.style.position = 'absolute'; }
-    if (cvs) cvs.style.display = 'none';
-    
-    const inspBar = await safeFetch(url, {}, 8000);
-    try { renderInspBar(inspBar); } catch(err) { console.warn('InspBar render:', err); hideSkel('skel-insp','chart-insp'); }
-  });
 
   // ── Safety: force remove skeletons after 5 seconds no matter what ──────
   container._skelTimeout = setTimeout(() => forceRemoveSkeletons(), 5000);
@@ -459,41 +400,29 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, contractChart, scheduleChartData, relieversData, foggingData] =
+  const [kpi, trend, issuesSum, inspBar, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, contractsChart] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
       safeFetch('/api/dashboard/issues-summary',     {}, 8000),
+      safeFetch('/api/dashboard/inspection-bar',     {}, 8000),
       safeFetch('/api/dashboard/stats',              {}, 8000),
       safeFetch('/api/dashboard/calendar',           [], 8000),
       safeFetch('/api/schedule?limit=10000',         {data: []}, 8000),
       safeFetch('/api/employees?limit=10000',        {data: []}, 8000),
       safeFetch('/api/contracts?limit=10000',        {data: []}, 8000),
       safeFetch('/api/issues?limit=10000',           {data: []}, 8000),
-      safeFetch('/api/one-on-one?limit=10000',       {data: []}, 8000),
-      safeFetch('/api/dashboard/contracts-chart',    {labels:[], data:[]}, 8000),
-      safeFetch(`/api/dashboard/schedule-chart?year=${document.getElementById('filter-jadwal-year')?.value || new Date().getFullYear()}`, {}, 8000),
-      safeFetch('/api/relievers?limit=10000',        {data: []}, 8000),
-      safeFetch('/api/reports/fogging?limit=10000',  {data: []}, 8000),
+      safeFetch('/api/one_on_one?limit=10000',       {data: []}, 8000),
+      safeFetch('/api/dashboard/contracts-chart',    {}, 8000),
     ]);
-    
-  const inspSelect = document.getElementById('filter-insp-month');
-  const inspMonth = inspSelect ? inspSelect.value : '';
-  const inspUrl = inspMonth ? `/api/dashboard/inspection-bar?month=${inspMonth}` : '/api/dashboard/inspection-bar';
-  const inspBar = await safeFetch(inspUrl, {}, 8000);
 
   // Override KPIs with single source of truth from their respective modules
   if (kpi) {
     const schedules = Array.isArray(scheduleData?.data) ? scheduleData.data : (Array.isArray(scheduleData) ? scheduleData : []);
-    window.dashboardSchedules = schedules;
     const employees = Array.isArray(empData?.data) ? empData.data : (Array.isArray(empData) ? empData : []);
     const contracts = Array.isArray(contrData?.data) ? contrData.data : (Array.isArray(contrData) ? contrData : []);
     const issues = Array.isArray(issData?.data) ? issData.data : (Array.isArray(issData) ? issData : []);
     const oneOnOnes = Array.isArray(oooData?.data) ? oooData.data : (Array.isArray(oooData) ? oooData : []);
-    const relievers = Array.isArray(relieversData?.data) ? relieversData.data : (Array.isArray(relieversData) ? relieversData : []);
-    window.dashboardRelievers = relievers;
-    const fogging = Array.isArray(foggingData?.data) ? foggingData.data : (Array.isArray(foggingData) ? foggingData : []);
-    window.dashboardFogging = fogging;
     
     if (kpi.employees) {
       kpi.employees.current = employees.filter(s => filterEmp(s, 'active')).length;
@@ -521,7 +450,6 @@ async function fetchAll(container) {
   // Render each section independently — one failure never breaks others
   try { renderKPI(kpi); } catch(e) { console.warn('KPI render:', e); }
   try { renderMiniStats(kpi); } catch(e) { console.warn('MiniStats render:', e); }
-  try { renderScheduleChart(scheduleChartData); } catch(e) { console.warn('ScheduleChart render:', e); hideSkel('skel-jadwal','chart-jadwal'); }
   try { renderDonut(Array.isArray(issuesSum?.by_category) ? issuesSum.by_category : []); } catch(e) { console.warn('Donut render:', e); hideSkel('skel-donut','chart-donut'); }
   try { renderTrend(trend); } catch(e) { console.warn('Trend render:', e); hideSkel('skel-trend','chart-trend'); }
   try { renderInspBar(inspBar); } catch(e) { console.warn('InspBar render:', e); hideSkel('skel-insp','chart-insp'); }
@@ -534,12 +462,46 @@ async function fetchAll(container) {
   } catch(e) { console.warn('IssuesTable render:', e); }
   
   try {
-    const contracts = Array.isArray(recentIssues?.expiring_contracts) ? recentIssues.expiring_contracts : [];
-    renderContractMiniBar(contractChart);
+    renderContractMiniBar(contractsChart);
   } catch(e) { console.warn('ContractsTable render:', e); }
 
   try { renderAgenda(Array.isArray(calendarData) ? calendarData : []); } catch(e) { console.warn('Agenda render:', e); }
+  try {
+    const schedules = Array.isArray(scheduleData?.data) ? scheduleData.data : (Array.isArray(scheduleData) ? scheduleData : []);
+    const issues = Array.isArray(issData?.data) ? issData.data : (Array.isArray(issData) ? issData : []);
+    renderKPIKebersihan(schedules, issues, inspBar);
+  } catch(e) { console.warn('KPI Kebersihan render:', e); }
   try { renderQuickActions(); } catch(e) { console.warn('Quick Actions render:', e); }
+
+  // Inspection Month Filter – populate from real data
+  const inspFilter = document.getElementById('insp-month-filter');
+  if (inspFilter) {
+    const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    inspFilter.innerHTML = '<option value="">12 Bulan Terakhir</option>';
+    const year = new Date().getFullYear();
+    monthNames.forEach((mn, idx) => {
+      const val = `${year}-${String(idx+1).padStart(2,'0')}`;
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = mn + ' ' + year;
+      inspFilter.appendChild(opt);
+    });
+    inspFilter.addEventListener('change', async (e) => {
+      const val = e.target.value;
+      const skel = document.getElementById('skel-insp');
+      const canvas = document.getElementById('chart-insp');
+      if (skel) skel.style.display = 'block';
+      if (canvas) canvas.style.display = 'none';
+      const qs = val ? `?month=${val}` : '';
+      const res = await apiFetch('/api/dashboard/inspection-bar' + qs);
+      if (res && res.ok) {
+        const actualData = res.data?.data !== undefined ? res.data.data : res.data;
+        renderInspBar(actualData);
+      } else {
+        hideSkel('skel-insp','chart-insp');
+      }
+    });
+  }
 }
 
 // ── KPI Cards ──────────────────────────────────────────────────────────────
@@ -550,7 +512,6 @@ function renderKPI(kpi) {
 
   const cards = [
     { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',       href:'#/employees?dash_filter=active',   color:'kpi-blue',   key:'employees',  trendPct:'+2%', trendColor:'#10B981', points:'0,20 10,18 20,22 30,12 40,15 50,8 60,10 70,5 80,6 90,2 100,0' },
-      { icon:'🔄', label:'Reliefer Aktif',        sub:'Karyawan reliefer',       href:'#/employees?dash_filter=reliefer',   color:'kpi-purple',   key:'reliever_total',  trendPct:'0%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
     { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',href:'#/contracts?dash_filter=active',   color:'kpi-green',  key:'contracts',  trendPct:'+1%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
     { icon:'⏳', label:'Kontrak Habis 30 Hari',  sub:'Akan segera berakhir',       href:'#/contracts?dash_filter=expiring30',   color:'kpi-warn',   key:'expiring30', trendPct:'+25%',trendColor:'#F59E0B', points:'0,25 20,22 40,24 60,15 80,18 100,5' },
     { icon:'⚠️', label:'Permasalahan Open',    sub:'Belum diselesaikan',         href:'#/issues?dash_filter=open',      color:'kpi-red',    key:'issues',     trendPct:'0%',  trendColor:'#EF4444', points:'0,20 20,18 40,22 60,19 80,21 100,20' },
@@ -584,161 +545,26 @@ function renderMiniStats(kpi) {
   if (!row) return;
   kpi = kpi || {};
 
-  const curQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
-  const curY = new Date().getFullYear();
-  const curM = String(new Date().getMonth() + 1).padStart(2, '0');
-  const curYM = `${curY}-${curM}`;
-  
-  const renderMonthDropdown = (id) => `
-    <select id="${id}" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.preventDefault(); event.stopPropagation();">
-      <option value="${curY}-01" ${curYM === `${curY}-01` ? 'selected' : ''}>Jan</option>
-      <option value="${curY}-02" ${curYM === `${curY}-02` ? 'selected' : ''}>Feb</option>
-      <option value="${curY}-03" ${curYM === `${curY}-03` ? 'selected' : ''}>Mar</option>
-      <option value="${curY}-04" ${curYM === `${curY}-04` ? 'selected' : ''}>Apr</option>
-      <option value="${curY}-05" ${curYM === `${curY}-05` ? 'selected' : ''}>Mei</option>
-      <option value="${curY}-06" ${curYM === `${curY}-06` ? 'selected' : ''}>Jun</option>
-      <option value="${curY}-07" ${curYM === `${curY}-07` ? 'selected' : ''}>Jul</option>
-      <option value="${curY}-08" ${curYM === `${curY}-08` ? 'selected' : ''}>Agu</option>
-      <option value="${curY}-09" ${curYM === `${curY}-09` ? 'selected' : ''}>Sep</option>
-      <option value="${curY}-10" ${curYM === `${curY}-10` ? 'selected' : ''}>Okt</option>
-      <option value="${curY}-11" ${curYM === `${curY}-11` ? 'selected' : ''}>Nov</option>
-      <option value="${curY}-12" ${curYM === `${curY}-12` ? 'selected' : ''}>Des</option>
-    </select>
-  `;
-
   const items = [
-    { 
-      id: 'mini-jadwal',
-      icon:'📅', 
-      label: 'Jadwal',
-      dropdown: `
-        <select id="dash-jadwal-period" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.preventDefault(); event.stopPropagation();">
-          <option value="Q1" ${curQ === 'Q1' ? 'selected' : ''}>Q1</option>
-          <option value="Q2" ${curQ === 'Q2' ? 'selected' : ''}>Q2</option>
-          <option value="Q3" ${curQ === 'Q3' ? 'selected' : ''}>Q3</option>
-          <option value="Q4" ${curQ === 'Q4' ? 'selected' : ''}>Q4</option>
-        </select>
-      `,
-      val:kpi.schedule?.current,
-      href:`#/timeline?dash_filter=period_${curQ.toLowerCase()}`,
-      color:'mini-blue' 
-    },
+    { icon:'📅', label:'Jadwal',       val:kpi.schedule?.current,         href:'#/timeline',            color:'mini-blue' },
     { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
-    { 
-      id: 'mini-reliefer',
-      icon:'🔄', 
-      label:'Report Reliefer',   
-      dropdown: renderMonthDropdown('dash-reliefer-month'),
-      val:kpi.reliever_completed?.current,    
-      href:`#/relievers?dash_filter=reliever&month=${curYM}`,  
-      color:'mini-teal' 
-    },
-    { 
-      id: 'mini-inspeksi',
-      icon:'🔍', 
-      label:'Report Inspeksi',     
-      dropdown: renderMonthDropdown('dash-inspeksi-month'),
-      val:kpi.inspection_month?.current,  
-      href:`#/timeline?dash_filter=inspeksi&month=${curYM}`,  
-      color:'mini-blue' 
-    },
-    { 
-      id: 'mini-gcdc',
-      icon:'🧹', 
-      label:'Report GCDC',         
-      dropdown: renderMonthDropdown('dash-gcdc-month'),
-      val:kpi.cleaning_month?.current,    
-      href:`#/timeline?dash_filter=gcdc&month=${curYM}`,    
-      color:'mini-green' 
-    },
-    { 
-      id: 'mini-fogging',
-      icon:'💨', 
-      label:'Report Fogging',      
-      dropdown: renderMonthDropdown('dash-fogging-month'),
-      val:kpi.fogging_month?.current,     
-      href:`#/reports/fogging?dash_filter=fogging&month=${curYM}`,     
-      color:'mini-purple' 
-    },
+    { icon:'🔄', label:'Reliefer',   val:kpi.reliever_total?.current,    href:'#/relievers?dash_filter=reliever',      color:'mini-teal' },
+    { icon:'🔍', label:'Inspeksi',     val:kpi.inspection_month?.current,  href:'#/timeline?dash_filter=inspeksi',  color:'mini-blue' },
+    { icon:'🧹', label:'GCDC',         val:kpi.cleaning_month?.current,    href:'#/timeline?dash_filter=gcdc',    color:'mini-green' },
+    { icon:'💨', label:'Fogging',      val:kpi.fogging_month?.current,     href:'#/reports/fogging',     color:'mini-purple' },
     { icon:'🏢', label:'Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal' },
   ];
 
   row.innerHTML = items.map(s => `
-    <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none" id="${s.id || ''}">
+    <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none">
       <div class="mini-stat-icon">${s.icon}</div>
-      <div class="mini-stat-body" style="flex:1; min-width:0; overflow:visible;">
-        <div style="display:flex; align-items:baseline; gap:3px;">
-          <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
-          ${s.dropdown ? s.dropdown : ''}
-        </div>
+      <div class="mini-stat-body">
+        <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
         <div class="mini-stat-text">${s.label}</div>
       </div>
     </a>`).join('');
 
   row.querySelectorAll('.mini-stat-value').forEach(el => animateCount(el, parseInt(el.dataset.target)||0, 700));
-
-  // Add event listener for the Jadwal period dropdown
-  const jadwalSelect = document.getElementById('dash-jadwal-period');
-  if (jadwalSelect) {
-    jadwalSelect.addEventListener('change', (e) => {
-      const p = e.target.value;
-      const count = (window.dashboardSchedules || []).filter(s => s.period === p).length;
-      const valEl = document.querySelector('#mini-jadwal .mini-stat-value');
-      if (valEl) {
-        valEl.dataset.target = count;
-        valEl.textContent = count;
-      }
-      const a = document.getElementById('mini-jadwal');
-      if (a) {
-        a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
-      }
-    });
-  }
-
-  // Helper for month dropdowns
-  const setupMonthDropdown = (selectId, cardId, dataArr, countLogic, hrefBase) => {
-    const sel = document.getElementById(selectId);
-    if (sel) {
-      sel.addEventListener('change', (e) => {
-        const m = e.target.value; // YYYY-MM
-        const count = (dataArr || []).filter(item => countLogic(item, m)).length;
-        const valEl = document.querySelector(`#${cardId} .mini-stat-value`);
-        if (valEl) {
-          valEl.dataset.target = count;
-          valEl.textContent = count;
-        }
-        const a = document.getElementById(cardId);
-        if (a) {
-          a.href = `${hrefBase}&month=${m}`;
-        }
-      });
-    }
-  };
-
-  const isDone = (s) => {
-    const st = String(s.status || '').toLowerCase();
-    return st === 'done' || st === 'selesai' || st === 'completed';
-  };
-
-  setupMonthDropdown('dash-reliefer-month', 'mini-reliefer', window.dashboardRelievers, 
-    (item, m) => window.parseFlexibleDate(item.backup_date).startsWith(m) && isDone(item), 
-    '#/relievers?dash_filter=reliever'
-  );
-
-  setupMonthDropdown('dash-inspeksi-month', 'mini-inspeksi', window.dashboardSchedules, 
-    (item, m) => item.activity_type === 'Inspeksi Hygiene' && isDone(item) && window.parseFlexibleDate(item.opening_date || item.target_date).startsWith(m), 
-    '#/timeline?dash_filter=inspeksi'
-  );
-
-  setupMonthDropdown('dash-gcdc-month', 'mini-gcdc', window.dashboardSchedules, 
-    (item, m) => (item.activity_type === 'General Cleaning' || item.activity_type === 'Deep Cleaning') && isDone(item) && window.parseFlexibleDate(item.opening_date || item.target_date).startsWith(m), 
-    '#/timeline?dash_filter=gcdc'
-  );
-
-  setupMonthDropdown('dash-fogging-month', 'mini-fogging', window.dashboardFogging, 
-    (item, m) => isDone(item) && window.parseFlexibleDate(item.activity_date).startsWith(m), 
-    '#/reports/fogging?dash_filter=fogging'
-  );
 }
 
 // ── Donut ──────────────────────────────────────────────────────────────────
@@ -782,13 +608,13 @@ function renderDonut(categories) {
       const text = total.toString(),
             textX = Math.round((width - ctx.measureText(text).width) / 2),
             textY = height / 2;
-      ctx.fillText(text, textX, textY - 4);
+      ctx.fillText(text, textX, textY - 10);
       
       ctx.font = "600 " + (fontSize * 0.35).toFixed(2) + "em Inter";
       ctx.fillStyle = "#64748B"; // var(--text-2)
       const labelText = "Total",
             labelX = Math.round((width - ctx.measureText(labelText).width) / 2);
-      ctx.fillText(labelText, labelX, textY + 10);
+      ctx.fillText(labelText, labelX, textY + 15);
       ctx.save();
     }
   };
@@ -816,116 +642,149 @@ function renderTrend(trend) {
   if (!canvas) return;
   destroyChart('trend');
   trend = trend || {};
-  // Use short month+year labels like "Sep 25" but abbrev to fit
-  const MONTH_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-  const labels = (trend.labels||[]).map(ym => {
-    if (!ym || typeof ym !== 'string') return '';
-    try {
-      const [y, m] = ym.split('-');
-      const monthName = MONTH_ID[Number(m)-1] || m;
-      return monthName + ' ' + String(y).slice(-2);
-    } catch { return ym; }
-  });
+  const labels = (trend.labels||[]).map(monthShort);
   const open   = (trend.open  ||[]).map(v=>safeNum(v));
   const closed = (trend.closed||[]).map(v=>safeNum(v));
   if (!labels.length) { showEmpty(canvas,'Belum ada data trend'); return; }
+
   _charts.trend = new Chart(canvas, {
     type:'line',
     data:{ labels, datasets:[
-      { label:'Open',   data:open,   borderColor:'#EF4444', backgroundColor:'rgba(239,68,68,.08)',  fill:true, tension:0.4, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:'#EF4444', borderWidth:2 },
-      { label:'Closed', data:closed, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:0.4, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:'#10B981', borderWidth:2 },
+      { label:'Open',   data:open,   borderColor:'#EF4444', backgroundColor:'rgba(239,68,68,.10)',  fill:true, tension:0.35, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:'#EF4444', borderWidth:2 },
+      { label:'Closed', data:closed, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,.10)', fill:true, tension:0.35, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:'#10B981', borderWidth:2 },
     ]},
-    options: chartOpts({ 
-      plugins:{ legend:{ display:false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK, maxRotation: 0, autoSkip: false } },
-        y: { grid: { color: GRID }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK }, beginAtZero: true }
-      }
-    }),
-  });
-}
-
-// ── Schedule Chart ─────────────────────────────────────────────────────────
-function renderScheduleChart(data) {
-  hideSkel('skel-jadwal','chart-jadwal');
-  const canvas = document.getElementById('chart-jadwal');
-  if (!canvas) return;
-  destroyChart('jadwal');
-  data = data || {};
-  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const isEmpty = !Object.values(data).some(arr => Array.isArray(arr) && arr.some(v => v > 0));
-  if (isEmpty) { showEmpty(canvas, 'Belum ada data jadwal'); return; }
-
-  const insp = data['Inspeksi Hygiene'] || Array(12).fill(0);
-  const gcl  = data['General Cleaning'] || Array(12).fill(0);
-  const dcl  = data['Deep Cleaning']    || Array(12).fill(0);
-  const fog  = data['Fogging']          || Array(12).fill(0);
-
-  _charts.jadwal = new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Inspeksi',         data: insp, backgroundColor: '#3B82F6' },
-        { label: 'General Cleaning', data: gcl,  backgroundColor: '#10B981' },
-        { label: 'Deep Cleaning',    data: dcl,  backgroundColor: '#F59E0B' },
-        { label: 'Fogging',          data: fog,  backgroundColor: '#EF4444' },
-      ]
-    },
     options: chartOpts({
-      plugins: { legend: { display: false } },
-      datasets: { bar: { barPercentage: 0.85, categoryPercentage: 0.9 } },
-      scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK, maxRotation: 0, autoSkip: false } },
-        y: { stacked: true, grid: { color: GRID }, ticks: { font: { family: 'Inter', size: 9 }, color: TICK }, min: 0 }
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{
+          grid:{ display:false },
+          ticks:{
+            font:{ family:'Inter', size:9.5, weight:'500' },
+            color:TICK,
+            maxRotation:45,
+            minRotation:35,
+            autoSkip:false,
+            padding:4
+          }
+        },
+        y:{
+          grid:{ color:GRID, borderDash:[3,3] },
+          ticks:{ font:FONT, color:TICK, precision:0, beginAtZero:true }
+        }
       }
     }),
   });
+
+  // Attach filter event handlers for Open / Closed / Semua
+  const btnAll = document.getElementById('trend-filter-all');
+  const btnOpen = document.getElementById('trend-filter-open');
+  const btnClosed = document.getElementById('trend-filter-closed');
+
+  const setFilterState = (mode) => {
+    const chart = _charts.trend;
+    if (!chart) return;
+
+    if (btnAll) {
+      btnAll.style.background = mode === 'all' ? 'var(--primary, #2563EB)' : 'transparent';
+      btnAll.style.color = mode === 'all' ? '#fff' : 'var(--text-2, #64748B)';
+      btnAll.style.borderColor = mode === 'all' ? 'var(--primary, #2563EB)' : '#CBD5E1';
+    }
+    if (btnOpen) {
+      btnOpen.style.background = mode === 'open' ? '#EF4444' : 'transparent';
+      btnOpen.style.color = mode === 'open' ? '#fff' : '#EF4444';
+      btnOpen.style.borderColor = '#EF4444';
+    }
+    if (btnClosed) {
+      btnClosed.style.background = mode === 'closed' ? '#10B981' : 'transparent';
+      btnClosed.style.color = mode === 'closed' ? '#fff' : '#10B981';
+      btnClosed.style.borderColor = '#10B981';
+    }
+
+    if (mode === 'all') {
+      chart.setDatasetVisibility(0, true);
+      chart.setDatasetVisibility(1, true);
+    } else if (mode === 'open') {
+      chart.setDatasetVisibility(0, true);
+      chart.setDatasetVisibility(1, false);
+    } else if (mode === 'closed') {
+      chart.setDatasetVisibility(0, false);
+      chart.setDatasetVisibility(1, true);
+    }
+    chart.update();
+  };
+
+  btnAll?.onclick = () => setFilterState('all');
+  btnOpen?.onclick = () => setFilterState('open');
+  btnClosed?.onclick = () => setFilterState('closed');
 }
 
 // ── Inspection bar ─────────────────────────────────────────────────────────
 function renderInspBar(inspBar) {
-  hideSkel('skel-insp','chart-insp');
-  const canvas = document.getElementById('chart-insp');
-  if (!canvas) return;
-  destroyChart('inspBar');
-  inspBar = inspBar || {};
-  const labels = inspBar.labels||[];
-  const fc     = (inspBar.fc ||[]).map(v=>safeNum(v));
-  const spv    = (inspBar.spv||[]).map(v=>safeNum(v));
-  if (!labels.length) { showEmpty(canvas,'Belum ada data inspeksi'); return; }
+    hideSkel('skel-insp','chart-insp');
+    const canvas = document.getElementById('chart-insp');
+    if (!canvas) return;
+    // Clear previous empty state
+    const wrap = canvas.parentElement;
+    if (wrap) { const old = wrap.querySelector('.chart-empty'); if (old) old.remove(); }
+    destroyChart('inspBar');
+    canvas.style.display = 'block';
+    inspBar = inspBar || {};
+    const labels = inspBar.labels||[];
+    const fc     = (inspBar.fc ||[]).map(v=>safeNum(v));
+    const spv    = (inspBar.spv||[]).map(v=>safeNum(v));
+    if (!labels.length) { showEmpty(canvas,'Belum ada data inspeksi'); return; }
   _charts.inspBar = new Chart(canvas, {
     type:'bar',
     data:{ labels, datasets:[
-      { label:'Skor FC',  data:fc,  backgroundColor:'rgba(37,99,235,.75)',  borderRadius:4, borderSkipped:false },
-      { label:'Skor SPV', data:spv, backgroundColor:'rgba(16,185,129,.75)', borderRadius:4, borderSkipped:false },
+      { label:'Skor FC',  data:fc,  backgroundColor:'rgba(37,99,235,0.85)', borderRadius:6, borderSkipped:false, barPercentage: 0.5, categoryPercentage: 0.7 },
+      { label:'Skor SPV', data:spv, backgroundColor:'rgba(16,185,129,0.85)', borderRadius:6, borderSkipped:false, barPercentage: 0.5, categoryPercentage: 0.7 },
     ]},
-    options: chartOpts({ plugins:{ legend:{ position:'top' } },
-      scales:{ x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:45, minRotation:30 } },
-               y:{ grid:{color:GRID}, ticks:{ font:FONT, color:TICK }, min:0, max:100 } } }),
+    options: chartOpts({ 
+      maintainAspectRatio: false,
+      plugins:{ 
+        legend:{ 
+          position:'top',
+          labels: { font: { ...FONT, size:13, weight: 'bold' }, padding: 20, usePointStyle: true, pointStyle: 'circle' }
+        },
+        tooltip: {
+          padding: 12,
+          cornerRadius: 8,
+          backgroundColor: 'rgba(15,23,42,0.9)',
+          titleFont: { size: 14, family: "'Inter', sans-serif" },
+          bodyFont: { size: 13, family: "'Inter', sans-serif" }
+        }
+      },
+      scales:{ 
+        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:45, minRotation:30 } },
+        y:{ grid:{color:GRID, borderDash: [4, 4]}, ticks:{ font:FONT, color:TICK, stepSize: 20 }, min:0, max:100 } 
+      } 
+    }),
   });
 }
 
 
 
-function renderContractMiniBar(contractChart) {
+// ── Contract Mini Bar ───────────────────────────────────────────────────────
+function renderContractMiniBar(chartData) {
   hideSkel('skel-contract-mini','chart-contract-mini');
   const canvas = document.getElementById('chart-contract-mini');
   if (!canvas) return;
   destroyChart('contractMiniBar');
   
-  contractChart = contractChart || {};
-  const customMonths = {
-      '06': 'Jun', '07': 'Jul', '08': 'Agu', '09': 'Sep', '10': 'Okt', '11': 'Nov', '12': 'Des'
-    };
-    const labels = (contractChart.labels || []).map(ym => {
-      const m = ym.split('-')[1];
-      return customMonths[m] || ym;
-    });
-  const data = (contractChart.data || []).map(v => safeNum(v));
-  if (!labels.length) { showEmpty(canvas, 'Belum ada data'); return; }
+  chartData = chartData || {};
+  let labels = chartData.labels ? chartData.labels.map(monthShort) : [];
+  let data = chartData.counts || [];
+  
+  if (!labels.length) {
+    showEmpty(canvas, 'Belum ada data kontrak');
+    return;
+  } 
   
   const ctx = canvas.getContext('2d');
+  
+  const grad = ctx.createLinearGradient(0,0,0,200);
+  grad.addColorStop(0, '#60A5FA'); // Light blue
+  grad.addColorStop(1, '#2563EB'); // Primary blue
   
   _charts.contractMiniBar = new Chart(canvas, {
     type:'bar',
@@ -934,7 +793,7 @@ function renderContractMiniBar(contractChart) {
       datasets:[{ 
         label:'Kontrak Habis', 
         data, 
-        backgroundColor: '#3B82F6', 
+        backgroundColor: grad, 
         borderRadius: 4, 
         borderSkipped: false,
         barPercentage: 0.6,
@@ -942,18 +801,9 @@ function renderContractMiniBar(contractChart) {
       }]
     },
     options: chartOpts({ 
-      onClick: (e, activeEls) => {
-        if (activeEls && activeEls.length > 0) {
-          const index = activeEls[0].index;
-          const originalMonth = (contractChart.labels || [])[index]; // YYYY-MM
-          if (originalMonth) {
-            window.location.hash = '#/contracts?month_expiry=' + originalMonth;
-          }
-        }
-      },
       plugins:{ legend:{ display:false } },
       scales:{ 
-        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:0, autoSkip: false } },
+        x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:0 } },
         y:{ grid:{color:GRID, borderDash:[4,4], drawBorder:false}, ticks:{ font:FONT, color:TICK, precision:0, maxTicksLimit:5 }, min:0 } 
       },
       animation: {
@@ -1001,7 +851,7 @@ function renderAgenda(rows) {
   const items = todayItems.slice(0, 10);
   
   if (!items.length) {
-    wrap.innerHTML = '';
+    wrap.innerHTML = `<div class="chart-empty">✅ Tidak ada agenda hari ini</div>`;
     return;
   }
   wrap.innerHTML = `
@@ -1030,43 +880,56 @@ function renderAgenda(rows) {
   `;
 }
 
-function renderKPIKebersihan(kpi) {
+// ── KPI Kebersihan ────────────────────────────────────────────────────────
+function renderKPIKebersihan(schedules, issues, inspBar) {
   const wrap = document.getElementById('widget-kpi-kebersihan');
   if (!wrap) return;
   
-  const kb = kpi?.kebersihan || {};
+  schedules = schedules || [];
+  issues = issues || [];
+  inspBar = inspBar || {};
   
-  // 1. Kebersihan Area = (avg_fc + avg_spv) / 2
-  const avgFc = safeNum(kb.area?.avg_fc, 0);
-  const avgSpv = safeNum(kb.area?.avg_spv, 0);
-  const scoreArea = avgFc > 0 && avgSpv > 0 ? (avgFc + avgSpv) / 2 : (avgFc || avgSpv || 0);
-  
-  // 2. Penyelesaian Complaint = closed / total
-  const totalIssue = safeNum(kb.issues?.total, 0);
-  const closedIssue = safeNum(kb.issues?.closed, 0);
-  const pctIssue = totalIssue > 0 ? Math.round((closedIssue / totalIssue) * 100) : 100;
-  
+  // 1. Kebersihan Area (Rata-rata skor FC & SPV)
+  let avgScore = 0;
+  if (inspBar.fc && inspBar.spv && inspBar.fc.length > 0) {
+    let sum = 0; let count = 0;
+    inspBar.fc.forEach(v => { sum += safeNum(v); count++; });
+    inspBar.spv.forEach(v => { sum += safeNum(v); count++; });
+    avgScore = count > 0 ? Math.round(sum / count) : 0;
+  }
+  const scoreVal = avgScore > 0 ? `${avgScore}%` : 'N/A';
+
+  // 2. Penyelesaian Complaint
+  const resolvedIssues = issues.filter(i => i.status === 'Selesai' || i.status === 'Closed' || i.status === 'Done').length;
+  const totalIssues = issues.length;
+  const penyelesaianPct = totalIssues > 0 ? Math.round((resolvedIssues / totalIssues) * 100) : 100;
+
   // 3. Kepatuhan Jadwal Cleaning
-  const schedClean = safeNum(kb.cleaning?.scheduled, 0);
-  const repClean = safeNum(kb.cleaning?.reported, 0);
-  const pctClean = schedClean > 0 ? Math.round((repClean / schedClean) * 100) : 100;
-  
+  const cleaningScheds = schedules.filter(s => (s.title||'').toLowerCase().includes('cleaning'));
+  const cleaningDone = cleaningScheds.filter(s => s.status === 'Selesai' || s.status === 'Done').length;
+  const cleaningPct = cleaningScheds.length > 0 ? Math.round((cleaningDone / cleaningScheds.length) * 100) : 100;
+
   // 4. Kepatuhan GCDC
-  const schedGcdc = safeNum(kb.gcdc?.scheduled, 0);
-  const repGcdc = safeNum(kb.gcdc?.reported, 0);
-  const pctGcdc = schedGcdc > 0 ? Math.round((repGcdc / schedGcdc) * 100) : 100;
+  const gcdcScheds = schedules.filter(s => (s.title||'').toLowerCase().includes('gcdc'));
+  const gcdcDone = gcdcScheds.filter(s => s.status === 'Selesai' || s.status === 'Done').length;
+  const gcdcPct = gcdcScheds.length > 0 ? Math.round((gcdcDone / gcdcScheds.length) * 100) : 100;
 
-  const issueCleanTotal = safeNum(kb.issues?.cleanTotal, 0);
-  const repFogging = safeNum(kpi?.fogging_month?.current, 0);
-  const pctFogging = repFogging > 0 ? 100 : 0; // Assume 100% if done at least once, or map to a target later.
+  // 5. Complaint Cleaning (≤10)
+  const cleanIssues = issues.filter(i => (i.category||'').toLowerCase().includes('kebersihan'));
+  const cleanIssuesCount = cleanIssues.length;
 
+  // 6. Pelaksanaan Fogging
+  const foggingScheds = schedules.filter(s => (s.title||'').toLowerCase().includes('fogging'));
+  const foggingDone = foggingScheds.filter(s => s.status === 'Selesai' || s.status === 'Done').length;
+  const foggingPct = foggingScheds.length > 0 ? Math.round((foggingDone / foggingScheds.length) * 100) : 100;
+  
   const items = [
-    { label: 'Kebersihan Area', val: `${Math.round(scoreArea)}%`, target: 'Target 95%', icon: '🧹', bg: scoreArea >= 95 ? '#ECFDF5' : '#FEF2F2', color: scoreArea >= 95 ? '#10B981' : '#EF4444' },
-    { label: 'Penyelesaian Complaint', val: `${pctIssue}%`, target: 'Target 100%', icon: '⏱️', bg: pctIssue >= 100 ? '#ECFDF5' : '#FEF2F2', color: pctIssue >= 100 ? '#10B981' : '#EF4444' },
-    { label: 'Kepatuhan Jadwal Cleaning', val: `${pctClean}%`, target: 'Target 100%', icon: '⏱️', bg: pctClean >= 100 ? '#EFF6FF' : '#FEF2F2', color: pctClean >= 100 ? '#3B82F6' : '#EF4444' },
-    { label: 'Kepatuhan GCDC', val: `${pctGcdc}%`, target: 'Target 100%', icon: '🧹', bg: pctGcdc >= 100 ? '#EFF6FF' : '#FEF2F2', color: pctGcdc >= 100 ? '#3B82F6' : '#EF4444' },
-    { label: 'Complaint Cleaning (≤10)', val: `${issueCleanTotal}`, target: 'Target ≤10', icon: '📝', bg: issueCleanTotal <= 10 ? '#F5F3FF' : '#FEF2F2', color: issueCleanTotal <= 10 ? '#8B5CF6' : '#EF4444' },
-    { label: 'Pelaksanaan Fogging', val: `${pctFogging}%`, target: 'Target 100%', icon: '💨', bg: pctFogging >= 100 ? '#F5F3FF' : '#FEF2F2', color: pctFogging >= 100 ? '#8B5CF6' : '#EF4444' },
+    { label: 'Kebersihan Area', val: scoreVal, target: 'Target 95%', icon: '🧹', bg: '#ECFDF5', color: '#10B981' },
+    { label: 'Penyelesaian Complaint', val: `${penyelesaianPct}%`, target: 'Target 100%', icon: '⏱️', bg: '#ECFDF5', color: '#10B981' },
+    { label: 'Kepatuhan Jadwal Cleaning', val: `${cleaningPct}%`, target: 'Target 100%', icon: '⏱️', bg: '#EFF6FF', color: '#3B82F6' },
+    { label: 'Kepatuhan GCDC', val: `${gcdcPct}%`, target: 'Target 100%', icon: '🧹', bg: '#EFF6FF', color: '#3B82F6' },
+    { label: 'Complaint Cleaning (≤10)', val: `${cleanIssuesCount}`, target: 'Target ≤10', icon: '📝', bg: '#F5F3FF', color: '#8B5CF6' },
+    { label: 'Pelaksanaan Fogging', val: `${foggingPct}%`, target: 'Target 100%', icon: '💨', bg: '#F5F3FF', color: '#8B5CF6' },
   ];
   
   wrap.innerHTML = `
@@ -1118,14 +981,7 @@ function hideSkel(skelId, canvasId) {
   const skel = document.getElementById(skelId);
   const cvs  = document.getElementById(canvasId);
   if (skel) { skel.style.display = 'none'; skel.style.position = ''; }
-  if (cvs) {
-    cvs.style.display = 'block';
-    const wrap = cvs.parentElement;
-    if (wrap) {
-      const emptyMsg = wrap.querySelector('.chart-empty');
-      if (emptyMsg) emptyMsg.remove();
-    }
-  }
+  if (cvs)  cvs.style.display = 'block';
 }
 function showEmpty(canvas, msg='Belum ada data') {
   if (!canvas) return;

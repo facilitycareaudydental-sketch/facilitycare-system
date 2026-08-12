@@ -77,7 +77,7 @@ export function downloadExcel(data, filename) {
  */
 export function renderExcelButtons(moduleName) {
   return `
-    <div class="excel-actions" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+    <div class="excel-actions" style="display:flex;gap:0.5rem;margin-bottom:1rem;">
       <button class="btn btn-secondary btn-sm" id="btn-export-${moduleName}">
         📥 Export Excel
       </button>

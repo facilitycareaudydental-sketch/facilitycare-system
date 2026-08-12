@@ -37,29 +37,6 @@ function renderMasterForms(container) {
       { name: 'description', label: 'Deskripsi', type: 'textarea', rows: 2, value: data?.description },
       { name: 'is_public', label: 'Akses Publik', type: 'checkbox', checkLabel: 'Form dapat diakses tanpa login', value: data?.is_public },
     ],
-    exportOptions: {
-      moduleName: 'forms',
-      onExport: async (filters) => {
-        const qs = new URLSearchParams(filters || {}).toString();
-        const res = await apiFetch(`/api/forms?limit=10000&${qs}`);
-        if (res.data?.data) {
-          downloadExcel(res.data.data, 'Data_Master_Form');
-        } else {
-          toastError('Gagal export data master form');
-        }
-      },
-      onImport: async (rows) => {
-        const res = await apiFetch('/api/forms/import', {
-          method: 'POST',
-          body: JSON.stringify({ data: rows })
-        });
-        if (!res.ok) throw new Error(res.data?.error || 'Import failed');
-        return res.data;
-      },
-      onTemplate: () => {
-        window.location.hash = '#/import';
-      }
-    }
   });
 }
 
@@ -197,7 +174,6 @@ async function renderSupplyRequests(container) {
           body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     },
     extraActions: [

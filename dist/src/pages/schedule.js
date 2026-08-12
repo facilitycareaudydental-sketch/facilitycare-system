@@ -17,11 +17,7 @@ export function getActivePeriod(data) {
 }
 
 export function filterDashboardItem(s, type) {
-  const now = new Date();
-  const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const d = s.target_date || s.opening_date || '';
-  if (!d.startsWith(curM)) return false;
-
+  if (s.period !== 'Q3') return false;
   const status = String(s.status || '').toLowerCase();
   if (status !== 'selesai' && status !== 'completed' && status !== 'done') return false;
   
@@ -34,10 +30,10 @@ export function filterDashboardItem(s, type) {
 export async function renderSchedule(container, params) {
   branchOptions = await getCachedBranches();
   const allEmployees = await getCachedEmployeeNames();
-  picOptions = ['Berlin Ariansyah', 'Ade Surahman'];
+  picOptions = ['Ade Surahman', 'Berlin Ariansyah', 'Mizwar', 'Fajar', 'Ade', 'Berlin'];
 
   const getPicOptions = (val) => {
-    if (val && !picOptions.find(o => String(typeof o === 'object' ? o.value : o).toLowerCase() === String(val).toLowerCase())) {
+    if (val && !picOptions.find(o => (typeof o === 'object' ? o.value : o) === val)) {
       return [...picOptions, val];
     }
     return picOptions;
@@ -56,18 +52,6 @@ export async function renderSchedule(container, params) {
   const activePeriod = getActivePeriod(scheduleData);
   
   const dashFilter = params ? params.get('dash_filter') : null;
-  const now = new Date();
-  const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  
-  let defFilters = {};
-  const targetMonth = params && params.get('month') ? params.get('month') : null;
-  if (dashFilter === 'inspeksi') {
-    defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', month: targetMonth };
-  } else if (dashFilter === 'gcdc') {
-    defFilters = { status: 'Done', activity_type: 'GCDC', month: targetMonth };
-  } else if (dashFilter && dashFilter.startsWith('period_')) {
-    defFilters = { period: dashFilter.replace('period_', '').toUpperCase() };
-  }
 
   buildCrudPage({
     container,
@@ -77,12 +61,17 @@ export async function renderSchedule(container, params) {
     bulkDelete: true,
     itemLabel: 'Jadwal',
     paginationMode: 'client',
-    defaultFilters: defFilters,
+    defaultFilters: dashFilter ? { period: 'Q3' } : {},
     onDataLoaded: (items) => {
-      // Sort descending by opening_date, so newest year/date is first
+      // 1. Filter dataset directly if dash_filter is set
+      if (dashFilter) {
+        items = items.filter(s => filterDashboardItem(s, dashFilter));
+      }
+
+      // 2. Sort descending by target_date (opening_date is often null), so newest date is first
       return items.sort((a, b) => {
-        const da = a.opening_date ? new Date(a.opening_date).getTime() : 0;
-        const db = b.opening_date ? new Date(b.opening_date).getTime() : 0;
+        const da = a.target_date ? new Date(a.target_date).getTime() : (a.opening_date ? new Date(a.opening_date).getTime() : 0);
+        const db = b.target_date ? new Date(b.target_date).getTime() : (b.opening_date ? new Date(b.opening_date).getTime() : 0);
         return db - da;
       });
     },
@@ -97,31 +86,13 @@ export async function renderSchedule(container, params) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
-      { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
+      { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Kegiatan', options: [
-        { value: 'Inspeksi Hygiene', label: 'Inspeksi Hygiene' },
-        { value: 'General Cleaning', label: 'General Cleaning' },
-        { value: 'Deep Cleaning', label: 'Deep Cleaning' },
-        { value: 'Fogging', label: 'Fogging' },
-        { value: 'GCDC', label: 'GCDC (GC & DC)' }
-      ]},
-      { type: 'select', name: 'month', label: 'Bulan', options: [
-        { value: '2026-01', label: 'Jan 2026' },
-        { value: '2026-02', label: 'Feb 2026' },
-        { value: '2026-03', label: 'Mar 2026' },
-        { value: '2026-04', label: 'Apr 2026' },
-        { value: '2026-05', label: 'Mei 2026' },
-        { value: '2026-06', label: 'Jun 2026' },
-        { value: '2026-07', label: 'Jul 2026' },
-        { value: '2026-08', label: 'Agu 2026' },
-        { value: '2026-09', label: 'Sep 2026' },
-        { value: '2026-10', label: 'Okt 2026' },
-        { value: '2026-11', label: 'Nov 2026' },
-        { value: '2026-12', label: 'Des 2026' },
+        'Inspeksi Hygiene', 'General Cleaning', 'Deep Cleaning', 'Fogging'
       ]},
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'In Progress', 'Done'] },
-      { type: 'select', name: 'pic', label: 'PIC', options: picOptions },
+      { type: 'combobox', name: 'pic', label: 'PIC', options: picOptions },
     ],
     formFields: (data) => [
       {
@@ -158,6 +129,7 @@ export async function renderSchedule(container, params) {
         const res = await apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
+            'ID': d.id || '',
             'Cabang': d.branch_name || '',
             'Kegiatan': d.activity_type || '',
             'Periode': d.period || '',
@@ -172,7 +144,7 @@ export async function renderSchedule(container, params) {
       },
       onTemplate: () => {
         const template = [
-          { 'Cabang': '001. Pondok Bambu', 'Kegiatan': 'General Cleaning', 'Periode': 'Q1', 'PIC': 'Fajar', 'Tgl Opening': '2024-02-01', 'Tgl Target': '2024-02-15', 'Tgl Selesai': '2024-02-14', 'Status': 'Done' }
+          { 'ID': '', 'Cabang': '001. Pondok Bambu', 'Kegiatan': 'General Cleaning', 'Periode': 'Q1', 'PIC': 'Fajar', 'Tgl Opening': '2024-02-01', 'Tgl Target': '2024-02-15', 'Tgl Selesai': '2024-02-14', 'Status': 'Done' }
         ];
         downloadExcel(template, 'Template_Import_Jadwal');
       },
@@ -210,6 +182,7 @@ export async function renderSchedule(container, params) {
         };
 
         const payload = json.map(row => ({
+          id: row['ID'] || null,
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
           activity_type: String(row['Kegiatan'] || '').trim(),
           period: String(row['Periode'] || '').trim(),
@@ -221,12 +194,11 @@ export async function renderSchedule(container, params) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.activity_type && row.period);
         
-        const res = await apiFetch('/api/import/schedule', {
+        const res = await apiFetch('/api/schedule/import', {
           method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+          body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     }
   });

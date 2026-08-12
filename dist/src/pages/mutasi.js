@@ -90,9 +90,8 @@ export async function renderMutasi(container) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.tanggal && r.employee_name && r.from_branch_id && r.to_branch_id);
         
-        const res = await apiFetch('/api/import/mutasi', { method: 'POST', body: JSON.stringify({ rows: payload, onDuplicate: 'update' }) });
+        const res = await apiFetch('/api/mutasi/import', { method: 'POST', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     },
     formFields: [

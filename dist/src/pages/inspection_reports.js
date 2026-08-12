@@ -28,20 +28,6 @@ export async function renderInspectionReports(container) {
       { type: 'search', placeholder: 'Cari cabang / PIC...' },
       { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
-      { type: 'select', name: 'month', label: 'Bulan', options: [
-          { value: '01', label: 'Jan' },
-          { value: '02', label: 'Feb' },
-          { value: '03', label: 'Mar' },
-          { value: '04', label: 'Apr' },
-          { value: '05', label: 'Mei' },
-          { value: '06', label: 'Jun' },
-          { value: '07', label: 'Jul' },
-          { value: '08', label: 'Agu' },
-          { value: '09', label: 'Sep' },
-          { value: '10', label: 'Okt' },
-          { value: '11', label: 'Nov' },
-          { value: '12', label: 'Des' }
-      ]},
       { type: 'select', name: 'status', label: 'Status', options: ['Pending', 'Done'] },
       { type: 'select', name: 'year', label: 'Tahun', options: years },
     ],
@@ -87,7 +73,7 @@ export async function renderInspectionReports(container) {
       },
       onTemplate: () => {
         const template = [
-          { 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Point FC': 85, 'Point SPV': 90, 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...', 'Catatan': '' }
+          { 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Tanggal': '2026-01-08', 'Point FC': 85, 'Point SPV': 90, 'Status': 'Done', 'Link Dokumen': 'https://drive.google.com/...' }
         ];
         downloadExcel(template, 'Template_Import_Inspeksi');
       },
@@ -132,12 +118,11 @@ export async function renderInspectionReports(container) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.branch_id && row.period && row.inspection_date);
         
-        const res = await apiFetch('/api/import/inspection', {
+        const res = await apiFetch('/api/reports/inspection/import', {
           method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+          body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     }
   });

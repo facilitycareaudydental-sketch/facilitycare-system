@@ -5,7 +5,7 @@ import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js
 export async function renderTraining(container) {
   const branchOptions = await getCachedBranches();
   const employeeOptions = await getCachedEmployeeNames();
-  const picOptions = ['Ade', 'Berlin'];
+  const picOptions = ['Ade Surahman', 'Berlin Ariansyah', 'Mizwar', 'Fajar', 'Ade', 'Berlin'];
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -114,12 +114,8 @@ export async function renderTraining(container) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.training_date && r.subject && r.branch_id);
         
-        const res = await apiFetch('/api/import/training', {
-          method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
-        });
+        const res = await apiFetch('/api/training/import', { method: 'POST', body: JSON.stringify(payload) });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     },
     formFields: (data) => [
