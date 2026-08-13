@@ -53,6 +53,7 @@ export async function renderProfile(container) {
 
       <!-- RIGHT: Change Password -->
       <div class="chart-card">
+        ${user?.role !== 'viewer' ? `
         <div class="chart-card-header">
           <div>
             <div class="chart-card-title">🔑 Ganti Password</div>
@@ -88,6 +89,14 @@ export async function renderProfile(container) {
             Simpan Password
           </button>
         </form>
+        ` : `
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-card-title">🔑 Ganti Password</div>
+            <div class="chart-card-subtitle" style="color: #ef4444; font-weight:500;">Perubahan password dinonaktifkan untuk Viewer. Silakan hubungi Administrator.</div>
+          </div>
+        </div>
+        `}
 
         <hr class="profile-divider" style="margin-top:28px">
 

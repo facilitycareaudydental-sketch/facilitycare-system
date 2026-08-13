@@ -879,7 +879,7 @@
       "format": "esm"
     },
     "frontend/src/pages/profile.js": {
-      "bytes": 7466,
+      "bytes": 7855,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1125,7 +1125,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-FSW5PXIW.js": {
+    "frontend/dist/assets/app-FNY3JN4I.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1242,7 +1242,7 @@
           "bytesInOutput": 5865
         },
         "frontend/src/pages/profile.js": {
-          "bytesInOutput": 6406
+          "bytesInOutput": 6791
         },
         "frontend/src/pages/import.js": {
           "bytesInOutput": 20266
@@ -1257,7 +1257,7 @@
           "bytesInOutput": 3615
         }
       },
-      "bytes": 233555
+      "bytes": 233940
     }
   }
 }
