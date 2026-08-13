@@ -47,7 +47,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js": {
-      "bytes": 26052,
+      "bytes": 26258,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -527,7 +527,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js?v=v3": {
-      "bytes": 26052,
+      "bytes": 26258,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1125,7 +1125,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-YOUD42I5.js": {
+    "frontend/dist/assets/app-FSW5PXIW.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1149,10 +1149,10 @@
           "bytesInOutput": 589
         },
         "frontend/src/pages/dashboard.js?v=force61": {
-          "bytesInOutput": 34266
+          "bytesInOutput": 34269
         },
         "frontend/src/pages/_crud.js": {
-          "bytesInOutput": 15520
+          "bytesInOutput": 15586
         },
         "frontend/src/components/table.js": {
           "bytesInOutput": 3435
@@ -1191,10 +1191,10 @@
           "bytesInOutput": 3251
         },
         "frontend/src/pages/contracts.js?v=force61": {
-          "bytesInOutput": 10603
+          "bytesInOutput": 10601
         },
         "frontend/src/pages/schedule.js?v=force61": {
-          "bytesInOutput": 5831
+          "bytesInOutput": 5833
         },
         "frontend/src/pages/issues.js?v=force61": {
           "bytesInOutput": 4759
@@ -1206,7 +1206,7 @@
           "bytesInOutput": 4659
         },
         "frontend/src/pages/_crud.js?v=v3": {
-          "bytesInOutput": 15521
+          "bytesInOutput": 15587
         },
         "frontend/src/pages/relievers.js": {
           "bytesInOutput": 4970
@@ -1257,7 +1257,7 @@
           "bytesInOutput": 3615
         }
       },
-      "bytes": 233420
+      "bytes": 233555
     }
   }
 }
