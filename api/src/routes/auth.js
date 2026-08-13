@@ -1,5 +1,6 @@
 import { hashPassword, verifyPassword, createToken, authenticate } from '../utils/auth.js';
 import { ok, error, unauthorized } from '../utils/response.js';
+import { logAudit } from '../utils/audit.js';
 
 export async function handleAuth(request, env, origin) {
   const url = new URL(request.url);
@@ -64,14 +65,21 @@ async function handleLogin(request, env, origin) {
 
   await env.DB.prepare('UPDATE users SET updated_at = datetime(\'now\') WHERE id = ?').bind(user.id).run();
 
+  const userObj = { id: user.id, username: user.username, email: user.email, full_name: user.full_name, role: user.role };
+  await logAudit(env, userObj, 'LOGIN', 'auth', user.id, null, { action: 'User logged in' });
+
   return ok({
     token,
-    user: { id: user.id, username: user.username, email: user.email, full_name: user.full_name, role: user.role }
+    user: userObj
   }, 200, origin);
 }
 
 async function handleLogout(request, env, origin) {
   // JWT is stateless; client just discards token
+  const user = await authenticate(request, env);
+  if (user) {
+    await logAudit(env, user, 'LOGOUT', 'auth', user.id, null, { action: 'User logged out' });
+  }
   return ok({ message: 'Logged out' }, 200, origin);
 }
 
@@ -99,6 +107,8 @@ async function handleChangePassword(request, env, origin) {
   const newHash = await hashPassword(new_password);
   await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = datetime(\'now\') WHERE id = ?')
     .bind(newHash, user.id).run();
+
+  await logAudit(env, user, 'CHANGE_PASSWORD', 'auth', user.id, null, { action: 'User changed password' });
 
   return ok({ message: 'Password changed successfully' }, 200, origin);
 }
