@@ -983,7 +983,7 @@
       "format": "esm"
     },
     "frontend/src/app.js": {
-      "bytes": 29624,
+      "bytes": 29852,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1125,7 +1125,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-PDWVF34B.js": {
+    "frontend/dist/assets/app-YOUD42I5.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1140,7 +1140,7 @@
           "bytesInOutput": 3311
         },
         "frontend/src/app.js": {
-          "bytesInOutput": 21222
+          "bytesInOutput": 21390
         },
         "frontend/src/router.js": {
           "bytesInOutput": 761
@@ -1257,7 +1257,7 @@
           "bytesInOutput": 3615
         }
       },
-      "bytes": 233252
+      "bytes": 233420
     }
   }
 }

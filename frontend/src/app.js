@@ -353,10 +353,10 @@ function renderLayout() {
 
         <div class="sidebar-footer">
           <div class="sidebar-user">
-            <div class="sidebar-avatar">BA</div>
+            <div class="sidebar-avatar">${(user?.full_name || user?.username || 'U')[0].toUpperCase()}</div>
             <div class="sidebar-user-info">
-              <div class="sidebar-user-name">Berlin Ariansyah</div>
-              <div class="sidebar-user-role">Administrator</div>
+              <div class="sidebar-user-name">${user?.full_name || user?.username || 'Guest'}</div>
+              <div class="sidebar-user-role">${user?.role || 'Viewer'}</div>
             </div>
           </div>
           <button class="sidebar-logout" id="logout-btn">
@@ -385,7 +385,7 @@ function renderLayout() {
                   if (h >= 11 && h < 15) return 'Selamat Siang';
                   if (h >= 15 && h < 18) return 'Selamat Sore';
                   return 'Selamat Malam';
-                })()}, </span><span class="topbar-greeting-name">Berlin Ariansyah</span> 👋
+                })()}, </span><span class="topbar-greeting-name">${user?.full_name || user?.username || 'Guest'}</span> 👋
               </div>
               <div class="topbar-subtitle">
                 Ringkasan Operasional FCMS Hari Ini
@@ -409,10 +409,10 @@ function renderLayout() {
               <span class="notif-dot" id="notif-dot" style="display:none"></span>
             </button>
             <a href="#/profile" class="topbar-user-btn" title="Profil">
-              <img src="https://ui-avatars.com/api/?name=Berlin+Ariansyah&background=2563EB&color=fff&bold=true" class="topbar-avatar" alt="Avatar" />
+              <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.username || 'Guest')}&background=2563EB&color=fff&bold=true" class="topbar-avatar" alt="Avatar" />
               <div class="topbar-user-text">
-                <span class="topbar-user-name">Berlin Ariansyah</span>
-                <span class="topbar-user-role-mini">Administrator</span>
+                <span class="topbar-user-name">${user?.full_name || user?.username || 'Guest'}</span>
+                <span class="topbar-user-role-mini">${user?.role || 'Viewer'}</span>
               </div>
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:4px;color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
             </a>
