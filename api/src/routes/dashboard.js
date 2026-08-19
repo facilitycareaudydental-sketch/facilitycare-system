@@ -334,8 +334,9 @@ async function getInspectionBar(request, env, origin) {
   
   let whereClause, bindVals;
   if (month) {
-    whereClause = "WHERE strftime('%Y-%m', r.inspection_date) = ?";
-    bindVals = [month];
+    const currentYear = new Date().getFullYear().toString();
+    whereClause = "WHERE strftime('%m', r.inspection_date) = ? AND strftime('%Y', r.inspection_date) = ?";
+    bindVals = [month, currentYear];
   } else {
     const since = (() => {
       const d = new Date(); d.setMonth(d.getMonth()-11);

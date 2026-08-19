@@ -88,7 +88,7 @@
       "format": "esm"
     },
     "frontend/src/utils/dataCache.js": {
-      "bytes": 1344,
+      "bytes": 1379,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -310,7 +310,7 @@
       "format": "esm"
     },
     "frontend/src/pages/login.js": {
-      "bytes": 6021,
+      "bytes": 6158,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -879,7 +879,7 @@
       "format": "esm"
     },
     "frontend/src/pages/profile.js": {
-      "bytes": 7855,
+      "bytes": 8046,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1125,7 +1125,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-FNY3JN4I.js": {
+    "frontend/dist/assets/app-2446DI6F.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",

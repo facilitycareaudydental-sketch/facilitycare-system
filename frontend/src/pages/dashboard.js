@@ -358,7 +358,7 @@ export async function renderDashboard(container) {
               <option value="12">Desember</option>
             </select>
           </div>
-          <div class="chart-canvas-wrap" style="height:200px;position:relative;margin-top:10px">
+          <div class="chart-canvas-wrap" style="height:350px;position:relative;margin-top:10px">
             <div id="skel-insp" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-insp" style="display:none"></canvas>
           </div>
@@ -928,7 +928,7 @@ function renderInspBar(inspBar) {
       { label:'Skor SPV', data:spv, backgroundColor:'rgba(16,185,129,.75)', borderRadius:4, borderSkipped:false },
     ]},
     options: chartOpts({ plugins:{ legend:{ position:'top' } },
-      scales:{ x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:45, minRotation:30 } },
+      scales:{ x:{ grid:{display:false}, ticks:{ font:FONT, color:TICK, maxRotation:45, minRotation:45 } },
                y:{ grid:{color:GRID}, ticks:{ font:FONT, color:TICK }, min:0, max:100 } } }),
   });
 }
