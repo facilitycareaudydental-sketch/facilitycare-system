@@ -70,3 +70,41 @@ export async function renderOvertime(container) {
     ]
   });
 }
+
+// Attach event listener once to handle auto-calculation of total hours
+if (!window._overtimeListenerAttached) {
+  window._overtimeListenerAttached = true;
+  document.body.addEventListener('input', (e) => {
+    if (e.target.name === 'start_time' || e.target.name === 'end_time' || e.target.name === 'break_hours') {
+      const form = e.target.closest('form');
+      if (!form) return;
+      
+      // Ensure this is the overtime form by checking for specific fields
+      const startInput = form.querySelector('[name="start_time"]');
+      const endInput = form.querySelector('[name="end_time"]');
+      const breakInput = form.querySelector('[name="break_hours"]');
+      const totalInput = form.querySelector('[name="total_hours"]');
+      
+      if (!startInput || !endInput || !breakInput || !totalInput) return;
+      
+      const start = startInput.value;
+      const end = endInput.value;
+      const breakHrs = parseFloat(breakInput.value) || 0;
+      
+      if (start && end) {
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        
+        let totalMins = (eh * 60 + em) - (sh * 60 + sm);
+        if (totalMins < 0) {
+          totalMins += 24 * 60; // Crosses midnight
+        }
+        
+        let totalHrs = (totalMins / 60) - breakHrs;
+        if (totalHrs < 0) totalHrs = 0;
+        
+        totalInput.value = Number.isInteger(totalHrs) ? totalHrs : totalHrs.toFixed(2);
+      }
+    }
+  });
+}
