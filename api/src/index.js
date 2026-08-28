@@ -81,7 +81,8 @@ export default {
           '/api/reports/fogging/bulk': { table: 'fogging_reports', perm: 'reports' },
           '/api/reports/basecamp/bulk': { table: 'basecamp_reports', perm: 'reports' },
           '/api/reports/supply/bulk': { table: 'supply_requests', perm: 'reports' },
-          '/api/reports/inspection/bulk': { table: 'inspection_reports', perm: 'reports' }
+          '/api/reports/inspection/bulk': { table: 'inspection_reports', perm: 'reports' },
+          '/api/overtime/bulk': { table: 'overtime_records', perm: 'overtime' }
         };
 
         const config = moduleMap[path];
