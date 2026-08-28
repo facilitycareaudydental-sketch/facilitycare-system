@@ -54,7 +54,8 @@ export function buildFormHTML(fields) {
         input = `<input type="date" name="${field.name}" class="form-control" value="${safeVal}" ${required}>`;
         break;
       case 'number':
-        input = `<input type="number" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" min="${field.min || ''}" max="${field.max || ''}" step="${field.step || '1'}" ${required}>`;
+        const roNum = field.readonly ? 'readonly' : '';
+        input = `<input type="number" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" min="${field.min || ''}" max="${field.max || ''}" step="${field.step || '1'}" ${required} ${roNum}>`;
         break;
       case 'email':
         input = `<input type="email" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required}>`;
