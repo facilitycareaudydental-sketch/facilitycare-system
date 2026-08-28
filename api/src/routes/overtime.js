@@ -99,7 +99,7 @@ export async function handleOvertime(request, env, origin) {
         body.reason
       ).first();
       
-      return ok({ id: res.id, message: 'Data lembur berhasil ditambahkan' }, origin, 201);
+      return ok({ id: res.id, message: 'Data lembur berhasil ditambahkan' }, 201, origin);
     } catch (e) {
       return error(e.message, 500, origin);
     }
