@@ -982,8 +982,34 @@
       ],
       "format": "esm"
     },
+    "frontend/src/pages/overtime.js": {
+      "bytes": 3190,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/dataCache.js",
+          "kind": "import-statement",
+          "original": "../utils/dataCache.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
     "frontend/src/app.js": {
-      "bytes": 29852,
+      "bytes": 30402,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1119,13 +1145,18 @@
           "path": "frontend/src/pages/mutasi.js",
           "kind": "import-statement",
           "original": "./pages/mutasi.js"
+        },
+        {
+          "path": "frontend/src/pages/overtime.js",
+          "kind": "import-statement",
+          "original": "./pages/overtime.js"
         }
       ],
       "format": "esm"
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-2446DI6F.js": {
+    "frontend/dist/assets/app-TZRTFJ5F.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1140,7 +1171,7 @@
           "bytesInOutput": 3311
         },
         "frontend/src/app.js": {
-          "bytesInOutput": 21390
+          "bytesInOutput": 21825
         },
         "frontend/src/router.js": {
           "bytesInOutput": 761
@@ -1255,9 +1286,12 @@
         },
         "frontend/src/pages/mutasi.js": {
           "bytesInOutput": 3615
+        },
+        "frontend/src/pages/overtime.js": {
+          "bytesInOutput": 2082
         }
       },
-      "bytes": 233940
+      "bytes": 236457
     }
   }
 }

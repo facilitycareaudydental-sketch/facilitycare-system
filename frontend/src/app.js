@@ -69,6 +69,7 @@ import { renderProfile } from './pages/profile.js';
 import { renderImportPage } from './pages/import.js';
 import { renderSP } from './pages/sp.js';
 import { renderMutasi } from './pages/mutasi.js';
+import { renderOvertime } from './pages/overtime.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
@@ -226,6 +227,12 @@ function renderLayout() {
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
               </span>
               <span class="nav-label">Data Mutasi</span>
+            </a>
+            <a href="#/overtime" class="nav-item" data-route="/overtime">
+              <span class="nav-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+              <span class="nav-label">Data Lembur</span>
             </a>
             <a href="#/relievers" class="nav-item" data-route="/relievers">
               <span class="nav-icon">
@@ -487,6 +494,7 @@ async function init() {
   registerRoute('/contracts',          requireAuth(({ main, params }) => renderContracts(main, params)));
   registerRoute('/sp',                 requireAuth(({ main }) => renderSP(main)));
   registerRoute('/mutasi',             requireAuth(({ main }) => renderMutasi(main)));
+  registerRoute('/overtime',           requireAuth(({ main }) => renderOvertime(main)));
   registerRoute('/timeline',           requireAuth(({ main, params }) => renderSchedule(main, params)));
   registerRoute('/issues',             requireAuth(({ main, params }) => renderIssues(main, params)));
   registerRoute('/one-on-one',         requireAuth(({ main, params }) => renderOneOnOne(main, params)));

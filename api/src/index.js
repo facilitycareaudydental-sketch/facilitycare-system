@@ -22,6 +22,7 @@ import { handleDashboard, handleRelieverAudit, handleDebug56 } from './routes/da
 import { handleImport } from './routes/import.js';
 import { handleSP } from './routes/sp.js';
 import { handleMutasi } from './routes/mutasi.js';
+import { handleOvertime } from './routes/overtime.js';
 import { syncGoogleSheets } from './utils/google_sync.js';
 import { receiveWebhook, processOutbox } from './utils/sync_engine.js';
 import { handleMonitoring } from './routes/monitoring.js';
@@ -155,6 +156,7 @@ export default {
       else if (path.startsWith('/api/import')) response = await handleImport(request, env, origin);
       else if (path.startsWith('/api/sp')) response = await handleSP(request, env, origin);
       else if (path.startsWith('/api/mutasi')) response = await handleMutasi(request, env, origin);
+      else if (path.startsWith('/api/overtime')) response = await handleOvertime(request, env, origin);
       else if (path.startsWith('/api/audit-logs')) response = await (await import('./routes/audit_logs.js')).handleAuditLogs(request, env, origin);
       else if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || path.startsWith('/api/forms') || path.startsWith('/api/pic') || path.startsWith('/api/options')) response = await handleMisc(request, env, origin);
       
