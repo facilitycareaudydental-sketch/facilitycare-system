@@ -12,7 +12,7 @@ export async function renderOvertime(container) {
   buildCrudPage({
     container,
     title: 'Data Lembur',
-    icon: 'fa-clock',
+    icon: '⏱️',
     apiPath: '/api/overtime',
     enableMobileFilterSheet: true,
     itemLabel: 'Lembur',
