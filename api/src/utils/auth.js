@@ -75,6 +75,16 @@ export async function authenticate(request, env) {
 
 export function hasPermission(user, module, action) {
   if (user.role === 'superadmin') return true;
+  
+  if (user.role === 'editor_khusus') {
+    if (module === 'issues' || module === 'overtime') {
+      if (action === 'read' || action === 'write' || action === 'delete') return true;
+    } else {
+      if (action === 'read') return true;
+    }
+    return false;
+  }
+  
   // For simplicity, role-based checks
   const rolePermissions = {
     admin: { level: 4 },

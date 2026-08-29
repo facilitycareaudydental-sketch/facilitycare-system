@@ -37,6 +37,16 @@ export function buildCrudPage({
     bulkDelete = false;
     exportOptions = null;
   }
+  
+  if (user && user.role === 'editor_khusus') {
+    if (apiPath !== '/api/issues' && apiPath !== '/api/overtime') {
+      canCreate = false;
+      canEdit = false;
+      canDelete = false;
+      bulkDelete = false;
+      exportOptions = null;
+    }
+  }
 
   let page = 1;
   let filters = { ...defaultFilters };
