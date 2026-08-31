@@ -76,6 +76,16 @@ export async function authenticate(request, env) {
 export function hasPermission(user, module, action) {
   if (user.role === 'superadmin') return true;
   
+  if (user.role === 'input_lembur') {
+    if (module === 'overtime') {
+      if (action === 'read' || action === 'write') return true;
+      if (action === 'delete') return false;
+    } else {
+      if (action === 'read') return true;
+    }
+    return false;
+  }
+
   if (user.role === 'editor_khusus') {
     if (module === 'issues' || module === 'overtime') {
       if (action === 'read' || action === 'write' || action === 'delete') return true;

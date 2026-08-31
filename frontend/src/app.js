@@ -443,6 +443,18 @@ function renderLayout() {
   overlay?.addEventListener('click', closeSidebar);
   document.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', closeSidebar));
 
+  if (user && user.role === 'input_lembur') {
+    document.querySelectorAll('.nav-item').forEach(el => {
+      if (el.dataset.route !== '/overtime') {
+        el.style.display = 'none';
+      }
+    });
+    document.querySelectorAll('.nav-section').forEach(el => {
+      const hasVisible = Array.from(el.querySelectorAll('.nav-item')).some(item => item.style.display !== 'none');
+      if (!hasVisible) el.style.display = 'none';
+    });
+  }
+
   // ── Active nav ───────────────────────────────────────────────────────────
   function updateActiveNav() {
     const hash = window.location.hash.replace('#', '') || '/dashboard';
@@ -518,11 +530,27 @@ async function init() {
 
   if (token) {
     const res = await apiFetch('/api/auth/me');
-    if (res.ok) { setUser(res.data.data); renderLayout(); }
+    if (res.ok) { 
+      setUser(res.data.data); 
+      renderLayout(); 
+      const user = getUser();
+      const hash = window.location.hash;
+      if (user && user.role === 'input_lembur' && (hash === '#/dashboard' || hash === '' || hash === '#/')) {
+        navigate('/overtime');
+      }
+    }
     else { clearToken(); navigate('/login'); }
   }
 
-  window.addEventListener('fm:login', () => { renderLayout(); navigate('/dashboard'); });
+  window.addEventListener('fm:login', () => { 
+    renderLayout(); 
+    const user = getUser();
+    if (user && user.role === 'input_lembur') {
+      navigate('/overtime');
+    } else {
+      navigate('/dashboard'); 
+    }
+  });
   initRouter();
 }
 

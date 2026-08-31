@@ -23,7 +23,7 @@ export async function renderUsers(container) {
       { key: 'username', label: 'Username' },
       { key: 'email', label: 'Email' },
       { key: 'role', label: 'Role', render: v => {
-        const colors = { superadmin: 'badge-danger', admin: 'badge-purple', manager: 'badge-info', spv: 'badge-secondary', editor_khusus: 'badge-warning', viewer: 'badge-neutral' };
+        const colors = { superadmin: 'badge-danger', admin: 'badge-purple', manager: 'badge-info', spv: 'badge-secondary', editor_khusus: 'badge-warning', input_lembur: 'badge-info', viewer: 'badge-neutral' };
         return `<span class="badge ${colors[v] || 'badge-neutral'}">${v}</span>`;
       }},
       { key: 'is_active', label: 'Status', render: v => v ? '<span class="badge badge-success">Aktif</span>' : '<span class="badge badge-neutral">Nonaktif</span>' },
@@ -50,6 +50,7 @@ export async function renderUsers(container) {
               { value: 'manager', label: 'Manager' },
               { value: 'spv', label: 'Supervisor' },
               { value: 'editor_khusus', label: 'Editor (Hanya Lembur & Masalah)' },
+              { value: 'input_lembur', label: 'Input Lembur (Hanya Isi Lembur)' },
               { value: 'viewer', label: 'Viewer' },
             ], value: data?.role || 'viewer' },
           ]

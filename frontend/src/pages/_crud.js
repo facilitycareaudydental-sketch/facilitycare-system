@@ -48,6 +48,19 @@ export function buildCrudPage({
     }
   }
 
+  if (user && user.role === 'input_lembur') {
+    if (apiPath === '/api/overtime') {
+      canDelete = false;
+      bulkDelete = false;
+    } else {
+      canCreate = false;
+      canEdit = false;
+      canDelete = false;
+      bulkDelete = false;
+      exportOptions = null;
+    }
+  }
+
   let page = 1;
   let filters = { ...defaultFilters };
   if (initialSearch) filters.search = initialSearch;
