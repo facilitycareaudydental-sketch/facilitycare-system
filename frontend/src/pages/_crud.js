@@ -52,6 +52,7 @@ export function buildCrudPage({
     if (apiPath === '/api/overtime') {
       canDelete = false;
       bulkDelete = false;
+      exportOptions = null;
     } else {
       canCreate = false;
       canEdit = false;
