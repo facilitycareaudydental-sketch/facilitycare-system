@@ -7,6 +7,29 @@ import { downloadExcel } from '../utils/excel.js';
 let branchOptions = [];
 let employeeOptions = [];
 
+function calculateIssuesDay(e) {
+  if (e.target.name === 'report_date' || e.target.name === 'completion_date') {
+    const reportDateInput = document.querySelector('input[name="report_date"]');
+    const compDateInput = document.querySelector('input[name="completion_date"]');
+    const dayInput = document.querySelector('input[name="day_count"]');
+    
+    if (reportDateInput && compDateInput && dayInput) {
+      if (reportDateInput.value && compDateInput.value) {
+        const rd = new Date(reportDateInput.value);
+        const cd = new Date(compDateInput.value);
+        const diff = Math.floor((cd - rd) / 86400000);
+        dayInput.value = !isNaN(diff) ? diff : '';
+      } else {
+        dayInput.value = '';
+      }
+    }
+  }
+}
+document.body.removeEventListener('input', calculateIssuesDay);
+document.body.addEventListener('input', calculateIssuesDay);
+document.body.removeEventListener('change', calculateIssuesDay);
+document.body.addEventListener('change', calculateIssuesDay);
+
 export function filterDashboardItem(s, type) {
   const status = String(s.status || '').toLowerCase();
   if (type === 'open') return status === 'open';
@@ -95,7 +118,7 @@ export async function renderIssues(container, params) {
         type: 'row', fields: [
           { name: 'status', label: 'Status', type: 'select', required: true, options: ['Open', 'In Progress', 'Done'], value: data?.status || '' },
           { name: 'completion_date', label: 'Tanggal Selesai', type: 'date', value: data?.completion_date },
-          { name: 'day_count', label: 'Day', type: 'number', value: data?.day_count },
+          { name: 'day_count', label: 'Day', type: 'number', value: data?.day_count, readonly: true },
         ]
       },
     ],
