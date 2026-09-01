@@ -231,7 +231,7 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(syncGoogleSheets(env)); // Legacy manual sync fallback
+    // ctx.waitUntil(syncGoogleSheets(env)); // DISABLED: Legacy manual sync fallback
     ctx.waitUntil(processOutbox(env)); // New Phase 1 Bidirectional Sweeper
   }
 };
