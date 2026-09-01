@@ -18,6 +18,7 @@ export async function handleDashboard(request, env, origin) {
   const url  = new URL(request.url);
   const path = url.pathname.replace('/api/dashboard', '');
 
+  if (path === '/dropdown-aggregates') return getDropdownAggregates(env, origin);
   if (path === '/kpi')               return getKPI(env, origin);
   if (path === '/stats' || path === '') return getStats(env, origin);
   if (path === '/issues-trend')      return getIssuesTrend(env, origin);
@@ -784,5 +785,25 @@ async function getRelieferSummary(request, env, origin) {
     done,
     total,
     percentage
+  }, 200, origin);
+}
+
+async function getDropdownAggregates(env, origin) {
+  const [relieverRows, inspeksiRows, gcdcRows, foggingRows, scheduleQRows] = await Promise.all([
+    env.DB.prepare("SELECT strftime('%Y-%m', backup_date) as month, COUNT(*) as c FROM relievers WHERE LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND backup_date IS NOT NULL GROUP BY month").all(),
+    env.DB.prepare("SELECT strftime('%Y-%m', COALESCE(completion_date, target_date)) as month, COUNT(*) as c FROM activity_schedule WHERE activity_type = 'Inspeksi Hygiene' AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND COALESCE(completion_date, target_date) IS NOT NULL GROUP BY month").all(),
+    env.DB.prepare("SELECT strftime('%Y-%m', COALESCE(completion_date, target_date)) as month, COUNT(*) as c FROM activity_schedule WHERE activity_type IN ('General Cleaning', 'Deep Cleaning') AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND COALESCE(completion_date, target_date) IS NOT NULL GROUP BY month").all(),
+    env.DB.prepare("SELECT strftime('%Y-%m', activity_date) as month, COUNT(*) as c FROM fogging_reports WHERE LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND activity_date IS NOT NULL GROUP BY month").all(),
+    env.DB.prepare("SELECT period, COUNT(*) as c FROM activity_schedule WHERE period IS NOT NULL AND period LIKE 'Q%' GROUP BY period").all()
+  ]);
+
+  const toMap = (rows) => Object.fromEntries((rows.results || []).map(r => [r.month || r.period, r.c || 0]));
+
+  return ok({
+    relievers_by_month: toMap(relieverRows),
+    inspeksi_by_month: toMap(inspeksiRows),
+    gcdc_by_month: toMap(gcdcRows),
+    fogging_by_month: toMap(foggingRows),
+    schedule_by_quarter: toMap(scheduleQRows)
   }, 200, origin);
 }

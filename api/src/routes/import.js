@@ -267,10 +267,12 @@ async function importEmployees(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, full_name FROM employees').all();
+  // Phase 2A Optimization: SQL Pushdown for Hash Key
+  // Shift CPU-heavy string operations (lowercase, trim) from JS Worker to SQLite
+  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(full_name)) as hash_key FROM employees WHERE full_name IS NOT NULL").all();
   const existingMap = new Map();
   (existing.results || []).forEach(e => {
-    existingMap.set(e.full_name.toLowerCase().trim(), e.id);
+    if (e.hash_key) existingMap.set(e.hash_key, e.id);
   });
 
   const stmts = [];
@@ -328,12 +330,11 @@ async function importContracts(rows, onDuplicate, env, origin) {
     return emp ? emp.id : null;
   };
 
-  const existing = await env.DB.prepare('SELECT id, employee_name, start_date FROM contracts').all();
+  // Phase 2A Optimization: SQL Pushdown for Hash Key
+  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(employee_name)) || '_' || start_date as hash_key FROM contracts WHERE employee_name IS NOT NULL AND start_date IS NOT NULL").all();
   const existingMap = new Map();
   (existing.results || []).forEach(c => {
-    if (c.employee_name && c.start_date) {
-      existingMap.set(c.employee_name.toLowerCase().trim() + '_' + c.start_date, c.id);
-    }
+    if (c.hash_key) existingMap.set(c.hash_key, c.id);
   });
 
   const stmts = [];
@@ -388,13 +389,23 @@ async function importRelievers(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  // 1. Collect all unique months from the incoming data
+  // 1. Collect all unique months from the incoming data and VALIDATE
   const monthsToSync = new Set();
   const validRows = [];
+  let skipped = 0;
+  let updated = 0; // conceptually 0 for wipe
   
+  if (!rows || rows.length === 0) {
+    return error('IMPORT FAILED: File Excel kosong atau tidak ada baris data.', 400, origin);
+  }
+
   for (const row of rows) {
     const reliever_name = safeStr(row.reliever_name) || '-';
-    let rawDate = safeDate(row.backup_date) || today();
+    let rawDate = safeDate(row.backup_date);
+    
+    if (!rawDate) {
+      return error('IMPORT FAILED: Terdapat baris dengan backup_date kosong atau tidak valid. Proses dihentikan sebelum menyentuh database.', 400, origin);
+    }
     
     let m = '';
     if (typeof rawDate === 'string' && rawDate.match(/^\d{4}-\d{2}-\d{2}/)) {
@@ -404,52 +415,47 @@ async function importRelievers(rows, onDuplicate, env, origin) {
       if (!isNaN(excelDays)) {
         const d = new Date(Date.UTC(1899, 11, 30) + excelDays * 86400000);
         if (!isNaN(d.getTime())) m = d.toISOString().slice(0, 7);
+      } else {
+        // Fallback standard parse
+        const parts = rawDate.split(/[\/\-]/);
+        if (parts.length === 3) m = `${parts[2]}-${parts[1].padStart(2, '0')}`;
       }
     }
-    if (m) monthsToSync.add(m);
     
+    if (!m) {
+      return error(`IMPORT FAILED: Gagal mengekstrak bulan dari tanggal: ${rawDate}. Proses dihentikan.`, 400, origin);
+    }
+    
+    monthsToSync.add(m);
     validRows.push({ ...row, backup_date: rawDate, reliever_name });
   }
 
-  // 2. Fetch all existing records and find those belonging to the months to sync
-  const allExisting = await env.DB.prepare('SELECT id, backup_date FROM relievers').all();
-  const idsToDelete = [];
-  
-  for (const r of (allExisting.results || [])) {
-    let d = String(r.backup_date || '').trim();
-    let parsed = '';
-    
-    if (/^\d{5}$/.test(d)) {
-      const utc_days = Math.floor(Number(d) - 25569);
-      const date_info = new Date(utc_days * 86400 * 1000);
-      parsed = date_info.toISOString().split('T')[0];
-    } else if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
-      const p = d.split(/[\/\-]/);
-      parsed = `${p[2]}-${p[1]}-${p[0]}`;
-    } else {
-      parsed = d.split('T')[0];
-    }
-
-    if (parsed) {
-      for (const m of monthsToSync) {
-        if (parsed.startsWith(m)) {
-          idsToDelete.push(r.id);
-          break;
-        }
-      }
-    }
+  if (monthsToSync.size === 0) {
+    return error('IMPORT FAILED: Tidak ada bulan valid yang terdeteksi untuk di-sync.', 400, origin);
   }
 
-  // 3. Delete old ghost records for these months to ensure PERFECT SYNC
-  if (idsToDelete.length > 0) {
-    const deleteStmts = idsToDelete.map(id => env.DB.prepare('DELETE FROM relievers WHERE id = ?').bind(id));
-    await batchInsert(env.DB, deleteStmts);
-  }
-
-  // 4. Insert all the new rows exactly as provided in the Excel file
   const stmts = [];
-  let inserted = 0;
 
+  // 2. SQL PUSHDOWN WIPE (Phase 2C/2F)
+  // Deletes only matching months. Placed at index 0 to ensure atomicity with the first INSERT chunk.
+  const monthsArray = Array.from(monthsToSync);
+  const placeholders = monthsArray.map(() => '?').join(',');
+  
+  stmts.push(env.DB.prepare(`
+    DELETE FROM relievers WHERE (
+      CASE
+        WHEN length(backup_date) = 5 AND CAST(backup_date AS INTEGER) > 0 THEN
+          strftime('%Y-%m', date('1970-01-01', '+' || (CAST(backup_date AS INTEGER) - 25569) || ' days'))
+        WHEN length(backup_date) = 10 AND substr(backup_date, 3, 1) IN ('/', '-') AND substr(backup_date, 6, 1) IN ('/', '-') THEN
+          substr(backup_date, 7, 4) || '-' || substr(backup_date, 4, 2)
+        ELSE
+          substr(backup_date, 1, 7)
+      END
+    ) IN (${placeholders})
+  `).bind(...monthsArray));
+
+  // 3. INSERT ROWS
+  let inserted = 0;
   for (const row of validRows) {
     let branch_id = row.branch_id || matchBranch(row.branch_name);
     const original_fc_name = safeStr(row.original_fc_name);
@@ -466,7 +472,12 @@ async function importRelievers(rows, onDuplicate, env, origin) {
     inserted++;
   }
 
-  await batchInsert(env.DB, stmts);
+  // 4. ATOMIC/PARTIAL BATCH EXECUTION
+  try {
+    await batchInsert(env.DB, stmts);
+  } catch (err) {
+    return error('IMPORT FAILED: Terjadi kegagalan saat menyimpan ke database. Data relievers bulan ini mungkin berada dalam kondisi parsial jika ukuran file besar. Silakan lakukan Import Ulang file yang sama secara utuh.', 500, origin);
+  }
 
   return ok({ inserted, skipped, updated }, 200, origin);
 }
@@ -476,12 +487,11 @@ async function importSchedule(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, activity_type, period, branch_id, target_date FROM activity_schedule').all();
+  // Phase 2A Optimization: SQL Pushdown for Hash Key
+  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(activity_type)) || '_' || LOWER(TRIM(period)) || '_' || COALESCE(branch_id, 'null') || '_' || COALESCE(target_date, '') as hash_key FROM activity_schedule WHERE activity_type IS NOT NULL AND period IS NOT NULL").all();
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
-    if (s.activity_type && s.period) {
-      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.branch_id + '_' + (s.target_date || ''), s.id);
-    }
+    if (s.hash_key) existingMap.set(s.hash_key, s.id);
   });
 
   const stmts = [];
@@ -535,12 +545,11 @@ async function importIssues(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, complaint, report_date, branch_id FROM issues').all();
+  // Phase 2A Optimization: SQL Pushdown for Hash Key
+  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(complaint)) || '_' || report_date || '_' || COALESCE(branch_id, 'null') as hash_key FROM issues WHERE complaint IS NOT NULL AND report_date IS NOT NULL").all();
   const existingMap = new Map();
   (existing.results || []).forEach(i => {
-    if (i.complaint && i.report_date) {
-      existingMap.set(i.complaint.toLowerCase().trim() + '_' + i.report_date + '_' + i.branch_id, i.id);
-    }
+    if (i.hash_key) existingMap.set(i.hash_key, i.id);
   });
 
   const stmts = [];
@@ -601,12 +610,11 @@ async function importOneOnOne(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, employee_name, meeting_date FROM one_on_one').all();
+  // Phase 2A Optimization: SQL Pushdown for Hash Key
+  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(employee_name)) || '_' || meeting_date as hash_key FROM one_on_one WHERE employee_name IS NOT NULL AND meeting_date IS NOT NULL").all();
   const existingMap = new Map();
   (existing.results || []).forEach(o => {
-    if (o.employee_name && o.meeting_date) {
-      existingMap.set(o.employee_name.toLowerCase().trim() + '_' + o.meeting_date, o.id);
-    }
+    if (o.hash_key) existingMap.set(o.hash_key, o.id);
   });
 
   const stmts = [];

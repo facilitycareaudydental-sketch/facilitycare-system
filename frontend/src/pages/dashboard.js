@@ -270,7 +270,14 @@ export async function renderDashboard(container) {
 
   container.innerHTML = `
     <div class="dashboard-wrap" id="dash-root">
-
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="margin:0; font-size:1.2rem; color:var(--text-1);">Dashboard Overview</h2>
+        <button id="btn-dash-refresh" class="btn-primary" style="padding:6px 12px; font-size:0.8rem; display:flex; align-items:center; gap:6px; cursor:pointer; background:var(--primary); color:#fff; border:none; border-radius:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+          Refresh Data
+        </button>
+      </div>
 
       <!-- KPI -->
       <div class="kpi-row" id="kpi-row">${skelKPI()}</div>
@@ -443,11 +450,8 @@ export async function renderDashboard(container) {
   // Load data
   await fetchAll(container);
 
-  // Auto-refresh every 60s
-  container._dashRefresh = setInterval(() => {
-    if (document.getElementById('dash-root')) fetchAll(container);
-    else clearInterval(container._dashRefresh);
-  }, 60000);
+  // Phase 1 Optimization: Auto-refresh disabled to protect Cloudflare Free Tier
+  // container._dashRefresh = setInterval(() => { ... }, 60000);
 }
 
 // ── Fetch — each endpoint isolated, never blocks dashboard ─────────────────
@@ -459,22 +463,16 @@ async function fetchAll(container) {
   }
 
   // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, recentIssues, calendarData, scheduleData, empData, contrData, issData, oooData, contractChart, scheduleChartData, relieversData, foggingData] =
+  const [kpi, trend, issuesSum, recentIssues, calendarData, contractChart, scheduleChartData, aggregatesData] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
       safeFetch('/api/dashboard/issues-summary',     {}, 8000),
       safeFetch('/api/dashboard/stats',              {}, 8000),
       safeFetch('/api/dashboard/calendar',           [], 8000),
-      safeFetch('/api/schedule?limit=10000',         {data: []}, 8000),
-      safeFetch('/api/employees?limit=10000',        {data: []}, 8000),
-      safeFetch('/api/contracts?limit=10000',        {data: []}, 8000),
-      safeFetch('/api/issues?limit=10000',           {data: []}, 8000),
-      safeFetch('/api/one-on-one?limit=10000',       {data: []}, 8000),
       safeFetch('/api/dashboard/contracts-chart',    {labels:[], data:[]}, 8000),
       safeFetch(`/api/dashboard/schedule-chart?year=${document.getElementById('filter-jadwal-year')?.value || new Date().getFullYear()}`, {}, 8000),
-      safeFetch('/api/relievers?limit=10000',        {data: []}, 8000),
-      safeFetch('/api/reports/fogging?limit=10000',  {data: []}, 8000),
+      safeFetch('/api/dashboard/dropdown-aggregates', {}, 8000),
     ]);
     
   const inspSelect = document.getElementById('filter-insp-month');
@@ -482,55 +480,11 @@ async function fetchAll(container) {
   const inspUrl = inspMonth ? `/api/dashboard/inspection-bar?month=${inspMonth}` : '/api/dashboard/inspection-bar';
   const inspBar = await safeFetch(inspUrl, {}, 8000);
 
-  // Override KPIs with single source of truth from their respective modules
-  if (kpi) {
-    const schedules = Array.isArray(scheduleData?.data) ? scheduleData.data : (Array.isArray(scheduleData) ? scheduleData : []);
-    window.dashboardSchedules = schedules;
-    const employees = Array.isArray(empData?.data) ? empData.data : (Array.isArray(empData) ? empData : []);
-    const contracts = Array.isArray(contrData?.data) ? contrData.data : (Array.isArray(contrData) ? contrData : []);
-    const issues = Array.isArray(issData?.data) ? issData.data : (Array.isArray(issData) ? issData : []);
-    const oneOnOnes = Array.isArray(oooData?.data) ? oooData.data : (Array.isArray(oooData) ? oooData : []);
-    const relievers = Array.isArray(relieversData?.data) ? relieversData.data : (Array.isArray(relieversData) ? relieversData : []);
-    window.dashboardRelievers = relievers;
-    const fogging = Array.isArray(foggingData?.data) ? foggingData.data : (Array.isArray(foggingData) ? foggingData : []);
-    window.dashboardFogging = fogging;
-    
-    if (kpi.employees) {
-      kpi.employees.current = employees.filter(s => filterEmp(s, 'active')).length;
-    }
-    if (kpi.contracts) {
-      kpi.contracts.current = contracts.filter(s => filterContr(s, 'active')).length;
-    }
-    if (kpi.expiring30) {
-      kpi.expiring30 = { current: contracts.filter(s => filterContr(s, 'expiring30')).length };
-    }
-    if (kpi.issues) {
-      kpi.issues.current = issues.filter(s => filterIss(s, 'open')).length;
-    }
-    if (kpi.one_on_one) {
-      kpi.one_on_one.current = oneOnOnes.filter(s => filterOoO(s, 'pending')).length;
-    }
-    if (kpi.schedule) {
-      const curQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
-      kpi.schedule.current = schedules.filter(s => {
-        if (s.period === curQ) return true;
-        if (s.target_date) {
-          const parts = s.target_date.split('-');
-          if (parts.length >= 2) {
-            const m = parseInt(parts[1], 10);
-            return m && `Q${Math.ceil(m / 3)}` === curQ;
-          }
-        }
-        return false;
-      }).length;
-    }
-    if (kpi.inspection_month) {
-      kpi.inspection_month.current = schedules.filter(s => filterSched(s, 'inspeksi')).length;
-    }
-    if (kpi.cleaning_month) {
-      kpi.cleaning_month.current = schedules.filter(s => filterSched(s, 'gcdc')).length;
-    }
-  }
+  // Store aggregates for dropdowns
+  window.dashboardAggregates = aggregatesData || {};
+
+  // Phase 1 Optimization: KPIs are no longer overridden by client-side filtering. 
+  // The backend /api/dashboard/kpi is now the single source of truth.
 
   // Render each section independently — one failure never breaks others
   try { renderKPI(kpi); } catch(e) { console.warn('KPI render:', e); }
@@ -696,19 +650,9 @@ function renderMiniStats(kpi) {
   // Add event listener for the Jadwal period dropdown
   const jadwalSelect = document.getElementById('dash-jadwal-period');
   if (jadwalSelect) {
-    jadwalSelect.addEventListener('change', (e) => {
-      const p = e.target.value;
-      const count = (window.dashboardSchedules || []).filter(s => {
-        if (s.period === p) return true;
-        if (s.target_date) {
-          const parts = s.target_date.split('-');
-          if (parts.length >= 2) {
-            const m = parseInt(parts[1], 10);
-            return m && `Q${Math.ceil(m / 3)}` === p;
-          }
-        }
-        return false;
-      }).length;
+    const refreshJadwal = (p) => {
+      const aggs = window.dashboardAggregates?.schedule_by_quarter || {};
+      const count = aggs[p] || 0;
       const valEl = document.querySelector('#mini-jadwal .mini-stat-value');
       if (valEl) {
         valEl.dataset.target = count;
@@ -718,15 +662,18 @@ function renderMiniStats(kpi) {
       if (a) {
         a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
       }
-    });
+    };
+    refreshJadwal(jadwalSelect.value);
+    jadwalSelect.addEventListener('change', (e) => refreshJadwal(e.target.value));
   }
 
   // Helper for month dropdowns
-  const setupMonthDropdown = (selectId, cardId, dataArr, countLogic, hrefBase) => {
+  const setupMonthDropdown = (selectId, cardId, aggKey, hrefBase) => {
     const sel = document.getElementById(selectId);
     if (sel) {
       const refreshCount = (m) => {
-        const count = (dataArr || []).filter(item => countLogic(item, m)).length;
+        const aggs = window.dashboardAggregates?.[aggKey] || {};
+        const count = aggs[m] || 0;
         const valEl = document.querySelector(`#${cardId} .mini-stat-value`);
         if (valEl) {
           valEl.dataset.target = count;
@@ -742,30 +689,10 @@ function renderMiniStats(kpi) {
     }
   };
 
-  const isDone = (s) => {
-    const st = String(s.status || '').toLowerCase();
-    return st === 'done' || st === 'selesai' || st === 'completed';
-  };
-
-  setupMonthDropdown('dash-reliefer-month', 'mini-reliefer', window.dashboardRelievers, 
-    (item, m) => window.parseFlexibleDate(item.backup_date).startsWith(m) && isDone(item), 
-    '#/relievers?dash_filter=reliever'
-  );
-
-  setupMonthDropdown('dash-inspeksi-month', 'mini-inspeksi', window.dashboardSchedules, 
-    (item, m) => item.activity_type === 'Inspeksi Hygiene' && isDone(item) && window.parseFlexibleDate(item.completion_date || item.target_date).startsWith(m), 
-    '#/timeline?dash_filter=inspeksi'
-  );
-
-  setupMonthDropdown('dash-gcdc-month', 'mini-gcdc', window.dashboardSchedules, 
-    (item, m) => (item.activity_type === 'General Cleaning' || item.activity_type === 'Deep Cleaning') && isDone(item) && window.parseFlexibleDate(item.completion_date || item.target_date).startsWith(m), 
-    '#/timeline?dash_filter=gcdc'
-  );
-
-  setupMonthDropdown('dash-fogging-month', 'mini-fogging', window.dashboardFogging, 
-    (item, m) => isDone(item) && window.parseFlexibleDate(item.activity_date).startsWith(m), 
-    '#/reports/fogging?dash_filter=fogging'
-  );
+  setupMonthDropdown('dash-reliefer-month', 'mini-reliefer', 'relievers_by_month', '#/relievers?dash_filter=reliever');
+  setupMonthDropdown('dash-inspeksi-month', 'mini-inspeksi', 'inspeksi_by_month', '#/timeline?dash_filter=inspeksi');
+  setupMonthDropdown('dash-gcdc-month', 'mini-gcdc', 'gcdc_by_month', '#/timeline?dash_filter=gcdc');
+  setupMonthDropdown('dash-fogging-month', 'mini-fogging', 'fogging_by_month', '#/reports/fogging?dash_filter=fogging');
 }
 
 // ── Donut ──────────────────────────────────────────────────────────────────
