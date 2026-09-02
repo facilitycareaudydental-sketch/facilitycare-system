@@ -63,10 +63,14 @@ async function handleLogin(request, env, origin) {
     secret
   );
 
-  await env.DB.prepare('UPDATE users SET updated_at = datetime(\'now\') WHERE id = ?').bind(user.id).run();
-
   const userObj = { id: user.id, username: user.username, email: user.email, full_name: user.full_name, role: user.role };
-  await logAudit(env, userObj, 'LOGIN', 'auth', user.id, null, { action: 'User logged in' });
+
+  try {
+    await env.DB.prepare('UPDATE users SET updated_at = datetime(\'now\') WHERE id = ?').bind(user.id).run();
+    await logAudit(env, userObj, 'LOGIN', 'auth', user.id, null, { action: 'User logged in' });
+  } catch (err) {
+    console.error('Non-critical login DB write failed:', err);
+  }
 
   return ok({
     token,

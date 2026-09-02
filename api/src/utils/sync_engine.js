@@ -77,8 +77,23 @@ export async function processOutbox(env) {
   console.log('Starting Outbox Sweeper...');
   const workerId = crypto.randomUUID();
   const leaseToken = crypto.randomUUID();
+  let lockAcquired = false;
   
   try {
+    // 0. Pre-check to avoid lease-lock writes when queue is idle
+    const stuckTimeoutMinutes = env.SYNC_STUCK_TIMEOUT || 5;
+    const hasWork = await env.DB.prepare(`
+      SELECT 1 FROM sync_outbox
+      WHERE status = 'PENDING'
+         OR (status = 'FAILED' AND next_retry_at <= datetime('now'))
+         OR (status = 'PROCESSING' AND updated_at < datetime('now', '-${stuckTimeoutMinutes} minutes'))
+      LIMIT 1
+    `).first();
+
+    if (!hasWork) {
+      return;
+    }
+
     // 0a. Distributed Lock Hardening (Lease Lock)
     await env.DB.prepare("DELETE FROM sync_locks WHERE lease_until < datetime('now')").run();
     
@@ -92,6 +107,7 @@ export async function processOutbox(env) {
       console.log('Another worker holds the outbox lease lock. Exiting.');
       return;
     }
+    lockAcquired = true;
 
     const extendLease = async () => {
       const res = await env.DB.prepare(`
@@ -118,7 +134,6 @@ export async function processOutbox(env) {
     }
 
     // 0c. PROCESSING Recovery (Stuck Events)
-    const stuckTimeoutMinutes = env.SYNC_STUCK_TIMEOUT || 5;
     const stuckEvents = await env.DB.prepare(`
       SELECT id FROM sync_outbox 
       WHERE status = 'PROCESSING' AND updated_at < datetime('now', '-${stuckTimeoutMinutes} minutes')
@@ -252,7 +267,9 @@ export async function processOutbox(env) {
     console.error('Outbox Sweeper Error:', err);
   } finally {
     try {
-      await env.DB.prepare("DELETE FROM sync_locks WHERE lock_id = 'outbox_sweeper' AND lease_token = ?").bind(leaseToken).run();
+      if (lockAcquired) {
+        await env.DB.prepare("DELETE FROM sync_locks WHERE lock_id = 'outbox_sweeper' AND lease_token = ?").bind(leaseToken).run();
+      }
     } catch (e) {
       console.error('Failed to release lease lock:', e);
     }
