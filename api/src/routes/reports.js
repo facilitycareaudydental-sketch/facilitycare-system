@@ -36,6 +36,9 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
   const pic = url.searchParams.get('pic') || '';
   const activity_type = url.searchParams.get('activity_type') || '';
 
+  const dateField = table === 'basecamp_reports' ? 'info_date' : 
+                    table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
+
   let conditions = [...extraConditions];
   let values = [];
   if (branch_id) { conditions.push('t.branch_id = ?'); values.push(branch_id); }
@@ -44,14 +47,10 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
   if (pic) { conditions.push('t.pic = ?'); values.push(pic); }
   if (activity_type) { conditions.push('t.activity_type = ?'); values.push(activity_type); }
   if (year) {
-    const dateField = table === 'basecamp_reports' ? 'info_date' : 
-                      table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
     conditions.push(`strftime('%Y', t.${dateField}) = ?`);
     values.push(year);
   }
   if (month) {
-    const dateField = table === 'basecamp_reports' ? 'info_date' : 
-                      table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
     conditions.push(`strftime('%m', t.${dateField}) = ?`);
     values.push(month);
   }
@@ -72,7 +71,7 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
     env.DB.prepare(
       `SELECT t.*, b.full_name as branch_name FROM ${table} t
        LEFT JOIN branches b ON t.branch_id = b.id
-       ${where} ORDER BY t.period ASC, t.id DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY t.${dateField} DESC, t.id DESC LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 
