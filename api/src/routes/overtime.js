@@ -72,7 +72,7 @@ export async function handleOvertime(request, env, origin) {
       `).bind(idMatch[1]).all();
       
       if (!results || results.length === 0) return notFound(origin);
-      return ok(results[0], origin);
+      return ok(results[0], 200, origin);
     } catch (e) {
       return error(e.message, 500, origin);
     }
@@ -126,7 +126,7 @@ export async function handleOvertime(request, env, origin) {
         body.reason,
         id
       ).run();
-      return ok({ message: 'Data lembur berhasil diupdate' }, origin);
+      return ok({ message: 'Data lembur berhasil diupdate' }, 200, origin);
     } catch (e) {
       return error(e.message, 500, origin);
     }
@@ -137,7 +137,7 @@ export async function handleOvertime(request, env, origin) {
     if (user.role !== 'superadmin' && user.role !== 'admin') return forbidden(origin);
     try {
       await env.DB.prepare('DELETE FROM overtime_records WHERE id=?').bind(idMatch[1]).run();
-      return ok({ message: 'Data lembur berhasil dihapus' }, origin);
+      return ok({ message: 'Data lembur berhasil dihapus' }, 200, origin);
     } catch (e) {
       return error(e.message, 500, origin);
     }
