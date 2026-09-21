@@ -488,7 +488,7 @@ async function importSchedule(rows, onDuplicate, env, origin) {
   const matchBranch = makeBranchMatcher(bRows.results);
 
   // Phase 2A Optimization: SQL Pushdown for Hash Key
-  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(activity_type)) || '_' || LOWER(TRIM(period)) || '_' || COALESCE(branch_id, 'null') || '_' || COALESCE(target_date, '') as hash_key FROM activity_schedule WHERE activity_type IS NOT NULL AND period IS NOT NULL").all();
+  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(activity_type)) || '_' || LOWER(TRIM(period)) || '_' || COALESCE(branch_id, 'null') as hash_key FROM activity_schedule WHERE activity_type IS NOT NULL AND period IS NOT NULL").all();
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
     if (s.hash_key) existingMap.set(s.hash_key, s.id);
@@ -507,7 +507,7 @@ async function importSchedule(rows, onDuplicate, env, origin) {
     const target_date = safeDate(row.target_date);
     let branch_id = row.branch_id || matchBranch(row.branch_name);
     const period = safeStr(row.period);
-    const key = activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim() + '_' + branch_id + '_' + (target_date || '');
+    const key = activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim() + '_' + (branch_id || 'null');
     importedKeys.push(key);
 
     const pic = safeStr(row.pic);

@@ -176,8 +176,7 @@ export async function importSchedule(request, env, origin) {
   const existingMap = new Map();
   (existing.results || []).forEach(s => {
     if (s.activity_type && s.period) {
-      const tdate = s.target_date ? String(s.target_date) : 'nodate';
-      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + s.branch_id + '_' + tdate, s.id);
+      existingMap.set(s.activity_type.toLowerCase().trim() + '_' + s.period.toLowerCase().trim() + '_' + String(s.branch_id || 'null'), s.id);
     }
   });
 
@@ -188,8 +187,7 @@ export async function importSchedule(request, env, origin) {
   for (const item of body) {
     if (!item.activity_type || !item.period) continue;
     
-    const tdate = item.target_date ? String(item.target_date) : 'nodate';
-    const key = item.activity_type.toLowerCase().trim() + '_' + item.period.toLowerCase().trim() + '_' + (item.branch_id || 'null') + '_' + tdate;
+    const key = item.activity_type.toLowerCase().trim() + '_' + item.period.toLowerCase().trim() + '_' + String(item.branch_id || 'null');
     const status = item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '';
 
     if (existingMap.has(key)) {
