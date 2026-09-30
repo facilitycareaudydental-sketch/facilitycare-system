@@ -2,6 +2,58 @@ import { hashPassword, verifyPassword, createToken, authenticate } from '../util
 import { ok, error, unauthorized } from '../utils/response.js';
 import { logAudit } from '../utils/audit.js';
 
+// ── Rate Limiting Map (isolate-scoped, not distributed) ──────────────────────
+// Key: username, Value: { attempts: number, lastAttempt: timestamp, cooldownUntil: timestamp }
+const rateLimitMap = new Map();
+const RATE_LIMIT_ATTEMPTS = 5;
+const RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(username) {
+  const now = Date.now();
+  const record = rateLimitMap.get(username);
+  
+  if (!record) return { allowed: true, remaining: RATE_LIMIT_ATTEMPTS };
+  
+  // Cooldown expired, reset
+  if (record.cooldownUntil && now >= record.cooldownUntil) {
+    rateLimitMap.delete(username);
+    return { allowed: true, remaining: RATE_LIMIT_ATTEMPTS };
+  }
+  
+  // Still in cooldown period
+  if (record.cooldownUntil && now < record.cooldownUntil) {
+    return { allowed: false, remaining: 0, retryAfter: Math.ceil((record.cooldownUntil - now) / 1000) };
+  }
+  
+  // Reset attempts if 15 minutes passed since last attempt
+  if (now - record.lastAttempt > RATE_LIMIT_COOLDOWN_MS) {
+    record.attempts = 0;
+  }
+  
+  if (record.attempts >= RATE_LIMIT_ATTEMPTS) {
+    return { allowed: false, remaining: 0, retryAfter: Math.ceil((record.lastAttempt + RATE_LIMIT_COOLDOWN_MS - now) / 1000) };
+  }
+  
+  return { allowed: true, remaining: RATE_LIMIT_ATTEMPTS - record.attempts - 1 };
+}
+
+function recordFailedLogin(username) {
+  const now = Date.now();
+  const record = rateLimitMap.get(username) || { attempts: 0, lastAttempt: now };
+  record.attempts = (record.attempts || 0) + 1;
+  record.lastAttempt = now;
+  
+  if (record.attempts >= RATE_LIMIT_ATTEMPTS) {
+    record.cooldownUntil = now + RATE_LIMIT_COOLDOWN_MS;
+  }
+  
+  rateLimitMap.set(username, record);
+}
+
+function recordSuccessfulLogin(username) {
+  rateLimitMap.delete(username);
+}
+
 export async function handleAuth(request, env, origin) {
   const url = new URL(request.url);
   const path = url.pathname.replace('/api/auth', '');
@@ -36,11 +88,20 @@ async function handleLogin(request, env, origin) {
   const { username, password } = body;
   if (!username || !password) return error('Username and password required', 400, origin);
 
+  // ── Rate Limit Check ──────────────────────────────────────────────────────
+  const rateLimit = checkRateLimit(username);
+  if (!rateLimit.allowed) {
+    return error(`Too many failed attempts. Please try again in ${rateLimit.retryAfter} seconds.`, 429, origin);
+  }
+
   const user = await env.DB.prepare(
     'SELECT * FROM users WHERE (username = ? OR email = ?) AND is_active = 1'
   ).bind(username, username).first();
 
-  if (!user) return unauthorized(origin);
+  if (!user) {
+    recordFailedLogin(username);
+    return unauthorized(origin);
+  }
 
   // First login: if hash is placeholder, set password
   let valid = false;
@@ -55,7 +116,13 @@ async function handleLogin(request, env, origin) {
     valid = await verifyPassword(password, user.password_hash);
   }
 
-  if (!valid) return unauthorized(origin);
+  if (!valid) {
+    recordFailedLogin(username);
+    return unauthorized(origin);
+  }
+
+  // ── Successful login - reset rate limit ────────────────────────────────────
+  recordSuccessfulLogin(username);
 
   const secret = env.JWT_SECRET || 'dev-secret-change-me';
   const token = await createToken(
@@ -102,7 +169,7 @@ async function handleChangePassword(request, env, origin) {
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
   const { current_password, new_password } = body;
   if (!current_password || !new_password) return error('Both passwords required', 400, origin);
-  if (new_password.length < 6) return error('New password must be at least 6 characters', 400, origin);
+  if (new_password.length < 12) return error('New password must be at least 12 characters', 400, origin);
 
   const dbUser = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(user.id).first();
   const valid = await verifyPassword(current_password, dbUser.password_hash);

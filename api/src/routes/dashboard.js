@@ -56,9 +56,9 @@ function parseFlexibleDate(d) {
     const date_info = new Date(utc_days * 86400 * 1000);
     return date_info.toISOString().split('T')[0];
   }
-  if (d.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/)) {
+  if (d.match(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/)) {
     const p = d.split(/[\/\-]/);
-    return `${p[2]}-${p[1]}-${p[0]}`; // YYYY-MM-DD
+    return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`; // YYYY-MM-DD
   }
   return d.split('T')[0];
 };
@@ -471,17 +471,11 @@ async function getCalendarEvents(request, env, origin) {
     sched, issR, relR, trainR, oneR, cleanR, inspR, fogR, baseR, supplyR, contrList
   ] = await Promise.all([
     env.DB.prepare(
-      `SELECT s.id,'schedule' type,s.target_date event_date,s.activity_type title,
-       s.status,s.pic,b.full_name branch_name,
-       CASE s.activity_type
-         WHEN 'Inspeksi Hygiene & Aset Bangunan' THEN 'blue'
-         WHEN 'General Cleaning' THEN 'green'
-         WHEN 'Deep Cleaning' THEN 'purple'
-         WHEN 'Fogging' THEN 'orange'
-         ELSE 'gray' END color
-       FROM activity_schedule s LEFT JOIN branches b ON s.branch_id=b.id
-       WHERE ${dateFilter('s.target_date')}`
-    ).bind(...bind).all(),
+      `SELECT s.id, s.target_date, s.opening_date, s.completion_date,
+       s.activity_type, s.period, s.pic, s.status, s.notes,
+       b.full_name branch_name
+       FROM activity_schedule s LEFT JOIN branches b ON s.branch_id=b.id`
+    ).all(),
     env.DB.prepare(
       `SELECT i.id,'issue' type,i.report_date event_date,i.category title,
        i.status,b.full_name branch_name,'red' color
@@ -575,12 +569,85 @@ async function getCalendarEvents(request, env, origin) {
     });
   });
 
+  // Process Schedule Events across target, opening, and completion dates
+  const schedEvents = [];
+  (sched.results || []).forEach(s => {
+    if (s.deleted_at) return;
+    const isoTarget = parseFlexibleDate(s.target_date);
+    const isoOpening = parseFlexibleDate(s.opening_date);
+    const isoCompletion = parseFlexibleDate(s.completion_date);
+
+    const actType = s.activity_type || 'Kegiatan';
+    const color = (actType === 'Inspeksi Hygiene' || actType === 'Inspeksi Hygiene & Aset Bangunan') ? 'blue'
+                : actType === 'General Cleaning' ? 'green'
+                : actType === 'Deep Cleaning' ? 'purple'
+                : actType === 'Fogging' ? 'orange' : 'gray';
+
+    const branchLabel = s.branch_name ? s.branch_name : 'Cabang';
+
+    const baseInfo = {
+      schedule_id: s.id,
+      type: 'schedule',
+      activity_type: actType,
+      branch_name: s.branch_name || '',
+      pic: s.pic || '',
+      period: s.period || '',
+      status: s.status || '',
+      opening_date: s.opening_date || '',
+      target_date: s.target_date || '',
+      completion_date: s.completion_date || '',
+      notes: s.notes || '',
+      color
+    };
+
+    // 1. Target Date (Pelaksanaan Utama)
+    if (isoTarget && isoTarget.startsWith(curM)) {
+      schedEvents.push({
+        ...baseInfo,
+        id: `${s.id}_target`,
+        event_date: isoTarget,
+        title: `${actType} - ${branchLabel}`,
+        date_type: 'Target Pelaksanaan'
+      });
+    }
+
+    // 2. Opening Date (Opening Cabang/Klinik)
+    if (isoOpening && isoOpening.startsWith(curM) && isoOpening !== isoTarget) {
+      schedEvents.push({
+        ...baseInfo,
+        id: `${s.id}_opening`,
+        event_date: isoOpening,
+        title: `Opening: ${branchLabel}`,
+        date_type: 'Opening Cabang',
+        color: actType === 'Deep Cleaning' ? 'purple' : 'blue'
+      });
+    }
+
+    // 3. Completion Date (Selesai Pelaksanaan)
+    if (isoCompletion && isoCompletion.startsWith(curM) && isoCompletion !== isoTarget && isoCompletion !== isoOpening) {
+      schedEvents.push({
+        ...baseInfo,
+        id: `${s.id}_done`,
+        event_date: isoCompletion,
+        title: `Selesai ${actType} - ${branchLabel}`,
+        date_type: 'Selesai Pelaksanaan',
+        color: 'green'
+      });
+    }
+  });
+
   const events = [
-    ...(sched.results||[]), ...(relR.results||[]),
-    ...(cleanR.results||[]), ...(inspR.results||[]),
-    ...(fogR.results||[]),
+    ...schedEvents,
+    ...(relR.results||[]).map(r => ({ ...r, event_date: parseFlexibleDate(r.event_date) })),
+    ...(cleanR.results||[]).map(c => ({ ...c, event_date: parseFlexibleDate(c.event_date) })),
+    ...(inspR.results||[]).map(i => ({ ...i, event_date: parseFlexibleDate(i.event_date) })),
+    ...(fogR.results||[]).map(f => ({ ...f, event_date: parseFlexibleDate(f.event_date) })),
+    ...(issR.results||[]).map(i => ({ ...i, event_date: parseFlexibleDate(i.event_date) })),
+    ...(trainR.results||[]).map(t => ({ ...t, event_date: parseFlexibleDate(t.event_date) })),
+    ...(oneR.results||[]).map(o => ({ ...o, event_date: parseFlexibleDate(o.event_date) })),
     ...contractEvents
-  ].sort((a,b)=>(a.event_date||'').localeCompare(b.event_date||''));
+  ].filter(e => e.event_date && e.event_date.startsWith(curM))
+   .sort((a,b)=>(a.event_date||'').localeCompare(b.event_date||''));
 
   return ok(events, 200, origin);
 }

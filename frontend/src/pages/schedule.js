@@ -1,5 +1,6 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
+import { notifyCalendar } from '../utils/calendarBus.js';
 import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { statusBadge, activityTypeBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
@@ -177,7 +178,12 @@ export async function renderSchedule(container, params) {
         
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = String(str || '').toLowerCase();
+          const s = String(str || '').toLowerCase().trim();
+          const codeMatch = s.match(/^(\d{3})/);
+          if (codeMatch) {
+            const byCode = rawBranches.find(r => String(r.code || '') === codeMatch[1]);
+            if (byCode) return byCode.id;
+          }
           const b = rawBranches.find(r => String(r.full_name || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
           return b ? b.id : null;
         };
@@ -206,6 +212,7 @@ export async function renderSchedule(container, params) {
 
         const payload = json.map(row => ({
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
+          branch_name: String(row['Cabang'] || '').trim(),
           activity_type: String(row['Kegiatan'] || '').trim(),
           period: String(row['Periode'] || '').trim(),
           pic: String(row['PIC'] || row['Pic'] || '').trim(),
@@ -221,6 +228,7 @@ export async function renderSchedule(container, params) {
           body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
         });
         if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
+        notifyCalendar('schedule');
         return res.data;
       }
     }

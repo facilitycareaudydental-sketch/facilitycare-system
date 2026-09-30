@@ -70,6 +70,7 @@ import { renderImportPage } from './pages/import.js';
 import { renderSP } from './pages/sp.js';
 import { renderMutasi } from './pages/mutasi.js';
 import { renderOvertime } from './pages/overtime.js';
+import { renderAuditLogs } from './pages/audit_logs.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
@@ -349,6 +350,12 @@ function renderLayout() {
               </span>
               <span class="nav-label">Cabang</span>
             </a>
+            <a href="#/audit-logs" class="nav-item" data-route="/audit-logs">
+              <span class="nav-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </span>
+              <span class="nav-label">Audit Log</span>
+            </a>
             <a href="#/settings/import" class="nav-item" data-route="/settings/import">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -524,6 +531,7 @@ async function init() {
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));
   registerRoute('/profile',            requireAuth(({ main }) => renderProfile(main)));
   registerRoute('/settings/import',    requireAuth(({ main }) => renderImportPage(main)));
+  registerRoute('/audit-logs',         requireAuth(({ main }) => renderAuditLogs(main)));
 
   const token = getToken();
   if (!token && window.location.hash !== '#/login') { navigate('/login'); }

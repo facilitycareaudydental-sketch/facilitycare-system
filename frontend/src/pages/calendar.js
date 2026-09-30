@@ -1,4 +1,5 @@
 import { apiFetch } from '../config.js';
+import { calendarBus } from '../utils/calendarBus.js';
 
 export async function renderCalendar(container) {
   let currentDate = new Date();
@@ -89,9 +90,11 @@ export async function renderCalendar(container) {
       // Group events by date
       const byDate = {};
       filteredEvents.forEach(e => {
-        const d = (e.event_date || '').slice(0, 10);
-        if (!byDate[d]) byDate[d] = [];
-        byDate[d].push(e);
+        const d = toIsoDate(e.event_date);
+        if (d) {
+          if (!byDate[d]) byDate[d] = [];
+          byDate[d].push(e);
+        }
       });
 
       const firstDay    = new Date(year, month, 1).getDay();
@@ -158,10 +161,23 @@ export async function renderCalendar(container) {
           document.getElementById('cal-event-date').textContent = dateLabel;
           document.getElementById('cal-event-items').innerHTML = dayEvts.map(e => `
             <div class="cal-event-item cal-color-border-${e.color || 'gray'}">
-              <div class="cal-event-type">${typeLabel(e.type)}</div>
-              <div class="cal-event-title">${escHtml(e.title || '-')}</div>
-              <div class="cal-event-branch">${escHtml(e.branch_name || '')}</div>
-              ${e.status ? `<div class="cal-event-status">${escHtml(e.status)}</div>` : ''}
+              <div class="cal-event-type">
+                ${typeLabel(e.type)}
+                ${e.date_type ? ` <span class="badge" style="font-size:0.75rem;padding:2px 6px;background:rgba(0,0,0,0.06);margin-left:4px;">${escHtml(e.date_type)}</span>` : ''}
+              </div>
+              <div class="cal-event-title" style="font-weight:600;font-size:0.95rem;margin-top:2px;">${escHtml(e.title || '-')}</div>
+              ${e.branch_name ? `<div class="cal-event-branch" style="color:var(--text-2);font-size:0.85rem;margin-top:2px;">📍 ${escHtml(e.branch_name)}</div>` : ''}
+              ${(e.pic || e.period || e.opening_date || e.target_date || e.completion_date || e.notes) ? `
+                <div class="cal-event-meta" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:0.8rem;color:var(--text-2);display:flex;flex-direction:column;gap:3px;">
+                  ${e.pic ? `<div>👤 <b>PIC:</b> ${escHtml(e.pic)}</div>` : ''}
+                  ${e.period ? `<div>📅 <b>Periode:</b> ${escHtml(e.period)}</div>` : ''}
+                  ${e.opening_date ? `<div>🚪 <b>Tgl Opening:</b> ${escHtml(formatDate(e.opening_date))}</div>` : ''}
+                  ${e.target_date ? `<div>🎯 <b>Tgl Target:</b> ${escHtml(formatDate(e.target_date))}</div>` : ''}
+                  ${e.completion_date ? `<div>✅ <b>Tgl Selesai:</b> ${escHtml(formatDate(e.completion_date))}</div>` : ''}
+                  ${e.notes ? `<div>📝 <b>Catatan:</b> ${escHtml(e.notes)}</div>` : ''}
+                </div>
+              ` : ''}
+              ${e.status ? `<div class="cal-event-status" style="margin-top:6px;"><span class="badge ${e.status === 'Done' ? 'badge-success' : 'badge-warning'}">${escHtml(e.status)}</span></div>` : ''}
               ${e.days_remaining !== undefined
                 ? `<div class="cal-event-extra">Sisa: ${e.days_remaining} hari</div>`
                 : ''}
@@ -183,11 +199,42 @@ export async function renderCalendar(container) {
     }
   }
 
+  // ── Auto-refresh when schedule or other data changes ───────────
+  const onDataChanged = () => {
+    loadEvents().then(() => renderMonth());
+  };
+  calendarBus.on('data:changed', onDataChanged);
+
   // ── Initial render ─────────────────────────────────────────────
   renderMonth();
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
+function toIsoDate(d) {
+  if (!d || d === '-' || String(d).trim() === '') return '';
+  const s = String(d).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const parts = s.split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    let [a, b, c] = parts.map(p => p.trim());
+    if (c.length === 4) return `${c}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+    if (a.length === 4) return `${a}-${b.padStart(2, '0')}-${c.padStart(2, '0')}`;
+  }
+  return s.slice(0, 10);
+}
+
+function formatDate(d) {
+  if (!d || d === '-' || String(d).trim() === '') return '';
+  const s = String(d).trim();
+  const parts = s.split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    let [a, b, c] = parts.map(p => p.trim());
+    if (a.length === 4) return `${c.padStart(2, '0')}-${b.padStart(2, '0')}-${a}`;
+    if (c.length === 4) return `${a.padStart(2, '0')}-${b.padStart(2, '0')}-${c}`;
+  }
+  return d;
+}
+
 function truncate(str, len) {
   if (!str) return '';
   return str.length > len ? str.slice(0, len) + '…' : str;
@@ -209,6 +256,9 @@ function typeLabel(type) {
     reliever:        '🔄 Reliefer',
     training:        '🎓 Training',
     contract_expiry: '📋 Kontrak Habis',
+    cleaning:        '🧹 Cleaning',
+    inspection:      '🔍 Inspeksi',
+    fogging:         '💨 Fogging',
   };
   return map[type] || type;
 }

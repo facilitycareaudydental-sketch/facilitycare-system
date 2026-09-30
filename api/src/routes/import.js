@@ -141,6 +141,15 @@ function makeBranchMatcher(branches) {
   return (str) => {
     if (!str) return null;
     const s = String(str).toLowerCase().trim();
+    
+    // Tahap 2: Exact prefix match
+    const codeMatch = s.match(/^(\d{3})/);
+    if (codeMatch) {
+      const code = codeMatch[1];
+      const byCode = branches.find(r => r.code === code);
+      if (byCode) return byCode.id;
+    }
+
     const exact = branches.find(r =>
       r.full_name?.toLowerCase() === s ||
       r.code?.toLowerCase() === s ||
@@ -331,7 +340,7 @@ async function importContracts(rows, onDuplicate, env, origin) {
   };
 
   // Phase 2A Optimization: SQL Pushdown for Hash Key
-  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(employee_name)) || '_' || start_date as hash_key FROM contracts WHERE employee_name IS NOT NULL AND start_date IS NOT NULL").all();
+  const existing = await env.DB.prepare("SELECT id, LOWER(TRIM(employee_name)) as hash_key FROM contracts WHERE employee_name IS NOT NULL").all();
   const existingMap = new Map();
   (existing.results || []).forEach(c => {
     if (c.hash_key) existingMap.set(c.hash_key, c.id);
@@ -349,7 +358,7 @@ async function importContracts(rows, onDuplicate, env, origin) {
 
     const start_date = safeDate(row.start_date);
     const end_date = safeDate(row.end_date);
-    const key = employee_name.toLowerCase().trim() + '_' + start_date;
+    const key = employee_name.toLowerCase().trim();
     importedKeys.push(key);
 
     const employee_id = matchEmployee(employee_name);
@@ -364,8 +373,8 @@ async function importContracts(rows, onDuplicate, env, origin) {
       const id = existingMap.get(key);
       if (onDuplicate === 'update') {
         stmts.push(env.DB.prepare(
-          `UPDATE contracts SET employee_id = ?, branch_id = ?, division = ?, end_date = ?, contract_type = ?, pkwt_number = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
-        ).bind(employee_id, branch_id, division, end_date, contract_type, pkwt_number, status, notes, id));
+          `UPDATE contracts SET employee_id = ?, branch_id = ?, start_date = ?, division = ?, end_date = ?, contract_type = ?, pkwt_number = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(employee_id, branch_id, start_date, division, end_date, contract_type, pkwt_number, status, notes, id));
         updated++;
       } else {
         skipped++;
@@ -873,12 +882,10 @@ async function importInspection(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, branch_id, period, inspection_date FROM inspection_reports').all();
+  const existing = await env.DB.prepare('SELECT id, branch_id, period FROM inspection_reports').all();
   const existingMap = new Map();
   (existing.results || []).forEach(i => {
-    if (i.inspection_date) {
-      existingMap.set(i.branch_id + '_' + (i.period || '').toLowerCase().trim() + '_' + i.inspection_date, i.id);
-    }
+    existingMap.set(i.branch_id + '_' + (i.period || '').toLowerCase().trim(), i.id);
   });
 
   const stmts = [];
@@ -897,7 +904,7 @@ async function importInspection(rows, onDuplicate, env, origin) {
     if (!branch_id) { skipped++; continue; }
     const period = safeStr(row.period) || '-';
     const inspection_date = safeDate(row.inspection_date) || today();
-    const key = branch_id + '_' + period.toLowerCase().trim() + '_' + inspection_date;
+    const key = branch_id + '_' + period.toLowerCase().trim();
     importedKeys.push(key);
 
     const status = safeStr(row.status) || '';
@@ -910,8 +917,8 @@ async function importInspection(rows, onDuplicate, env, origin) {
       const id = existingMap.get(key);
       if (onDuplicate === 'update') {
         stmts.push(env.DB.prepare(
-          `UPDATE inspection_reports SET status = ?, fc_score = ?, spv_score = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
-        ).bind(status, fc_score, spv_score, document_link, notes, id));
+          `UPDATE inspection_reports SET inspection_date = ?, status = ?, fc_score = ?, spv_score = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(inspection_date, status, fc_score, spv_score, document_link, notes, id));
         updated++;
       } else {
         skipped++;
@@ -935,12 +942,10 @@ async function importCleaning(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, branch_id, activity_type, period, activity_date FROM cleaning_reports').all();
+  const existing = await env.DB.prepare('SELECT id, branch_id, activity_type, period FROM cleaning_reports').all();
   const existingMap = new Map();
   (existing.results || []).forEach(c => {
-    if (c.activity_date) {
-      existingMap.set(c.branch_id + '_' + c.activity_type.toLowerCase().trim() + '_' + (c.period || '').toLowerCase().trim() + '_' + c.activity_date, c.id);
-    }
+    existingMap.set(c.branch_id + '_' + c.activity_type.toLowerCase().trim() + '_' + (c.period || '').toLowerCase().trim(), c.id);
   });
 
   const stmts = [];
@@ -960,7 +965,7 @@ async function importCleaning(rows, onDuplicate, env, origin) {
     const activity_type = safeStr(row.activity_type) || 'General Cleaning';
     const period = safeStr(row.period) || '-';
     const activity_date = safeDate(row.activity_date) || today();
-    const key = branch_id + '_' + activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim() + '_' + activity_date;
+    const key = branch_id + '_' + activity_type.toLowerCase().trim() + '_' + period.toLowerCase().trim();
     importedKeys.push(key);
 
     const status = safeStr(row.status) || '';
@@ -971,8 +976,8 @@ async function importCleaning(rows, onDuplicate, env, origin) {
       const id = existingMap.get(key);
       if (onDuplicate === 'update') {
         stmts.push(env.DB.prepare(
-          `UPDATE cleaning_reports SET status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
-        ).bind(status, document_link, notes, id));
+          `UPDATE cleaning_reports SET activity_date = ?, status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(activity_date, status, document_link, notes, id));
         updated++;
       } else {
         skipped++;
@@ -996,12 +1001,10 @@ async function importFogging(rows, onDuplicate, env, origin) {
   const bRows = await env.DB.prepare('SELECT id, code, name, full_name FROM branches WHERE is_active = 1').all();
   const matchBranch = makeBranchMatcher(bRows.results);
 
-  const existing = await env.DB.prepare('SELECT id, branch_id, period, activity_date FROM fogging_reports').all();
+  const existing = await env.DB.prepare('SELECT id, branch_id, period FROM fogging_reports').all();
   const existingMap = new Map();
   (existing.results || []).forEach(f => {
-    if (f.activity_date) {
-      existingMap.set(f.branch_id + '_' + (f.period || '').toLowerCase().trim() + '_' + f.activity_date, f.id);
-    }
+    existingMap.set(f.branch_id + '_' + (f.period || '').toLowerCase().trim(), f.id);
   });
 
   const stmts = [];
@@ -1017,7 +1020,7 @@ async function importFogging(rows, onDuplicate, env, origin) {
     const branch_id = matchBranch(branch_name);
     const period = safeStr(row.period) || '-';
     const activity_date = safeDate(row.activity_date) || today();
-    const key = branch_id + '_' + period.toLowerCase().trim() + '_' + activity_date;
+    const key = branch_id + '_' + period.toLowerCase().trim();
     importedKeys.push(key);
 
     const status = safeStr(row.status) || '';
@@ -1028,8 +1031,8 @@ async function importFogging(rows, onDuplicate, env, origin) {
       const id = existingMap.get(key);
       if (onDuplicate === 'update') {
         stmts.push(env.DB.prepare(
-          `UPDATE fogging_reports SET status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
-        ).bind(status, document_link, notes, id));
+          `UPDATE fogging_reports SET activity_date = ?, status = ?, document_link = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(activity_date, status, document_link, notes, id));
         updated++;
       } else {
         skipped++;
