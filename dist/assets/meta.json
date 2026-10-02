@@ -794,6 +794,27 @@
       ],
       "format": "esm"
     },
+    "frontend/src/pages/hygiene_standards.js": {
+      "bytes": 5296,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
     "frontend/src/pages/forms.js": {
       "bytes": 11924,
       "imports": [
@@ -1045,7 +1066,7 @@
       "format": "esm"
     },
     "frontend/src/app.js": {
-      "bytes": 31794,
+      "bytes": 32424,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1143,6 +1164,11 @@
           "original": "./pages/checklist.js"
         },
         {
+          "path": "frontend/src/pages/hygiene_standards.js",
+          "kind": "import-statement",
+          "original": "./pages/hygiene_standards.js"
+        },
+        {
           "path": "frontend/src/pages/forms.js",
           "kind": "import-statement",
           "original": "./pages/forms.js"
@@ -1197,7 +1223,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-7DWX35E3.js": {
+    "frontend/dist/assets/app-O6DPMMXN.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1212,7 +1238,7 @@
           "bytesInOutput": 3311
         },
         "frontend/src/app.js": {
-          "bytesInOutput": 22727
+          "bytesInOutput": 23227
         },
         "frontend/src/router.js": {
           "bytesInOutput": 761
@@ -1301,6 +1327,9 @@
         "frontend/src/pages/checklist.js": {
           "bytesInOutput": 2132
         },
+        "frontend/src/pages/hygiene_standards.js": {
+          "bytesInOutput": 3324
+        },
         "frontend/src/pages/forms.js": {
           "bytesInOutput": 7575
         },
@@ -1335,7 +1364,7 @@
           "bytesInOutput": 2883
         }
       },
-      "bytes": 244428
+      "bytes": 248252
     }
   }
 }

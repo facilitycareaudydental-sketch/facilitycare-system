@@ -61,6 +61,7 @@ import { renderFoggingReports } from './pages/fogging_reports.js';
 import { renderBasecampReports } from './pages/basecamp_reports.js';
 import { renderSOP } from './pages/sop.js';
 import { renderChecklist } from './pages/checklist.js';
+import { renderHygieneStandards } from './pages/hygiene_standards.js';
 import { renderForms } from './pages/forms.js';
 import { renderUsers } from './pages/users.js';
 import { renderBranches } from './pages/branches.js';
@@ -326,6 +327,12 @@ function renderLayout() {
               </span>
               <span class="nav-label">Master Checklist</span>
             </a>
+            <a href="#/hygiene-standards" class="nav-item" data-route="/hygiene-standards">
+              <span class="nav-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              </span>
+              <span class="nav-label">Master Hygiene</span>
+            </a>
             <a href="#/forms" class="nav-item" data-route="/forms">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -526,6 +533,7 @@ async function init() {
   registerRoute('/reports/supply',     requireAuth(({ main }) => renderForms(main, 'supply')));
   registerRoute('/sop',                requireAuth(({ main }) => renderSOP(main)));
   registerRoute('/checklist',          requireAuth(({ main }) => renderChecklist(main)));
+  registerRoute('/hygiene-standards', requireAuth(({ main }) => renderHygieneStandards(main)));
   registerRoute('/forms',              requireAuth(({ main }) => renderForms(main)));
   registerRoute('/users',              requireAuth(({ main }) => renderUsers(main)));
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));

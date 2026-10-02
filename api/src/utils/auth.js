@@ -103,7 +103,7 @@ export function hasPermission(user, module, action) {
     viewer: { level: 1 },
   };
   const writeModules = ['employees', 'contracts', 'schedule', 'issues', 'one_on_one',
-    'training', 'relievers', 'reports', 'sop', 'checklist', 'forms', 'supply_requests'];
+    'training', 'relievers', 'reports', 'sop', 'checklist', 'forms', 'supply_requests', 'hygiene_standards'];
   const userLevel = rolePermissions[user.role]?.level || 0;
   if (action === 'read') return userLevel >= 1;
   if (action === 'write') return userLevel >= 2;

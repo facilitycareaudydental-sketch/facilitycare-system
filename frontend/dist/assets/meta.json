@@ -32,7 +32,7 @@
       "format": "esm"
     },
     "frontend/src/components/form.js": {
-      "bytes": 5518,
+      "bytes": 5894,
       "imports": [],
       "format": "esm"
     },
@@ -47,7 +47,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js": {
-      "bytes": 26258,
+      "bytes": 26852,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -104,7 +104,7 @@
       "format": "esm"
     },
     "frontend/src/pages/schedule.js": {
-      "bytes": 10648,
+      "bytes": 10799,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -115,6 +115,11 @@
           "path": "frontend/src/config.js",
           "kind": "import-statement",
           "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/calendarBus.js",
+          "kind": "import-statement",
+          "original": "../utils/calendarBus.js"
         },
         {
           "path": "frontend/src/utils/dataCache.js",
@@ -135,7 +140,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js": {
-      "bytes": 5605,
+      "bytes": 8016,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -207,7 +212,7 @@
       "format": "esm"
     },
     "frontend/src/pages/issues.js": {
-      "bytes": 7915,
+      "bytes": 9286,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -274,7 +279,7 @@
       "format": "esm"
     },
     "frontend/src/pages/dashboard.js?v=force61": {
-      "bytes": 59234,
+      "bytes": 56207,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -326,7 +331,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js?v=force61": {
-      "bytes": 5605,
+      "bytes": 8016,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -398,7 +403,7 @@
       "format": "esm"
     },
     "frontend/src/pages/schedule.js?v=force61": {
-      "bytes": 10648,
+      "bytes": 10799,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -409,6 +414,11 @@
           "path": "frontend/src/config.js",
           "kind": "import-statement",
           "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/calendarBus.js",
+          "kind": "import-statement",
+          "original": "../utils/calendarBus.js"
         },
         {
           "path": "frontend/src/utils/dataCache.js",
@@ -429,7 +439,7 @@
       "format": "esm"
     },
     "frontend/src/pages/issues.js?v=force61": {
-      "bytes": 7915,
+      "bytes": 9286,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -527,7 +537,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js?v=v3": {
-      "bytes": 26258,
+      "bytes": 26852,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -784,6 +794,27 @@
       ],
       "format": "esm"
     },
+    "frontend/src/pages/hygiene_standards.js": {
+      "bytes": 5296,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "import-statement",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
     "frontend/src/pages/forms.js": {
       "bytes": 11924,
       "imports": [
@@ -821,7 +852,7 @@
       "format": "esm"
     },
     "frontend/src/pages/users.js": {
-      "bytes": 4598,
+      "bytes": 4827,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -868,12 +899,17 @@
       "format": "esm"
     },
     "frontend/src/pages/calendar.js": {
-      "bytes": 9109,
+      "bytes": 11650,
       "imports": [
         {
           "path": "frontend/src/config.js",
           "kind": "import-statement",
           "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/utils/calendarBus.js",
+          "kind": "import-statement",
+          "original": "../utils/calendarBus.js"
         }
       ],
       "format": "esm"
@@ -895,7 +931,7 @@
       "format": "esm"
     },
     "frontend/src/utils/importer.js": {
-      "bytes": 18541,
+      "bytes": 18776,
       "imports": [],
       "format": "esm"
     },
@@ -983,7 +1019,7 @@
       "format": "esm"
     },
     "frontend/src/pages/overtime.js": {
-      "bytes": 3190,
+      "bytes": 4772,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -1008,8 +1044,29 @@
       ],
       "format": "esm"
     },
+    "frontend/src/pages/audit_logs.js": {
+      "bytes": 4578,
+      "imports": [
+        {
+          "path": "frontend/src/pages/_crud.js",
+          "kind": "import-statement",
+          "original": "./_crud.js"
+        },
+        {
+          "path": "frontend/src/config.js",
+          "kind": "import-statement",
+          "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/modal.js",
+          "kind": "dynamic-import",
+          "original": "../components/modal.js"
+        }
+      ],
+      "format": "esm"
+    },
     "frontend/src/app.js": {
-      "bytes": 30402,
+      "bytes": 32424,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1107,6 +1164,11 @@
           "original": "./pages/checklist.js"
         },
         {
+          "path": "frontend/src/pages/hygiene_standards.js",
+          "kind": "import-statement",
+          "original": "./pages/hygiene_standards.js"
+        },
+        {
           "path": "frontend/src/pages/forms.js",
           "kind": "import-statement",
           "original": "./pages/forms.js"
@@ -1150,13 +1212,18 @@
           "path": "frontend/src/pages/overtime.js",
           "kind": "import-statement",
           "original": "./pages/overtime.js"
+        },
+        {
+          "path": "frontend/src/pages/audit_logs.js",
+          "kind": "import-statement",
+          "original": "./pages/audit_logs.js"
         }
       ],
       "format": "esm"
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-TZRTFJ5F.js": {
+    "frontend/dist/assets/app-O6DPMMXN.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1171,7 +1238,7 @@
           "bytesInOutput": 3311
         },
         "frontend/src/app.js": {
-          "bytesInOutput": 21825
+          "bytesInOutput": 23227
         },
         "frontend/src/router.js": {
           "bytesInOutput": 761
@@ -1180,22 +1247,22 @@
           "bytesInOutput": 589
         },
         "frontend/src/pages/dashboard.js?v=force61": {
-          "bytesInOutput": 34269
+          "bytesInOutput": 32655
         },
         "frontend/src/pages/_crud.js": {
-          "bytesInOutput": 15586
+          "bytesInOutput": 15782
         },
         "frontend/src/components/table.js": {
           "bytesInOutput": 3435
         },
         "frontend/src/components/form.js": {
-          "bytesInOutput": 3201
+          "bytesInOutput": 3429
         },
         "frontend/src/utils/calendarBus.js": {
           "bytesInOutput": 718
         },
         "frontend/src/pages/schedule.js": {
-          "bytesInOutput": 450
+          "bytesInOutput": 8
         },
         "frontend/src/utils/dataCache.js": {
           "bytesInOutput": 632
@@ -1204,31 +1271,31 @@
           "bytesInOutput": 1226
         },
         "frontend/src/pages/employees.js": {
-          "bytesInOutput": 158
+          "bytesInOutput": 8
         },
         "frontend/src/pages/contracts.js": {
-          "bytesInOutput": 305
+          "bytesInOutput": 8
         },
         "frontend/src/pages/issues.js": {
-          "bytesInOutput": 98
+          "bytesInOutput": 581
         },
         "frontend/src/pages/one_on_one.js": {
-          "bytesInOutput": 100
+          "bytesInOutput": 4
         },
         "frontend/src/pages/login.js": {
           "bytesInOutput": 5191
         },
         "frontend/src/pages/employees.js?v=force61": {
-          "bytesInOutput": 3251
+          "bytesInOutput": 4768
         },
         "frontend/src/pages/contracts.js?v=force61": {
           "bytesInOutput": 10601
         },
         "frontend/src/pages/schedule.js?v=force61": {
-          "bytesInOutput": 5833
+          "bytesInOutput": 5989
         },
         "frontend/src/pages/issues.js?v=force61": {
-          "bytesInOutput": 4759
+          "bytesInOutput": 5596
         },
         "frontend/src/pages/one_on_one.js?v=force61": {
           "bytesInOutput": 4845
@@ -1237,7 +1304,7 @@
           "bytesInOutput": 4659
         },
         "frontend/src/pages/_crud.js?v=v3": {
-          "bytesInOutput": 15587
+          "bytesInOutput": 15783
         },
         "frontend/src/pages/relievers.js": {
           "bytesInOutput": 4970
@@ -1260,17 +1327,20 @@
         "frontend/src/pages/checklist.js": {
           "bytesInOutput": 2132
         },
+        "frontend/src/pages/hygiene_standards.js": {
+          "bytesInOutput": 3324
+        },
         "frontend/src/pages/forms.js": {
           "bytesInOutput": 7575
         },
         "frontend/src/pages/users.js": {
-          "bytesInOutput": 2812
+          "bytesInOutput": 2995
         },
         "frontend/src/pages/branches.js": {
           "bytesInOutput": 1884
         },
         "frontend/src/pages/calendar.js": {
-          "bytesInOutput": 5865
+          "bytesInOutput": 8042
         },
         "frontend/src/pages/profile.js": {
           "bytesInOutput": 6791
@@ -1279,7 +1349,7 @@
           "bytesInOutput": 20266
         },
         "frontend/src/utils/importer.js": {
-          "bytesInOutput": 10747
+          "bytesInOutput": 10883
         },
         "frontend/src/pages/sp.js": {
           "bytesInOutput": 3761
@@ -1288,10 +1358,13 @@
           "bytesInOutput": 3615
         },
         "frontend/src/pages/overtime.js": {
-          "bytesInOutput": 2082
+          "bytesInOutput": 2758
+        },
+        "frontend/src/pages/audit_logs.js": {
+          "bytesInOutput": 2883
         }
       },
-      "bytes": 236457
+      "bytes": 248252
     }
   }
 }
