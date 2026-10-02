@@ -32,7 +32,7 @@
       "format": "esm"
     },
     "frontend/src/components/form.js": {
-      "bytes": 5584,
+      "bytes": 5894,
       "imports": [],
       "format": "esm"
     },
@@ -140,7 +140,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js": {
-      "bytes": 6529,
+      "bytes": 8016,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -331,7 +331,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js?v=force61": {
-      "bytes": 6529,
+      "bytes": 8016,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -1197,7 +1197,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-2G4O47S4.js": {
+    "frontend/dist/assets/app-7DWX35E3.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1230,7 +1230,7 @@
           "bytesInOutput": 3435
         },
         "frontend/src/components/form.js": {
-          "bytesInOutput": 3237
+          "bytesInOutput": 3429
         },
         "frontend/src/utils/calendarBus.js": {
           "bytesInOutput": 718
@@ -1260,7 +1260,7 @@
           "bytesInOutput": 5191
         },
         "frontend/src/pages/employees.js?v=force61": {
-          "bytesInOutput": 3964
+          "bytesInOutput": 4768
         },
         "frontend/src/pages/contracts.js?v=force61": {
           "bytesInOutput": 10601
@@ -1335,7 +1335,7 @@
           "bytesInOutput": 2883
         }
       },
-      "bytes": 243432
+      "bytes": 244428
     }
   }
 }

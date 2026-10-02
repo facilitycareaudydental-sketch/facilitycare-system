@@ -53,6 +53,10 @@ export function buildFormHTML(fields) {
         const safeVal = (window.parseFlexibleDate && field.value) ? window.parseFlexibleDate(field.value) : (field.value || '');
         input = `<input type="date" name="${field.name}" class="form-control" value="${safeVal}" ${required}>`;
         break;
+      case 'month':
+        const safeMonth = field.value ? String(field.value).slice(0, 7) : '';
+        input = `<input type="month" name="${field.name}" class="form-control" value="${safeMonth}" ${required}>`;
+        break;
       case 'number':
         const roNum = field.readonly ? 'readonly' : '';
         input = `<input type="number" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" min="${field.min || ''}" max="${field.max || ''}" step="${field.step || '1'}" ${required} ${roNum}>`;
@@ -103,6 +107,7 @@ export function populateForm(form, data) {
     if (el.hasAttribute('list')) return; // Do not overwrite combobox display labels with raw IDs
     if (el.type === 'checkbox') el.checked = !!val;
     else if (el.type === 'date' && val && window.parseFlexibleDate) el.value = window.parseFlexibleDate(val);
+    else if (el.type === 'month' && val) el.value = String(val).slice(0, 7);
     else el.value = val !== null && val !== undefined ? val : '';
   });
 }
