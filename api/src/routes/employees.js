@@ -88,12 +88,12 @@ async function getEmployee(id, env, origin) {
 async function createEmployee(request, env, origin) {
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-  const { full_name, branch_id, division, phone, join_date, status, notes } = body;
+  const { full_name, branch_id, division, phone, join_date, status, notes, target_pindah_os, target_selesai_os } = body;
   if (!full_name) return error('full_name required', 400, origin);
 
   const result = await env.DB.prepare(
-    'INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).bind(full_name, branch_id || null, division || 'FACILITY CARE', phone || null, join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
+    'INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes, target_pindah_os, target_selesai_os) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(full_name, branch_id || null, division || 'FACILITY CARE', phone || null, join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, target_pindah_os || null, target_selesai_os || null).run();
 
   return ok({ id: result.meta.last_row_id }, 201, origin);
 }
@@ -104,7 +104,7 @@ async function updateEmployee(id, request, env, origin) {
   const existing = await env.DB.prepare('SELECT id FROM employees WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
 
-  const { full_name, branch_id, division, phone, join_date, status, notes } = body;
+  const { full_name, branch_id, division, phone, join_date, status, notes, target_pindah_os, target_selesai_os } = body;
   await env.DB.prepare(
     `UPDATE employees SET 
       full_name = COALESCE(?, full_name),
@@ -114,10 +114,12 @@ async function updateEmployee(id, request, env, origin) {
       join_date = COALESCE(?, join_date),
       status = COALESCE(?, status),
       notes = COALESCE(?, notes),
+      target_pindah_os = COALESCE(?, target_pindah_os),
+      target_selesai_os = COALESCE(?, target_selesai_os),
       updated_at = datetime('now')
      WHERE id = ?`
   ).bind(full_name || null, branch_id || null, division || null, phone || null,
-    join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
+    join_date || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, target_pindah_os || null, target_selesai_os || null, id).run();
 
   return ok({ message: 'Employee updated' }, 200, origin);
 }
@@ -151,7 +153,7 @@ async function importEmployees(request, env, origin) {
           : (item.status !== null && item.status !== undefined && item.status !== '' ? item.status : 'Aktif');
 
         await env.DB.prepare(
-          `UPDATE employees SET branch_id = ?, division = ?, phone = ?, join_date = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
+          `UPDATE employees SET branch_id = ?, division = ?, phone = ?, join_date = ?, status = ?, notes = ?, target_pindah_os = COALESCE(?, target_pindah_os), target_selesai_os = COALESCE(?, target_selesai_os), updated_at = datetime('now') WHERE id = ?`
         ).bind(
           item.branch_id || null, 
           item.division || 'FACILITY CARE', 
@@ -159,12 +161,14 @@ async function importEmployees(request, env, origin) {
           item.join_date || null, 
           finalStatus,
           item.notes || null,
+          item.target_pindah_os || null,
+          item.target_selesai_os || null,
           existing.id
         ).run();
       } else {
         await env.DB.prepare(
-          `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) 
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes, target_pindah_os, target_selesai_os) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           item.full_name, 
           item.branch_id || null, 
@@ -172,7 +176,9 @@ async function importEmployees(request, env, origin) {
           item.phone || null, 
           item.join_date || null, 
           item.status !== null && item.status !== undefined && item.status !== '' ? item.status : 'Aktif', 
-          item.notes || null
+          item.notes || null,
+          item.target_pindah_os || null,
+          item.target_selesai_os || null
         ).run();
       }
       processed++;

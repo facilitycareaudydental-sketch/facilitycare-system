@@ -45,6 +45,8 @@ export async function renderEmployees(container, params) {
       { key: 'division', label: 'Divisi', render: (v) => divisionBadge(v) },
       { key: 'phone', label: 'No. HP', render: v => v ? `<a href="tel:${v}">${v}</a>` : '-' },
       { key: 'join_date', label: 'Tgl Masuk' , render: v => window.formatDate(v) },
+      { key: 'target_pindah_os', label: 'Target Pindah OS', render: v => window.formatDate(v) },
+      { key: 'target_selesai_os', label: 'Target Selesai OS', render: v => window.formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
@@ -72,6 +74,12 @@ export async function renderEmployees(container, params) {
           { name: 'status', label: 'Status', type: 'select', required: true, options: ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'], value: data?.status || '' },
         ]
       },
+      {
+        type: 'row', fields: [
+          { name: 'target_pindah_os', label: 'Target Pindah OS', type: 'date', value: data?.target_pindah_os },
+          { name: 'target_selesai_os', label: 'Target Selesai OS', type: 'date', value: data?.target_selesai_os },
+        ]
+      },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],
     exportOptions: {
@@ -85,15 +93,17 @@ export async function renderEmployees(container, params) {
             'Divisi': d.division || '',
             'No. HP': d.phone || '',
             'Tgl Masuk': d.join_date || '',
-            'Status': d.status || ''
+            'Status': d.status || '',
+            'Target Pindah OS': d.target_pindah_os || '',
+            'Target Selesai OS': d.target_selesai_os || '',
           }));
           downloadExcel(data, 'Data_Karyawan');
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: () => {
         const template = [
-          { 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Divisi': 'FACILITY CARE', 'No. HP': '08123456789', 'Tgl Masuk': '2024-01-15', 'Status': 'Aktif' },
-          { 'Nama Lengkap': 'Andi Saputra', 'Cabang': '002. Bintaro', 'Divisi': 'SECURITY', 'No. HP': '08987654321', 'Tgl Masuk': '2023-11-01', 'Status': 'Aktif' }
+          { 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Divisi': 'FACILITY CARE', 'No. HP': '08123456789', 'Tgl Masuk': '2024-01-15', 'Status': 'Aktif', 'Target Pindah OS': '', 'Target Selesai OS': '' },
+          { 'Nama Lengkap': 'Andi Saputra', 'Cabang': '002. Bintaro', 'Divisi': 'SECURITY', 'No. HP': '08987654321', 'Tgl Masuk': '2023-11-01', 'Status': 'Aktif', 'Target Pindah OS': '', 'Target Selesai OS': '' }
         ];
         downloadExcel(template, 'Template_Import_Karyawan');
       },
@@ -109,10 +119,12 @@ export async function renderEmployees(container, params) {
         const payload = json.map(row => ({
           full_name: String(row['Nama Lengkap'] || '').trim(),
           branch_id: matchBranch(String(row['Cabang'] || '').trim()),
-          division: String(row['Divisi'] || '').trim() || 'FACILITY CARE',
-          phone: String(row['No. HP'] || '').trim(),
-          join_date: String(row['Tgl Masuk'] || '').trim(),
+          division: String(row['Divisi'] || row['Div / Bagian'] || '').trim() || 'FACILITY CARE',
+          phone: String(row['No. HP'] || row['No. Hp'] || '').trim(),
+          join_date: String(row['Tgl Masuk'] || row['Tanggal Masuk'] || '').trim(),
           status: String(row['Status'] || '').trim(),
+          target_pindah_os: String(row['Target Pindah OS'] || '').trim(),
+          target_selesai_os: String(row['Target Selesai OS'] || '').trim(),
           notes: String(row['Catatan'] || '').trim(),
         })).filter(row => row.full_name);
         

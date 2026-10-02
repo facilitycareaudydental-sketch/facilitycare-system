@@ -123,13 +123,15 @@ const SCHEMAS = {
   employees: {
     required: [{ key: 'Nama Lengkap', label: 'Nama Lengkap' }],
     map: (row) => ({
-      full_name:   row['Nama Lengkap'],
-      branch_name: row['Cabang'],
-      division:    row['Div / Bagian'] || 'FACILITY CARE',
-      phone:       row['No. Hp'],
-      join_date:   dateStr(row['Tanggal Masuk']),
-      status:      row['Status'] || '',
-      notes:       '',
+      full_name:         row['Nama Lengkap'],
+      branch_name:       row['Cabang'],
+      division:          row['Div / Bagian'] || row['Divisi'] || 'FACILITY CARE',
+      phone:             row['No. Hp'] || row['No. HP'],
+      join_date:         dateStr(row['Tanggal Masuk'] || row['Tgl Masuk']),
+      status:            row['Status'] || '',
+      target_pindah_os:  dateStr(row['Target Pindah OS']),
+      target_selesai_os: dateStr(row['Target Selesai OS']),
+      notes:             row['Catatan'] || '',
     }),
   },
   contracts: {

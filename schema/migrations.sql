@@ -80,6 +80,9 @@ CREATE TABLE IF NOT EXISTS employees (
   FOREIGN KEY (branch_id) REFERENCES branches(id)
 );
 
+ALTER TABLE employees ADD COLUMN target_pindah_os TEXT;
+ALTER TABLE employees ADD COLUMN target_selesai_os TEXT;
+
 -- ============================================================
 -- CONTRACTS (DATA KONTRAK)
 -- ============================================================

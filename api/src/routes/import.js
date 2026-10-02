@@ -300,6 +300,8 @@ async function importEmployees(rows, onDuplicate, env, origin) {
     const division = safeStr(row.division) || 'FACILITY CARE';
     const phone = safeStr(row.phone);
     const join_date = safeDate(row.join_date);
+    const target_pindah_os = safeDate(row.target_pindah_os || row['Target Pindah OS']);
+    const target_selesai_os = safeDate(row.target_selesai_os || row['Target Selesai OS']);
     const status = safeStr(row.status) || '';
     const notes = safeStr(row.notes);
 
@@ -307,16 +309,16 @@ async function importEmployees(rows, onDuplicate, env, origin) {
       const id = existingMap.get(key);
       if (onDuplicate === 'update') {
         stmts.push(env.DB.prepare(
-          `UPDATE employees SET branch_id = ?, division = ?, phone = ?, join_date = ?, status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`
-        ).bind(branch_id, division, phone, join_date, status, notes, id));
+          `UPDATE employees SET branch_id = ?, division = ?, phone = ?, join_date = ?, status = ?, notes = ?, target_pindah_os = COALESCE(?, target_pindah_os), target_selesai_os = COALESCE(?, target_selesai_os), updated_at = datetime('now') WHERE id = ?`
+        ).bind(branch_id, division, phone, join_date, status, notes, target_pindah_os, target_selesai_os, id));
         updated++;
       } else {
         skipped++;
       }
     } else {
       stmts.push(env.DB.prepare(
-        `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).bind(full_name, branch_id, division, phone, join_date, status, notes));
+        `INSERT INTO employees (full_name, branch_id, division, phone, join_date, status, notes, target_pindah_os, target_selesai_os) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(full_name, branch_id, division, phone, join_date, status, notes, target_pindah_os, target_selesai_os));
       inserted++;
     }
   }
