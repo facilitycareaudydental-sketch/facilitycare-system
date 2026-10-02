@@ -178,6 +178,16 @@ jobs:
             --yes
         continue-on-error: true
 
+      - name: Run Schema v5 Migrations (target_pindah_os and target_selesai_os)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler d1 execute DB \
+            --remote \
+            --file=schema/migration_v5_target_os.sql \
+            --yes
+        continue-on-error: true
 
       - name: Run Schema v6 Migrations (Modul Lembur)
         env:
