@@ -279,7 +279,7 @@
       "format": "esm"
     },
     "frontend/src/pages/dashboard.js?v=force61": {
-      "bytes": 56720,
+      "bytes": 57851,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1223,7 +1223,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-W3CYXVHD.js": {
+    "frontend/dist/assets/app-D3KQ4DYI.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1247,7 +1247,7 @@
           "bytesInOutput": 589
         },
         "frontend/src/pages/dashboard.js?v=force61": {
-          "bytesInOutput": 33021
+          "bytesInOutput": 33742
         },
         "frontend/src/pages/_crud.js": {
           "bytesInOutput": 15782
@@ -1364,7 +1364,7 @@
           "bytesInOutput": 2883
         }
       },
-      "bytes": 248618
+      "bytes": 249339
     }
   }
 }

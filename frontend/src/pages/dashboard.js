@@ -587,6 +587,18 @@ function renderMiniStats(kpi) {
 
   const aggs = window.dashboardAggregates || {};
 
+  const formatQuarterDetail = (p) => {
+    const details = window.dashboardAggregates?.schedule_quarter_details?.[p];
+    if (!details) return '';
+    return `Insp: ${details.insp} • GC: ${details.gc} • DC: ${details.dc} • Fog: ${details.fog}`;
+  };
+
+  const getQuarterTooltip = (p) => {
+    const details = window.dashboardAggregates?.schedule_quarter_details?.[p];
+    if (!details) return `Total Kegiatan ${p}`;
+    return `Rincian ${p}: Inspeksi: ${details.insp} | General Cleaning: ${details.gc} | Deep Cleaning: ${details.dc} | Fogging: ${details.fog}`;
+  };
+
   const items = [
     { 
       id: 'mini-jadwal',
@@ -602,7 +614,8 @@ function renderMiniStats(kpi) {
       `,
       val: aggs.schedule_by_quarter?.[curQ] ?? kpi.schedule?.current ?? 0,
       href:`#/timeline?dash_filter=period_${curQ.toLowerCase()}`,
-      color:'mini-blue' 
+      color:'mini-blue',
+      extra: `<div id="mini-jadwal-detail" style="font-size:0.6rem; color:var(--text-3); font-weight:500; margin-top:2px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${getQuarterTooltip(curQ)}">${formatQuarterDetail(curQ)}</div>`
     },
 
 
@@ -655,6 +668,7 @@ function renderMiniStats(kpi) {
           ${s.dropdown ? s.dropdown : ''}
         </div>
         <div class="mini-stat-text">${s.label}</div>
+        ${s.extra || ''}
       </div>
     </a>`).join('');
 
@@ -671,9 +685,15 @@ function renderMiniStats(kpi) {
         valEl.dataset.target = count;
         animateCount(valEl, count, 400);
       }
+      const detailEl = document.getElementById('mini-jadwal-detail');
+      if (detailEl) {
+        detailEl.textContent = formatQuarterDetail(p);
+        detailEl.title = getQuarterTooltip(p);
+      }
       const a = document.getElementById('mini-jadwal');
       if (a) {
         a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
+        a.title = getQuarterTooltip(p);
       }
     };
     jadwalSelect.addEventListener('change', (e) => refreshJadwal(e.target.value));
