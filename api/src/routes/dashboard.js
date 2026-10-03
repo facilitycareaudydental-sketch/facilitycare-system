@@ -100,6 +100,7 @@ async function getKPI(env, origin) {
     inspCur,
     cleanCur,
     fogCur,
+    relieverDoneCur,
     allRelieversRes
   ] = await Promise.all([
     // Uses idx_employees_status
@@ -136,14 +137,17 @@ async function getKPI(env, origin) {
     // Uses total count for training to match the module view
     env.DB.prepare("SELECT COUNT(*) c FROM training").first(),
 
-    // Uses idx_inspection_date
-    env.DB.prepare("SELECT COUNT(*) c FROM inspection_reports WHERE strftime('%Y-%m',inspection_date)=?").bind(curM).first(),
+    // Matches activity_schedule: Inspeksi Hygiene Done in current month
+    env.DB.prepare("SELECT COUNT(*) as c FROM activity_schedule WHERE activity_type = 'Inspeksi Hygiene' AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m', COALESCE(completion_date, target_date)) = ?").bind(curM).first(),
 
-    // Uses idx_cleaning_date
-    env.DB.prepare("SELECT COUNT(*) c FROM cleaning_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
+    // Matches activity_schedule: General Cleaning & Deep Cleaning Done in current month
+    env.DB.prepare("SELECT COUNT(*) as c FROM activity_schedule WHERE activity_type IN ('General Cleaning', 'Deep Cleaning') AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m', COALESCE(completion_date, target_date)) = ?").bind(curM).first(),
 
-    // Uses idx_fogging_date
-    env.DB.prepare("SELECT COUNT(*) c FROM fogging_reports WHERE strftime('%Y-%m',activity_date)=?").bind(curM).first(),
+    // Uses idx_fogging_date & Done status
+    env.DB.prepare("SELECT COUNT(*) as c FROM fogging_reports WHERE LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m',activity_date)=?").bind(curM).first(),
+
+    // Matches relievers Done in current month
+    env.DB.prepare("SELECT COUNT(*) as c FROM relievers WHERE LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m',backup_date)=?").bind(curM).first(),
 
     // Count active reliever employees
     env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif' AND division='FC - RELIEFER'").first(),
@@ -165,6 +169,7 @@ async function getKPI(env, origin) {
     inspection_month:{ current: inspCur?.c||0 },
     cleaning_month:  { current: cleanCur?.c||0 },
     fogging_month:   { current: fogCur?.c||0 },
+    reliever_completed:{ current: relieverDoneCur?.c||0 },
     reliever_total:  { current: relieverCount },
     checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
   }, 200, origin);

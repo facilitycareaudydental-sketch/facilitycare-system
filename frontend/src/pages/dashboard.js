@@ -64,17 +64,28 @@ const monthShort = (ym) => {
 // ── Counter animation ──────────────────────────────────────────────────────
 function animateCount(el, target, ms = 900) {
   if (!el) return;
+  if (el._animFrame) cancelAnimationFrame(el._animFrame);
   const t = Math.max(0, Math.round(safeNum(target)));
-  if (t === 0) { el.textContent = '0'; return; }
+  const curText = el.textContent ? el.textContent.replace(/[^\d]/g, '') : '';
+  const current = curText !== '' ? parseInt(curText) || 0 : 0;
+  if (t === current) {
+    el.textContent = t.toLocaleString('id-ID');
+    el._animFrame = null;
+    return;
+  }
   const start = Date.now();
   const tick = () => {
     const p    = Math.min((Date.now()-start)/ms, 1);
     const ease = 1 - Math.pow(1-p, 3);
-    el.textContent = Math.round(ease*t).toLocaleString('id-ID');
-    if (p < 1) requestAnimationFrame(tick);
-    else el.textContent = t.toLocaleString('id-ID');
+    el.textContent = Math.round(current + ease * (t - current)).toLocaleString('id-ID');
+    if (p < 1) {
+      el._animFrame = requestAnimationFrame(tick);
+    } else {
+      el.textContent = t.toLocaleString('id-ID');
+      el._animFrame = null;
+    }
   };
-  requestAnimationFrame(tick);
+  el._animFrame = requestAnimationFrame(tick);
 }
 
 // ── Trend badge ────────────────────────────────────────────────────────────
@@ -574,6 +585,8 @@ function renderMiniStats(kpi) {
     </select>
   `;
 
+  const aggs = window.dashboardAggregates || {};
+
   const items = [
     { 
       id: 'mini-jadwal',
@@ -587,7 +600,7 @@ function renderMiniStats(kpi) {
           <option value="Q4" ${curQ === 'Q4' ? 'selected' : ''}>Q4</option>
         </select>
       `,
-      val:kpi.schedule?.current,
+      val: aggs.schedule_by_quarter?.[curQ] ?? kpi.schedule?.current ?? 0,
       href:`#/timeline?dash_filter=period_${curQ.toLowerCase()}`,
       color:'mini-blue' 
     },
@@ -598,7 +611,7 @@ function renderMiniStats(kpi) {
       icon:'🔍', 
       label:'Report Inspeksi',     
       dropdown: renderMonthDropdown('dash-inspeksi-month'),
-      val:kpi.inspection_month?.current,  
+      val: aggs.inspeksi_by_month?.[curYM] ?? kpi.inspection_month?.current ?? 0,  
       href:`#/timeline?dash_filter=inspeksi&month=${curYM}`,  
       color:'mini-blue' 
     },
@@ -607,7 +620,7 @@ function renderMiniStats(kpi) {
       icon:'🧹', 
       label:'Report GCDC',         
       dropdown: renderMonthDropdown('dash-gcdc-month'),
-      val:kpi.cleaning_month?.current,    
+      val: aggs.gcdc_by_month?.[curYM] ?? kpi.cleaning_month?.current ?? 0,    
       href:`#/timeline?dash_filter=gcdc&month=${curYM}`,    
       color:'mini-green' 
     },
@@ -616,7 +629,7 @@ function renderMiniStats(kpi) {
       icon:'🔄', 
       label:'Report Reliefer',   
       dropdown: renderMonthDropdown('dash-reliefer-month'),
-      val:kpi.reliever_completed?.current,    
+      val: aggs.relievers_by_month?.[curYM] ?? kpi.reliever_completed?.current ?? 0,    
       href:`#/relievers?dash_filter=reliever&month=${curYM}`,  
       color:'mini-teal' 
     },
@@ -625,7 +638,7 @@ function renderMiniStats(kpi) {
       icon:'💨', 
       label:'Report Fogging',      
       dropdown: renderMonthDropdown('dash-fogging-month'),
-      val:kpi.fogging_month?.current,     
+      val: aggs.fogging_by_month?.[curYM] ?? kpi.fogging_month?.current ?? 0,     
       href:`#/reports/fogging?dash_filter=fogging&month=${curYM}`,     
       color:'mini-purple' 
     },
@@ -651,19 +664,18 @@ function renderMiniStats(kpi) {
   const jadwalSelect = document.getElementById('dash-jadwal-period');
   if (jadwalSelect) {
     const refreshJadwal = (p) => {
-      const aggs = window.dashboardAggregates?.schedule_by_quarter || {};
-      const count = aggs[p] || 0;
+      const curAggs = window.dashboardAggregates?.schedule_by_quarter || {};
+      const count = curAggs[p] || 0;
       const valEl = document.querySelector('#mini-jadwal .mini-stat-value');
       if (valEl) {
         valEl.dataset.target = count;
-        valEl.textContent = count;
+        animateCount(valEl, count, 400);
       }
       const a = document.getElementById('mini-jadwal');
       if (a) {
         a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
       }
     };
-    refreshJadwal(jadwalSelect.value);
     jadwalSelect.addEventListener('change', (e) => refreshJadwal(e.target.value));
   }
 
@@ -672,19 +684,17 @@ function renderMiniStats(kpi) {
     const sel = document.getElementById(selectId);
     if (sel) {
       const refreshCount = (m) => {
-        const aggs = window.dashboardAggregates?.[aggKey] || {};
-        const count = aggs[m] || 0;
+        const curAggs = window.dashboardAggregates?.[aggKey] || {};
+        const count = curAggs[m] || 0;
         const valEl = document.querySelector(`#${cardId} .mini-stat-value`);
         if (valEl) {
           valEl.dataset.target = count;
-          valEl.textContent = count;
+          animateCount(valEl, count, 400);
         }
         const a = document.getElementById(cardId);
         if (a) a.href = `${hrefBase}&month=${m}`;
       };
-      // Run immediately with the currently selected month
-      refreshCount(sel.value);
-      // Also run on every dropdown change
+      // On dropdown change
       sel.addEventListener('change', (e) => refreshCount(e.target.value));
     }
   };
