@@ -1066,7 +1066,7 @@
       "format": "esm"
     },
     "frontend/src/pages/os_migrations.js": {
-      "bytes": 35670,
+      "bytes": 35590,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1254,7 +1254,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-MN7TQWCG.js": {
+    "frontend/dist/assets/app-PKPVGPWE.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1281,7 +1281,7 @@
           "bytesInOutput": 33742
         },
         "frontend/src/pages/_crud.js": {
-          "bytesInOutput": 15775
+          "bytesInOutput": 15779
         },
         "frontend/src/components/table.js": {
           "bytesInOutput": 3435
@@ -1320,10 +1320,10 @@
           "bytesInOutput": 4768
         },
         "frontend/src/pages/contracts.js?v=force61": {
-          "bytesInOutput": 10594
+          "bytesInOutput": 10598
         },
         "frontend/src/pages/schedule.js?v=force61": {
-          "bytesInOutput": 5983
+          "bytesInOutput": 5988
         },
         "frontend/src/pages/issues.js?v=force61": {
           "bytesInOutput": 5597
@@ -1335,7 +1335,7 @@
           "bytesInOutput": 4660
         },
         "frontend/src/pages/_crud.js?v=v3": {
-          "bytesInOutput": 15776
+          "bytesInOutput": 15780
         },
         "frontend/src/pages/relievers.js": {
           "bytesInOutput": 4971
@@ -1380,7 +1380,7 @@
           "bytesInOutput": 20266
         },
         "frontend/src/utils/importer.js": {
-          "bytesInOutput": 10905
+          "bytesInOutput": 10883
         },
         "frontend/src/pages/sp.js": {
           "bytesInOutput": 3762
@@ -1395,10 +1395,10 @@
           "bytesInOutput": 2883
         },
         "frontend/src/pages/os_migrations.js": {
-          "bytesInOutput": 30113
+          "bytesInOutput": 29976
         }
       },
-      "bytes": 280019
+      "bytes": 279877
     }
   }
 }

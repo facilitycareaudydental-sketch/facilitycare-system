@@ -223,11 +223,14 @@ export async function renderOSMigrations(container) {
     vendors.forEach(v => {
       const vRows = rows.filter(r => r.vendor === v);
       if (document.getElementById('filter-vendor')?.value && document.getElementById('filter-vendor').value !== v) return;
+      if (vRows.length === 0) return;
 
       const vTotal = vRows.length;
       const vThemeColor = v === 'AEON' ? '#1E40AF' : '#0F766E';
       const vBgColor = v === 'AEON' ? '#EFF6FF' : '#F0FDFA';
       const vBorderColor = v === 'AEON' ? '#BFDBFE' : '#99F6E4';
+
+      const activeMonths = months.filter(m => vRows.some(r => r.target_month === m));
 
       html += `
         <div class="vendor-board-section" style="margin-bottom:32px; background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.04);">
@@ -244,9 +247,9 @@ export async function renderOSMigrations(container) {
             </div>
           </div>
 
-          <!-- Months 4-Column Grid -->
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; padding:18px;">
-            ${months.map(m => {
+          <!-- Months Grid (Hanya menampilkan bulan yang memiliki jadwal) -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; padding:18px;">
+            ${activeMonths.map(m => {
               const mRows = vRows.filter(r => r.target_month === m);
               const mName = MONTH_NAMES[m] || m;
               const shortMonth = mName.split(' ')[0];
@@ -265,11 +268,7 @@ export async function renderOSMigrations(container) {
 
                   <!-- Branch Cards Container -->
                   <div style="padding:10px; display:flex; flex-direction:column; gap:8px; flex:1; max-height:480px; overflow-y:auto;">
-                    ${mRows.length === 0 ? `
-                      <div style="text-align:center; padding:30px 10px; color:var(--text-3); font-size:0.8rem; font-style:italic;">
-                        Tidak ada jadwal
-                      </div>
-                    ` : mRows.map(r => {
+                    ${mRows.map(r => {
                       const st = STATUS_CONFIG[r.status] || STATUS_CONFIG.scheduled;
                       return `
                         <div class="branch-card" style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:10px 12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); transition:transform 0.15s, box-shadow 0.15s;">
