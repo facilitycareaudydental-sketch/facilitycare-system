@@ -795,17 +795,22 @@
       "format": "esm"
     },
     "frontend/src/pages/hygiene_standards.js": {
-      "bytes": 5296,
+      "bytes": 40995,
       "imports": [
-        {
-          "path": "frontend/src/pages/_crud.js",
-          "kind": "import-statement",
-          "original": "./_crud.js"
-        },
         {
           "path": "frontend/src/config.js",
           "kind": "import-statement",
           "original": "../config.js"
+        },
+        {
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "../components/modal.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
         },
         {
           "path": "frontend/src/utils/excel.js",
@@ -1285,7 +1290,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-LLZW7VAJ.js": {
+    "frontend/dist/assets/app-KQGEIUGZ.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1390,7 +1395,7 @@
           "bytesInOutput": 2132
         },
         "frontend/src/pages/hygiene_standards.js": {
-          "bytesInOutput": 3324
+          "bytesInOutput": 34117
         },
         "frontend/src/pages/forms.js": {
           "bytesInOutput": 7575
@@ -1432,7 +1437,7 @@
           "bytesInOutput": 28870
         }
       },
-      "bytes": 309168
+      "bytes": 339961
     }
   }
 }

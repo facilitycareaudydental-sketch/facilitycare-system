@@ -126,37 +126,37 @@ export const SEED_HYGIENE_STANDARDS = [
     "cleanliness_standard": "Rak snack tersusun rapi, bebas remah biskuit/makanan, permukaan rak bebas lapisan debu halus"
   },
   {
-    "room_name": "DU 101",
+    "room_name": "Ruang Tindakan",
     "item_name": "Lantai & Sudut Tindakan",
     "cleanliness_standard": "Bersih steril, bebas percikan darah/cairan tindakan, tidak licin, tidak berbau obat menyengat"
   },
   {
-    "room_name": "DU 101",
+    "room_name": "Ruang Tindakan",
     "item_name": "Eksterior Dental Unit & Kursi",
     "cleanliness_standard": "Casing unit bebas noda percikan, bodi mulus tanpa debu lipatan pipa, higienis total terdesinfeksi"
   },
   {
-    "room_name": "DU 101",
+    "room_name": "Ruang Tindakan",
     "item_name": "Wastafel & Kran Air",
     "cleanliness_standard": "Wastafel porselen putih bebas kerak busa sabun, kran stainless mengkilap kering tanpa bercak air kusam"
   },
   {
-    "room_name": "DU 101",
+    "room_name": "Ruang Tindakan",
     "item_name": "Meja Dokter, Kursi & Lemari",
     "cleanliness_standard": "Bebas debu kasat mata, tertata rapi, tidak ada debu di lipatan laci dan lemari gantung tindakan medis"
   },
   {
-    "room_name": "DU 101",
+    "room_name": "Ruang Tindakan",
     "item_name": "Tempat Tissue & Dispenser Handrub",
     "cleanliness_standard": "Bodi dispenser bersih mengkilap tanpa daki, selalu terisi penuh, tidak ada tetesan menggumpal di lantai"
   },
   {
-    "room_name": "DU 101",
+    "room_name": "Ruang Tindakan",
     "item_name": "Dinding, Saklar, Kabel & Plint",
     "cleanliness_standard": "Lis plint bebas noda sepatu, kabel dental rapi terbungkus spiral pelindung, saklar bersih higienis steril"
   },
   {
-    "room_name": "DU 101",
+    "room_name": "Ruang Tindakan",
     "item_name": "Plafon, Lampu, AC & CCTV",
     "cleanliness_standard": "Plafon bebas sarang laba-laba, kisi AC bebas debu, cover CCTV mengkilap jernih tanpa lapisan kotoran"
   },

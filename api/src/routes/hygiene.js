@@ -31,6 +31,9 @@ async function ensureInitialized(env) {
       for (let i = 0; i < stmts.length; i += 50) {
         await env.DB.batch(stmts.slice(i, i + 50));
       }
+    } else {
+      // Auto-migrate legacy room names to 'Ruang Tindakan'
+      await env.DB.prepare("UPDATE master_hygiene_standards SET room_name = 'Ruang Tindakan' WHERE room_name IN ('DU 101', 'Dental Unit')").run();
     }
     _initialized = true;
   } catch (err) {
