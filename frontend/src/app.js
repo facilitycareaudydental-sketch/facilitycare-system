@@ -73,6 +73,7 @@ import { renderMutasi } from './pages/mutasi.js';
 import { renderOvertime } from './pages/overtime.js';
 import { renderAuditLogs } from './pages/audit_logs.js';
 import { renderOSMigrations } from './pages/os_migrations.js';
+import { renderDAC } from './pages/dac.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
@@ -340,6 +341,12 @@ function renderLayout() {
               </span>
               <span class="nav-label">Master Hygiene</span>
             </a>
+            <a href="#/dac" class="nav-item" data-route="/dac">
+              <span class="nav-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+              <span class="nav-label">Master DAC</span>
+            </a>
             <a href="#/forms" class="nav-item" data-route="/forms">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -542,6 +549,7 @@ async function init() {
   registerRoute('/sop',                requireAuth(({ main }) => renderSOP(main)));
   registerRoute('/checklist',          requireAuth(({ main }) => renderChecklist(main)));
   registerRoute('/hygiene-standards', requireAuth(({ main }) => renderHygieneStandards(main)));
+  registerRoute('/dac',                requireAuth(({ main }) => renderDAC(main)));
   registerRoute('/forms',              requireAuth(({ main }) => renderForms(main)));
   registerRoute('/users',              requireAuth(({ main }) => renderUsers(main)));
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));
