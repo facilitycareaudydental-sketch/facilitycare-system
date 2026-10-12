@@ -24,6 +24,7 @@ import { handleSP } from './routes/sp.js';
 import { handleMutasi } from './routes/mutasi.js';
 import { handleOvertime } from './routes/overtime.js';
 import { handleHygieneStandards } from './routes/hygiene.js';
+import { handleOSMigrations } from './routes/os_migrations.js';
 import { syncGoogleSheets } from './utils/google_sync.js';
 import { receiveWebhook, processOutbox } from './utils/sync_engine.js';
 import { handleMonitoring } from './routes/monitoring.js';
@@ -83,7 +84,8 @@ export default {
           '/api/reports/basecamp/bulk': { table: 'basecamp_reports', perm: 'reports' },
           '/api/reports/supply/bulk': { table: 'supply_requests', perm: 'reports' },
           '/api/reports/inspection/bulk': { table: 'inspection_reports', perm: 'reports' },
-          '/api/overtime/bulk': { table: 'overtime_records', perm: 'overtime' }
+          '/api/overtime/bulk': { table: 'overtime_records', perm: 'overtime' },
+          '/api/os-migrations/bulk': { table: 'os_migrations', perm: 'os_migrations' }
         };
 
         const config = moduleMap[path];
@@ -160,6 +162,7 @@ export default {
       else if (path.startsWith('/api/mutasi')) response = await handleMutasi(request, env, origin);
       else if (path.startsWith('/api/overtime')) response = await handleOvertime(request, env, origin);
       else if (path.startsWith('/api/hygiene-standards')) response = await handleHygieneStandards(request, env, origin);
+      else if (path.startsWith('/api/os-migrations')) response = await handleOSMigrations(request, env, origin);
       else if (path.startsWith('/api/audit-logs')) response = await (await import('./routes/audit_logs.js')).handleAuditLogs(request, env, origin);
       else if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || path.startsWith('/api/forms') || path.startsWith('/api/pic') || path.startsWith('/api/options')) response = await handleMisc(request, env, origin);
       

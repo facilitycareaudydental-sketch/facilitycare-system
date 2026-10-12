@@ -72,6 +72,7 @@ import { renderSP } from './pages/sp.js';
 import { renderMutasi } from './pages/mutasi.js';
 import { renderOvertime } from './pages/overtime.js';
 import { renderAuditLogs } from './pages/audit_logs.js';
+import { renderOSMigrations } from './pages/os_migrations.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
@@ -253,6 +254,12 @@ function renderLayout() {
               </span>
               <span class="nav-label">Time Line</span>
               <span class="nav-badge" id="badge-schedule"></span>
+            </a>
+            <a href="#/os-migrations" class="nav-item" data-route="/os-migrations">
+              <span class="nav-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+              </span>
+              <span class="nav-label">Migrasi OS</span>
             </a>
             <a href="#/issues" class="nav-item" data-route="/issues">
               <span class="nav-icon">
@@ -522,6 +529,7 @@ async function init() {
   registerRoute('/mutasi',             requireAuth(({ main }) => renderMutasi(main)));
   registerRoute('/overtime',           requireAuth(({ main }) => renderOvertime(main)));
   registerRoute('/timeline',           requireAuth(({ main, params }) => renderSchedule(main, params)));
+  registerRoute('/os-migrations',      requireAuth(({ main }) => renderOSMigrations(main)));
   registerRoute('/issues',             requireAuth(({ main, params }) => renderIssues(main, params)));
   registerRoute('/one-on-one',         requireAuth(({ main, params }) => renderOneOnOne(main, params)));
   registerRoute('/training',           requireAuth(({ main }) => renderTraining(main)));
