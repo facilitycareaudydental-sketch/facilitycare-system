@@ -2,8 +2,45 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { SEED_HYGIENE_STANDARDS } from './hygiene_seeds.js';
+
+let _initialized = false;
+async function ensureInitialized(env) {
+  if (_initialized) return;
+  try {
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS master_hygiene_standards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        room_name TEXT NOT NULL,
+        item_name TEXT NOT NULL,
+        cleanliness_standard TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `).run();
+
+    await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_hygiene_room ON master_hygiene_standards(room_name)`).run();
+
+    const countRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM master_hygiene_standards').first();
+    if (!countRow || countRow.cnt === 0) {
+      const stmts = SEED_HYGIENE_STANDARDS.map(item =>
+        env.DB.prepare(
+          'INSERT INTO master_hygiene_standards (room_name, item_name, cleanliness_standard) VALUES (?, ?, ?)'
+        ).bind(item.room_name, item.item_name, item.cleanliness_standard)
+      );
+      for (let i = 0; i < stmts.length; i += 50) {
+        await env.DB.batch(stmts.slice(i, i + 50));
+      }
+    }
+    _initialized = true;
+  } catch (err) {
+    console.warn('master_hygiene_standards initialization warning:', err.message);
+  }
+}
 
 export async function handleHygieneStandards(request, env, origin) {
+  await ensureInitialized(env);
+
   const url = new URL(request.url);
   const path = url.pathname.replace('/api/hygiene-standards', '');
   const idMatch = path.match(/^\/(\d+)$/);
