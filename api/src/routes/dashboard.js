@@ -9,7 +9,7 @@
  * - strftime for date grouping (uses index on date columns)
  */
 import { authenticate } from '../utils/auth.js';
-import { ok, unauthorized } from '../utils/response.js';
+import { ok, unauthorized, error } from '../utils/response.js';
 
 export async function handleDashboard(request, env, origin) {
   const user = await authenticate(request, env);
@@ -35,7 +35,7 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/notifications')      return getNotifications(request, env, origin);
   if (path === '/reliefer-summary')   return getRelieferSummary(request, env, origin);
 
-  return ok({}, 200, origin);
+  return error('Not found', 404, origin);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -173,16 +173,6 @@ async function getKPI(env, origin) {
     reliever_total:  { current: relieverCount },
     checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
   }, 200, origin);
-}
-
-export async function handleRelieverAudit(request, env, origin) {
-  const rows = await env.DB.prepare("SELECT * FROM relievers").all();
-  return ok(rows.results, 200, origin);
-}
-
-export async function handleDebug56(request, env, origin) {
-  const rows = await env.DB.prepare("SELECT * FROM relievers").all();
-  return new Response(JSON.stringify(rows.results || []), { headers: { 'Content-Type': 'application/json' } });
 }
 
 // ─── /stats — backward-compat + expiring list + recent issues ────────────────

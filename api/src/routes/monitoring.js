@@ -11,7 +11,7 @@ export async function handleMonitoring(request, env, origin) {
   // but we allow basic auth check here.
   const user = await authenticate(request, env);
   if (!user) return unauthorized(origin);
-  if (user.role !== 'admin') return forbidden(origin);
+  if (user.role !== 'admin' && user.role !== 'superadmin') return forbidden(origin);
 
   if (request.method === 'GET' && path === '/api/sync/health') return getHealth(env, origin);
   if (request.method === 'GET' && path === '/api/sync/status') return getStatus(env, origin);

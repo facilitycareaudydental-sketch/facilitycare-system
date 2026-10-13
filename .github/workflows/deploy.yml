@@ -7,16 +7,26 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Target Environment (wajib ketik: PRODUCTION)'
+        required: true
+        default: ''
+      expected_account_id:
+        description: 'Cloudflare Account ID FCMS (harus cocok dengan vars.EXPECTED_FCMS_ACCOUNT_ID)'
+        required: true
+        default: ''
 
 env:
   NODE_VERSION: '24'
 
 jobs:
   # ============================================================
-  # Validate — jalankan di setiap push & PR
+  # Validate — jalankan di setiap push & PR (tanpa akses Cloudflare)
   # ============================================================
   validate:
-    name: ✅ Validate
+    name: ✅ Validate & Build Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,14 +40,14 @@ jobs:
       - name: Install root deps (includes esbuild)
         run: npm install
 
-      - name: Check required files
+      - name: Check required tracked files
         run: |
-          test -f api/src/index.js          && echo "✅ api/src/index.js"
-          test -f api/wrangler.toml         && echo "✅ api/wrangler.toml"
-          test -f frontend/src/app.js       && echo "✅ frontend/src/app.js"
+          test -f api/src/index.js           && echo "✅ api/src/index.js"
+          test -f api/wrangler.toml          && echo "✅ api/wrangler.toml"
+          test -f frontend/src/app.js        && echo "✅ frontend/src/app.js"
           test -f frontend/public/index.html && echo "✅ frontend/public/index.html"
-          test -f schema/migrations.sql     && echo "✅ schema/migrations.sql"
-          test -f build-root.js             && echo "✅ build-root.js"
+          test -f schema/migrations.sql      && echo "✅ schema/migrations.sql"
+          test -f build-root.js              && echo "✅ build-root.js"
 
       - name: Test frontend build
         env:
@@ -45,13 +55,170 @@ jobs:
         run: node build-root.js
 
   # ============================================================
-  # Deploy API ke Cloudflare Workers
+  # Pre-flight Target Verification Gate (HANYA Manual Dispatch dari main)
+  # Berhenti seketika jika target tidak sesuai resource FCMS
+  # ============================================================
+  preflight-target-check:
+    name: 🛡️ Pre-flight Target & Account Verification Gate
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Verify Dispatch Intent & Input Injection Safety
+        env:
+          INPUT_TARGET_ENV: ${{ github.event.inputs.target_environment }}
+          INPUT_ACCOUNT_ID: ${{ github.event.inputs.expected_account_id }}
+        run: |
+          echo "=== 1. VERIFIKASI INTENT DISPATCH & SANITASI INPUT ==="
+          if [ "$INPUT_TARGET_ENV" != "PRODUCTION" ]; then
+            echo "❌ FATAL: Target environment input harus tepat 'PRODUCTION'. Dibatalkan."
+            exit 1
+          fi
+          if [ -z "$INPUT_ACCOUNT_ID" ]; then
+            echo "❌ FATAL: expected_account_id wajib diisi untuk verifikasi target. Dibatalkan."
+            exit 1
+          fi
+          echo "✅ Intent manual dispatch terverifikasi."
+
+      - name: Verify Account ID against Independent Baseline (Fail-Closed)
+        env:
+          BASELINE_ACCOUNT_ID: ${{ vars.EXPECTED_FCMS_ACCOUNT_ID }}
+          SECRET_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INPUT_ACCOUNT_ID: ${{ github.event.inputs.expected_account_id }}
+        run: |
+          echo "=== 2. VERIFIKASI AKUN TERHADAP BASELINE INDEPENDEN (FAIL-CLOSED) ==="
+
+          # A. Periksa keberadaan baseline independen
+          if [ -z "$BASELINE_ACCOUNT_ID" ]; then
+            echo "❌ FATAL: vars.EXPECTED_FCMS_ACCOUNT_ID belum dikonfigurasi di GitHub Repository Variables."
+            echo "❌ KEBIJAKAN FAIL-CLOSED: Deployment ditolak sebelum identitas akun FCMS dibuktikan secara independen."
+            echo "❌ Tindakan yang diperlukan: Daftarkan EXPECTED_FCMS_ACCOUNT_ID resmi di Settings > Secrets and variables > Actions > Variables."
+            exit 1
+          fi
+
+          # B. Periksa keberadaan secret akun
+          if [ -z "$SECRET_ACCOUNT_ID" ]; then
+            echo "❌ FATAL: secrets.CLOUDFLARE_ACCOUNT_ID belum dikonfigurasi di GitHub Secrets. Dibatalkan."
+            exit 1
+          fi
+
+          # C. Validasi bahwa INPUT cocok dengan BASELINE resmi
+          if [ "$INPUT_ACCOUNT_ID" != "$BASELINE_ACCOUNT_ID" ]; then
+            echo "❌ FATAL: expected_account_id dari input tidak cocok dengan vars.EXPECTED_FCMS_ACCOUNT_ID!"
+            echo "❌ RISIKO TINGGI: Potensi salah input atau percobaan menargetkan akun lain. Dibatalkan."
+            exit 1
+          fi
+
+          # D. Validasi bahwa SECRET di repo cocok dengan BASELINE resmi
+          if [ "$SECRET_ACCOUNT_ID" != "$BASELINE_ACCOUNT_ID" ]; then
+            echo "❌ FATAL: secrets.CLOUDFLARE_ACCOUNT_ID di repository tidak cocok dengan vars.EXPECTED_FCMS_ACCOUNT_ID!"
+            echo "❌ RISIKO TINGGI: Secret di GitHub terindikasi mengarah ke akun lain (misal legacy FCVM). Dibatalkan."
+            exit 1
+          fi
+
+          echo "✅ Tiga faktor verifikasi akun (Input, Secret, dan Baseline Independen) cocok dan terbukti konsisten."
+
+      - name: Configuration Assertion Gate (Pemeriksaan Integritas Berkas Statis)
+        run: |
+          echo "=== 3. CONFIGURATION ASSERTION GATE (PERIKSA TOML LOKAL) ==="
+          echo "ℹ️ CATATAN: Ini adalah verifikasi integritas kode sumber lokal, bukan bukti identitas cloud runtime."
+
+          # A. Verifikasi api/wrangler.toml: Nama Worker harus tepat fm-operations-api
+          grep -E '^[[:space:]]*name[[:space:]]*=[[:space:]]*"fm-operations-api"[[:space:]]*$' api/wrangler.toml || {
+            echo "❌ FATAL: api/wrangler.toml harus memiliki name = \"fm-operations-api\". Dibatalkan."
+            exit 1
+          }
+          if grep -iE 'facilitycare-fcvm-api' api/wrangler.toml; then
+            echo "❌ FATAL: Ditemukan referensi Worker FCVM di api/wrangler.toml! Dibatalkan."
+            exit 1
+          fi
+
+          # B. Verifikasi api/wrangler.toml: Binding D1, nama database, dan database UUID
+          grep -E '^[[:space:]]*database_name[[:space:]]*=[[:space:]]*"fcms-production-db"[[:space:]]*$' api/wrangler.toml || {
+            echo "❌ FATAL: database_name di api/wrangler.toml harus \"fcms-production-db\". Dibatalkan."
+            exit 1
+          }
+          grep -E '^[[:space:]]*database_id[[:space:]]*=[[:space:]]*"62b4b6e5-a718-40bc-9aab-6a700b82a9c9"[[:space:]]*$' api/wrangler.toml || {
+            echo "❌ FATAL: database_id di api/wrangler.toml harus \"62b4b6e5-a718-40bc-9aab-6a700b82a9c9\". Dibatalkan."
+            exit 1
+          }
+          grep -E '^[[:space:]]*binding[[:space:]]*=[[:space:]]*"DB"[[:space:]]*$' api/wrangler.toml || {
+            echo "❌ FATAL: binding D1 di api/wrangler.toml harus \"DB\". Dibatalkan."
+            exit 1
+          }
+          if grep -iE '1b9822f6' api/wrangler.toml; then
+            echo "❌ FATAL: Ditemukan UUID database FCVM di api/wrangler.toml! Dibatalkan."
+            exit 1
+          fi
+
+          # C. Verifikasi root wrangler.toml
+          grep -E '^[[:space:]]*database_id[[:space:]]*=[[:space:]]*"62b4b6e5-a718-40bc-9aab-6a700b82a9c9"[[:space:]]*$' wrangler.toml || {
+            echo "❌ FATAL: database_id di root wrangler.toml harus \"62b4b6e5-a718-40bc-9aab-6a700b82a9c9\". Dibatalkan."
+            exit 1
+          }
+
+          # D. Verifikasi frontend/wrangler.toml dan target Cloudflare Pages
+          test -f frontend/wrangler.toml || {
+            echo "❌ FATAL: frontend/wrangler.toml tidak ditemukan! Dibatalkan."
+            exit 1
+          }
+          if grep -iE 'fcvm|facilitycare-fcvm' frontend/wrangler.toml; then
+            echo "❌ FATAL: Ditemukan referensi FCVM di frontend/wrangler.toml! Dibatalkan."
+            exit 1
+          fi
+          grep -F -- '--project-name=facilitycare-system' .github/workflows/deploy.yml > /dev/null 2>&1 || {
+            echo "❌ FATAL: Target Pages wajib terkonfigurasi ke facilitycare-system di deploy.yml! Dibatalkan."
+            exit 1
+          }
+
+          echo "✅ Configuration Assertion Gate lolos: file TOML lokal valid untuk FCMS."
+
+      - name: Runtime Account Identity Verification (wrangler whoami)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BASELINE_ACCOUNT_ID: ${{ vars.EXPECTED_FCMS_ACCOUNT_ID }}
+        run: |
+          echo "=== 4. VERIFIKASI IDENTITAS AKUN RUNTIME CLOUDFLARE ==="
+          if [ -z "$BASELINE_ACCOUNT_ID" ]; then
+            echo "❌ FATAL: vars.EXPECTED_FCMS_ACCOUNT_ID (BASELINE_ACCOUNT_ID) kosong atau belum dikonfigurasi!"
+            echo "❌ KEBIJAKAN FAIL-CLOSED: Menolak eksekusi wrangler whoami tanpa baseline independen yang valid."
+            exit 1
+          fi
+
+          npm install -g wrangler@3 || npm install -g wrangler
+
+          WHOAMI_OUTPUT=$(npx wrangler whoami 2>&1) || {
+            echo "❌ FATAL: Gagal mengeksekusi wrangler whoami atau token Cloudflare tidak valid!"
+            echo "Detail: $WHOAMI_OUTPUT"
+            exit 1
+          }
+
+          echo "Pemeriksaan runtime selesai."
+          if ! echo "$WHOAMI_OUTPUT" | grep -F "$BASELINE_ACCOUNT_ID" > /dev/null 2>&1; then
+            echo "❌ FATAL: Output 'wrangler whoami' tidak mencocokkan Account ID baseline ($BASELINE_ACCOUNT_ID)!"
+            echo "❌ RISIKO TINGGI: Token autentikasi Cloudflare tidak memiliki akses ke akun FCMS yang ditetapkan."
+            exit 1
+          fi
+
+          echo "✅ Identitas runtime Cloudflare terverifikasi cocok dengan baseline FCMS."
+
+  # ============================================================
+  # Deploy API ke Cloudflare Workers (HANYA Manual Dispatch dari main)
   # ============================================================
   deploy-api:
     name: 🚀 Deploy API (Workers)
     runs-on: ubuntu-latest
-    needs: validate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [validate, preflight-target-check]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,13 +241,13 @@ jobs:
           command: deploy
 
   # ============================================================
-  # Deploy Frontend ke Cloudflare Pages
+  # Deploy Frontend ke Cloudflare Pages (HANYA Manual Dispatch dari main)
   # ============================================================
   deploy-pages:
     name: 🌐 Deploy Frontend (Pages)
     runs-on: ubuntu-latest
-    needs: validate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [validate, preflight-target-check, deploy-api]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,97 +271,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=facilitycare-system --commit-dirty=true
-
-  # ============================================================
-  # Check for Schema Changes
-  # ============================================================
-  check-schema:
-    name: 🔍 Check Schema Changes
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    outputs:
-      schema: ${{ steps.filter.outputs.schema }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Filter paths
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            schema:
-              - 'schema/**'
-
-  # ============================================================
-  # Migrasi Database D1
-  # ============================================================
-  migrate-db:
-    name: 🗄️ Migrate D1 Database
-    runs-on: ubuntu-latest
-    needs: [deploy-api, check-schema]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.check-schema.outputs.schema == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Wrangler
-        run: npm install -g wrangler@4
-
-      - name: Run DB Migrations (remote D1)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          wrangler d1 execute DB \
-            --remote \
-            --file=schema/migrations.sql \
-            --yes
-        continue-on-error: true
-
-      - name: Run Schema v3 Migrations (Performance Indexes — IF NOT EXISTS)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          wrangler d1 execute DB \
-            --remote \
-            --file=schema/migration_v3_indexes.sql \
-            --yes
-        continue-on-error: true
-
-      - name: Run Schema v4 Migrations (sp_data and mutasi_data — IF NOT EXISTS)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          wrangler d1 execute DB \
-            --remote \
-            --file=schema/migration_v4_sp_mutasi.sql \
-            --yes
-        continue-on-error: true
-
-      - name: Run Schema v5 Migrations (target_pindah_os and target_selesai_os)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          wrangler d1 execute DB \
-            --remote \
-            --file=schema/migration_v5_target_os.sql \
-            --yes
-        continue-on-error: true
-
-      - name: Run Schema v6 Migrations (Modul Lembur)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          wrangler d1 execute DB \
-            --remote \
-            --file=schema/migration_v6_lembur.sql \
-            --yes

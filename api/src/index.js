@@ -18,7 +18,7 @@ import { handleTraining } from './routes/training.js';
 import { handleRelievers } from './routes/relievers.js';
 import { handleReports } from './routes/reports.js';
 import { handleMisc } from './routes/misc.js';
-import { handleDashboard, handleRelieverAudit, handleDebug56 } from './routes/dashboard.js';
+import { handleDashboard } from './routes/dashboard.js';
 import { handleImport } from './routes/import.js';
 import { handleSP } from './routes/sp.js';
 import { handleMutasi } from './routes/mutasi.js';
@@ -29,13 +29,13 @@ import { handleDAC } from './routes/dac.js';
 import { syncGoogleSheets } from './utils/google_sync.js';
 import { receiveWebhook, processOutbox } from './utils/sync_engine.js';
 import { handleMonitoring } from './routes/monitoring.js';
-import { options, error, ok, forbidden } from './utils/response.js';
+import { options, error, ok, forbidden, unauthorized, resolveAllowedOrigin } from './utils/response.js';
 import { authenticate, hasPermission } from './utils/auth.js';
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const origin = request.headers.get('Origin') || env.CORS_ORIGIN || '*';
+    const origin = resolveAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
 
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
@@ -48,12 +48,6 @@ export default {
         status: 200,
         headers: { 'Content-Type': 'text/plain' }
       });
-    }
-
-    if (url.pathname === '/api/migrate-sp') {
-      try { await env.DB.prepare('ALTER TABLE sp_data ADD COLUMN division TEXT').run(); } catch(e){}
-      try { await env.DB.prepare('ALTER TABLE sp_data ADD COLUMN akhir_sp TEXT').run(); } catch(e){}
-      return ok({ message: 'Migration applied!' }, 200, origin);
     }
 
     try {
@@ -156,8 +150,6 @@ export default {
       else if (path.startsWith('/api/training')) response = await handleTraining(request, env, origin);
       else if (path.startsWith('/api/relievers')) response = await handleRelievers(request, env, origin);
       else if (path.startsWith('/api/reports')) response = await handleReports(request, env, origin);
-      else if (path === '/api/dashboard/debug-56') response = await handleDebug56(request, env, origin);
-      else if (path === '/api/dashboard/reliever-audit') response = await handleRelieverAudit(request, env, origin);
       else if (path.startsWith('/api/dashboard')) response = await handleDashboard(request, env, origin);
       else if (path.startsWith('/api/import')) response = await handleImport(request, env, origin);
       else if (path.startsWith('/api/sp')) response = await handleSP(request, env, origin);
@@ -193,23 +185,10 @@ export default {
 
       if (response) return response;
       
-      // Manual sync trigger
-      if (path === '/api/emergency-fix-dates' && request.method === 'GET') {
-        const schedules = await env.DB.prepare("SELECT id, opening_date FROM activity_schedule").all();
-        let fixed = 0;
-        for (const row of (schedules.results || [])) {
-          let oDate = row.opening_date;
-          if (oDate && !isNaN(Number(oDate)) && Number(oDate) > 40000) {
-             const d = new Date((Number(oDate) - 25569) * 86400 * 1000);
-             oDate = d.toISOString().slice(0, 10);
-             await env.DB.prepare("UPDATE activity_schedule SET opening_date = ? WHERE id = ?").bind(oDate, row.id).run();
-             fixed++;
-          }
-        }
-        return new Response('Fixed opening dates: ' + fixed, { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } });
-      }
-
       if (path === '/api/sync/google-sheets' && request.method === 'POST') {
+        const user = await authenticate(request, env);
+        if (!user) return unauthorized(origin);
+        if (!hasPermission(user, 'employees', 'write')) return forbidden(origin);
         const result = await syncGoogleSheets(env);
         return new Response(JSON.stringify(result), {
           status: result.success ? 200 : 500,
@@ -218,17 +197,11 @@ export default {
       }
 
       if (path === '/api/sync/webhook' && request.method === 'POST') {
-        return await receiveWebhook(request, env);
+        return await receiveWebhook(request, env, origin);
       }
 
       if (path.startsWith('/api/sync/health') || path.startsWith('/api/sync/status') || path.startsWith('/api/sync/queue') || path.startsWith('/api/sync/metrics') || path.startsWith('/api/sync/errors')) {
         return handleMonitoring(request, env, origin);
-      }
-
-      if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || 
-        path.startsWith('/api/forms') || path.startsWith('/api/pic') || 
-        path.startsWith('/api/options') || path.startsWith('/api/audit-expired-contracts') || path.startsWith('/api/audit-check-null-branches') || path.startsWith('/api/audit-import-schedule') || path.startsWith('/api/audit-clean-up-reports') || path.startsWith('/api/audit-force-branches') || path.startsWith('/api/audit-emp') || path.startsWith('/api/audit-verification') || path.startsWith('/api/audit-clean-up-5') || path.startsWith('/api/audit-clean-up-4') || path.startsWith('/api/audit-clean-up-3') || path.startsWith('/api/audit-emp-clean') || path.startsWith('/api/audit-emp-fixdates') || path.startsWith('/api/audit-emp-dupes') || path.startsWith('/api/audit-duplicates-2')) {
-        return handleMisc(request, env, origin);
       }
 
       return error('API endpoint not found', 404, origin);

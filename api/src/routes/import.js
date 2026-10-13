@@ -10,6 +10,7 @@ export async function handleImport(request, env, origin) {
   const path = url.pathname.replace('/api/import', '');
 
   if (path === '/backup' && request.method === 'GET') {
+    if (!hasPermission(user, 'users', 'admin')) return forbidden(origin);
     return exportBackup(env, origin);
   }
 
@@ -1181,7 +1182,11 @@ async function exportBackup(env, origin) {
   const promises = tables.map(async (table) => {
     try {
       const res = await env.DB.prepare(`SELECT * FROM ${table}`).all();
-      return { table, rows: res.results || [] };
+      let rows = res.results || [];
+      if (table === 'users') {
+        rows = rows.map(({ password_hash, ...rest }) => rest);
+      }
+      return { table, rows };
     } catch (e) {
       return { table, error: e.message };
     }

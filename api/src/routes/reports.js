@@ -555,19 +555,196 @@ async function importBasecamp(request, env, origin) {
 }
 
 // ---- SUPPLY REQUESTS (public POST, auth required for GET/PUT/DELETE) ----
+const supplyRateLimits = new Map();
+const SUPPLY_RATE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes cooldown window
+const SUPPLY_RATE_MAX_REQUESTS = 10; // Max 10 submissions per 5 minutes per IP
+
+function getClientIp(request) {
+  return request.headers.get('CF-Connecting-IP')
+    || request.headers.get('x-real-ip')
+    || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || '127.0.0.1';
+}
+
+function isSupplyRateLimited(ip) {
+  const now = Date.now();
+  if (supplyRateLimits.size > 2000) {
+    for (const [key, timestamps] of supplyRateLimits.entries()) {
+      const active = timestamps.filter(t => now - t < SUPPLY_RATE_WINDOW_MS);
+      if (active.length === 0) supplyRateLimits.delete(key);
+      else supplyRateLimits.set(key, active);
+    }
+  }
+  const timestamps = supplyRateLimits.get(ip) || [];
+  const active = timestamps.filter(t => now - t < SUPPLY_RATE_WINDOW_MS);
+  if (active.length >= SUPPLY_RATE_MAX_REQUESTS) {
+    return true;
+  }
+  active.push(now);
+  supplyRateLimits.set(ip, active);
+  return false;
+}
+
+export function _resetSupplyRateLimitForTest() {
+  supplyRateLimits.clear();
+}
+
+function parseAndSanitizeItemList(raw, maxItems = 50, maxItemLen = 100) {
+  if (raw === undefined || raw === null || raw === '') return [];
+  let items = [];
+  if (Array.isArray(raw)) {
+    items = raw;
+  } else if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        items = parsed;
+      } else {
+        items = trimmed.split(',');
+      }
+    } catch {
+      items = trimmed.split(',');
+    }
+  } else {
+    throw new Error('Format daftar item tidak valid');
+  }
+
+  if (items.length > maxItems) {
+    throw new Error(`Jumlah item melebihi batas maksimal (${maxItems} item)`);
+  }
+
+  const cleaned = [];
+  for (const item of items) {
+    if (item === null || item === undefined) continue;
+    const str = String(item).trim();
+    if (!str) continue;
+    if (str.length > maxItemLen) {
+      throw new Error(`Nama item melebihi batas ${maxItemLen} karakter`);
+    }
+    cleaned.push(str);
+  }
+  return cleaned;
+}
+
 async function handleSupply(request, env, origin, path) {
   const idMatch = path.match(/^\/(\d+)$/);
 
   // Public: POST /api/reports/supply
   if (request.method === 'POST' && path === '') {
-    let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-    const { submitter_name, branch_id, branch_name, tools_items, tools_quantity, chemical_items, chemical_quantity, additional_notes } = body;
+    // 1. IP Cooldown / Rate Limiting (Evaluated before parsing large body or touching D1)
+    const clientIp = getClientIp(request);
+    if (isSupplyRateLimited(clientIp)) {
+      return error('Terlalu banyak permintaan pengajuan. Silakan coba lagi beberapa saat lagi.', 429, origin);
+    }
+
+    // 2. Request body size check (max 64KB)
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 65536) {
+      return error('Ukuran permintaan terlalu besar (maksimal 64KB)', 413, origin);
+    }
+
+    // 3. JSON parsing
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return error('Format JSON tidak valid', 400, origin);
+    }
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return error('Payload body harus berupa objek JSON', 400, origin);
+    }
+
+    // 4. Strict Field Validation & Sanitization
+    // Submitter name: required, non-empty string, max 100 characters
+    const rawSubmitter = body.submitter_name;
+    if (!rawSubmitter || typeof rawSubmitter !== 'string' || !rawSubmitter.trim()) {
+      return error('Nama pengirim wajib diisi', 400, origin);
+    }
+    const submitter_name = rawSubmitter.trim();
+    if (submitter_name.length > 100) {
+      return error('Nama pengirim maksimal 100 karakter', 400, origin);
+    }
+
+    // Branch ID: optional, must be positive integer if provided
+    let branch_id = null;
+    if (body.branch_id !== undefined && body.branch_id !== null && body.branch_id !== '') {
+      const parsedId = Number(body.branch_id);
+      if (!Number.isInteger(parsedId) || parsedId <= 0) {
+        return error('ID Cabang tidak valid', 400, origin);
+      }
+      branch_id = parsedId;
+    }
+
+    // Branch name: optional string, max 100 characters
+    let branch_name = null;
+    if (body.branch_name !== undefined && body.branch_name !== null && body.branch_name !== '') {
+      if (typeof body.branch_name !== 'string') {
+        return error('Nama Cabang harus berupa string', 400, origin);
+      }
+      const cleanBranch = body.branch_name.trim();
+      if (cleanBranch.length > 100) {
+        return error('Nama Cabang maksimal 100 karakter', 400, origin);
+      }
+      branch_name = cleanBranch || null;
+    }
+
+    // Tools & Chemical Items: sanitized list, max 50 items each, max 100 chars per item
+    let tools_items = [];
+    let chemical_items = [];
+    try {
+      tools_items = parseAndSanitizeItemList(body.tools_items);
+    } catch (e) {
+      return error(e.message, 400, origin);
+    }
+    try {
+      chemical_items = parseAndSanitizeItemList(body.chemical_items);
+    } catch (e) {
+      return error(e.message, 400, origin);
+    }
+
+    // Quantities: optional, max 50 characters
+    let tools_quantity = null;
+    if (body.tools_quantity !== undefined && body.tools_quantity !== null && body.tools_quantity !== '') {
+      const qStr = String(body.tools_quantity).trim();
+      if (qStr.length > 50) return error('Jumlah alat maksimal 50 karakter', 400, origin);
+      tools_quantity = qStr || null;
+    }
+
+    let chemical_quantity = null;
+    if (body.chemical_quantity !== undefined && body.chemical_quantity !== null && body.chemical_quantity !== '') {
+      const qStr = String(body.chemical_quantity).trim();
+      if (qStr.length > 50) return error('Jumlah chemical maksimal 50 karakter', 400, origin);
+      chemical_quantity = qStr || null;
+    }
+
+    // Additional notes: optional, max 1000 characters
+    let additional_notes = null;
+    if (body.additional_notes !== undefined && body.additional_notes !== null && body.additional_notes !== '') {
+      if (typeof body.additional_notes !== 'string') {
+        return error('Catatan harus berupa teks', 400, origin);
+      }
+      const nStr = body.additional_notes.trim();
+      if (nStr.length > 1000) return error('Catatan maksimal 1000 karakter', 400, origin);
+      additional_notes = nStr || null;
+    }
+
+    // 5. Atomic D1 insertion
     const result = await env.DB.prepare(
       'INSERT INTO supply_requests (submitter_name, branch_id, branch_name, tools_items, tools_quantity, chemical_items, chemical_quantity, additional_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(submitter_name || null, branch_id || null, branch_name || null,
-      JSON.stringify(tools_items || []), tools_quantity || null,
-      JSON.stringify(chemical_items || []), chemical_quantity || null,
-      additional_notes || null).run();
+    ).bind(
+      submitter_name,
+      branch_id,
+      branch_name,
+      JSON.stringify(tools_items),
+      tools_quantity,
+      JSON.stringify(chemical_items),
+      chemical_quantity,
+      additional_notes
+    ).run();
+
     return ok({ id: result.meta.last_row_id, message: 'Request submitted successfully' }, 201, origin);
   }
 
@@ -606,8 +783,14 @@ async function handleSupply(request, env, origin, path) {
       let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
       const { status, processed_by, submitter_name, branch_id, branch_name, tools_items, tools_quantity, chemical_items, chemical_quantity, additional_notes } = body;
       
-      const t_items = tools_items ? (typeof tools_items === 'string' ? tools_items.split(',').map(s=>s.trim()) : tools_items) : null;
-      const c_items = chemical_items ? (typeof chemical_items === 'string' ? chemical_items.split(',').map(s=>s.trim()) : chemical_items) : null;
+      let t_items = null;
+      if (tools_items !== undefined && tools_items !== null) {
+        try { t_items = parseAndSanitizeItemList(tools_items); } catch (e) { return error(e.message, 400, origin); }
+      }
+      let c_items = null;
+      if (chemical_items !== undefined && chemical_items !== null) {
+        try { c_items = parseAndSanitizeItemList(chemical_items); } catch (e) { return error(e.message, 400, origin); }
+      }
 
       await env.DB.prepare(
         `UPDATE supply_requests SET status = COALESCE(?, status), processed_by = COALESCE(?, processed_by), submitter_name = COALESCE(?, submitter_name), branch_id = COALESCE(?, branch_id), branch_name = COALESCE(?, branch_name), tools_items = COALESCE(?, tools_items), tools_quantity = COALESCE(?, tools_quantity), chemical_items = COALESCE(?, chemical_items), chemical_quantity = COALESCE(?, chemical_quantity), additional_notes = COALESCE(?, additional_notes) WHERE id = ?`

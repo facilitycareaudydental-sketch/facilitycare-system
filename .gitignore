@@ -26,9 +26,22 @@ Thumbs.db
 *.swp
 *.swo
 
-# Logs
+# Logs & Deployment artifacts
 *.log
 npm-debug.log*
+api/deploy_*.txt
+api/worker_url.txt
+
+# Scratch & debugging artifacts (specific patterns)
+diff_*.txt
+dashboard_*_final.txt
+import_final.txt
+query*.sql
+test_*.sql
+temp-jwt/
+check_gh*.mjs
+prod_test.mjs
+parse_data*.js
 
 # D1 local database
 *.sqlite

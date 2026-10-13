@@ -1,17 +1,29 @@
 import { error, ok } from './response.js';
 import { mapPayloadToDB } from './sync_mapper.js';
 
+function timingSafeEqualStr(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) {
+    out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return out === 0;
+}
+
 /**
  * Handle incoming Webhook from Google Apps Script (Sheets -> FCMS)
  */
-export async function receiveWebhook(request, env) {
+export async function receiveWebhook(request, env, origin) {
   const startTime = Date.now();
   try {
     const authHeader = request.headers.get('Authorization');
     const signatureHeader = request.headers.get('X-FCMS-SIGNATURE');
     
-    if (env.SYNC_WEBHOOK_SECRET && authHeader !== `Bearer ${env.SYNC_WEBHOOK_SECRET}`) {
-      return error('Unauthorized Webhook', 401);
+    // Fail-closed webhook security:
+    // If SYNC_WEBHOOK_SECRET is not configured or authHeader doesn't strictly match, reject with 401.
+    if (!env?.SYNC_WEBHOOK_SECRET || !authHeader || authHeader !== `Bearer ${env.SYNC_WEBHOOK_SECRET}`) {
+      return error('Unauthorized Webhook', 401, origin);
     }
 
     const payloadText = await request.text();
@@ -19,20 +31,20 @@ export async function receiveWebhook(request, env) {
     try {
       payload = JSON.parse(payloadText);
     } catch (e) {
-      return error('Invalid JSON', 400);
+      return error('Invalid JSON', 400, origin);
     }
 
     // HMAC Signature Verification
-    if (env.SYNC_WEBHOOK_SECRET && signatureHeader) {
+    if (signatureHeader) {
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
         'raw', encoder.encode(env.SYNC_WEBHOOK_SECRET),
-        { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']
       );
       const computedBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(payloadText));
       const computedHex = Array.from(new Uint8Array(computedBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-      if (computedHex !== signatureHeader) {
-        return error('Invalid Signature', 403);
+      if (!timingSafeEqualStr(computedHex, signatureHeader.trim().toLowerCase())) {
+        return error('Invalid Signature', 403, origin);
       }
     }
 
@@ -40,17 +52,17 @@ export async function receiveWebhook(request, env) {
 
     // Validation Layer
     if (payload_version !== '1.0') {
-      return error('Unsupported payload version', 400);
+      return error('Unsupported payload version', 400, origin);
     }
-    if (!event_id || typeof event_id !== 'string') return error('Invalid event_id', 400);
-    if (!sheet_name || typeof sheet_name !== 'string') return error('Invalid sheet_name', 400);
-    if (!action || !['INSERT', 'UPDATE', 'DELETE'].includes(action)) return error('Invalid action', 400);
-    if (!data || typeof data !== 'object') return error('Invalid data payload', 400);
+    if (!event_id || typeof event_id !== 'string') return error('Invalid event_id', 400, origin);
+    if (!sheet_name || typeof sheet_name !== 'string') return error('Invalid sheet_name', 400, origin);
+    if (!action || !['INSERT', 'UPDATE', 'DELETE'].includes(action)) return error('Invalid action', 400, origin);
+    if (!data || typeof data !== 'object') return error('Invalid data payload', 400, origin);
 
     // 1. Idempotency Check
     const isProcessed = await env.DB.prepare('SELECT 1 FROM sync_idempotency WHERE event_id = ?').bind(event_id).first();
     if (isProcessed) {
-      return ok({ message: 'Event already processed', event_id }, 200);
+      return ok({ message: 'Event already processed', event_id }, 200, origin);
     }
 
     // 2. Route webhook to generic handler
@@ -62,10 +74,10 @@ export async function receiveWebhook(request, env) {
     const duration = Date.now() - startTime;
     await env.DB.prepare('INSERT INTO sync_metrics (event_id, action, module, webhook_duration_ms, correlation_id) VALUES (?, ?, ?, ?, ?)').bind(event_id, action, sheet_name, duration, correlation_id || null).run();
 
-    return ok({ message: 'Webhook received successfully', event_id }, 200);
+    return ok({ message: 'Webhook received successfully', event_id }, 200, origin);
   } catch (err) {
     console.error('Webhook processing error:', err);
-    return error('Internal webhook error', 500);
+    return error('Internal webhook error', 500, origin);
   }
 }
 
