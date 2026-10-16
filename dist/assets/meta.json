@@ -140,7 +140,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js": {
-      "bytes": 8016,
+      "bytes": 7830,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -331,7 +331,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js?v=force61": {
-      "bytes": 8016,
+      "bytes": 7830,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -1290,7 +1290,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-TTDRRNBI.js": {
+    "frontend/dist/assets/app-YYMUX45P.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1353,7 +1353,7 @@
           "bytesInOutput": 5191
         },
         "frontend/src/pages/employees.js?v=force61": {
-          "bytesInOutput": 4768
+          "bytesInOutput": 4634
         },
         "frontend/src/pages/contracts.js?v=force61": {
           "bytesInOutput": 10595
@@ -1437,7 +1437,7 @@
           "bytesInOutput": 28870
         }
       },
-      "bytes": 341003
+      "bytes": 340869
     }
   }
 }

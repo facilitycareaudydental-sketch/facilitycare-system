@@ -78,8 +78,6 @@ export async function renderEmployees(container, params) {
       { key: 'division', label: 'Divisi', render: (v) => divisionBadge(v) },
       { key: 'phone', label: 'No. HP', render: v => v ? `<a href="tel:${v}">${v}</a>` : '-' },
       { key: 'join_date', label: 'Tgl Masuk' , render: v => window.formatDate(v) },
-      { key: 'target_pindah_os', label: 'Target Pindah OS', render: v => formatMonth(v) },
-      { key: 'target_selesai_os', label: 'Target Selesai OS', render: v => formatMonth(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
     filterFields: [
