@@ -168,7 +168,7 @@ function chartOpts(extra={}) {
 }
 
 // ── Skeleton HTML ──────────────────────────────────────────────────────────
-const skelKPI = () => Array(5).fill(0).map(()=>`
+const skelKPI = () => Array(6).fill(0).map(()=>`
   <div class="kpi-card" style="pointer-events:none;padding:16px">
     <div style="display:flex; gap:16px; align-items:flex-start">
       <div class="skeleton" style="width:48px;height:48px;border-radius:12px;flex-shrink:0"></div>
@@ -184,7 +184,7 @@ const skelKPI = () => Array(5).fill(0).map(()=>`
     </div>
   </div>`).join('');
 
-const skelMini = () => Array(7).fill(0).map(()=>`
+const skelMini = () => Array(6).fill(0).map(()=>`
   <div class="mini-stat" style="pointer-events:none">
     <div class="skeleton" style="width:40px;height:40px;border-radius:10px;flex-shrink:0"></div>
     <div style="flex:1">
@@ -527,34 +527,126 @@ function renderKPI(kpi) {
   if (!row) return;
   kpi = kpi || {};
 
+  const curQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
+  const aggs = window.dashboardAggregates || {};
+
+  const formatQuarterDetail = (p) => {
+    const details = window.dashboardAggregates?.schedule_quarter_details?.[p];
+    if (!details) return '';
+    return `Insp: ${details.insp} • GC: ${details.gc} • DC: ${details.dc} • Fog: ${details.fog}`;
+  };
+
+  const getQuarterTooltip = (p) => {
+    const details = window.dashboardAggregates?.schedule_quarter_details?.[p];
+    if (!details) return `Total Kegiatan ${p}`;
+    return `Rincian ${p}: Inspeksi: ${details.insp} | General Cleaning: ${details.gc} | Deep Cleaning: ${details.dc} | Fogging: ${details.fog}`;
+  };
+
   const cards = [
     { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',       href:'#/employees?dash_filter=active',   color:'kpi-blue',   key:'employees',  trendPct:'+2%', trendColor:'#10B981', points:'0,20 10,18 20,22 30,12 40,15 50,8 60,10 70,5 80,6 90,2 100,0' },
-      { icon:'🔄', label:'Reliefer Aktif',        sub:'Karyawan reliefer',       href:'#/employees?dash_filter=reliefer',   color:'kpi-purple',   key:'reliever_total',  trendPct:'0%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
+    { icon:'🔄', label:'Reliefer Aktif',        sub:'Karyawan reliefer',       href:'#/employees?dash_filter=reliefer',   color:'kpi-purple',   key:'reliever_total',  trendPct:'0%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
     { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',href:'#/contracts?dash_filter=active',   color:'kpi-green',  key:'contracts',  trendPct:'+1%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
     { icon:'⏳', label:'Kontrak Habis 30 Hari',  sub:'Akan segera berakhir',       href:'#/contracts?dash_filter=expiring30',   color:'kpi-warn',   key:'expiring30', trendPct:'+25%',trendColor:'#F59E0B', points:'0,25 20,22 40,24 60,15 80,18 100,5' },
     { icon:'⚠️', label:'Permasalahan Open',    sub:'Belum diselesaikan',         href:'#/issues?dash_filter=open',      color:'kpi-red',    key:'issues',     trendPct:'0%',  trendColor:'#EF4444', points:'0,20 20,18 40,22 60,19 80,21 100,20' },
-    { icon:'💬', label:'One on One Pending',     sub:'Menunggu tindak lanjut',     href:'#/one-on-one?dash_filter=pending',  color:'kpi-purple', key:'one_on_one', trendPct:'+8%', trendColor:'#10B981', points:'0,25 20,15 40,18 60,8 80,10 100,2' },
+    {
+      id: 'mini-jadwal',
+      icon: '📅',
+      label: 'Jadwal',
+      dropdown: `
+        <select id="dash-jadwal-period" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
+          <option value="Q1" ${curQ === 'Q1' ? 'selected' : ''}>Q1</option>
+          <option value="Q2" ${curQ === 'Q2' ? 'selected' : ''}>Q2</option>
+          <option value="Q3" ${curQ === 'Q3' ? 'selected' : ''}>Q3</option>
+          <option value="Q4" ${curQ === 'Q4' ? 'selected' : ''}>Q4</option>
+        </select>
+      `,
+      val: aggs.schedule_by_quarter?.[curQ] ?? kpi.schedule?.current ?? 0,
+      href: `#/timeline?dash_filter=period_${curQ.toLowerCase()}`,
+      color: 'kpi-blue',
+      sub: formatQuarterDetail(curQ),
+      subId: 'mini-jadwal-detail',
+      tooltip: getQuarterTooltip(curQ),
+    },
   ];
 
   row.innerHTML = cards.map(c => {
-    let val  = safeNum(kpi[c.key]?.current, 0);
+    let val  = c.val !== undefined ? safeNum(c.val, 0) : safeNum(kpi[c.key]?.current, 0);
     
+    if (c.dropdown) {
+      return `
+        <div class="kpi-card ${c.color}" ${c.id ? `id="${c.id}"` : ''} ${c.tooltip ? `title="${c.tooltip}"` : ''} data-href="${c.href}" tabindex="0" role="link" style="cursor:pointer;padding:10px 12px">
+          <div style="display:flex; gap:10px; align-items:center;">
+            <div class="kpi-icon-wrap" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex; align-items:baseline; gap:3px;">
+                <div class="kpi-value" data-target="${val}" style="font-size:1.6rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
+                ${c.dropdown}
+              </div>
+              <div class="kpi-label" style="font-size:0.75rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
+              <div class="kpi-subtitle" ${c.subId ? `id="${c.subId}"` : ''} style="font-size:0.65rem; color:var(--text-3); margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis" title="${c.tooltip || ''}">${c.sub}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
     return `
-      <a href="${c.href}" class="kpi-card ${c.color}" style="text-decoration:none;padding:10px 12px">
+      <a href="${c.href}" class="kpi-card ${c.color}" ${c.id ? `id="${c.id}"` : ''} ${c.tooltip ? `title="${c.tooltip}"` : ''} style="text-decoration:none;padding:10px 12px">
         <div style="display:flex; gap:10px; align-items:center;">
           <div class="kpi-icon-wrap" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="kpi-icon-emoji">${c.icon}</span></div>
           <div style="flex:1;min-width:0;">
-            <div class="kpi-value" data-target="${val}" style="font-size:1.6rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
+            <div style="display:flex; align-items:baseline; gap:3px;">
+              <div class="kpi-value" data-target="${val}" style="font-size:1.6rem; font-weight:800; line-height:1; color:var(--text-1)">${val}</div>
+              ${c.dropdown ? c.dropdown : ''}
+            </div>
             <div class="kpi-label" style="font-size:0.75rem; font-weight:700; color:var(--text-2); margin-top:6px">${c.label}</div>
-            <div class="kpi-subtitle" style="font-size:0.65rem; color:var(--text-3); margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis">${c.sub}</div>
+            <div class="kpi-subtitle" ${c.subId ? `id="${c.subId}"` : ''} style="font-size:0.65rem; color:var(--text-3); margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis" title="${c.tooltip || ''}">${c.sub}</div>
           </div>
         </div>
       </a>`;
   }).join('');
 
+  row.querySelectorAll('.kpi-card[data-href]').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('select')) return;
+      if (card.dataset.href) window.location.hash = card.dataset.href;
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.target.closest('select')) {
+        if (card.dataset.href) window.location.hash = card.dataset.href;
+      }
+    });
+  });
+
   row.querySelectorAll('.kpi-value').forEach(el => {
     animateCount(el, parseInt(el.dataset.target)||0);
   });
+
+  // Add event listener for the Jadwal period dropdown
+  const jadwalSelect = document.getElementById('dash-jadwal-period');
+  if (jadwalSelect) {
+    const refreshJadwal = (p) => {
+      const curAggs = window.dashboardAggregates?.schedule_by_quarter || {};
+      const count = curAggs[p] || 0;
+      const valEl = document.querySelector('#mini-jadwal .kpi-value');
+      if (valEl) {
+        valEl.dataset.target = count;
+        animateCount(valEl, count, 400);
+      }
+      const detailEl = document.getElementById('mini-jadwal-detail');
+      if (detailEl) {
+        detailEl.textContent = formatQuarterDetail(p);
+        detailEl.title = getQuarterTooltip(p);
+      }
+      const card = document.getElementById('mini-jadwal');
+      if (card) {
+        const targetUrl = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
+        if (card.tagName === 'A') card.href = targetUrl;
+        else card.dataset.href = targetUrl;
+        card.title = getQuarterTooltip(p);
+      }
+    };
+    jadwalSelect.addEventListener('change', (e) => refreshJadwal(e.target.value));
+  }
 }
 
 // ── Mini Stats ─────────────────────────────────────────────────────────────
@@ -563,13 +655,12 @@ function renderMiniStats(kpi) {
   if (!row) return;
   kpi = kpi || {};
 
-  const curQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
   const curY = new Date().getFullYear();
   const curM = String(new Date().getMonth() + 1).padStart(2, '0');
   const curYM = `${curY}-${curM}`;
   
   const renderMonthDropdown = (id) => `
-    <select id="${id}" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.preventDefault(); event.stopPropagation();">
+    <select id="${id}" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
       <option value="${curY}-01" ${curYM === `${curY}-01` ? 'selected' : ''}>Jan</option>
       <option value="${curY}-02" ${curYM === `${curY}-02` ? 'selected' : ''}>Feb</option>
       <option value="${curY}-03" ${curYM === `${curY}-03` ? 'selected' : ''}>Mar</option>
@@ -587,38 +678,7 @@ function renderMiniStats(kpi) {
 
   const aggs = window.dashboardAggregates || {};
 
-  const formatQuarterDetail = (p) => {
-    const details = window.dashboardAggregates?.schedule_quarter_details?.[p];
-    if (!details) return '';
-    return `Insp: ${details.insp} • GC: ${details.gc} • DC: ${details.dc} • Fog: ${details.fog}`;
-  };
-
-  const getQuarterTooltip = (p) => {
-    const details = window.dashboardAggregates?.schedule_quarter_details?.[p];
-    if (!details) return `Total Kegiatan ${p}`;
-    return `Rincian ${p}: Inspeksi: ${details.insp} | General Cleaning: ${details.gc} | Deep Cleaning: ${details.dc} | Fogging: ${details.fog}`;
-  };
-
   const items = [
-    { 
-      id: 'mini-jadwal',
-      icon:'📅', 
-      label: 'Jadwal',
-      dropdown: `
-        <select id="dash-jadwal-period" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.preventDefault(); event.stopPropagation();">
-          <option value="Q1" ${curQ === 'Q1' ? 'selected' : ''}>Q1</option>
-          <option value="Q2" ${curQ === 'Q2' ? 'selected' : ''}>Q2</option>
-          <option value="Q3" ${curQ === 'Q3' ? 'selected' : ''}>Q3</option>
-          <option value="Q4" ${curQ === 'Q4' ? 'selected' : ''}>Q4</option>
-        </select>
-      `,
-      val: aggs.schedule_by_quarter?.[curQ] ?? kpi.schedule?.current ?? 0,
-      href:`#/timeline?dash_filter=period_${curQ.toLowerCase()}`,
-      color:'mini-blue',
-      extra: `<div id="mini-jadwal-detail" style="font-size:0.6rem; color:var(--text-3); font-weight:500; margin-top:2px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${getQuarterTooltip(curQ)}">${formatQuarterDetail(curQ)}</div>`
-    },
-
-
     { 
       id: 'mini-inspeksi',
       icon:'🔍', 
@@ -659,45 +719,48 @@ function renderMiniStats(kpi) {
     { icon:'🏢', label:'Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal' },
   ];
 
-  row.innerHTML = items.map(s => `
-    <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none" id="${s.id || ''}">
-      <div class="mini-stat-icon">${s.icon}</div>
-      <div class="mini-stat-body" style="flex:1; min-width:0; overflow:visible;">
-        <div style="display:flex; align-items:baseline; gap:3px;">
-          <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
-          ${s.dropdown ? s.dropdown : ''}
+  row.innerHTML = items.map(s => {
+    if (s.dropdown) {
+      return `
+        <div class="mini-stat ${s.color}" style="cursor:pointer;" id="${s.id || ''}" data-href="${s.href}" tabindex="0" role="link">
+          <div class="mini-stat-icon">${s.icon}</div>
+          <div class="mini-stat-body" style="flex:1; min-width:0; overflow:visible;">
+            <div style="display:flex; align-items:baseline; gap:3px;">
+              <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
+              ${s.dropdown}
+            </div>
+            <div class="mini-stat-text">${s.label}</div>
+            ${s.extra || ''}
+          </div>
+        </div>`;
+    }
+    return `
+      <a href="${s.href}" class="mini-stat ${s.color}" style="text-decoration:none" id="${s.id || ''}">
+        <div class="mini-stat-icon">${s.icon}</div>
+        <div class="mini-stat-body" style="flex:1; min-width:0; overflow:visible;">
+          <div style="display:flex; align-items:baseline; gap:3px;">
+            <div class="mini-stat-value" data-target="${safeNum(s.val)}">0</div>
+            ${s.dropdown ? s.dropdown : ''}
+          </div>
+          <div class="mini-stat-text">${s.label}</div>
+          ${s.extra || ''}
         </div>
-        <div class="mini-stat-text">${s.label}</div>
-        ${s.extra || ''}
-      </div>
-    </a>`).join('');
+      </a>`;
+  }).join('');
+
+  row.querySelectorAll('.mini-stat[data-href]').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('select')) return;
+      if (card.dataset.href) window.location.hash = card.dataset.href;
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.target.closest('select')) {
+        if (card.dataset.href) window.location.hash = card.dataset.href;
+      }
+    });
+  });
 
   row.querySelectorAll('.mini-stat-value').forEach(el => animateCount(el, parseInt(el.dataset.target)||0, 700));
-
-  // Add event listener for the Jadwal period dropdown
-  const jadwalSelect = document.getElementById('dash-jadwal-period');
-  if (jadwalSelect) {
-    const refreshJadwal = (p) => {
-      const curAggs = window.dashboardAggregates?.schedule_by_quarter || {};
-      const count = curAggs[p] || 0;
-      const valEl = document.querySelector('#mini-jadwal .mini-stat-value');
-      if (valEl) {
-        valEl.dataset.target = count;
-        animateCount(valEl, count, 400);
-      }
-      const detailEl = document.getElementById('mini-jadwal-detail');
-      if (detailEl) {
-        detailEl.textContent = formatQuarterDetail(p);
-        detailEl.title = getQuarterTooltip(p);
-      }
-      const a = document.getElementById('mini-jadwal');
-      if (a) {
-        a.href = `#/timeline?dash_filter=period_${p.toLowerCase()}`;
-        a.title = getQuarterTooltip(p);
-      }
-    };
-    jadwalSelect.addEventListener('change', (e) => refreshJadwal(e.target.value));
-  }
 
   // Helper for month dropdowns
   const setupMonthDropdown = (selectId, cardId, aggKey, hrefBase) => {
@@ -711,8 +774,12 @@ function renderMiniStats(kpi) {
           valEl.dataset.target = count;
           animateCount(valEl, count, 400);
         }
-        const a = document.getElementById(cardId);
-        if (a) a.href = `${hrefBase}&month=${m}`;
+        const card = document.getElementById(cardId);
+        if (card) {
+          const targetUrl = `${hrefBase}&month=${m}`;
+          if (card.tagName === 'A') card.href = targetUrl;
+          else card.dataset.href = targetUrl;
+        }
       };
       // On dropdown change
       sel.addEventListener('change', (e) => refreshCount(e.target.value));
