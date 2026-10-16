@@ -263,13 +263,6 @@ function renderLayout() {
               <span class="nav-label">Permasalahan</span>
               <span class="nav-badge badge-danger" id="badge-issues"></span>
             </a>
-            <a href="#/one-on-one" class="nav-item" data-route="/one-on-one">
-              <span class="nav-icon">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-              </span>
-              <span class="nav-label">One on One</span>
-              <span class="nav-badge badge-warning" id="badge-oo1"></span>
-            </a>
             <a href="#/training" class="nav-item" data-route="/training">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
