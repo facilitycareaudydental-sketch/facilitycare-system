@@ -298,13 +298,6 @@ function renderLayout() {
               </span>
               <span class="nav-label">Rekap Laporan Basecamp</span>
             </a>
-            <a href="#/reports/supply" class="nav-item" data-route="/reports/supply">
-              <span class="nav-icon">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-              </span>
-              <span class="nav-label">Permintaan Chemical</span>
-              <span class="nav-badge" id="badge-supply"></span>
-            </a>
           </div>
 
           <!-- Referensi -->

@@ -1123,7 +1123,7 @@
       "format": "esm"
     },
     "frontend/src/app.js": {
-      "bytes": 32671,
+      "bytes": 32125,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1290,7 +1290,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-SGSZYJTY.js": {
+    "frontend/dist/assets/app-TTDRRNBI.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1305,7 +1305,7 @@
           "bytesInOutput": 3311
         },
         "frontend/src/app.js": {
-          "bytesInOutput": 23259
+          "bytesInOutput": 22720
         },
         "frontend/src/router.js": {
           "bytesInOutput": 761
@@ -1437,7 +1437,7 @@
           "bytesInOutput": 28870
         }
       },
-      "bytes": 341542
+      "bytes": 341003
     }
   }
 }
