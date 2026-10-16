@@ -733,7 +733,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sop.js": {
-      "bytes": 2942,
+      "bytes": 3008,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -765,6 +765,27 @@
     },
     "frontend/src/pages/sop_facility_care.js": {
       "bytes": 85601,
+      "imports": [
+        {
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "../components/modal.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
+        },
+        {
+          "path": "frontend/src/utils/excel.js",
+          "kind": "dynamic-import",
+          "original": "../utils/excel.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "frontend/src/pages/sop_security.js": {
+      "bytes": 70131,
       "imports": [
         {
           "path": "frontend/src/components/modal.js",
@@ -1144,7 +1165,7 @@
       "format": "esm"
     },
     "frontend/src/app.js": {
-      "bytes": 32327,
+      "bytes": 32882,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1242,6 +1263,11 @@
           "original": "./pages/sop_facility_care.js"
         },
         {
+          "path": "frontend/src/pages/sop_security.js",
+          "kind": "import-statement",
+          "original": "./pages/sop_security.js"
+        },
+        {
           "path": "frontend/src/pages/checklist.js",
           "kind": "import-statement",
           "original": "./pages/checklist.js"
@@ -1316,7 +1342,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-KLVKDGEN.js": {
+    "frontend/dist/assets/app-6DMFBUEH.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1331,7 +1357,7 @@
           "bytesInOutput": 3311
         },
         "frontend/src/app.js": {
-          "bytesInOutput": 22842
+          "bytesInOutput": 23276
         },
         "frontend/src/router.js": {
           "bytesInOutput": 761
@@ -1420,6 +1446,9 @@
         "frontend/src/pages/sop_facility_care.js": {
           "bytesInOutput": 70525
         },
+        "frontend/src/pages/sop_security.js": {
+          "bytesInOutput": 57784
+        },
         "frontend/src/pages/checklist.js": {
           "bytesInOutput": 2142
         },
@@ -1466,7 +1495,7 @@
           "bytesInOutput": 28870
         }
       },
-      "bytes": 409669
+      "bytes": 467887
     }
   }
 }
