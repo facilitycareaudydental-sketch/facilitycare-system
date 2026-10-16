@@ -105,7 +105,6 @@ export async function renderChecklist(container) {
   let documents = [];
   let activeCategory = 'all';
   let searchQuery = '';
-  let currentView = localStorage.getItem('fcms_doc_view') || 'grid'; // 'grid' | 'table'
 
   // Inject Custom Styles
   const styleId = 'fcms-master-doc-styles';
@@ -250,32 +249,6 @@ export async function renderChecklist(container) {
         border-color: #2563EB;
         background: #FFFFFF;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-      }
-      .doc-view-toggle {
-        display: flex;
-        background: #F1F5F9;
-        padding: 4px;
-        border-radius: 10px;
-        gap: 4px;
-      }
-      .doc-view-btn {
-        border: none;
-        background: transparent;
-        padding: 6px 14px;
-        border-radius: 8px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #64748B;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.15s ease;
-      }
-      .doc-view-btn.active {
-        background: #FFFFFF;
-        color: #1E293B;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
       }
       .doc-filter-pills {
         display: flex;
@@ -571,14 +544,6 @@ export async function renderChecklist(container) {
         .doc-search-wrapper {
           min-width: 100% !important;
           width: 100% !important;
-        }
-        .doc-view-toggle {
-          width: 100% !important;
-        }
-        .doc-view-btn {
-          flex: 1 !important;
-          justify-content: center !important;
-          padding: 7px 10px !important;
         }
         /* PITA FILTER SWIPEABLE HORIZONTAL DI HP (TIDAK LAGI NUMPUK VERTIKAL) */
         .doc-filter-pills {
@@ -929,21 +894,9 @@ export async function renderChecklist(container) {
         <!-- Controls: Search, View Switch, Category Pills -->
         <div class="doc-controls-panel">
           <div class="doc-controls-top">
-            <div class="doc-search-wrapper">
+            <div class="doc-search-wrapper" style="width:100%;">
               <span class="doc-search-icon">🔍</span>
               <input type="text" id="doc-search-input" class="doc-search-input" placeholder="Cari nama dokumen, kategori, atau deskripsi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
-            </div>
-
-            <!-- View Mode Switch -->
-            <div class="doc-view-toggle">
-              <button id="doc-view-grid" class="doc-view-btn ${currentView === 'grid' ? 'active' : ''}">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                <span>Grid Kartu</span>
-              </button>
-              <button id="doc-view-table" class="doc-view-btn ${currentView === 'table' ? 'active' : ''}">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                <span>Tabel Data</span>
-              </button>
             </div>
           </div>
 
@@ -978,7 +931,7 @@ export async function renderChecklist(container) {
                 Tampilkan Semua Dokumen
               </button>
             </div>
-          ` : currentView === 'grid' ? `
+          ` : `
             <!-- Grid Card View -->
             <div class="doc-cards-grid">
               ${filtered.map(doc => {
@@ -1032,75 +985,6 @@ export async function renderChecklist(container) {
                 `;
               }).join('')}
             </div>
-          ` : `
-            <!-- Table View -->
-            <div class="doc-table-card">
-              <table class="doc-table">
-                <thead>
-                  <tr>
-                    <th style="width:50px; text-align:center;">No</th>
-                    <th>Nama Dokumen</th>
-                    <th>Kategori</th>
-                    <th>Format</th>
-                    <th>Tautan Dokumen</th>
-                    <th>Deskripsi</th>
-                    <th style="width:100px; text-align:center;">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${filtered.map((doc, idx) => {
-                    const catMeta = getCategoryMeta(doc.category);
-                    const platMeta = getPlatformMeta(doc.document_link);
-                    return `
-                      <tr>
-                        <td style="text-align:center; font-weight:600; color:#94A3B8;">${idx + 1}</td>
-                        <td>
-                          <div style="font-weight:700; color:#0F172A;">${doc.name}</div>
-                        </td>
-                        <td>
-                          <span class="doc-category-badge" style="background:${catMeta.bg}; color:${catMeta.color}; border:1px solid ${catMeta.border};">
-                            <span>${catMeta.icon}</span>
-                            <span>${catMeta.label}</span>
-                          </span>
-                        </td>
-                        <td>
-                          <span class="doc-platform-badge">
-                            <span>${platMeta.icon}</span>
-                            <span>${platMeta.type}</span>
-                          </span>
-                        </td>
-                        <td>
-                          ${doc.document_link ? `
-                            <div style="display:flex; align-items:center; gap:6px;">
-                              <a href="${doc.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary" style="font-size:0.78rem; padding:5px 10px; border-radius:6px; display:inline-flex; align-items:center; gap:4px; text-decoration:none;">
-                                <span>Buka Dokumen</span>
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                              </a>
-                              <button class="doc-icon-btn copy-link-btn" title="Salin Link" style="width:28px; height:28px;" data-link="${doc.document_link}" data-title="${doc.name}">
-                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                              </button>
-                            </div>
-                          ` : '<span style="color:#94A3B8; font-size:0.82rem;">-</span>'}
-                        </td>
-                        <td style="max-width:280px; color:#64748B; font-size:0.84rem;">
-                          ${doc.description || '-'}
-                        </td>
-                        <td style="text-align:center;">
-                          <div style="display:flex; justify-content:center; gap:6px;">
-                            <button class="doc-icon-btn edit-doc-btn" style="width:30px; height:30px;" title="Edit" data-id="${doc.id}">
-                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            </button>
-                            <button class="doc-icon-btn delete delete-doc-btn" style="width:30px; height:30px;" title="Hapus" data-id="${doc.id}">
-                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
-            </div>
           `}
         </div>
 
@@ -1144,24 +1028,6 @@ export async function renderChecklist(container) {
           newSearch.focus();
           newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
         }
-      };
-    }
-
-    // View Toggle
-    const btnGrid = container.querySelector('#doc-view-grid');
-    const btnTable = container.querySelector('#doc-view-table');
-    if (btnGrid) {
-      btnGrid.onclick = () => {
-        currentView = 'grid';
-        localStorage.setItem('fcms_doc_view', 'grid');
-        renderUI();
-      };
-    }
-    if (btnTable) {
-      btnTable.onclick = () => {
-        currentView = 'table';
-        localStorage.setItem('fcms_doc_view', 'table');
-        renderUI();
       };
     }
 
