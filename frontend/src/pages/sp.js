@@ -484,6 +484,7 @@ export async function renderSP(container) {
           display: flex !important;
           width: 100% !important;
           gap: 8px !important;
+          flex-wrap: nowrap !important;
         }
         #sp-btn-add {
           flex: 2 !important;

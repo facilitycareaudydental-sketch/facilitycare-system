@@ -968,7 +968,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sp.js": {
-      "bytes": 51865,
+      "bytes": 51906,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -999,7 +999,7 @@
       "format": "esm"
     },
     "frontend/src/pages/mutasi.js": {
-      "bytes": 37813,
+      "bytes": 39002,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1030,7 +1030,7 @@
       "format": "esm"
     },
     "frontend/src/pages/overtime.js": {
-      "bytes": 40059,
+      "bytes": 41248,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1306,7 +1306,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-32R6WUQZ.js": {
+    "frontend/dist/assets/app-76LJR5PJ.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1438,13 +1438,13 @@
           "bytesInOutput": 10617
         },
         "frontend/src/pages/sp.js": {
-          "bytesInOutput": 41598
+          "bytesInOutput": 41638
         },
         "frontend/src/pages/mutasi.js": {
-          "bytesInOutput": 31082
+          "bytesInOutput": 32271
         },
         "frontend/src/pages/overtime.js": {
-          "bytesInOutput": 31849
+          "bytesInOutput": 33038
         },
         "frontend/src/pages/audit_logs.js": {
           "bytesInOutput": 2883
@@ -1456,7 +1456,7 @@
           "bytesInOutput": 28869
         }
       },
-      "bytes": 592037
+      "bytes": 594455
     }
   }
 }
