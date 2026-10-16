@@ -480,28 +480,33 @@ export async function renderSP(container) {
           align-items: stretch !important;
           gap: 12px !important;
         }
-        .sp-hero-header > div:last-child {
-          display: flex !important;
+        .sp-hero-actions {
           width: 100% !important;
+          display: flex !important;
+          align-items: center !important;
           gap: 8px !important;
           flex-wrap: nowrap !important;
         }
-        #sp-btn-add {
-          flex: 2 !important;
+        .sp-btn-add {
+          flex: 1 1 auto !important;
           justify-content: center !important;
+          padding: 8px 10px !important;
           font-size: 0.82rem !important;
-          padding: 9px 12px !important;
+          white-space: nowrap !important;
         }
-        #sp-btn-excel {
-          flex: 1.2 !important;
+        .sp-btn-excel {
+          flex: 1 1 auto !important;
           justify-content: center !important;
+          padding: 8px 10px !important;
           font-size: 0.82rem !important;
-          padding: 9px 10px !important;
+          white-space: nowrap !important;
         }
-        #sp-btn-refresh {
-          flex: 0 0 38px !important;
+        .sp-btn-refresh {
+          width: 38px !important;
+          height: 38px !important;
+          padding: 0 !important;
+          flex-shrink: 0 !important;
           justify-content: center !important;
-          padding: 9px 0 !important;
         }
         /* 2x2 compact stats grid di layar HP */
         .sp-stats-grid {
@@ -1028,15 +1033,19 @@ export async function renderSP(container) {
                 Sistem pengawasan kedisiplinan kerja, masa aktif sanksi pembinaan, dan arsip dokumen BAP karyawan PT Audy Mandiri Indonesia.
               </p>
             </div>
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <button id="sp-btn-add" class="btn btn-primary" style="background:#2563EB; border:none; border-radius:10px; padding:10px 18px; font-weight:600; display:flex; align-items:center; gap:8px;">
-                <span>➕</span> Terbitkan SP Baru
+            <div class="sp-hero-actions" style="display:flex; align-items:center; gap:8px;">
+              <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; padding:9px 16px; border-radius:10px; font-weight:700; display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Terbitkan SP</span>
               </button>
-              <button id="sp-btn-excel" class="btn btn-ghost" style="background:rgba(255,255,255,0.1); color:#FFFFFF; border:1px solid rgba(255,255,255,0.2); border-radius:10px; padding:10px 16px; font-weight:600; display:flex; align-items:center; gap:8px;">
-                <span>📥</span> Ekspor Excel
+              
+              <button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                <span>📥</span>
+                <span>Ekspor Excel</span>
               </button>
-              <button id="sp-btn-refresh" class="btn btn-ghost" style="background:rgba(255,255,255,0.1); color:#FFFFFF; border:1px solid rgba(255,255,255,0.2); border-radius:10px; padding:10px 14px; font-weight:600;">
-                <span>🔄</span>
+
+              <button id="sp-btn-refresh" class="btn btn-ghost sp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
             </div>
           </div>
