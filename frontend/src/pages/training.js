@@ -722,7 +722,19 @@ export async function renderTraining(container) {
             width: 100%;
           }
           .training-cards-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr) !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+          }
+          .training-card {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden;
+            padding: 14px !important;
           }
         }
       </style>

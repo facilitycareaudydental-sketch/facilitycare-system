@@ -356,6 +356,11 @@ export async function renderEmployees(container, params) {
           display: flex;
           flex-direction: column;
           gap: 20px;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          overflow-x: hidden;
         }
         .emp-hero-card {
           background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
@@ -365,6 +370,10 @@ export async function renderEmployees(container, params) {
           box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
           position: relative;
           overflow: hidden;
+          box-sizing: border-box;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
         }
         .emp-hero-card::after {
           content: '';
@@ -433,6 +442,10 @@ export async function renderEmployees(container, params) {
           display: flex;
           flex-direction: column;
           gap: 14px;
+          box-sizing: border-box;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
         }
         .emp-search-row {
           display: flex;
@@ -537,18 +550,27 @@ export async function renderEmployees(container, params) {
         /* Cards Grid */
         .emp-cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
           gap: 16px;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
         .emp-card {
           background: white;
           border-radius: 14px;
           border: 1px solid #E2E8F0;
-          padding: 18px;
+          padding: 16px 18px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.04);
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 13px;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+          overflow: hidden;
           transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .emp-card:hover {
@@ -561,6 +583,10 @@ export async function renderEmployees(container, params) {
           justify-content: space-between;
           align-items: center;
           gap: 8px;
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          flex-wrap: wrap;
         }
         
         .emp-div-badge {
@@ -569,8 +595,10 @@ export async function renderEmployees(container, params) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.76rem;
+          font-size: 0.74rem;
           font-weight: 700;
+          flex-shrink: 0;
+          white-space: nowrap;
         }
         .emp-div-fc {
           background: #EFF6FF;
@@ -594,8 +622,10 @@ export async function renderEmployees(container, params) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.76rem;
+          font-size: 0.74rem;
           font-weight: 700;
+          flex-shrink: 0;
+          white-space: nowrap;
         }
         .emp-status-aktif {
           background: #DCFCE7;
@@ -612,11 +642,14 @@ export async function renderEmployees(container, params) {
         .emp-profile-box {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 12px;
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
         .emp-avatar {
-          width: 52px;
-          height: 52px;
+          width: 50px;
+          height: 50px;
           border-radius: 12px;
           background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
           color: white;
@@ -624,7 +657,7 @@ export async function renderEmployees(container, params) {
           align-items: center;
           justify-content: center;
           font-weight: 800;
-          font-size: 1.15rem;
+          font-size: 1.1rem;
           flex-shrink: 0;
           box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
         }
@@ -637,10 +670,12 @@ export async function renderEmployees(container, params) {
           box-shadow: 0 4px 10px rgba(124, 58, 237, 0.2);
         }
         .emp-name {
-          font-size: 1.05rem;
+          font-size: 1.02rem;
           font-weight: 800;
           color: #0F172A;
           line-height: 1.25;
+          word-break: break-word;
+          overflow-wrap: anywhere;
         }
         .emp-subtitle {
           font-size: 0.76rem;
@@ -654,28 +689,43 @@ export async function renderEmployees(container, params) {
           background: #F8FAFC;
           border: 1px solid #F1F5F9;
           border-radius: 10px;
-          padding: 12px;
+          padding: 11px 12px;
           display: flex;
           flex-direction: column;
           gap: 8px;
-          font-size: 0.84rem;
+          font-size: 0.83rem;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
         .emp-info-row {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: space-between;
           gap: 8px;
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
         .emp-info-label {
           color: #64748B;
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
+          flex-shrink: 0;
+          white-space: nowrap;
+          font-size: 0.8rem;
         }
         .emp-info-val {
           color: #0F172A;
           font-weight: 600;
           text-align: right;
+          min-width: 0;
+          flex: 1;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          font-size: 0.82rem;
         }
         .emp-phone-link {
           color: #2563EB;
@@ -691,13 +741,17 @@ export async function renderEmployees(container, params) {
 
         /* Notes box */
         .emp-notes-box {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           color: #475569;
           background: #FFFBEB;
           border: 1px solid #FEF3C7;
           border-radius: 8px;
           padding: 8px 10px;
           line-height: 1.4;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         /* Card footer */
@@ -706,15 +760,20 @@ export async function renderEmployees(container, params) {
           justify-content: space-between;
           align-items: center;
           border-top: 1px solid #F1F5F9;
-          padding-top: 12px;
+          padding-top: 11px;
           margin-top: auto;
           gap: 8px;
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          flex-wrap: wrap;
         }
         .emp-action-btns {
           display: flex;
           align-items: center;
           gap: 6px;
           margin-left: auto;
+          flex-shrink: 0;
         }
         .emp-icon-btn {
           width: 34px;
@@ -752,8 +811,17 @@ export async function renderEmployees(container, params) {
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
+          .emp-page {
+            gap: 14px;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+          }
           .emp-hero-card {
-            padding: 18px 16px;
+            padding: 16px 14px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
           }
           .emp-stats-row {
             grid-template-columns: 1fr 1fr;
@@ -799,8 +867,11 @@ export async function renderEmployees(container, params) {
             justify-content: center !important;
           }
           .emp-controls-card {
-            padding: 14px;
+            padding: 14px !important;
             gap: 12px;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
           }
           .emp-search-row {
             flex-direction: column;
@@ -810,7 +881,24 @@ export async function renderEmployees(container, params) {
             width: 100%;
           }
           .emp-cards-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr) !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+          }
+          .emp-card {
+            padding: 14px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+          }
+          .emp-info-card {
+            padding: 10px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
           }
         }
       </style>
@@ -1014,11 +1102,11 @@ export async function renderEmployees(container, params) {
                     <span class="emp-info-val">${formatDateIndo(item.join_date)}</span>
                   </div>
                   ${item.target_pindah_os || item.target_selesai_os ? `
-                    <div class="emp-info-row" style="border-top:1px dashed #E2E8F0; padding-top:6px; margin-top:2px;">
-                      <span class="emp-info-label">🔄 Target OS:</span>
-                      <span class="emp-info-val" style="font-size:0.78rem; color:#6366F1;">
+                    <div class="emp-info-row target-os" style="border-top:1px dashed #E2E8F0; padding-top:6px; margin-top:2px; flex-direction:column; align-items:flex-start; gap:3px; width:100%;">
+                      <span class="emp-info-label" style="font-weight:600; color:#475569;">🔄 Target Migrasi OS:</span>
+                      <span class="emp-info-val" style="font-size:0.78rem; color:#4F46E5; text-align:left; width:100%; word-break:break-word; overflow-wrap:anywhere;">
                         ${item.target_pindah_os ? 'Pindah: ' + item.target_pindah_os : ''}
-                        ${item.target_selesai_os ? ' → Selesai: ' + item.target_selesai_os : ''}
+                        ${item.target_selesai_os ? (item.target_pindah_os ? ' → ' : '') + 'Selesai: ' + item.target_selesai_os : ''}
                       </span>
                     </div>
                   ` : ''}

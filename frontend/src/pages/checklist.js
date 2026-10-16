@@ -566,12 +566,21 @@ export async function renderChecklist(container) {
           font-size: 0.8rem !important;
         }
         .doc-cards-grid {
-          grid-template-columns: 1fr !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
           gap: 12px !important;
         }
         .doc-card {
           padding: 16px !important;
           border-radius: 14px !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+          overflow: hidden;
         }
         .doc-card-title {
           font-size: 1rem !important;

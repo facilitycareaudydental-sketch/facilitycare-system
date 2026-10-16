@@ -140,7 +140,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js": {
-      "bytes": 45190,
+      "bytes": 48198,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -212,7 +212,7 @@
       "format": "esm"
     },
     "frontend/src/pages/issues.js": {
-      "bytes": 53326,
+      "bytes": 53773,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -331,7 +331,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js?v=force61": {
-      "bytes": 45190,
+      "bytes": 48198,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -439,7 +439,7 @@
       "format": "esm"
     },
     "frontend/src/pages/issues.js?v=force61": {
-      "bytes": 53326,
+      "bytes": 53773,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -506,7 +506,7 @@
       "format": "esm"
     },
     "frontend/src/pages/training.js": {
-      "bytes": 42277,
+      "bytes": 42726,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -775,7 +775,7 @@
       "format": "esm"
     },
     "frontend/src/pages/checklist.js": {
-      "bytes": 40319,
+      "bytes": 40671,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -968,7 +968,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sp.js": {
-      "bytes": 52749,
+      "bytes": 53101,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -999,7 +999,7 @@
       "format": "esm"
     },
     "frontend/src/pages/mutasi.js": {
-      "bytes": 39002,
+      "bytes": 39449,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1030,7 +1030,7 @@
       "format": "esm"
     },
     "frontend/src/pages/overtime.js": {
-      "bytes": 41248,
+      "bytes": 41695,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1306,7 +1306,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-WNMBB7CT.js": {
+    "frontend/dist/assets/app-2YPSONUN.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1369,7 +1369,7 @@
           "bytesInOutput": 5191
         },
         "frontend/src/pages/employees.js?v=force61": {
-          "bytesInOutput": 37999
+          "bytesInOutput": 40998
         },
         "frontend/src/pages/contracts.js?v=force61": {
           "bytesInOutput": 10592
@@ -1378,13 +1378,13 @@
           "bytesInOutput": 5985
         },
         "frontend/src/pages/issues.js?v=force61": {
-          "bytesInOutput": 43856
+          "bytesInOutput": 44303
         },
         "frontend/src/pages/one_on_one.js?v=force61": {
           "bytesInOutput": 4851
         },
         "frontend/src/pages/training.js": {
-          "bytesInOutput": 34560
+          "bytesInOutput": 35009
         },
         "frontend/src/pages/_crud.js?v=v3": {
           "bytesInOutput": 15775
@@ -1411,7 +1411,7 @@
           "bytesInOutput": 58523
         },
         "frontend/src/pages/checklist.js": {
-          "bytesInOutput": 32791
+          "bytesInOutput": 33134
         },
         "frontend/src/pages/hygiene_standards.js": {
           "bytesInOutput": 34112
@@ -1438,13 +1438,13 @@
           "bytesInOutput": 10617
         },
         "frontend/src/pages/sp.js": {
-          "bytesInOutput": 42465
+          "bytesInOutput": 42808
         },
         "frontend/src/pages/mutasi.js": {
-          "bytesInOutput": 32271
+          "bytesInOutput": 32718
         },
         "frontend/src/pages/overtime.js": {
-          "bytesInOutput": 33031
+          "bytesInOutput": 33478
         },
         "frontend/src/pages/audit_logs.js": {
           "bytesInOutput": 2883
@@ -1456,7 +1456,7 @@
           "bytesInOutput": 28868
         }
       },
-      "bytes": 696234
+      "bytes": 701709
     }
   }
 }

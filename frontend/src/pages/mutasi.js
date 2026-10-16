@@ -686,7 +686,19 @@ export async function renderMutasi(container) {
             width: 100%;
           }
           .mutasi-cards-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr) !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+          }
+          .mutasi-card {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden;
+            padding: 14px !important;
           }
         }
       </style>

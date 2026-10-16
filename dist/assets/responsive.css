@@ -589,13 +589,36 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     padding: 7px 12px !important;
   }
 
-  /* Card Grids - Single column on mobile */
+  /* Card Grids - Single column on mobile with blowout protection */
+  .emp-cards-grid,
+  .training-cards-grid,
+  .issues-cards-grid,
+  .mutasi-cards-grid,
+  .lembur-cards-grid,
   .doc-cards-grid,
   .sp-cards-grid,
   .sop-ik-grid,
   .sec-ik-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .emp-card,
+  .training-card,
+  .issues-card,
+  .mutasi-card,
+  .lembur-card,
+  .doc-card,
+  .sp-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden;
   }
 
   /* Compact 2x2 Stats Grids */
