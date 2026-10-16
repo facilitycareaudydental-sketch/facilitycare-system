@@ -488,6 +488,145 @@ export async function renderChecklist(container) {
         border-radius: 16px;
         border: 1px dashed #CBD5E1;
       }
+
+      /* ── TAMPILAN RESPONSIVE HP / MOBILE (≤ 768px) ─────────────────── */
+      @media (max-width: 768px) {
+        .doc-page-container {
+          padding: 12px 14px !important;
+        }
+        .doc-hero-card {
+          padding: 18px 16px !important;
+          border-radius: 14px !important;
+          margin-bottom: 16px !important;
+        }
+        .doc-hero-title {
+          font-size: 1.25rem !important;
+          gap: 8px !important;
+        }
+        .doc-hero-subtitle {
+          font-size: 0.82rem !important;
+          line-height: 1.4 !important;
+        }
+        .doc-hero-header {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 12px !important;
+        }
+        .doc-hero-header > div:last-child {
+          display: flex !important;
+          width: 100% !important;
+          gap: 8px !important;
+        }
+        #doc-btn-add {
+          flex: 2 !important;
+          justify-content: center !important;
+          font-size: 0.82rem !important;
+          padding: 9px 12px !important;
+        }
+        #doc-btn-excel {
+          flex: 1.2 !important;
+          justify-content: center !important;
+          font-size: 0.82rem !important;
+          padding: 9px 10px !important;
+        }
+        #doc-btn-refresh {
+          flex: 0 0 38px !important;
+          justify-content: center !important;
+          padding: 9px 0 !important;
+        }
+        /* 2x2 compact stats grid di layar HP */
+        .doc-stats-grid {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 8px !important;
+          margin-top: 14px !important;
+        }
+        .doc-stat-box {
+          padding: 10px 12px !important;
+          gap: 10px !important;
+          border-radius: 10px !important;
+        }
+        .doc-stat-icon {
+          width: 36px !important;
+          height: 36px !important;
+          font-size: 1.1rem !important;
+          border-radius: 8px !important;
+        }
+        .doc-stat-value {
+          font-size: 1.15rem !important;
+        }
+        .doc-stat-label {
+          font-size: 0.68rem !important;
+        }
+        .doc-controls-panel {
+          padding: 14px 12px !important;
+          border-radius: 14px !important;
+          margin-bottom: 16px !important;
+          gap: 12px !important;
+        }
+        .doc-controls-top {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 10px !important;
+        }
+        .doc-search-wrapper {
+          min-width: 100% !important;
+          width: 100% !important;
+        }
+        .doc-view-toggle {
+          width: 100% !important;
+        }
+        .doc-view-btn {
+          flex: 1 !important;
+          justify-content: center !important;
+          padding: 7px 10px !important;
+        }
+        /* PITA FILTER SWIPEABLE HORIZONTAL DI HP (TIDAK LAGI NUMPUK VERTIKAL) */
+        .doc-filter-pills {
+          display: flex !important;
+          flex-wrap: nowrap !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+          padding-bottom: 6px !important;
+          padding-top: 2px !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .doc-filter-pills::-webkit-scrollbar {
+          display: none !important;
+        }
+        .doc-pill {
+          flex-shrink: 0 !important;
+          white-space: nowrap !important;
+          padding: 6px 12px !important;
+          font-size: 0.8rem !important;
+        }
+        .doc-cards-grid {
+          grid-template-columns: 1fr !important;
+          gap: 12px !important;
+        }
+        .doc-card {
+          padding: 16px !important;
+          border-radius: 14px !important;
+        }
+        .doc-card-title {
+          font-size: 1rem !important;
+        }
+        .doc-card-desc {
+          font-size: 0.82rem !important;
+        }
+        .doc-table-card {
+          border-radius: 14px !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+        .doc-table {
+          min-width: 650px !important;
+        }
+        .doc-table th, .doc-table td {
+          padding: 10px 12px !important;
+          font-size: 0.82rem !important;
+        }
+      }
     `;
     document.head.appendChild(styleEl);
   }

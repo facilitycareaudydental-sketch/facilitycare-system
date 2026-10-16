@@ -140,7 +140,7 @@ export async function renderSP(container) {
   let selectedBranch = 'all';
   let selectedDivision = 'all';
   let searchQuery = '';
-  let currentView = localStorage.getItem('fcms_sp_view') || 'table'; // 'table' | 'grid'
+  let currentView = localStorage.getItem('fcms_sp_view') || (window.innerWidth <= 768 ? 'grid' : 'table'); // 'table' | 'grid'
 
   // Inject Styles
   const styleId = 'fcms-sp-page-styles';
@@ -483,6 +483,147 @@ export async function renderSP(container) {
         border-radius: 16px;
         border: 1px dashed #CBD5E1;
       }
+
+      /* ── TAMPILAN RESPONSIVE HP / MOBILE (≤ 768px) ─────────────────── */
+      @media (max-width: 768px) {
+        .sp-page-container {
+          padding: 12px 14px !important;
+        }
+        .sp-hero-card {
+          padding: 18px 16px !important;
+          border-radius: 14px !important;
+          margin-bottom: 16px !important;
+        }
+        .sp-hero-title {
+          font-size: 1.25rem !important;
+          gap: 8px !important;
+        }
+        .sp-hero-subtitle {
+          font-size: 0.82rem !important;
+          line-height: 1.4 !important;
+        }
+        .sp-hero-header {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 12px !important;
+        }
+        .sp-hero-header > div:last-child {
+          display: flex !important;
+          width: 100% !important;
+          gap: 8px !important;
+        }
+        #sp-btn-add {
+          flex: 2 !important;
+          justify-content: center !important;
+          font-size: 0.82rem !important;
+          padding: 9px 12px !important;
+        }
+        #sp-btn-excel {
+          flex: 1.2 !important;
+          justify-content: center !important;
+          font-size: 0.82rem !important;
+          padding: 9px 10px !important;
+        }
+        #sp-btn-refresh {
+          flex: 0 0 38px !important;
+          justify-content: center !important;
+          padding: 9px 0 !important;
+        }
+        /* 2x2 compact stats grid di layar HP */
+        .sp-stats-grid {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 8px !important;
+          margin-top: 14px !important;
+        }
+        .sp-stat-box {
+          padding: 10px 12px !important;
+          gap: 10px !important;
+          border-radius: 10px !important;
+        }
+        .sp-stat-icon {
+          width: 36px !important;
+          height: 36px !important;
+          font-size: 1.1rem !important;
+          border-radius: 8px !important;
+        }
+        .sp-stat-value {
+          font-size: 1.15rem !important;
+        }
+        .sp-stat-label {
+          font-size: 0.68rem !important;
+        }
+        .sp-controls-panel {
+          padding: 14px 12px !important;
+          border-radius: 14px !important;
+          margin-bottom: 16px !important;
+          gap: 12px !important;
+        }
+        .sp-controls-top {
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 10px !important;
+        }
+        .sp-search-wrapper {
+          min-width: 100% !important;
+          width: 100% !important;
+        }
+        .sp-view-toggle {
+          width: 100% !important;
+        }
+        .sp-view-btn {
+          flex: 1 !important;
+          justify-content: center !important;
+          padding: 7px 10px !important;
+        }
+        /* PITA FILTER SWIPEABLE HORIZONTAL DI HP (TIDAK LAGI NUMPUK VERTIKAL) */
+        .sp-filter-pills {
+          display: flex !important;
+          flex-wrap: nowrap !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+          padding-bottom: 6px !important;
+          padding-top: 2px !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .sp-filter-pills::-webkit-scrollbar {
+          display: none !important;
+        }
+        .sp-pill {
+          flex-shrink: 0 !important;
+          white-space: nowrap !important;
+          padding: 6px 12px !important;
+          font-size: 0.8rem !important;
+        }
+        .sp-cards-grid {
+          grid-template-columns: 1fr !important;
+          gap: 12px !important;
+        }
+        .sp-card {
+          padding: 16px !important;
+          border-radius: 14px !important;
+        }
+        .sp-card-header {
+          flex-direction: row !important;
+          align-items: flex-start !important;
+        }
+        .sp-table-card {
+          border-radius: 14px !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+        .sp-table {
+          min-width: 650px !important;
+        }
+        .sp-table th, .sp-table td {
+          padding: 10px 12px !important;
+          font-size: 0.82rem !important;
+        }
+        .sp-form-grid, .sp-detail-grid {
+          grid-template-columns: 1fr !important;
+          gap: 10px !important;
+        }
+      }
     `;
     document.head.appendChild(styleEl);
   }
@@ -605,7 +746,7 @@ export async function renderSP(container) {
     const content = document.createElement('div');
     content.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:14px;">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="sp-form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Nama Karyawan <span style="color:#DC2626;">*</span>
@@ -628,7 +769,7 @@ export async function renderSP(container) {
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="sp-form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Cabang Penempatan <span style="color:#DC2626;">*</span>
@@ -652,7 +793,7 @@ export async function renderSP(container) {
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="sp-form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Tanggal Terbit SP <span style="color:#DC2626;">*</span>
@@ -816,7 +957,7 @@ export async function renderSP(container) {
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="sp-detail-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
             <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Tingkat Sanksi</div>
             <span class="sp-type-badge" style="background:${typeMeta.bg}; color:${typeMeta.color}; border:1px solid ${typeMeta.border}; font-size:0.85rem;">
@@ -834,7 +975,7 @@ export async function renderSP(container) {
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="sp-detail-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
             <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:2px;">Tanggal Terbit SP</div>
             <div style="font-size:0.95rem; font-weight:700; color:#1E293B;">${formatDateIndo(item.tanggal)}</div>

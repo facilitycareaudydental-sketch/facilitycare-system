@@ -546,3 +546,80 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     margin-bottom: 4px;
   }
 }
+
+/* ================================================================
+   MOBILE RESPONSIVE ENHANCEMENTS: MASTER DOC, SP, SOP FC & SECURITY
+   ================================================================ */
+@media (max-width: 768px) {
+  /* Horizontal swipeable category ribbons (anti vertical stacking) */
+  .doc-filter-pills,
+  .sp-filter-pills,
+  #cat-pills-wrap,
+  #sec-cat-pills-wrap {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding-bottom: 6px !important;
+    padding-top: 2px !important;
+    width: 100% !important;
+  }
+  .doc-filter-pills::-webkit-scrollbar,
+  .sp-filter-pills::-webkit-scrollbar,
+  #cat-pills-wrap::-webkit-scrollbar,
+  #sec-cat-pills-wrap::-webkit-scrollbar {
+    display: none !important;
+  }
+  .doc-pill,
+  .sp-pill,
+  .cat-pill,
+  .sec-cat-pill {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Horizontal swipeable tab bars (SOP FC & Security) */
+  .sop-tab-btn,
+  .sec-tab-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 0.82rem !important;
+    padding: 7px 12px !important;
+  }
+
+  /* Card Grids - Single column on mobile */
+  .doc-cards-grid,
+  .sp-cards-grid,
+  .sop-ik-grid,
+  .sec-ik-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Compact 2x2 Stats Grids */
+  .doc-stats-grid,
+  .sp-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Form and Modal Grids */
+  .sp-form-grid,
+  .sp-detail-grid,
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Tables container horizontal scroll safety */
+  .doc-table-card,
+  .sp-table-card {
+    border-radius: 14px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+  }
+}
+

@@ -170,7 +170,7 @@ export async function renderSOPSecurity(container) {
       </div>
 
       <!-- Navigation Tabs -->
-      <div style="display:flex; gap:8px; margin-bottom:22px; border-bottom:2px solid #E2E8F0; padding-bottom:8px; overflow-x:auto;">
+      <div style="display:flex; gap:8px; margin-bottom:22px; border-bottom:2px solid #E2E8F0; padding-bottom:8px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
         <button class="sec-tab-btn ${activeTab === 'ik' ? 'active' : ''}" data-tab="ik" style="${getTabStyle(activeTab === 'ik')}">
           🛡️ Instruksi Kerja (IK) <span class="badge" style="${getBadgeStyle(activeTab === 'ik')}">${listIK.length}</span>
         </button>
@@ -307,6 +307,8 @@ export async function renderSOPSecurity(container) {
         border-radius: 20px;
         cursor: pointer;
         transition: all 0.15s;
+        flex-shrink: 0;
+        white-space: nowrap;
       }
       .sec-cat-pill:hover { background: #E2E8F0; }
       .sec-cat-pill.active {
@@ -317,6 +319,24 @@ export async function renderSOPSecurity(container) {
       .sec-ik-card:hover {
         box-shadow: 0 6px 16px rgba(0,0,0,0.08) !important;
         transform: translateY(-2px);
+      }
+      @media (max-width: 768px) {
+        #sec-cat-pills-wrap {
+          display: flex !important;
+          flex-wrap: nowrap !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+          scrollbar-width: none !important;
+          padding-bottom: 4px !important;
+          width: 100% !important;
+        }
+        #sec-cat-pills-wrap::-webkit-scrollbar {
+          display: none !important;
+        }
+        .sec-ik-grid {
+          grid-template-columns: 1fr !important;
+          gap: 12px !important;
+        }
       }
     `;
     parent.appendChild(styleTag);
@@ -352,7 +372,7 @@ export async function renderSOPSecurity(container) {
       }
 
       gridContainer.innerHTML = `
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:18px;">
+        <div class="sec-ik-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:18px;">
           ${filteredIK.map(ik => `
             <div class="card sec-ik-card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.04); transition:all 0.2s;">
               <div>
@@ -534,7 +554,7 @@ export async function renderSOPSecurity(container) {
 
     const contentHtml = `
       <form id="sec-ik-edit-form" style="display:flex; flex-direction:column; gap:14px; font-size:0.88rem;">
-        <div style="display:grid; grid-template-columns:1fr 140px; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:1fr 140px; gap:12px;">
           <div>
             <label style="display:block; font-weight:600; margin-bottom:4px;">Judul Instruksi Kerja *</label>
             <input type="text" id="form-sec-ik-title" class="form-control" required value="${existingIK ? escapeHtml(existingIK.title) : ''}" placeholder="Contoh: Pengamanan Area & Aset Perusahaan" style="width:100%; border-radius:6px; height:36px;">

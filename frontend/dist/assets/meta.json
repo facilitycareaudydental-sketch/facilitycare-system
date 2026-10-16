@@ -733,7 +733,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sop_facility_care.js": {
-      "bytes": 85601,
+      "bytes": 86373,
       "imports": [
         {
           "path": "frontend/src/components/modal.js",
@@ -754,7 +754,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sop_security.js": {
-      "bytes": 70131,
+      "bytes": 70877,
       "imports": [
         {
           "path": "frontend/src/components/modal.js",
@@ -775,7 +775,7 @@
       "format": "esm"
     },
     "frontend/src/pages/checklist.js": {
-      "bytes": 43059,
+      "bytes": 47568,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -968,7 +968,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sp.js": {
-      "bytes": 55238,
+      "bytes": 59974,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1301,7 +1301,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-MN7GOXQX.js": {
+    "frontend/dist/assets/app-CKTABQTM.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1400,13 +1400,13 @@
           "bytesInOutput": 4333
         },
         "frontend/src/pages/sop_facility_care.js": {
-          "bytesInOutput": 70521
+          "bytesInOutput": 71293
         },
         "frontend/src/pages/sop_security.js": {
-          "bytesInOutput": 57781
+          "bytesInOutput": 58527
         },
         "frontend/src/pages/checklist.js": {
-          "bytesInOutput": 34901
+          "bytesInOutput": 39337
         },
         "frontend/src/pages/hygiene_standards.js": {
           "bytesInOutput": 34113
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 10617
         },
         "frontend/src/pages/sp.js": {
-          "bytesInOutput": 44320
+          "bytesInOutput": 48975
         },
         "frontend/src/pages/mutasi.js": {
           "bytesInOutput": 3616
@@ -1451,7 +1451,7 @@
           "bytesInOutput": 28869
         }
       },
-      "bytes": 538794
+      "bytes": 549403
     }
   }
 }
