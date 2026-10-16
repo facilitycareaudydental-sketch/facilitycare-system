@@ -506,13 +506,8 @@
       "format": "esm"
     },
     "frontend/src/pages/training.js": {
-      "bytes": 7728,
+      "bytes": 42277,
       "imports": [
-        {
-          "path": "frontend/src/pages/_crud.js",
-          "kind": "import-statement",
-          "original": "./_crud.js"
-        },
         {
           "path": "frontend/src/config.js",
           "kind": "import-statement",
@@ -524,9 +519,14 @@
           "original": "../utils/dataCache.js"
         },
         {
-          "path": "frontend/src/utils/excel.js",
-          "kind": "dynamic-import",
-          "original": "../utils/excel.js"
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "../components/modal.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
         },
         {
           "path": "frontend/src/utils/excel.js",
@@ -968,7 +968,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sp.js": {
-      "bytes": 51865,
+      "bytes": 52749,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -999,13 +999,8 @@
       "format": "esm"
     },
     "frontend/src/pages/mutasi.js": {
-      "bytes": 5628,
+      "bytes": 39002,
       "imports": [
-        {
-          "path": "frontend/src/pages/_crud.js",
-          "kind": "import-statement",
-          "original": "./_crud.js"
-        },
         {
           "path": "frontend/src/config.js",
           "kind": "import-statement",
@@ -1017,9 +1012,14 @@
           "original": "../utils/dataCache.js"
         },
         {
-          "path": "frontend/src/utils/excel.js",
-          "kind": "dynamic-import",
-          "original": "../utils/excel.js"
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "../components/modal.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
         },
         {
           "path": "frontend/src/utils/excel.js",
@@ -1030,13 +1030,8 @@
       "format": "esm"
     },
     "frontend/src/pages/overtime.js": {
-      "bytes": 4772,
+      "bytes": 41248,
       "imports": [
-        {
-          "path": "frontend/src/pages/_crud.js",
-          "kind": "import-statement",
-          "original": "./_crud.js"
-        },
         {
           "path": "frontend/src/config.js",
           "kind": "import-statement",
@@ -1046,6 +1041,16 @@
           "path": "frontend/src/utils/dataCache.js",
           "kind": "import-statement",
           "original": "../utils/dataCache.js"
+        },
+        {
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "../components/modal.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
         },
         {
           "path": "frontend/src/utils/excel.js",
@@ -1301,7 +1306,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-FBOYGTLL.js": {
+    "frontend/dist/assets/app-6XAQMZ2I.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1379,7 +1384,7 @@
           "bytesInOutput": 4847
         },
         "frontend/src/pages/training.js": {
-          "bytesInOutput": 4660
+          "bytesInOutput": 34560
         },
         "frontend/src/pages/_crud.js?v=v3": {
           "bytesInOutput": 15792
@@ -1433,13 +1438,13 @@
           "bytesInOutput": 10617
         },
         "frontend/src/pages/sp.js": {
-          "bytesInOutput": 41598
+          "bytesInOutput": 42464
         },
         "frontend/src/pages/mutasi.js": {
-          "bytesInOutput": 3616
+          "bytesInOutput": 32271
         },
         "frontend/src/pages/overtime.js": {
-          "bytesInOutput": 2758
+          "bytesInOutput": 33038
         },
         "frontend/src/pages/audit_logs.js": {
           "bytesInOutput": 2883
@@ -1451,7 +1456,7 @@
           "bytesInOutput": 28869
         }
       },
-      "bytes": 535480
+      "bytes": 625181
     }
   }
 }
