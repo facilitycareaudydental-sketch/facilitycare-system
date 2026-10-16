@@ -595,6 +595,7 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .issues-cards-grid,
   .mutasi-cards-grid,
   .lembur-cards-grid,
+  .con-cards-grid,
   .doc-cards-grid,
   .sp-cards-grid,
   .sop-ik-grid,
@@ -612,6 +613,7 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .issues-card,
   .mutasi-card,
   .lembur-card,
+  .con-card,
   .doc-card,
   .sp-card {
     width: 100% !important;
