@@ -968,13 +968,8 @@
       "format": "esm"
     },
     "frontend/src/pages/sp.js": {
-      "bytes": 5800,
+      "bytes": 55238,
       "imports": [
-        {
-          "path": "frontend/src/pages/_crud.js",
-          "kind": "import-statement",
-          "original": "./_crud.js"
-        },
         {
           "path": "frontend/src/config.js",
           "kind": "import-statement",
@@ -986,9 +981,14 @@
           "original": "../utils/dataCache.js"
         },
         {
-          "path": "frontend/src/utils/excel.js",
-          "kind": "dynamic-import",
-          "original": "../utils/excel.js"
+          "path": "frontend/src/components/modal.js",
+          "kind": "import-statement",
+          "original": "../components/modal.js"
+        },
+        {
+          "path": "frontend/src/components/toast.js",
+          "kind": "import-statement",
+          "original": "../components/toast.js"
         },
         {
           "path": "frontend/src/utils/excel.js",
@@ -1301,7 +1301,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-BHJH72YW.js": {
+    "frontend/dist/assets/app-MN7GOXQX.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 10617
         },
         "frontend/src/pages/sp.js": {
-          "bytesInOutput": 3762
+          "bytesInOutput": 44320
         },
         "frontend/src/pages/mutasi.js": {
           "bytesInOutput": 3616
@@ -1451,7 +1451,7 @@
           "bytesInOutput": 28869
         }
       },
-      "bytes": 498236
+      "bytes": 538794
     }
   }
 }
