@@ -17,6 +17,15 @@ on:
         description: 'Cloudflare Account ID FCMS (harus cocok dengan vars.EXPECTED_FCMS_ACCOUNT_ID)'
         required: true
         default: ''
+      deploy_target:
+        description: 'Komponen yang di-deploy (pilih salah satu)'
+        required: true
+        type: choice
+        options:
+          - FRONTEND_ONLY
+          - API_ONLY
+          - ALL
+        default: 'FRONTEND_ONLY'
 
 env:
   NODE_VERSION: '24'
@@ -76,6 +85,7 @@ jobs:
         env:
           INPUT_TARGET_ENV: ${{ github.event.inputs.target_environment }}
           INPUT_ACCOUNT_ID: ${{ github.event.inputs.expected_account_id }}
+          INPUT_DEPLOY_TARGET: ${{ github.event.inputs.deploy_target }}
         run: |
           echo "=== 1. VERIFIKASI INTENT DISPATCH & SANITASI INPUT ==="
           if [ "$INPUT_TARGET_ENV" != "PRODUCTION" ]; then
@@ -84,6 +94,10 @@ jobs:
           fi
           if [ -z "$INPUT_ACCOUNT_ID" ]; then
             echo "❌ FATAL: expected_account_id wajib diisi untuk verifikasi target. Dibatalkan."
+            exit 1
+          fi
+          if [ "$INPUT_DEPLOY_TARGET" != "FRONTEND_ONLY" ] && [ "$INPUT_DEPLOY_TARGET" != "API_ONLY" ] && [ "$INPUT_DEPLOY_TARGET" != "ALL" ]; then
+            echo "❌ FATAL: Target deployment tidak valid ($INPUT_DEPLOY_TARGET). Dibatalkan."
             exit 1
           fi
           echo "✅ Intent manual dispatch terverifikasi."
@@ -218,7 +232,10 @@ jobs:
     name: 🚀 Deploy API (Workers)
     runs-on: ubuntu-latest
     needs: [validate, preflight-target-check]
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event.inputs.deploy_target == 'API_ONLY' || github.event.inputs.deploy_target == 'ALL')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -247,7 +264,14 @@ jobs:
     name: 🌐 Deploy Frontend (Pages)
     runs-on: ubuntu-latest
     needs: [validate, preflight-target-check, deploy-api]
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: |
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      needs.validate.result == 'success' &&
+      needs.preflight-target-check.result == 'success' &&
+      (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped') &&
+      (github.event.inputs.deploy_target == 'FRONTEND_ONLY' || github.event.inputs.deploy_target == 'ALL')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
