@@ -59,7 +59,6 @@ import { renderInspectionReports } from './pages/inspection_reports.js';
 import { renderCleaningReports } from './pages/cleaning_reports.js';
 import { renderFoggingReports } from './pages/fogging_reports.js';
 import { renderBasecampReports } from './pages/basecamp_reports.js';
-import { renderSOP } from './pages/sop.js';
 import { renderSOPFacilityCare } from './pages/sop_facility_care.js';
 import { renderSOPSecurity } from './pages/sop_security.js';
 import { renderChecklist } from './pages/checklist.js';
@@ -305,12 +304,6 @@ function renderLayout() {
           <!-- Referensi -->
           <div class="nav-section">
             <span class="nav-section-label">REFERENSI</span>
-            <a href="#/sop" class="nav-item" data-route="/sop">
-              <span class="nav-icon">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-              </span>
-              <span class="nav-label">SOP</span>
-            </a>
             <a href="#/sop-fc" class="nav-item" data-route="/sop-fc">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -534,7 +527,7 @@ async function init() {
   registerRoute('/reports/fogging',    requireAuth(({ main }) => renderFoggingReports(main)));
   registerRoute('/reports/basecamp',   requireAuth(({ main }) => renderBasecampReports(main)));
   registerRoute('/reports/supply',     requireAuth(({ main }) => renderForms(main, 'supply')));
-  registerRoute('/sop',                requireAuth(({ main }) => renderSOP(main)));
+  registerRoute('/sop',                () => { window.location.hash = '#/sop-fc'; });
   registerRoute('/sop-fc',             requireAuth(({ main }) => renderSOPFacilityCare(main)));
   registerRoute('/sop-security',       requireAuth(({ main }) => renderSOPSecurity(main)));
   registerRoute('/checklist',          requireAuth(({ main }) => renderChecklist(main)));
