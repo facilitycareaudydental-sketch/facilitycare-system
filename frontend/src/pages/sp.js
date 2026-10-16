@@ -140,7 +140,6 @@ export async function renderSP(container) {
   let selectedBranch = 'all';
   let selectedDivision = 'all';
   let searchQuery = '';
-  let currentView = localStorage.getItem('fcms_sp_view') || (window.innerWidth <= 768 ? 'grid' : 'table'); // 'table' | 'grid'
 
   // Inject Styles
   const styleId = 'fcms-sp-page-styles';
@@ -298,32 +297,6 @@ export async function renderSP(container) {
         outline: none;
         border-color: #2563EB;
         background: #FFFFFF;
-      }
-      .sp-view-toggle {
-        display: flex;
-        background: #F1F5F9;
-        padding: 4px;
-        border-radius: 10px;
-        gap: 4px;
-      }
-      .sp-view-btn {
-        border: none;
-        background: transparent;
-        padding: 6px 14px;
-        border-radius: 8px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #64748B;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.15s ease;
-      }
-      .sp-view-btn.active {
-        background: #FFFFFF;
-        color: #1E293B;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
       }
       .sp-filter-pills {
         display: flex;
@@ -566,14 +539,6 @@ export async function renderSP(container) {
         .sp-search-wrapper {
           min-width: 100% !important;
           width: 100% !important;
-        }
-        .sp-view-toggle {
-          width: 100% !important;
-        }
-        .sp-view-btn {
-          flex: 1 !important;
-          justify-content: center !important;
-          padding: 7px 10px !important;
         }
         /* PITA FILTER SWIPEABLE HORIZONTAL DI HP (TIDAK LAGI NUMPUK VERTIKAL) */
         .sp-filter-pills {
@@ -1131,18 +1096,6 @@ export async function renderSP(container) {
               <option value="FACILITY CARE" ${selectedDivision === 'FACILITY CARE' ? 'selected' : ''}>FACILITY CARE</option>
               <option value="SECURITY" ${selectedDivision === 'SECURITY' ? 'selected' : ''}>SECURITY</option>
             </select>
-
-            <!-- View Switch -->
-            <div class="sp-view-toggle">
-              <button id="sp-view-table-btn" class="sp-view-btn ${currentView === 'table' ? 'active' : ''}">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                <span>Tabel</span>
-              </button>
-              <button id="sp-view-grid-btn" class="sp-view-btn ${currentView === 'grid' ? 'active' : ''}">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                <span>Kartu</span>
-              </button>
-            </div>
           </div>
 
           <!-- Filter Pills -->
@@ -1188,96 +1141,6 @@ export async function renderSP(container) {
               <button id="sp-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
-            </div>
-          ` : currentView === 'table' ? `
-            <!-- Modern Table View -->
-            <div class="sp-table-card">
-              <table class="sp-table">
-                <thead>
-                  <tr>
-                    <th style="width:40px; text-align:center;">No</th>
-                    <th>Nama Karyawan</th>
-                    <th>Divisi</th>
-                    <th>Cabang</th>
-                    <th>Tingkat SP</th>
-                    <th>Tanggal Terbit</th>
-                    <th>Akhir SP</th>
-                    <th>Status Masa Berlaku</th>
-                    <th>Dokumen</th>
-                    <th style="width:100px; text-align:center;">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${filtered.map((s, idx) => {
-                    const meta = getSPStatusMeta(s.akhir_sp);
-                    const typeMeta = getSPTypeBadge(s.sp_type);
-                    return `
-                      <tr>
-                        <td style="text-align:center; font-weight:600; color:#94A3B8;">${idx + 1}</td>
-                        <td>
-                          <div style="display:flex; align-items:center; gap:10px;">
-                            <div class="sp-avatar-box">
-                              ${s.employee_name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <div style="font-weight:700; color:#0F172A; cursor:pointer;" class="sp-view-detail-link" data-id="${s.id}">
-                                ${s.employee_name}
-                              </div>
-                              <div style="font-size:0.75rem; color:#64748B;">ID: #${s.id}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span class="badge" style="background:#EFF6FF; color:#1D4ED8; font-weight:700; font-size:0.74rem;">
-                            ${s.division || 'FACILITY CARE'}
-                          </span>
-                        </td>
-                        <td>
-                          <span style="font-weight:600; color:#334155;">${s.branch_name || '-'}</span>
-                        </td>
-                        <td>
-                          <span class="sp-type-badge" style="background:${typeMeta.bg}; color:${typeMeta.color}; border:1px solid ${typeMeta.border};">
-                            <span>${typeMeta.icon}</span>
-                            <span>${typeMeta.label}</span>
-                          </span>
-                        </td>
-                        <td style="font-weight:600; color:#475569;">
-                          ${formatDateIndo(s.tanggal)}
-                        </td>
-                        <td style="font-weight:700; color:#0F172A;">
-                          ${formatDateIndo(s.akhir_sp)}
-                        </td>
-                        <td>
-                          <span class="sp-status-badge" style="background:${meta.bg}; color:${meta.color}; border:1px solid ${meta.border};">
-                            <span>${meta.icon}</span>
-                            <span>${meta.shortLabel}</span>
-                          </span>
-                        </td>
-                        <td>
-                          ${s.document_link ? `
-                            <a href="${s.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.78rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-                              <span>📄 Buka</span>
-                            </a>
-                          ` : '<span style="color:#94A3B8; font-size:0.8rem;">-</span>'}
-                        </td>
-                        <td style="text-align:center;">
-                          <div style="display:flex; justify-content:center; gap:6px;">
-                            <button class="sp-icon-btn sp-detail-btn" title="Lihat Detail BAP" data-id="${s.id}">
-                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                            </button>
-                            <button class="sp-icon-btn sp-edit-btn" title="Edit Data SP" data-id="${s.id}">
-                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            </button>
-                            <button class="sp-icon-btn delete sp-delete-btn" title="Hapus" data-id="${s.id}">
-                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
             </div>
           ` : `
             <!-- Grid Card View -->
@@ -1416,23 +1279,6 @@ export async function renderSP(container) {
       };
     }
 
-    // View Switcher
-    const btnTable = container.querySelector('#sp-view-table-btn');
-    const btnGrid = container.querySelector('#sp-view-grid-btn');
-    if (btnTable) {
-      btnTable.onclick = () => {
-        currentView = 'table';
-        localStorage.setItem('fcms_sp_view', 'table');
-        renderUI();
-      };
-    }
-    if (btnGrid) {
-      btnGrid.onclick = () => {
-        currentView = 'grid';
-        localStorage.setItem('fcms_sp_view', 'grid');
-        renderUI();
-      };
-    }
 
     // Filter Pills
     container.querySelectorAll('.sp-pill').forEach(pill => {
