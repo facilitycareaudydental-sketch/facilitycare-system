@@ -3,20 +3,20 @@ import { buildCrudPage } from './_crud.js';
 export async function renderChecklist(container) {
   buildCrudPage({
     container,
-    title: 'Master Checklist',
+    title: 'Master Document',
     icon: '📋',
     apiPath: '/api/checklist',
     bulkDelete: true,
     enableMobileFilterSheet: true,
-    itemLabel: 'Checklist',
+    itemLabel: 'Document',
     columns: [
-      { key: 'name', label: 'Nama Checklist' },
+      { key: 'name', label: 'Nama Document' },
       { key: 'category', label: 'Kategori' },
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">📄 Buka Dokumen</a>` : '-' },
       { key: 'description', label: 'Deskripsi' },
     ],
     filterFields: [
-      { type: 'search', placeholder: 'Cari checklist...' },
+      { type: 'search', placeholder: 'Cari document...' },
     ],
     exportOptions: {
       moduleName: 'checklist',
@@ -26,25 +26,25 @@ export async function renderChecklist(container) {
         const res = await apiFetch(`/api/checklist?limit=10000&${qs}`);
         if (res.ok) {
           const data = res.data.data.map(d => ({
-            'Nama Checklist': d.name || '',
+            'Nama Document': d.name || '',
             'Kategori': d.category || '',
             'Dokumen': d.document_link || '',
             'Deskripsi': d.description || ''
           }));
           const { downloadExcel } = await import('../utils/excel.js');
-          downloadExcel(data, `Master_Checklist_${new Date().toISOString().slice(0,10)}`);
+          downloadExcel(data, `Master_Document_${new Date().toISOString().slice(0,10)}`);
         } else throw new Error('Gagal mengambil data');
       },
       onTemplate: async () => {
         const template = [
-          { 'Nama Checklist': 'Checklist Kebersihan Mingguan', 'Kategori': 'Master Cleaning Program', 'Dokumen': 'https://link.com', 'Deskripsi': 'Deskripsi singkat' }
+          { 'Nama Document': 'Checklist Kebersihan Mingguan', 'Kategori': 'Master Cleaning Program', 'Dokumen': 'https://link.com', 'Deskripsi': 'Deskripsi singkat' }
         ];
         const { downloadExcel } = await import('../utils/excel.js');
-        downloadExcel(template, 'Template_Import_Checklist');
+        downloadExcel(template, 'Template_Import_Document');
       },
       onImport: async (json) => {
         const payload = json.map(row => ({
-          name: String(row['Nama Checklist'] || '').trim(),
+          name: String(row['Nama Document'] || row['Nama Checklist'] || '').trim(),
           category: String(row['Kategori'] || '').trim(),
           document_link: String(row['Dokumen'] || '').trim(),
           description: String(row['Deskripsi'] || '').trim(),
@@ -57,7 +57,7 @@ export async function renderChecklist(container) {
       }
     },
     formFields: (data) => [
-      { name: 'name', label: 'Nama Checklist', required: true, placeholder: 'Nama checklist', value: data?.name },
+      { name: 'name', label: 'Nama Document', required: true, placeholder: 'Nama document', value: data?.name },
       { name: 'category', label: 'Kategori', placeholder: 'Master Cleaning Program, dll.', value: data?.category },
       { name: 'document_link', label: 'Link Dokumen', type: 'url', placeholder: 'https://docs.google.com/...', value: data?.document_link },
       { name: 'description', label: 'Deskripsi', type: 'textarea', rows: 3, value: data?.description },
