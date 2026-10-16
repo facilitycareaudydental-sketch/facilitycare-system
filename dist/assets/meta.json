@@ -821,7 +821,7 @@
       "format": "esm"
     },
     "frontend/src/pages/forms.js": {
-      "bytes": 11924,
+      "bytes": 9611,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -936,12 +936,12 @@
       "format": "esm"
     },
     "frontend/src/utils/importer.js": {
-      "bytes": 18776,
+      "bytes": 18346,
       "imports": [],
       "format": "esm"
     },
     "frontend/src/pages/import.js": {
-      "bytes": 29897,
+      "bytes": 29888,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1123,7 +1123,7 @@
       "format": "esm"
     },
     "frontend/src/app.js": {
-      "bytes": 32124,
+      "bytes": 31607,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1290,7 +1290,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-W3HICZGM.js": {
+    "frontend/dist/assets/app-QYXLQ3ND.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1305,7 +1305,7 @@
           "bytesInOutput": 3311
         },
         "frontend/src/app.js": {
-          "bytesInOutput": 22719
+          "bytesInOutput": 22262
         },
         "frontend/src/router.js": {
           "bytesInOutput": 761
@@ -1398,7 +1398,7 @@
           "bytesInOutput": 34117
         },
         "frontend/src/pages/forms.js": {
-          "bytesInOutput": 7575
+          "bytesInOutput": 5994
         },
         "frontend/src/pages/users.js": {
           "bytesInOutput": 2995
@@ -1413,10 +1413,10 @@
           "bytesInOutput": 6791
         },
         "frontend/src/pages/import.js": {
-          "bytesInOutput": 20266
+          "bytesInOutput": 20258
         },
         "frontend/src/utils/importer.js": {
-          "bytesInOutput": 10905
+          "bytesInOutput": 10617
         },
         "frontend/src/pages/sp.js": {
           "bytesInOutput": 3762
@@ -1437,7 +1437,7 @@
           "bytesInOutput": 28870
         }
       },
-      "bytes": 340878
+      "bytes": 338544
     }
   }
 }

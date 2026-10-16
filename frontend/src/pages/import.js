@@ -9,7 +9,7 @@ import { validateWorkbook, generateTemplate, downloadErrorLog, SHEET_MAP } from 
 // Import order: validation referensi first, then employees, etc.
 const IMPORT_ORDER = [
   'validation', 'employees', 'contracts', 'relievers', 'schedule', 'issues',
-  'one_on_one', 'training', 'checklist', 'forms', 'sop',
+  'one_on_one', 'training', 'checklist', 'sop',
   'inspection', 'cleaning', 'fogging', 'basecamp', 'supply',
 ];
 

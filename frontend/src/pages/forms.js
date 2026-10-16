@@ -5,66 +5,11 @@ import { createModal } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
 
-export async function renderForms(container, mode = 'forms') {
-  if (mode === 'supply') {
-    return renderSupplyRequests(container);
-  }
-  renderMasterForms(container);
+export async function renderForms(container, mode = 'supply') {
+  return renderSupplyRequests(container);
 }
 
-function renderMasterForms(container) {
-  buildCrudPage({
-    container,
-    title: 'Master Form',
-    icon: '📑',
-    apiPath: '/api/forms',
-    bulkDelete: true,
-    enableMobileFilterSheet: true,
-    itemLabel: 'Form',
-    columns: [
-      { key: 'name', label: 'Nama Form' },
-      { key: 'category', label: 'Kategori' },
-      { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">📄 Buka</a>` : '-' },
-      { key: 'is_public', label: 'Publik', render: v => v ? '<span class="badge badge-success">Ya</span>' : '<span class="badge badge-neutral">Tidak</span>' },
-      { key: 'description', label: 'Deskripsi' },
-    ],
-    filterFields: [
-      { type: 'search', placeholder: 'Cari form...' },
-    ],
-    formFields: (data) => [
-      { name: 'name', label: 'Nama Form', required: true, placeholder: 'Nama form', value: data?.name },
-      { name: 'category', label: 'Kategori', placeholder: 'Permintaan Barang, Penilaian, dll.', value: data?.category },
-      { name: 'document_link', label: 'Link Dokumen', type: 'url', placeholder: 'https://...', value: data?.document_link },
-      { name: 'description', label: 'Deskripsi', type: 'textarea', rows: 2, value: data?.description },
-      { name: 'is_public', label: 'Akses Publik', type: 'checkbox', checkLabel: 'Form dapat diakses tanpa login', value: data?.is_public },
-    ],
-    exportOptions: {
-      moduleName: 'forms',
-      onExport: async (filters) => {
-        const qs = new URLSearchParams(filters || {}).toString();
-        const res = await apiFetch(`/api/forms?limit=10000&${qs}`);
-        if (res.data?.data) {
-          downloadExcel(res.data.data, 'Data_Master_Form');
-        } else {
-          toastError('Gagal export data master form');
-        }
-      },
-      onImport: async (rows) => {
-        const res = await apiFetch('/api/forms/import', {
-          method: 'POST',
-          body: JSON.stringify({ data: rows })
-        });
-        if (!res.ok) throw new Error(res.data?.error || 'Import failed');
-        return res.data;
-      },
-      onTemplate: () => {
-        window.location.hash = '#/import';
-      }
-    }
-  });
-}
-
-async function renderSupplyRequests(container) {
+export async function renderSupplyRequests(container) {
   const bRes = await apiFetch('/api/branches?all=1');
   const branchOptions = (bRes.data?.data || []).map(b => ({ value: b.id, label: b.full_name }));
 

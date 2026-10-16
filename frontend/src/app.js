@@ -327,12 +327,6 @@ function renderLayout() {
               </span>
               <span class="nav-label">Master DAC</span>
             </a>
-            <a href="#/forms" class="nav-item" data-route="/forms">
-              <span class="nav-icon">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              </span>
-              <span class="nav-label">Master Form</span>
-            </a>
           </div>
 
           <!-- Admin -->
@@ -530,7 +524,6 @@ async function init() {
   registerRoute('/checklist',          requireAuth(({ main }) => renderChecklist(main)));
   registerRoute('/hygiene-standards', requireAuth(({ main }) => renderHygieneStandards(main)));
   registerRoute('/dac',                requireAuth(({ main }) => renderDAC(main)));
-  registerRoute('/forms',              requireAuth(({ main }) => renderForms(main)));
   registerRoute('/users',              requireAuth(({ main }) => renderUsers(main)));
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));
   registerRoute('/profile',            requireAuth(({ main }) => renderProfile(main)));

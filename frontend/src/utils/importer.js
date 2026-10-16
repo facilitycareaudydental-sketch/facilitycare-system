@@ -24,7 +24,6 @@ export const SHEET_MAP = {
   'Jadwal Reliefer':              { module: 'relievers',  label: 'Reliefer' },
   'Training':                     { module: 'training',   label: 'Training' },
   'Master Checklist':             { module: 'checklist',  label: 'Checklist' },
-  'Master Form':                  { module: 'forms',      label: 'Master Form' },
   'Permintaan Chemical':          { module: 'supply',     label: 'Inventory Chemical' },
 };
 
@@ -275,15 +274,6 @@ const SCHEMAS = {
       description:   '',
     }),
   },
-  forms: {
-    required: [{ key: 'Master Form', label: 'Master Form' }],
-    map: (row) => ({
-      name:          row['Master Form'],
-      category:      'Umum',
-      document_link: row['Link Document'],
-      description:   '',
-    }),
-  },
   supply: {
     required: [],
     map: (row) => ({
@@ -391,7 +381,6 @@ export function generateTemplate() {
     'Jadwal Reliefer': [{ 'Cabang': '001. Pondok Bambu', 'Nama Facility care': 'Budi Santoso', 'Periode': 'Januari', 'Relifer': 'Agung Septiadi', 'Tanggal Back Up': '2024-03-01', 'Tanggal Selesai': '2024-03-02', 'Keterangan': 'Cuti', 'Shift': 'Pagi', 'Status': 'Done' }],
     'Training': [{ 'Tanggal': '2024-04-10', 'Batch': 'Batch 1', 'Materi': 'Basic Cleaning', 'Peserta': '5', 'Cabang': '001. Pondok Bambu', 'Trainer': 'Fajar', 'Nilai': '85', 'Keterangan': '' }],
     'Master Checklist': [{ 'Master Checklist': 'Checklist Kebersihan Toilet', 'Link Document': 'https://...' }],
-    'Master Form': [{ 'Master Form': 'Form Izin Keluar', 'Link Document': 'https://...' }],
     'Permintaan Chemical': [{ 'Timestamp': '2024-05-01', 'Nama Lengkap': 'Budi Santoso', 'Kebutuhan Untuk Cabang': '001. Pondok Bambu', 'Alat - Alat / Barang': 'Sapu', 'Jumlah Permintaan Alat / Barang': '2', 'Chemical': 'Karbol', 'Jumlah Permintaan Chemical': '1 Liter', 'Tambahan  Alat / Chemical Jika Ada Permintaan Diluar List.': '', 'Status': 'Pending' }],
   };
   Object.entries(TEMPLATES).forEach(([sn, data]) => {
