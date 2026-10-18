@@ -979,7 +979,7 @@
       "format": "esm"
     },
     "frontend/src/pages/mutasi.js": {
-      "bytes": 39449,
+      "bytes": 40063,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-I6LBXSED.js": {
+    "frontend/dist/assets/app-I7OVH3CP.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1418,7 +1418,7 @@
           "bytesInOutput": 43264
         },
         "frontend/src/pages/mutasi.js": {
-          "bytesInOutput": 32715
+          "bytesInOutput": 33329
         },
         "frontend/src/pages/overtime.js": {
           "bytesInOutput": 33474
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28865
         }
       },
-      "bytes": 740627
+      "bytes": 741241
     }
   }
 }
