@@ -486,7 +486,7 @@
       "format": "esm"
     },
     "frontend/src/pages/training.js": {
-      "bytes": 42726,
+      "bytes": 43353,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-XIQNX5SE.js": {
+    "frontend/dist/assets/app-VWF3ME4F.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1361,7 +1361,7 @@
           "bytesInOutput": 4847
         },
         "frontend/src/pages/training.js": {
-          "bytesInOutput": 35006
+          "bytesInOutput": 35633
         },
         "frontend/src/pages/_crud.js?v=v3": {
           "bytesInOutput": 15758
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28865
         }
       },
-      "bytes": 742586
+      "bytes": 743213
     }
   }
 }
