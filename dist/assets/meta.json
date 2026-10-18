@@ -202,7 +202,7 @@
       "format": "esm"
     },
     "frontend/src/pages/issues.js": {
-      "bytes": 53773,
+      "bytes": 54378,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -419,7 +419,7 @@
       "format": "esm"
     },
     "frontend/src/pages/issues.js?v=force61": {
-      "bytes": 53773,
+      "bytes": 54378,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-FXKOXAEZ.js": {
+    "frontend/dist/assets/app-XIQNX5SE.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1355,7 +1355,7 @@
           "bytesInOutput": 5981
         },
         "frontend/src/pages/issues.js?v=force61": {
-          "bytesInOutput": 44285
+          "bytesInOutput": 44890
         },
         "frontend/src/pages/one_on_one.js?v=force61": {
           "bytesInOutput": 4847
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28865
         }
       },
-      "bytes": 741981
+      "bytes": 742586
     }
   }
 }
