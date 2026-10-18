@@ -948,7 +948,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sp.js": {
-      "bytes": 53101,
+      "bytes": 53577,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-MXQSHTI3.js": {
+    "frontend/dist/assets/app-I6LBXSED.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1415,7 +1415,7 @@
           "bytesInOutput": 20254
         },
         "frontend/src/pages/sp.js": {
-          "bytesInOutput": 42804
+          "bytesInOutput": 43264
         },
         "frontend/src/pages/mutasi.js": {
           "bytesInOutput": 32715
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28865
         }
       },
-      "bytes": 740167
+      "bytes": 740627
     }
   }
 }

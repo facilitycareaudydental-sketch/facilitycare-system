@@ -182,20 +182,33 @@ export async function renderSP(container) {
         gap: 16px;
       }
       .sp-hero-title {
-        font-size: 1.65rem;
-        font-weight: 700;
-        margin: 0 0 6px 0;
+        font-size: 1.45rem;
+        font-weight: 800;
+        margin: 0;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         letter-spacing: -0.02em;
       }
-      .sp-hero-subtitle {
-        color: #94A3B8;
-        font-size: 0.92rem;
-        margin: 0;
-        max-width: 720px;
-        line-height: 1.5;
+      .sp-hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .sp-hero-actions .btn {
+        height: 38px;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+      }
+      .sp-btn-add:hover {
+        background: #1D4ED8 !important;
+        transform: translateY(-1px);
+      }
+      .sp-btn-excel:hover, .sp-btn-refresh:hover {
+        background: rgba(255, 255, 255, 0.16) !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        transform: translateY(-1px);
       }
       .sp-stats-grid {
         display: grid;
@@ -484,8 +497,14 @@ export async function renderSP(container) {
           width: 100% !important;
           display: flex !important;
           align-items: center !important;
-          gap: 8px !important;
+          gap: 6px !important;
           flex-wrap: nowrap !important;
+          overflow-x: auto !important;
+          scrollbar-width: none !important;
+          padding-bottom: 2px !important;
+        }
+        .sp-hero-actions::-webkit-scrollbar {
+          display: none;
         }
         .sp-btn-add {
           flex: 1 1 auto !important;
@@ -1038,22 +1057,19 @@ export async function renderSP(container) {
               <h1 class="sp-hero-title">
                 <span>📜</span> Monitoring Data SP (Surat Peringatan)
               </h1>
-              <p class="sp-hero-subtitle">
-                Sistem pengawasan kedisiplinan kerja, masa aktif sanksi pembinaan, dan arsip dokumen BAP karyawan PT Audy Mandiri Indonesia.
-              </p>
             </div>
             <div class="sp-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; padding:9px 16px; border-radius:10px; font-weight:700; display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
+              <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 <span>Terbitkan SP</span>
               </button>
               
-              <button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+              <button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
               </button>
 
-              <button id="sp-btn-refresh" class="btn btn-ghost sp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+              <button id="sp-btn-refresh" class="btn btn-ghost sp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
             </div>
