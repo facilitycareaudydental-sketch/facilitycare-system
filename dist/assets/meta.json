@@ -1062,7 +1062,7 @@
       "format": "esm"
     },
     "frontend/src/pages/os_migrations.js": {
-      "bytes": 35590,
+      "bytes": 35714,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-AEBDXIHH.js": {
+    "frontend/dist/assets/app-FXKOXAEZ.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1427,13 +1427,13 @@
           "bytesInOutput": 2880
         },
         "frontend/src/pages/os_migrations.js": {
-          "bytesInOutput": 29953
+          "bytesInOutput": 30077
         },
         "frontend/src/pages/dac.js": {
           "bytesInOutput": 28865
         }
       },
-      "bytes": 741857
+      "bytes": 741981
     }
   }
 }
