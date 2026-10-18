@@ -1010,7 +1010,7 @@
       "format": "esm"
     },
     "frontend/src/pages/overtime.js": {
-      "bytes": 41695,
+      "bytes": 42311,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-I7OVH3CP.js": {
+    "frontend/dist/assets/app-AEBDXIHH.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1421,7 +1421,7 @@
           "bytesInOutput": 33329
         },
         "frontend/src/pages/overtime.js": {
-          "bytesInOutput": 33474
+          "bytesInOutput": 34090
         },
         "frontend/src/pages/audit_logs.js": {
           "bytesInOutput": 2880
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28865
         }
       },
-      "bytes": 741241
+      "bytes": 741857
     }
   }
 }

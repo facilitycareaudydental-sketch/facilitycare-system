@@ -8344,6 +8344,26 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
           border-radius: 50%;
           pointer-events: none;
         }
+        .lembur-hero-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .lembur-hero-actions .btn {
+          height: 38px;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+        }
+        .lembur-btn-add:hover {
+          background: #1D4ED8 !important;
+          transform: translateY(-1px);
+        }
+        .lembur-btn-excel:hover, .lembur-btn-refresh:hover {
+          background: rgba(255, 255, 255, 0.16) !important;
+          border-color: rgba(255, 255, 255, 0.3) !important;
+          transform: translateY(-1px);
+        }
         .lembur-stats-row {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -8608,8 +8628,14 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
             width: 100% !important;
             display: flex !important;
             align-items: center !important;
-            gap: 8px !important;
+            gap: 6px !important;
             flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            scrollbar-width: none !important;
+            padding-bottom: 2px !important;
+          }
+          .lembur-hero-actions::-webkit-scrollbar {
+            display: none;
           }
           .lembur-btn-add {
             flex: 1 1 auto !important;
@@ -8665,33 +8691,30 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
 
         <!-- Hero Header Card -->
         <div class="lembur-hero-card">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
             <div>
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+              <div style="display:flex; align-items:center; gap:10px;">
                 <span style="font-size:1.6rem;">\u23F1\uFE0F</span>
                 <h1 style="font-size:1.45rem; font-weight:800; margin:0; letter-spacing:-0.02em;">
                   Monitoring Data Lembur Karyawan
                 </h1>
               </div>
-              <p style="margin:0; font-size:0.88rem; color:#CBD5E1; max-width:650px; line-height:1.5;">
-                Pencatatan jam kerja lembur, approval penugasan overtime cabang, dan rekapitulasi durasi jam kerja PT Audy Mandiri Indonesia.
-              </p>
             </div>
 
             <div class="lembur-hero-actions" style="display:flex; align-items:center; gap:8px;">
               ${D?`
-                <button id="lembur-btn-add" class="btn btn-primary lembur-btn-add" style="background:#2563EB; padding:9px 16px; border-radius:10px; font-weight:700; display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
+                <button id="lembur-btn-add" class="btn btn-primary lembur-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   <span>Tambah Lembur</span>
                 </button>
               `:""}
               
-              <button id="lembur-btn-excel" class="btn btn-ghost lembur-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+              <button id="lembur-btn-excel" class="btn btn-ghost lembur-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>\u{1F4E5}</span>
                 <span>Ekspor Excel</span>
               </button>
 
-              <button id="lembur-btn-refresh" class="btn btn-ghost lembur-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+              <button id="lembur-btn-refresh" class="btn btn-ghost lembur-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
             </div>
