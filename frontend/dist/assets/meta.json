@@ -171,7 +171,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js": {
-      "bytes": 61744,
+      "bytes": 62675,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -352,7 +352,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js?v=force61": {
-      "bytes": 61744,
+      "bytes": 62675,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-TR2MD45L.js": {
+    "frontend/dist/assets/app-MXQSHTI3.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1349,7 +1349,7 @@
           "bytesInOutput": 40705
         },
         "frontend/src/pages/contracts.js?v=force61": {
-          "bytesInOutput": 49244
+          "bytesInOutput": 50175
         },
         "frontend/src/pages/schedule.js?v=force61": {
           "bytesInOutput": 5981
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28865
         }
       },
-      "bytes": 739236
+      "bytes": 740167
     }
   }
 }

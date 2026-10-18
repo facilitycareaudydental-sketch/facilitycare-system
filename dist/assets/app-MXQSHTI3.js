@@ -1540,6 +1540,31 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
           border-radius: 50%;
           pointer-events: none;
         }
+        .con-hero-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .con-hero-actions .btn {
+          height: 38px;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+        }
+        .con-btn-add:hover {
+          background: #1D4ED8 !important;
+          transform: translateY(-1px);
+        }
+        .con-btn-excel:hover, .con-btn-refresh:hover {
+          background: rgba(255, 255, 255, 0.16) !important;
+          border-color: rgba(255, 255, 255, 0.3) !important;
+          transform: translateY(-1px);
+        }
+        .con-btn-missing:hover {
+          background: rgba(239, 68, 68, 0.25) !important;
+          border-color: rgba(239, 68, 68, 0.6) !important;
+          transform: translateY(-1px);
+        }
         .con-stats-row {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -2089,7 +2114,7 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
 
         <!-- Hero Header Card -->
         <div class="con-hero-card">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
             <div>
               <div style="display:flex; align-items:center; gap:10px;">
                 <span style="font-size:1.6rem;">\u{1F4CB}</span>
@@ -2100,25 +2125,25 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
             </div>
 
             <!-- Action Buttons 1 Baris Sejajar -->
-            <div class="con-hero-actions">
+            <div class="con-hero-actions" style="display:flex; align-items:center; gap:8px;">
               ${F?`
-                <button id="con-btn-add" class="btn btn-primary con-btn-add" style="background:#2563EB; padding:9px 15px; border-radius:10px; font-weight:700; display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
+                <button id="con-btn-add" class="btn btn-primary con-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   <span>Tambah Kontrak</span>
                 </button>
               `:""}
 
-              <button id="con-btn-excel" class="btn btn-ghost con-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+              <button id="con-btn-excel" class="btn btn-ghost con-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>\u{1F4E5}</span>
                 <span>Ekspor Excel</span>
               </button>
 
-              <button id="con-btn-missing" class="btn btn-ghost con-btn-missing" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#FCA5A5; padding:9px 13px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;" title="Cek Karyawan Aktif yang belum memiliki Kontrak Aktif">
+              <button id="con-btn-missing" class="btn btn-ghost con-btn-missing" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#FCA5A5; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;" title="Cek Karyawan Aktif yang belum memiliki Kontrak Aktif">
                 <span>\u{1F50D}</span>
                 <span>Cek Selisih</span>
               </button>
 
-              <button id="con-btn-refresh" class="btn btn-ghost con-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+              <button id="con-btn-refresh" class="btn btn-ghost con-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
             </div>
