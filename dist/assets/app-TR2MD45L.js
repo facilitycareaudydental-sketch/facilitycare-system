@@ -2091,15 +2091,12 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
         <div class="con-hero-card">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
             <div>
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+              <div style="display:flex; align-items:center; gap:10px;">
                 <span style="font-size:1.6rem;">\u{1F4CB}</span>
                 <h1 style="font-size:1.45rem; font-weight:800; margin:0; letter-spacing:-0.02em;">
                   Monitoring Kontrak Kerja Karyawan
                 </h1>
               </div>
-              <p style="margin:0; font-size:0.88rem; color:#CBD5E1; max-width:650px; line-height:1.5;">
-                Pusat pengawasan status perikatan kerja (PKWT), masa berlaku evaluasi, perpanjangan kontrak, dan rekapitulasi data personil PT Audy Mandiri Indonesia.
-              </p>
             </div>
 
             <!-- Action Buttons 1 Baris Sejajar -->
