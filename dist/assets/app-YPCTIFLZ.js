@@ -5262,20 +5262,33 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
         gap: 16px;
       }
       .doc-hero-title {
-        font-size: 1.65rem;
-        font-weight: 700;
-        margin: 0 0 6px 0;
+        font-size: 1.45rem;
+        font-weight: 800;
+        margin: 0;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         letter-spacing: -0.02em;
       }
-      .doc-hero-subtitle {
-        color: #94A3B8;
-        font-size: 0.92rem;
-        margin: 0;
-        max-width: 720px;
-        line-height: 1.5;
+      .doc-hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .doc-hero-actions .btn {
+        height: 38px;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+      }
+      #doc-btn-add:hover {
+        background: #1D4ED8 !important;
+        transform: translateY(-1px);
+      }
+      #doc-btn-excel:hover, #doc-btn-refresh:hover {
+        background: rgba(255, 255, 255, 0.16) !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        transform: translateY(-1px);
       }
       .doc-stats-grid {
         display: grid;
@@ -5600,27 +5613,39 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
           align-items: stretch !important;
           gap: 12px !important;
         }
-        .doc-hero-header > div:last-child {
-          display: flex !important;
+        .doc-hero-actions {
           width: 100% !important;
-          gap: 8px !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          flex-wrap: nowrap !important;
+          overflow-x: auto !important;
+          scrollbar-width: none !important;
+          padding-bottom: 2px !important;
+        }
+        .doc-hero-actions::-webkit-scrollbar {
+          display: none;
         }
         #doc-btn-add {
-          flex: 2 !important;
+          flex: 1 1 auto !important;
           justify-content: center !important;
           font-size: 0.82rem !important;
-          padding: 9px 12px !important;
+          padding: 8px 10px !important;
+          white-space: nowrap !important;
         }
         #doc-btn-excel {
-          flex: 1.2 !important;
+          flex: 1 1 auto !important;
           justify-content: center !important;
           font-size: 0.82rem !important;
-          padding: 9px 10px !important;
+          padding: 8px 10px !important;
+          white-space: nowrap !important;
         }
         #doc-btn-refresh {
-          flex: 0 0 38px !important;
+          width: 38px !important;
+          height: 38px !important;
+          padding: 0 !important;
+          flex-shrink: 0 !important;
           justify-content: center !important;
-          padding: 9px 0 !important;
         }
         /* 2x2 compact stats grid di layar HP */
         .doc-stats-grid {
@@ -5772,18 +5797,17 @@ var tn=Object.defineProperty;var zt=(e,t)=>()=>(e&&(t=e(e=0)),t);var Mt=(e,t)=>{
               <h1 class="doc-hero-title">
                 <span>\u{1F4CB}</span> Master Document & Template Standar
               </h1>
-              <p class="doc-hero-subtitle">
-                Pusat repositori formulir digital, checklist inspeksi kebersihan, berita acara, dan dokumen kerja standar PT Audy Mandiri Indonesia.
-              </p>
             </div>
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <button id="doc-btn-add" class="btn btn-primary" style="background:#2563EB; border:none; border-radius:10px; padding:10px 18px; font-weight:600; display:flex; align-items:center; gap:8px;">
-                <span>\u2795</span> Tambah Dokumen Baru
+            <div class="doc-hero-actions" style="display:flex; align-items:center; gap:8px;">
+              <button id="doc-btn-add" class="btn btn-primary" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap; border:none;">
+                <span>\u2795</span>
+                <span>Tambah Dokumen Baru</span>
               </button>
-              <button id="doc-btn-excel" class="btn btn-ghost" style="background:rgba(255,255,255,0.1); color:#FFFFFF; border:1px solid rgba(255,255,255,0.2); border-radius:10px; padding:10px 16px; font-weight:600; display:flex; align-items:center; gap:8px;">
-                <span>\u{1F4E5}</span> Ekspor Excel
+              <button id="doc-btn-excel" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                <span>\u{1F4E5}</span>
+                <span>Ekspor Excel</span>
               </button>
-              <button id="doc-btn-refresh" class="btn btn-ghost" style="background:rgba(255,255,255,0.1); color:#FFFFFF; border:1px solid rgba(255,255,255,0.2); border-radius:10px; padding:10px 14px; font-weight:600;">
+              <button id="doc-btn-refresh" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <span>\u{1F504}</span>
               </button>
             </div>

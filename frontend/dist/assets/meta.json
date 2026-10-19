@@ -755,7 +755,7 @@
       "format": "esm"
     },
     "frontend/src/pages/checklist.js": {
-      "bytes": 40671,
+      "bytes": 41622,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-VWF3ME4F.js": {
+    "frontend/dist/assets/app-YPCTIFLZ.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1388,7 +1388,7 @@
           "bytesInOutput": 58521
         },
         "frontend/src/pages/checklist.js": {
-          "bytesInOutput": 33130
+          "bytesInOutput": 34057
         },
         "frontend/src/pages/hygiene_standards.js": {
           "bytesInOutput": 34109
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28865
         }
       },
-      "bytes": 743213
+      "bytes": 744140
     }
   }
 }
