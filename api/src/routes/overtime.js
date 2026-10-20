@@ -80,7 +80,7 @@ export async function handleOvertime(request, env, origin) {
 
   // POST (Create)
   if (request.method === 'POST' && (path === '' || path === '/')) {
-    if (user.role === 'viewer') return forbidden(origin);
+    if (!hasPermission(user, 'overtime', 'write')) return forbidden(origin);
     try {
       const body = await request.json();
       
@@ -107,7 +107,7 @@ export async function handleOvertime(request, env, origin) {
 
   // PUT (Update)
   if (request.method === 'PUT' && idMatch) {
-    if (user.role === 'viewer') return forbidden(origin);
+    if (!hasPermission(user, 'overtime', 'write')) return forbidden(origin);
     try {
       const id = idMatch[1];
       const body = await request.json();
@@ -134,7 +134,7 @@ export async function handleOvertime(request, env, origin) {
 
   // DELETE
   if (request.method === 'DELETE' && idMatch) {
-    if (user.role !== 'superadmin' && user.role !== 'admin') return forbidden(origin);
+    if (!hasPermission(user, 'overtime', 'delete')) return forbidden(origin);
     try {
       await env.DB.prepare('DELETE FROM overtime_records WHERE id=?').bind(idMatch[1]).run();
       return ok({ message: 'Data lembur berhasil dihapus' }, 200, origin);

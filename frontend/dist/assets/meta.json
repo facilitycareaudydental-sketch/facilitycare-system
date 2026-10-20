@@ -16,7 +16,7 @@
       "format": "esm"
     },
     "frontend/src/components/modal.js": {
-      "bytes": 2060,
+      "bytes": 2842,
       "imports": [],
       "format": "esm"
     },
@@ -1286,13 +1286,13 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-YPCTIFLZ.js": {
+    "frontend/dist/assets/app-YUSHSIZD.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
       "inputs": {
         "frontend/src/components/modal.js": {
-          "bytesInOutput": 1505
+          "bytesInOutput": 1887
         },
         "frontend/src/utils/excel.js": {
           "bytesInOutput": 3312
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28865
         }
       },
-      "bytes": 744140
+      "bytes": 744522
     }
   }
 }

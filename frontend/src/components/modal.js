@@ -39,10 +39,31 @@ export function createModal({ title, content, onConfirm, onCancel, confirmText =
 }
 
 export function confirmDialog(message, onConfirm, title = 'Konfirmasi') {
+  // Support both object options: confirmDialog({ title, message, onConfirm, confirmText, confirmClass, cancelText })
+  // and positional arguments: confirmDialog(message, onConfirm, title)
+  if (typeof message === 'object' && message !== null) {
+    const opts = message;
+    return createModal({
+      title: opts.title || 'Konfirmasi',
+      content: typeof opts.message === 'string' ? `<p>${opts.message}</p>` : opts.message,
+      onConfirm: async (_, close) => {
+        if (opts.onConfirm) await opts.onConfirm();
+        close();
+      },
+      onCancel: opts.onCancel,
+      confirmText: opts.confirmText || 'Ya, Lanjutkan',
+      cancelText: opts.cancelText || 'Batal',
+      confirmClass: opts.confirmClass || 'btn-danger',
+    });
+  }
+
   return createModal({
     title,
-    content: `<p>${message}</p>`,
-    onConfirm: (_, close) => { onConfirm(); close(); },
+    content: typeof message === 'string' ? `<p>${message}</p>` : message,
+    onConfirm: async (_, close) => {
+      if (onConfirm) await onConfirm();
+      close();
+    },
     confirmText: 'Ya, Lanjutkan',
     confirmClass: 'btn-danger',
   });
