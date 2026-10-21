@@ -77,6 +77,7 @@ export async function renderOvertime(container) {
   let selectedBranch = 'all';
   let searchQuery = '';
   let isLoading = false;
+  let viewMode = localStorage.getItem('fcms_overtime_view_mode') || 'card';
 
   const currentUser = getUser();
   const isViewer = currentUser?.role === 'viewer';
@@ -601,6 +602,89 @@ export async function renderOvertime(container) {
           box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
         }
 
+        /* View Mode Toggle */
+        .lembur-view-toggle {
+          display: inline-flex;
+          align-items: center;
+          background: #F1F5F9;
+          padding: 3px;
+          border-radius: 10px;
+          border: 1px solid #CBD5E1;
+          gap: 3px;
+          flex-shrink: 0;
+        }
+        .lembur-view-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: 7px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          border: none;
+          background: transparent;
+          color: #64748B;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          height: 34px;
+          box-sizing: border-box;
+          user-select: none;
+        }
+        .lembur-view-btn:hover {
+          color: #0F172A;
+          background: rgba(255, 255, 255, 0.5);
+        }
+        .lembur-view-btn.active {
+          background: #FFFFFF;
+          color: #2563EB;
+          font-weight: 700;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Modern Table View */
+        .lembur-table-card {
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          border-radius: 14px;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+        }
+        .lembur-table-responsive {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .lembur-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          font-size: 0.88rem;
+          min-width: 860px;
+        }
+        .lembur-table th {
+          background: #F8FAFC;
+          color: #475569;
+          font-size: 0.76rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 13px 16px;
+          border-bottom: 1.5px solid #E2E8F0;
+          white-space: nowrap;
+        }
+        .lembur-table td {
+          padding: 13px 16px;
+          border-bottom: 1px solid #F1F5F9;
+          color: #1E293B;
+          vertical-align: middle;
+        }
+        .lembur-table tbody tr:hover td {
+          background: #F8FAFC;
+        }
+        .lembur-table tbody tr:last-child td {
+          border-bottom: none;
+        }
+
         /* Grid Cards View */
         .lembur-cards-grid {
           display: grid;
@@ -768,6 +852,17 @@ export async function renderOvertime(container) {
           .lembur-select {
             width: 100%;
           }
+          .lembur-view-toggle {
+            width: 100%;
+            display: flex;
+          }
+          .lembur-view-btn {
+            flex: 1;
+            justify-content: center;
+          }
+          .lembur-table-card {
+            border-radius: 12px;
+          }
           .lembur-cards-grid {
             grid-template-columns: minmax(0, 1fr) !important;
             width: 100% !important;
@@ -877,6 +972,17 @@ export async function renderOvertime(container) {
               <option value="all">Semua Cabang (${branchOptions.length})</option>
               ${branchOptions.map(b => `<option value="${b.value}" ${String(selectedBranch) === String(b.value) ? 'selected' : ''}>${b.label}</option>`).join('')}
             </select>
+
+            <div class="lembur-view-toggle">
+              <button type="button" class="lembur-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card" title="Tampilan Kartu">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Kartu</span>
+              </button>
+              <button type="button" class="lembur-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table" title="Tampilan Tabel">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                <span>Tabel</span>
+              </button>
+            </div>
           </div>
 
           <!-- Reason Filter Pills (Swipeable on Mobile) -->
@@ -909,6 +1015,88 @@ export async function renderOvertime(container) {
               <button id="lembur-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
+            </div>
+          ` : viewMode === 'table' ? `
+            <div class="lembur-table-card">
+              <div class="lembur-table-responsive">
+                <table class="lembur-table">
+                  <thead>
+                    <tr>
+                      <th style="width:45px; text-align:center;">No</th>
+                      <th>Nama Karyawan</th>
+                      <th>Cabang Penugasan</th>
+                      <th>Tanggal</th>
+                      <th>Waktu Shift</th>
+                      <th style="text-align:center;">Total Jam</th>
+                      <th style="text-align:center;">Istirahat</th>
+                      <th>Alasan Lembur</th>
+                      ${canEdit ? `<th style="width:90px; text-align:center;">Aksi</th>` : ''}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.map((o, idx) => {
+                      const initials = (o.employee_name || 'Karyawan').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+                      const reasonMeta = getReasonBadge(o.reason);
+                      return `
+                        <tr data-id="${o.id}">
+                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${idx + 1}</td>
+                          <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                              <div class="lembur-avatar-box" style="width:34px; height:34px; font-size:0.78rem; border-radius:8px;">
+                                ${initials}
+                              </div>
+                              <div style="font-weight:700; color:#0F172A; white-space:nowrap;">
+                                ${o.employee_name}
+                              </div>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <div style="font-weight:600; color:#334155; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;">
+                              <span>📍</span>
+                              <span>${o.branch_name || 'Cabang'}</span>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                            📅 ${formatDateIndo(o.date)}
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <span style="font-weight:700; color:#2563EB;">⏰ ${o.start_time || '00:00'} - ${o.end_time || '00:00'}</span>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <span class="lembur-hours-badge" style="padding:3px 8px; font-size:0.8rem;">
+                              <span>⏱️</span>
+                              <span>${o.total_hours != null ? o.total_hours : 0} Jam</span>
+                            </span>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap; color:#64748B; font-weight:600; font-size:0.82rem;">
+                            ☕ ${o.break_hours != null ? o.break_hours : 0} Jam
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <span class="lembur-reason-badge" style="background:${reasonMeta.bg}; color:${reasonMeta.color}; border:1px solid ${reasonMeta.border};">
+                              <span>${reasonMeta.icon}</span>
+                              <span>${o.reason || 'Lembur Operasional'}</span>
+                            </span>
+                          </td>
+                          ${canEdit ? `
+                            <td style="text-align:center; white-space:nowrap;">
+                              <div style="display:inline-flex; align-items:center; gap:6px;">
+                                <button class="lembur-icon-btn lembur-edit-btn" title="Edit Catatan Lembur" data-id="${o.id}">
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                ${canDelete ? `
+                                  <button class="lembur-icon-btn delete lembur-delete-btn" title="Hapus Catatan Lembur" data-id="${o.id}">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                  </button>
+                                ` : ''}
+                              </div>
+                            </td>
+                          ` : ''}
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ` : `
             <div class="lembur-cards-grid">
@@ -1051,6 +1239,18 @@ export async function renderOvertime(container) {
       pill.onclick = () => {
         selectedReason = pill.getAttribute('data-reason') || 'all';
         renderUI();
+      };
+    });
+
+    // View Mode Switcher (Kartu vs Tabel)
+    container.querySelectorAll('.lembur-view-btn').forEach(btn => {
+      btn.onclick = () => {
+        const mode = btn.getAttribute('data-view');
+        if (mode && mode !== viewMode) {
+          viewMode = mode;
+          localStorage.setItem('fcms_overtime_view_mode', mode);
+          renderUI();
+        }
       };
     });
 
