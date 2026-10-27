@@ -65,6 +65,7 @@ export async function renderContracts(container, params) {
   let selectedStatus = 'all';
   let selectedExpiring = 'all';
   let isLoading = false;
+  let viewMode = localStorage.getItem('fcms_contracts_view_mode') || 'card';
 
   // Handle URL dashboard parameter
   const dashFilter = params ? params.get('dash_filter') : null;
@@ -89,11 +90,13 @@ export async function renderContracts(container, params) {
 
     // Map phone numbers for direct WhatsApp links
     employeeOptions.forEach(emp => {
-      if (emp.id && emp.phone) {
-        employeePhoneMap[emp.id] = emp.phone;
+      const id = emp.value !== undefined ? emp.value : emp.id;
+      const name = emp.label || emp.full_name;
+      if (id && emp.phone) {
+        employeePhoneMap[id] = emp.phone;
       }
-      if (emp.full_name && emp.phone) {
-        employeePhoneMap[emp.full_name.toLowerCase()] = emp.phone;
+      if (name && emp.phone) {
+        employeePhoneMap[name.toLowerCase()] = emp.phone;
       }
     });
   } catch (err) {
@@ -314,11 +317,15 @@ export async function renderContracts(container, params) {
             </label>
             <select id="con-modal-employee" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
               <option value="">-- Pilih Karyawan --</option>
-              ${employeeOptions.map(e => `
-                <option value="${e.id}" ${String(defaultEmpId) === String(e.id) ? 'selected' : ''}>
-                  ${e.full_name} (${e.division || 'FC'} - ${e.branch_name || 'Cabang -'})
+              ${employeeOptions.map(e => {
+                const empId = e.value !== undefined ? e.value : e.id;
+                const empName = e.label || e.full_name || 'Karyawan';
+                const extraInfo = (e.division || e.branch_name) ? ` (${e.division || 'FC'} - ${e.branch_name || 'Cabang -'})` : '';
+                return `
+                <option value="${empId}" ${String(defaultEmpId) === String(empId) ? 'selected' : ''}>
+                  ${empName}${extraInfo}
                 </option>
-              `).join('')}
+              `;}).join('')}
             </select>
           </div>
 
@@ -722,6 +729,7 @@ export async function renderContracts(container, params) {
         .con-search-row {
           display: flex;
           gap: 12px;
+          align-items: center;
           flex-wrap: wrap;
         }
         .con-search-wrap {
@@ -817,6 +825,89 @@ export async function renderContracts(container, params) {
         .con-pill.active .con-pill-count {
           background: rgba(255,255,255,0.2);
           color: white;
+        }
+
+        /* View Mode Toggle */
+        .con-view-toggle {
+          display: inline-flex;
+          align-items: center;
+          background: #F1F5F9;
+          padding: 3px;
+          border-radius: 10px;
+          border: 1px solid #CBD5E1;
+          gap: 3px;
+          flex-shrink: 0;
+        }
+        .con-view-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: 7px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          border: none;
+          background: transparent;
+          color: #64748B;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          height: 34px;
+          box-sizing: border-box;
+          user-select: none;
+        }
+        .con-view-btn:hover {
+          color: #0F172A;
+          background: rgba(255, 255, 255, 0.5);
+        }
+        .con-view-btn.active {
+          background: #FFFFFF;
+          color: #2563EB;
+          font-weight: 700;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Modern Table View */
+        .con-table-card {
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          border-radius: 14px;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+        }
+        .con-table-responsive {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .con-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          font-size: 0.88rem;
+          min-width: 960px;
+        }
+        .con-table th {
+          background: #F8FAFC;
+          color: #475569;
+          font-size: 0.76rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 13px 16px;
+          border-bottom: 1.5px solid #E2E8F0;
+          white-space: nowrap;
+        }
+        .con-table td {
+          padding: 13px 16px;
+          border-bottom: 1px solid #F1F5F9;
+          color: #1E293B;
+          vertical-align: middle;
+        }
+        .con-table tbody tr:hover td {
+          background: #F8FAFC;
+        }
+        .con-table tbody tr:last-child td {
+          border-bottom: none;
         }
 
         /* Cards Grid */
@@ -1180,6 +1271,17 @@ export async function renderContracts(container, params) {
           .con-select {
             width: 100%;
           }
+          .con-view-toggle {
+            width: 100%;
+            display: flex;
+          }
+          .con-view-btn {
+            flex: 1;
+            justify-content: center;
+          }
+          .con-table-card {
+            border-radius: 12px;
+          }
           .con-cards-grid {
             grid-template-columns: minmax(0, 1fr) !important;
             width: 100% !important;
@@ -1318,6 +1420,17 @@ export async function renderContracts(container, params) {
               <option value="30" ${selectedExpiring === '30' ? 'selected' : ''}>Akan Habis ≤ 30 Hari</option>
               <option value="60" ${selectedExpiring === '60' ? 'selected' : ''}>Akan Habis ≤ 60 Hari</option>
             </select>
+
+            <div class="con-view-toggle">
+              <button type="button" class="con-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card" title="Tampilan Kartu">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Kartu</span>
+              </button>
+              <button type="button" class="con-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table" title="Tampilan Tabel">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                <span>Tabel</span>
+              </button>
+            </div>
           </div>
 
           <!-- Status Horizontal Swipeable Pills -->
@@ -1349,8 +1462,8 @@ export async function renderContracts(container, params) {
           </div>
         </div>
 
-        <!-- Exclusive Cards Grid -->
-        <div class="con-cards-grid">
+        <!-- Content Area: Pilihan Kartu atau Tabel -->
+        <div id="con-list-container">
           ${filtered.length === 0 ? `
             <div class="con-empty-state">
               <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
@@ -1358,7 +1471,132 @@ export async function renderContracts(container, params) {
               <p style="font-size:0.85rem; color:#64748B; margin:0 0 16px 0;">Coba atur ulang kata kunci pencarian, filter cabang, atau filter masa berlaku kontrak.</p>
               <button id="con-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
             </div>
-          ` : filtered.map(item => {
+          ` : viewMode === 'table' ? `
+            <div class="con-table-card">
+              <div class="con-table-responsive">
+                <table class="con-table">
+                  <thead>
+                    <tr>
+                      <th style="width:45px; text-align:center;">No</th>
+                      <th>Nama Karyawan</th>
+                      <th>Cabang & Divisi</th>
+                      <th style="text-align:center;">Tingkat PKWT</th>
+                      <th>Mulai Kontrak</th>
+                      <th>Selesai Kontrak</th>
+                      <th>Masa Berlaku</th>
+                      <th style="text-align:center;">Status</th>
+                      <th style="width:110px; text-align:center;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.map((item, idx) => {
+                      const div = item.division || 'FACILITY CARE';
+                      let divClass = 'con-div-fc';
+                      let avatarClass = '';
+                      if (div === 'SECURITY') {
+                        divClass = 'con-div-sec';
+                        avatarClass = 'sec';
+                      } else if (div === 'FC - RELIEFER') {
+                        divClass = 'con-div-rel';
+                        avatarClass = 'rel';
+                      }
+
+                      const tetap = isTetap(item.end_date);
+                      const isAktif = item.status === 'Aktif';
+                      const rem = Number(item.days_remaining);
+
+                      let statusBadgeClass = 'con-status-aktif';
+                      let statusBadgeText = '🟢 Aktif';
+
+                      if (tetap) {
+                        statusBadgeClass = 'con-status-tetap';
+                        statusBadgeText = '🏛️ PKWTT (Tetap)';
+                      } else if (isAktif) {
+                        if (rem <= 0) {
+                          statusBadgeClass = 'con-status-danger';
+                          statusBadgeText = '⚠️ Habis Hari Ini';
+                        } else if (rem <= 30) {
+                          statusBadgeClass = 'con-status-warning';
+                          statusBadgeText = `⚠️ Sisa ${rem} Hari`;
+                        } else {
+                          statusBadgeClass = 'con-status-aktif';
+                          statusBadgeText = `🟢 Aktif (${rem} Hari)`;
+                        }
+                      } else {
+                        statusBadgeClass = 'con-status-danger';
+                        statusBadgeText = `⚪ ${item.status || 'Nonaktif'}`;
+                      }
+
+                      const phone = employeePhoneMap[item.employee_id] || employeePhoneMap[String(item.employee_name || '').toLowerCase()] || '';
+
+                      return `
+                        <tr data-id="${item.id}">
+                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${idx + 1}</td>
+                          <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                              <div class="con-avatar ${avatarClass}" style="width:36px; height:36px; font-size:0.8rem; border-radius:9px;">
+                                ${getInitials(item.employee_name)}
+                              </div>
+                              <div>
+                                <div style="font-weight:700; color:#0F172A; white-space:nowrap;">${item.employee_name || 'Karyawan Tanpa Nama'}</div>
+                                <div style="font-size:0.74rem; color:#64748B;">${item.contract_type || 'Kontrak Kerja'} • ID #${item.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <div style="font-weight:600; color:#0F172A; font-size:0.84rem; margin-bottom:4px;">📍 ${item.branch_name || 'Cabang Tidak Ditentukan'}</div>
+                            <span class="con-div-badge ${divClass}" style="padding:2px 8px; font-size:0.7rem;">
+                              ${div === 'SECURITY' ? '🛡️' : (div === 'FC - RELIEFER' ? '🔄' : '🧹')} ${div}
+                            </span>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            ${item.pkwt_number ? `
+                              <span class="con-pkwt-badge">
+                                📜 ${item.pkwt_number}
+                              </span>
+                            ` : '<span style="color:#94A3B8;">-</span>'}
+                          </td>
+                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                            ${formatDateIndo(item.start_date)}
+                          </td>
+                          <td style="white-space:nowrap; font-weight:600; ${tetap ? 'color:#4338CA; font-weight:700;' : 'color:#1E293B;'}">
+                            ${tetap ? 'Tetap / PKWTT' : formatDateIndo(item.end_date)}
+                          </td>
+                          <td style="white-space:nowrap; font-size:0.82rem; font-weight:600; ${tetap ? 'color:#15803D;' : (rem <= 30 && isAktif ? 'color:#D97706; font-weight:700;' : 'color:#475569;')}">
+                            ${tetap ? 'Karyawan Tetap (Permanen)' : (rem <= 0 ? 'Masa Kontrak Telah Habis' : `${rem} Hari Tersisa`)}
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <span class="con-status-badge ${statusBadgeClass}">
+                              ${statusBadgeText}
+                            </span>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <div style="display:inline-flex; align-items:center; gap:6px;">
+                              ${phone ? `
+                                <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" class="con-icon-btn" title="Chat WhatsApp Karyawan" style="color:#16A34A;">
+                                  <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.185 1.564 5.939l-1.564 5.717 5.864-1.538c1.691.924 3.63 1.458 5.698 1.458 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/></svg>
+                                </a>
+                              ` : ''}
+                              ${canEdit ? `
+                                <button class="con-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Kontrak">
+                                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button class="con-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Kontrak">
+                                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                </button>
+                              ` : ''}
+                            </div>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : `
+            <div class="con-cards-grid">
+              ${filtered.map(item => {
             const div = item.division || 'FACILITY CARE';
             let divClass = 'con-div-fc';
             let avatarClass = '';
@@ -1490,12 +1728,26 @@ export async function renderContracts(container, params) {
               </div>
             `;
           }).join('')}
+            </div>
+          `}
         </div>
 
       </div>
     `;
 
     // Event Listeners
+    // 0. View Mode Toggle (Kartu / Tabel)
+    container.querySelectorAll('.con-view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-view');
+        if (mode && mode !== viewMode) {
+          viewMode = mode;
+          localStorage.setItem('fcms_contracts_view_mode', mode);
+          renderUI();
+        }
+      });
+    });
+
     // 1. Search Input
     const searchInput = container.querySelector('#con-search-input');
     if (searchInput) {

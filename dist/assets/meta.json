@@ -171,7 +171,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js": {
-      "bytes": 63011,
+      "bytes": 75746,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -352,7 +352,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js?v=force61": {
-      "bytes": 63011,
+      "bytes": 75746,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -948,7 +948,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sp.js": {
-      "bytes": 53577,
+      "bytes": 61080,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,13 +1286,13 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-NOTWSSUU.js": {
+    "frontend/dist/assets/app-LTKRSUFQ.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
       "inputs": {
         "frontend/src/components/modal.js": {
-          "bytesInOutput": 1887
+          "bytesInOutput": 1889
         },
         "frontend/src/utils/excel.js": {
           "bytesInOutput": 3312
@@ -1313,7 +1313,7 @@
           "bytesInOutput": 3435
         },
         "frontend/src/pages/_crud.js": {
-          "bytesInOutput": 15786
+          "bytesInOutput": 15778
         },
         "frontend/src/components/form.js": {
           "bytesInOutput": 3429
@@ -1346,25 +1346,25 @@
           "bytesInOutput": 5187
         },
         "frontend/src/pages/employees.js?v=force61": {
-          "bytesInOutput": 40705
+          "bytesInOutput": 40706
         },
         "frontend/src/pages/contracts.js?v=force61": {
-          "bytesInOutput": 50309
+          "bytesInOutput": 61239
         },
         "frontend/src/pages/schedule.js?v=force61": {
           "bytesInOutput": 5981
         },
         "frontend/src/pages/issues.js?v=force61": {
-          "bytesInOutput": 44890
+          "bytesInOutput": 44880
         },
         "frontend/src/pages/one_on_one.js?v=force61": {
           "bytesInOutput": 4847
         },
         "frontend/src/pages/training.js": {
-          "bytesInOutput": 35633
+          "bytesInOutput": 35634
         },
         "frontend/src/pages/_crud.js?v=v3": {
-          "bytesInOutput": 15786
+          "bytesInOutput": 15778
         },
         "frontend/src/pages/relievers.js": {
           "bytesInOutput": 4970
@@ -1382,16 +1382,16 @@
           "bytesInOutput": 4332
         },
         "frontend/src/pages/sop_facility_care.js": {
-          "bytesInOutput": 71276
+          "bytesInOutput": 71280
         },
         "frontend/src/pages/sop_security.js": {
-          "bytesInOutput": 58521
+          "bytesInOutput": 58524
         },
         "frontend/src/pages/checklist.js": {
-          "bytesInOutput": 34057
+          "bytesInOutput": 34058
         },
         "frontend/src/pages/hygiene_standards.js": {
-          "bytesInOutput": 34109
+          "bytesInOutput": 34110
         },
         "frontend/src/pages/forms.js": {
           "bytesInOutput": 5992
@@ -1415,10 +1415,10 @@
           "bytesInOutput": 20254
         },
         "frontend/src/pages/sp.js": {
-          "bytesInOutput": 43264
+          "bytesInOutput": 51605
         },
         "frontend/src/pages/mutasi.js": {
-          "bytesInOutput": 42323
+          "bytesInOutput": 42324
         },
         "frontend/src/pages/overtime.js": {
           "bytesInOutput": 42864
@@ -1427,13 +1427,13 @@
           "bytesInOutput": 2880
         },
         "frontend/src/pages/os_migrations.js": {
-          "bytesInOutput": 30071
+          "bytesInOutput": 30072
         },
         "frontend/src/pages/dac.js": {
-          "bytesInOutput": 28859
+          "bytesInOutput": 28860
         }
       },
-      "bytes": 762740
+      "bytes": 782001
     }
   }
 }

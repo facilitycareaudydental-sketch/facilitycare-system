@@ -140,12 +140,17 @@ export async function renderSP(container) {
   let selectedBranch = 'all';
   let selectedDivision = 'all';
   let searchQuery = '';
+  let viewMode = localStorage.getItem('fcms_sp_view_mode') || 'card';
 
   // Inject Styles
   const styleId = 'fcms-sp-page-styles';
-  if (!document.getElementById(styleId)) {
-    const styleEl = document.createElement('style');
+  let styleEl = document.getElementById(styleId);
+  if (!styleEl) {
+    styleEl = document.createElement('style');
     styleEl.id = styleId;
+    document.head.appendChild(styleEl);
+  }
+  {
     styleEl.textContent = `
       .sp-page-container {
         padding: 24px;
@@ -351,6 +356,44 @@ export async function renderSP(container) {
         background: rgba(255, 255, 255, 0.25);
         color: #FFFFFF;
       }
+      /* View Mode Toggle */
+      .sp-view-toggle {
+        display: inline-flex;
+        align-items: center;
+        background: #F1F5F9;
+        padding: 3px;
+        border-radius: 10px;
+        border: 1px solid #CBD5E1;
+        gap: 3px;
+        flex-shrink: 0;
+      }
+      .sp-view-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 7px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        border: none;
+        background: transparent;
+        color: #64748B;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        height: 34px;
+        box-sizing: border-box;
+        user-select: none;
+      }
+      .sp-view-btn:hover {
+        color: #0F172A;
+        background: rgba(255, 255, 255, 0.5);
+      }
+      .sp-view-btn.active {
+        background: #FFFFFF;
+        color: #2563EB;
+        font-weight: 700;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      }
       /* Modern Table View */
       .sp-table-card {
         background: #FFFFFF;
@@ -359,30 +402,40 @@ export async function renderSP(container) {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         overflow: hidden;
       }
+      .sp-table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
       .sp-table {
         width: 100%;
         border-collapse: collapse;
         text-align: left;
+        min-width: 900px;
       }
       .sp-table th {
         background: #F8FAFC;
-        padding: 14px 18px;
-        font-size: 0.78rem;
+        padding: 13px 16px;
+        font-size: 0.76rem;
         font-weight: 700;
         color: #475569;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
         border-bottom: 1.5px solid #E2E8F0;
+        white-space: nowrap;
       }
       .sp-table td {
-        padding: 16px 18px;
+        padding: 13px 16px;
         font-size: 0.88rem;
         color: #1E293B;
         border-bottom: 1px solid #F1F5F9;
         vertical-align: middle;
       }
-      .sp-table tr:hover td {
+      .sp-table tbody tr:hover td {
         background: #F8FAFC;
+      }
+      .sp-table tbody tr:last-child td {
+        border-bottom: none;
       }
       /* Grid View */
       .sp-cards-grid {
@@ -606,13 +659,21 @@ export async function renderSP(container) {
           flex-direction: row !important;
           align-items: flex-start !important;
         }
+        .sp-view-toggle {
+          width: 100% !important;
+          display: flex !important;
+        }
+        .sp-view-btn {
+          flex: 1 !important;
+          justify-content: center !important;
+        }
         .sp-table-card {
           border-radius: 14px !important;
           overflow-x: auto !important;
           -webkit-overflow-scrolling: touch !important;
         }
         .sp-table {
-          min-width: 650px !important;
+          min-width: 850px !important;
         }
         .sp-table th, .sp-table td {
           padding: 10px 12px !important;
@@ -624,7 +685,6 @@ export async function renderSP(container) {
         }
       }
     `;
-    document.head.appendChild(styleEl);
   }
 
   // Load Data
@@ -1131,6 +1191,17 @@ export async function renderSP(container) {
               <option value="FACILITY CARE" ${selectedDivision === 'FACILITY CARE' ? 'selected' : ''}>FACILITY CARE</option>
               <option value="SECURITY" ${selectedDivision === 'SECURITY' ? 'selected' : ''}>SECURITY</option>
             </select>
+
+            <div class="sp-view-toggle">
+              <button type="button" class="sp-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card" title="Tampilan Kartu">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Kartu</span>
+              </button>
+              <button type="button" class="sp-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table" title="Tampilan Tabel">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                <span>Tabel</span>
+              </button>
+            </div>
           </div>
 
           <!-- Filter Pills -->
@@ -1176,6 +1247,93 @@ export async function renderSP(container) {
               <button id="sp-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
+            </div>
+          ` : viewMode === 'table' ? `
+            <!-- Table View -->
+            <div class="sp-table-card">
+              <div class="sp-table-responsive">
+                <table class="sp-table">
+                  <thead>
+                    <tr>
+                      <th style="width:45px; text-align:center;">No</th>
+                      <th>Nama Karyawan</th>
+                      <th>Cabang & Divisi</th>
+                      <th style="text-align:center;">Jenis SP</th>
+                      <th>Tanggal Terbit</th>
+                      <th>Akhir SP</th>
+                      <th style="text-align:center;">Status</th>
+                      <th>Keterangan / BAP</th>
+                      <th style="width:110px; text-align:center;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.map((s, idx) => {
+                      const meta = getSPStatusMeta(s.akhir_sp);
+                      const typeMeta = getSPTypeBadge(s.sp_type);
+                      return `
+                        <tr data-id="${s.id}">
+                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${idx + 1}</td>
+                          <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                              <div class="sp-avatar-box" style="width:34px; height:34px; font-size:0.78rem; border-radius:8px;">
+                                ${(s.employee_name || 'SP').slice(0, 2).toUpperCase()}
+                              </div>
+                              <div style="font-weight:700; color:#0F172A; white-space:nowrap;">
+                                ${s.employee_name}
+                              </div>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <div style="font-weight:600; color:#334155; font-size:0.84rem;">📍 ${s.branch_name || 'Cabang'}</div>
+                            <div style="font-size:0.74rem; color:#2563EB; font-weight:600; margin-top:2px;">${s.division || 'FACILITY CARE'}</div>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <span class="sp-type-badge" style="background:${typeMeta.bg}; color:${typeMeta.color}; border:1px solid ${typeMeta.border};">
+                              <span>${typeMeta.icon}</span>
+                              <span>${typeMeta.label}</span>
+                            </span>
+                          </td>
+                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                            ${formatDateIndo(s.tanggal)}
+                          </td>
+                          <td style="white-space:nowrap; font-weight:700; color:#0F172A;">
+                            ${formatDateIndo(s.akhir_sp)}
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <span class="sp-status-badge" style="background:${meta.bg}; color:${meta.color}; border:1px solid ${meta.border};">
+                              <span>${meta.icon}</span>
+                              <span>${meta.shortLabel}</span>
+                            </span>
+                          </td>
+                          <td style="max-width:240px;">
+                            <div style="font-size:0.82rem; color:#64748B; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;" title="${String(s.notes || s.description || '').replace(/"/g, '&quot;')}">
+                              ${s.notes || s.description || 'Pencatatan sanksi peringatan disiplin operasional.'}
+                            </div>
+                            <button class="btn btn-sm btn-ghost sp-detail-btn" style="border:1px solid #CBD5E1; border-radius:6px; font-weight:600; font-size:0.74rem; padding:2px 8px;" data-id="${s.id}">
+                              👁️ Rincian BAP
+                            </button>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <div style="display:inline-flex; align-items:center; gap:6px;">
+                              ${s.document_link ? `
+                                <a href="${s.document_link}" target="_blank" rel="noopener noreferrer" class="sp-icon-btn" title="Buka Dokumen">
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                </a>
+                              ` : ''}
+                              <button class="sp-icon-btn sp-edit-btn" title="Edit Data SP" data-id="${s.id}">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                              </button>
+                              <button class="sp-icon-btn delete sp-delete-btn" title="Hapus" data-id="${s.id}">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ` : `
             <!-- Grid Card View -->
@@ -1320,6 +1478,18 @@ export async function renderSP(container) {
       pill.onclick = () => {
         selectedFilter = pill.getAttribute('data-filter') || 'all';
         renderUI();
+      };
+    });
+
+    // View Mode Switcher (Kartu vs Tabel)
+    container.querySelectorAll('.sp-view-btn').forEach(btn => {
+      btn.onclick = () => {
+        const mode = btn.getAttribute('data-view');
+        if (mode && mode !== viewMode) {
+          viewMode = mode;
+          localStorage.setItem('fcms_sp_view_mode', mode);
+          renderUI();
+        }
       };
     });
 
