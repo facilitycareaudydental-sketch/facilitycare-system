@@ -33,6 +33,7 @@ export async function renderMutasi(container) {
   let selectedToBranch = 'all';
   let searchQuery = '';
   let isLoading = false;
+  let viewMode = localStorage.getItem('fcms_mutasi_view_mode') || 'card';
 
   const currentUser = getUser();
   const canEdit = currentUser?.role !== 'viewer';
@@ -431,6 +432,7 @@ export async function renderMutasi(container) {
         .mutasi-search-row {
           display: flex;
           gap: 12px;
+          align-items: center;
           flex-wrap: wrap;
         }
         .mutasi-search-wrap {
@@ -512,6 +514,89 @@ export async function renderMutasi(container) {
           color: white;
           border-color: #2563EB;
           box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+        }
+
+        /* View Mode Toggle */
+        .mutasi-view-toggle {
+          display: inline-flex;
+          align-items: center;
+          background: #F1F5F9;
+          padding: 3px;
+          border-radius: 10px;
+          border: 1px solid #CBD5E1;
+          gap: 3px;
+          flex-shrink: 0;
+        }
+        .mutasi-view-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: 7px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          border: none;
+          background: transparent;
+          color: #64748B;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          height: 34px;
+          box-sizing: border-box;
+          user-select: none;
+        }
+        .mutasi-view-btn:hover {
+          color: #0F172A;
+          background: rgba(255, 255, 255, 0.5);
+        }
+        .mutasi-view-btn.active {
+          background: #FFFFFF;
+          color: #2563EB;
+          font-weight: 700;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Modern Table View */
+        .mutasi-table-card {
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          border-radius: 14px;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+        }
+        .mutasi-table-responsive {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .mutasi-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          font-size: 0.88rem;
+          min-width: 860px;
+        }
+        .mutasi-table th {
+          background: #F8FAFC;
+          color: #475569;
+          font-size: 0.76rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 13px 16px;
+          border-bottom: 1.5px solid #E2E8F0;
+          white-space: nowrap;
+        }
+        .mutasi-table td {
+          padding: 13px 16px;
+          border-bottom: 1px solid #F1F5F9;
+          color: #1E293B;
+          vertical-align: middle;
+        }
+        .mutasi-table tbody tr:hover td {
+          background: #F8FAFC;
+        }
+        .mutasi-table tbody tr:last-child td {
+          border-bottom: none;
         }
 
         /* Grid Cards View */
@@ -711,6 +796,17 @@ export async function renderMutasi(container) {
           .mutasi-select {
             width: 100%;
           }
+          .mutasi-view-toggle {
+            width: 100%;
+            display: flex;
+          }
+          .mutasi-view-btn {
+            flex: 1;
+            justify-content: center;
+          }
+          .mutasi-table-card {
+            border-radius: 12px;
+          }
           .mutasi-cards-grid {
             grid-template-columns: minmax(0, 1fr) !important;
             width: 100% !important;
@@ -825,6 +921,17 @@ export async function renderMutasi(container) {
               <option value="all">Semua Cabang Tujuan (${branchOptions.length})</option>
               ${branchOptions.map(b => `<option value="${b.value}" ${String(selectedToBranch) === String(b.value) ? 'selected' : ''}>${b.label}</option>`).join('')}
             </select>
+
+            <div class="mutasi-view-toggle">
+              <button type="button" class="mutasi-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card" title="Tampilan Kartu">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Kartu</span>
+              </button>
+              <button type="button" class="mutasi-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table" title="Tampilan Tabel">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                <span>Tabel</span>
+              </button>
+            </div>
           </div>
 
           <!-- Status Filter Pills (Swipeable on Mobile) -->
@@ -856,6 +963,89 @@ export async function renderMutasi(container) {
               <button id="mutasi-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
+            </div>
+          ` : viewMode === 'table' ? `
+            <div class="mutasi-table-card">
+              <div class="mutasi-table-responsive">
+                <table class="mutasi-table">
+                  <thead>
+                    <tr>
+                      <th style="width:45px; text-align:center;">No</th>
+                      <th>Nama Karyawan</th>
+                      <th>Tanggal Mutasi</th>
+                      <th>Cabang Asal</th>
+                      <th>Cabang Tujuan</th>
+                      <th style="text-align:center;">Status</th>
+                      <th style="text-align:center;">Dokumen SK</th>
+                      ${canEdit ? `<th style="width:90px; text-align:center;">Aksi</th>` : ''}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.map((m, idx) => {
+                      const isSelesai = m.status === 'Selesai';
+                      const initials = (m.employee_name || 'Karyawan').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+                      return `
+                        <tr data-id="${m.id}">
+                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${idx + 1}</td>
+                          <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                              <div class="mutasi-avatar-box" style="width:34px; height:34px; font-size:0.78rem; border-radius:8px;">
+                                ${initials}
+                              </div>
+                              <div>
+                                <div style="font-weight:700; color:#0F172A; white-space:nowrap;">${m.employee_name}</div>
+                                <div style="font-size:0.72rem; color:#64748B;">ID Mutasi: #${m.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                            🗓️ ${formatDateIndo(m.tanggal)}
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <div style="font-weight:600; color:#334155; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;">
+                              <span>📍</span>
+                              <span>${m.from_branch_name || '-'}</span>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <div style="font-weight:700; color:#2563EB; font-size:0.85rem; display:inline-flex; align-items:center; gap:5px;">
+                              <span>➔</span>
+                              <span>${m.to_branch_name || '-'}</span>
+                            </div>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <span class="mutasi-status-badge ${isSelesai ? 'selesai' : 'proses'}">
+                              <span>${isSelesai ? '✅' : '⏳'}</span>
+                              <span>${m.status || 'Proses'}</span>
+                            </span>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            ${m.document_link ? `
+                              <a href="${m.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.76rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                                <span>📄 Buka SK</span>
+                              </a>
+                            ` : `
+                              <span style="font-size:0.75rem; color:#94A3B8;">(Tanpa Dokumen)</span>
+                            `}
+                          </td>
+                          ${canEdit ? `
+                            <td style="text-align:center; white-space:nowrap;">
+                              <div style="display:inline-flex; align-items:center; gap:6px;">
+                                <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                              </div>
+                            </td>
+                          ` : ''}
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ` : `
             <div class="mutasi-cards-grid">
@@ -1014,6 +1204,18 @@ export async function renderMutasi(container) {
       pill.onclick = () => {
         selectedStatus = pill.getAttribute('data-status') || 'all';
         renderUI();
+      };
+    });
+
+    // View Mode Switcher (Kartu vs Tabel)
+    container.querySelectorAll('.mutasi-view-btn').forEach(btn => {
+      btn.onclick = () => {
+        const mode = btn.getAttribute('data-view');
+        if (mode && mode !== viewMode) {
+          viewMode = mode;
+          localStorage.setItem('fcms_mutasi_view_mode', mode);
+          renderUI();
+        }
       };
     });
 

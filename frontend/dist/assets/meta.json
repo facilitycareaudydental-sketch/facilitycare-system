@@ -1,7 +1,7 @@
 {
   "inputs": {
     "frontend/src/config.js": {
-      "bytes": 1879,
+      "bytes": 2468,
       "imports": [],
       "format": "esm"
     },
@@ -47,7 +47,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js": {
-      "bytes": 26852,
+      "bytes": 26964,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -104,7 +104,7 @@
       "format": "esm"
     },
     "frontend/src/pages/schedule.js": {
-      "bytes": 10799,
+      "bytes": 10864,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -171,7 +171,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js": {
-      "bytes": 62675,
+      "bytes": 63011,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -233,7 +233,7 @@
       "format": "esm"
     },
     "frontend/src/pages/one_on_one.js": {
-      "bytes": 8019,
+      "bytes": 8084,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -352,7 +352,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js?v=force61": {
-      "bytes": 62675,
+      "bytes": 63011,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -383,7 +383,7 @@
       "format": "esm"
     },
     "frontend/src/pages/schedule.js?v=force61": {
-      "bytes": 10799,
+      "bytes": 10864,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -450,7 +450,7 @@
       "format": "esm"
     },
     "frontend/src/pages/one_on_one.js?v=force61": {
-      "bytes": 8019,
+      "bytes": 8084,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -517,7 +517,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js?v=v3": {
-      "bytes": 26852,
+      "bytes": 26964,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -558,7 +558,7 @@
       "format": "esm"
     },
     "frontend/src/pages/relievers.js": {
-      "bytes": 8519,
+      "bytes": 8584,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js?v=v3",
@@ -869,7 +869,7 @@
       "format": "esm"
     },
     "frontend/src/pages/branches.js": {
-      "bytes": 2961,
+      "bytes": 3026,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -979,7 +979,7 @@
       "format": "esm"
     },
     "frontend/src/pages/mutasi.js": {
-      "bytes": 40063,
+      "bytes": 49503,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1062,7 +1062,7 @@
       "format": "esm"
     },
     "frontend/src/pages/os_migrations.js": {
-      "bytes": 35714,
+      "bytes": 35708,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1088,7 +1088,7 @@
       "format": "esm"
     },
     "frontend/src/pages/dac.js": {
-      "bytes": 34166,
+      "bytes": 34160,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-TECU22IU.js": {
+    "frontend/dist/assets/app-NOTWSSUU.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1298,7 +1298,7 @@
           "bytesInOutput": 3312
         },
         "frontend/src/config.js": {
-          "bytesInOutput": 1041
+          "bytesInOutput": 1313
         },
         "frontend/src/router.js": {
           "bytesInOutput": 762
@@ -1313,7 +1313,7 @@
           "bytesInOutput": 3435
         },
         "frontend/src/pages/_crud.js": {
-          "bytesInOutput": 15758
+          "bytesInOutput": 15786
         },
         "frontend/src/components/form.js": {
           "bytesInOutput": 3429
@@ -1349,7 +1349,7 @@
           "bytesInOutput": 40705
         },
         "frontend/src/pages/contracts.js?v=force61": {
-          "bytesInOutput": 50175
+          "bytesInOutput": 50309
         },
         "frontend/src/pages/schedule.js?v=force61": {
           "bytesInOutput": 5981
@@ -1364,7 +1364,7 @@
           "bytesInOutput": 35633
         },
         "frontend/src/pages/_crud.js?v=v3": {
-          "bytesInOutput": 15758
+          "bytesInOutput": 15786
         },
         "frontend/src/pages/relievers.js": {
           "bytesInOutput": 4970
@@ -1418,7 +1418,7 @@
           "bytesInOutput": 43264
         },
         "frontend/src/pages/mutasi.js": {
-          "bytesInOutput": 33329
+          "bytesInOutput": 42323
         },
         "frontend/src/pages/overtime.js": {
           "bytesInOutput": 42864
@@ -1427,13 +1427,13 @@
           "bytesInOutput": 2880
         },
         "frontend/src/pages/os_migrations.js": {
-          "bytesInOutput": 30077
+          "bytesInOutput": 30071
         },
         "frontend/src/pages/dac.js": {
-          "bytesInOutput": 28865
+          "bytesInOutput": 28859
         }
       },
-      "bytes": 753296
+      "bytes": 762740
     }
   }
 }
