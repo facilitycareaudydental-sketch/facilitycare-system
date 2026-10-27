@@ -140,7 +140,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js": {
-      "bytes": 47908,
+      "bytes": 60079,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -321,7 +321,7 @@
       "format": "esm"
     },
     "frontend/src/pages/employees.js?v=force61": {
-      "bytes": 47908,
+      "bytes": 60079,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-LTKRSUFQ.js": {
+    "frontend/dist/assets/app-D2WJ2UM3.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1346,7 +1346,7 @@
           "bytesInOutput": 5187
         },
         "frontend/src/pages/employees.js?v=force61": {
-          "bytesInOutput": 40706
+          "bytesInOutput": 51713
         },
         "frontend/src/pages/contracts.js?v=force61": {
           "bytesInOutput": 61239
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28860
         }
       },
-      "bytes": 782001
+      "bytes": 793008
     }
   }
 }

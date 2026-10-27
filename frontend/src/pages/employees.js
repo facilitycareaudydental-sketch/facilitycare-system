@@ -17,12 +17,19 @@ const INITIAL_EMPLOYEES = [
 const DIVISION_LIST = ['FACILITY CARE', 'SECURITY', 'FC - RELIEFER'];
 const STATUS_LIST = ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'];
 
-// Helper format tanggal lokal Indonesia
+// Helper format tanggal lokal Indonesia (termasuk konversi serial date Excel seperti 45369)
 function formatDateIndo(dateStr) {
   if (!dateStr) return '-';
   try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
+    const s = String(dateStr).trim();
+    if (/^\d{5}(\.\d+)?$/.test(s)) {
+      const excelDate = new Date(Math.round((Number(s) - 25569) * 86400 * 1000));
+      if (!isNaN(excelDate.getTime())) {
+        return excelDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    }
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   } catch {
     return dateStr;
@@ -45,6 +52,7 @@ export async function renderEmployees(container, params) {
   let selectedBranch = 'all';
   let searchQuery = '';
   let isLoading = false;
+  let viewMode = localStorage.getItem('fcms_employees_view_mode') || 'card';
 
   // Handle dashboard filter parameter
   const dashFilter = params ? params.get('dash_filter') : null;
@@ -451,6 +459,83 @@ export async function renderEmployees(container, params) {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
+          align-items: center;
+        }
+        .emp-view-toggle {
+          display: inline-flex;
+          background: #F1F5F9;
+          padding: 4px;
+          border-radius: 10px;
+          border: 1px solid #E2E8F0;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .emp-view-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: 7px;
+          border: none;
+          background: transparent;
+          color: #64748B;
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .emp-view-btn:hover {
+          color: #0F172A;
+        }
+        .emp-view-btn.active {
+          background: white;
+          color: #2563EB;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .emp-table-card {
+          background: white;
+          border-radius: 14px;
+          border: 1px solid #E2E8F0;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          overflow: hidden;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .emp-table-responsive {
+          width: 100%;
+          overflow-x: auto;
+        }
+        .emp-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          font-size: 0.85rem;
+        }
+        .emp-table th {
+          background: #F8FAFC;
+          color: #475569;
+          font-weight: 700;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          padding: 13px 16px;
+          border-bottom: 1px solid #E2E8F0;
+          white-space: nowrap;
+        }
+        .emp-table td {
+          padding: 13px 16px;
+          border-bottom: 1px solid #F1F5F9;
+          color: #1E293B;
+          vertical-align: middle;
+        }
+        .emp-table tbody tr {
+          transition: background 0.15s ease;
+        }
+        .emp-table tbody tr:hover {
+          background: #F8FAFC;
+        }
+        .emp-table tbody tr:last-child td {
+          border-bottom: none;
         }
         .emp-search-wrap {
           position: relative;
@@ -880,6 +965,14 @@ export async function renderEmployees(container, params) {
           .emp-select {
             width: 100%;
           }
+          .emp-view-toggle {
+            width: 100%;
+            display: flex;
+          }
+          .emp-view-btn {
+            flex: 1;
+            justify-content: center;
+          }
           .emp-cards-grid {
             grid-template-columns: minmax(0, 1fr) !important;
             width: 100% !important;
@@ -998,6 +1091,17 @@ export async function renderEmployees(container, params) {
                 </option>
               `).join('')}
             </select>
+
+            <div class="emp-view-toggle" title="Pilih Tampilan">
+              <button type="button" class="emp-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Kartu</span>
+              </button>
+              <button type="button" class="emp-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <span>Tabel</span>
+              </button>
+            </div>
           </div>
 
           <!-- Status Horizontal Swipeable Pills -->
@@ -1024,8 +1128,8 @@ export async function renderEmployees(container, params) {
           </div>
         </div>
 
-        <!-- Exclusive Cards Grid -->
-        <div class="emp-cards-grid">
+        <!-- Exclusive List Container (Card / Table) -->
+        <div id="emp-list-container">
           ${filtered.length === 0 ? `
             <div class="emp-empty-state">
               <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
@@ -1033,7 +1137,117 @@ export async function renderEmployees(container, params) {
               <p style="font-size:0.85rem; color:#64748B; margin:0 0 16px 0;">Coba sesuaikan kata kunci pencarian, filter cabang, atau filter divisi.</p>
               <button id="emp-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
             </div>
-          ` : filtered.map(item => {
+          ` : viewMode === 'table' ? `
+            <div class="emp-table-card">
+              <div class="emp-table-responsive">
+                <table class="emp-table">
+                  <thead>
+                    <tr>
+                      <th style="width:45px; text-align:center;">No</th>
+                      <th>Karyawan</th>
+                      <th>Cabang</th>
+                      <th>Divisi</th>
+                      <th>No. HP</th>
+                      <th>Tgl Masuk</th>
+                      <th>Target Migrasi OS / Catatan</th>
+                      <th style="text-align:center;">Status</th>
+                      <th style="text-align:center;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.map((item, idx) => {
+                      const div = item.division || 'FACILITY CARE';
+                      let divClass = 'emp-div-fc';
+                      let avatarClass = '';
+                      if (div === 'SECURITY') {
+                        divClass = 'emp-div-sec';
+                        avatarClass = 'sec';
+                      } else if (div === 'FC - RELIEFER') {
+                        divClass = 'emp-div-rel';
+                        avatarClass = 'rel';
+                      }
+
+                      const isAktif = item.status === 'Aktif';
+                      const statusClass = isAktif ? 'emp-status-aktif' : 'emp-status-nonaktif';
+                      const statusText = isAktif ? '🟢 Aktif' : `⚪ ${item.status || 'Nonaktif'}`;
+
+                      return `
+                        <tr data-id="${item.id}">
+                          <td style="text-align:center; font-weight:700; color:#64748B;">${idx + 1}</td>
+                          <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                              <div class="emp-avatar ${avatarClass}" style="width:36px; height:36px; border-radius:9px; font-size:0.85rem;">
+                                ${getInitials(item.full_name)}
+                              </div>
+                              <div>
+                                <div style="font-weight:700; color:#0F172A; white-space:nowrap;">${item.full_name || '-'}</div>
+                                <div style="font-size:0.75rem; color:#64748B;">ID #${item.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap; font-weight:600; color:#334155;">
+                            📍 ${item.branch_name || 'Cabang Tidak Ditentukan'}
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <span class="emp-div-badge ${divClass}">
+                              ${div === 'SECURITY' ? '🛡️' : (div === 'FC - RELIEFER' ? '🔄' : '🧹')} ${div}
+                            </span>
+                          </td>
+                          <td style="white-space:nowrap;">
+                            ${item.phone ? `
+                              <a href="tel:${item.phone}" class="emp-phone-link">
+                                📞 ${item.phone}
+                              </a>
+                            ` : '<span style="color:#94A3B8;">-</span>'}
+                          </td>
+                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                            ${formatDateIndo(item.join_date)}
+                          </td>
+                          <td style="max-width:260px;">
+                            ${item.target_pindah_os || item.target_selesai_os ? `
+                              <div style="font-size:0.78rem; font-weight:600; color:#4F46E5; margin-bottom:2px;">
+                                🔄 ${item.target_pindah_os ? 'Pindah: ' + formatDateIndo(item.target_pindah_os) : ''}
+                                ${item.target_selesai_os ? (item.target_pindah_os ? ' → ' : '') + 'Selesai: ' + formatDateIndo(item.target_selesai_os) : ''}
+                              </div>
+                            ` : ''}
+                            ${item.notes ? `
+                              <div style="font-size:0.78rem; color:#475569; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${String(item.notes).replace(/"/g, '&quot;')}">
+                                📝 ${item.notes}
+                              </div>
+                            ` : (!item.target_pindah_os && !item.target_selesai_os ? '<span style="color:#94A3B8;">-</span>' : '')}
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <span class="emp-status-badge ${statusClass}">
+                              ${statusText}
+                            </span>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <div style="display:inline-flex; align-items:center; gap:6px;">
+                              ${item.phone ? `
+                                <a href="https://wa.me/${item.phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" class="emp-icon-btn" title="Chat WhatsApp" style="color:#16A34A;">
+                                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.185 1.564 5.939l-1.564 5.717 5.864-1.538c1.691.924 3.63 1.458 5.698 1.458 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/></svg>
+                                </a>
+                              ` : ''}
+                              ${canEdit ? `
+                                <button class="emp-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Karyawan">
+                                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button class="emp-icon-btn delete" data-action="delete" data-id="${item.id}" title="Nonaktifkan Karyawan">
+                                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                </button>
+                              ` : ''}
+                            </div>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : `
+            <div class="emp-cards-grid">
+              ${filtered.map(item => {
             const div = item.division || 'FACILITY CARE';
             let divClass = 'emp-div-fc';
             let avatarClass = '';
@@ -1102,8 +1316,8 @@ export async function renderEmployees(container, params) {
                     <div class="emp-info-row target-os" style="border-top:1px dashed #E2E8F0; padding-top:6px; margin-top:2px; flex-direction:column; align-items:flex-start; gap:3px; width:100%;">
                       <span class="emp-info-label" style="font-weight:600; color:#475569;">🔄 Target Migrasi OS:</span>
                       <span class="emp-info-val" style="font-size:0.78rem; color:#4F46E5; text-align:left; width:100%; word-break:break-word; overflow-wrap:anywhere;">
-                        ${item.target_pindah_os ? 'Pindah: ' + item.target_pindah_os : ''}
-                        ${item.target_selesai_os ? (item.target_pindah_os ? ' → ' : '') + 'Selesai: ' + item.target_selesai_os : ''}
+                        ${item.target_pindah_os ? 'Pindah: ' + formatDateIndo(item.target_pindah_os) : ''}
+                        ${item.target_selesai_os ? (item.target_pindah_os ? ' → ' : '') + 'Selesai: ' + formatDateIndo(item.target_selesai_os) : ''}
                       </span>
                     </div>
                   ` : ''}
@@ -1142,12 +1356,25 @@ export async function renderEmployees(container, params) {
               </div>
             `;
           }).join('')}
+            </div>
+          `}
         </div>
 
       </div>
     `;
 
     // ── Event Handlers ──
+    container.querySelectorAll('.emp-view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-view');
+        if (mode && mode !== viewMode) {
+          viewMode = mode;
+          localStorage.setItem('fcms_employees_view_mode', mode);
+          renderUI();
+        }
+      });
+    });
+
     const searchInput = container.querySelector('#emp-search-input');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -1219,21 +1446,21 @@ export async function renderEmployees(container, params) {
       refreshBtn.addEventListener('click', () => loadData());
     }
 
-    // Card Action Buttons Delegation
-    container.querySelectorAll('.emp-card').forEach(card => {
-      const id = Number(card.dataset.id);
-      const item = employeeList.find(x => x.id === id);
-      if (!item) return;
+    // Action Buttons (Edit / Delete) in both Card and Table View
+    container.querySelectorAll('.emp-icon-btn.edit').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        const item = employeeList.find(x => x.id === id);
+        if (item) openEmployeeModal(item);
+      });
+    });
 
-      const editBtn = card.querySelector('[data-action="edit"]');
-      if (editBtn) {
-        editBtn.addEventListener('click', () => openEmployeeModal(item));
-      }
-
-      const delBtn = card.querySelector('[data-action="delete"]');
-      if (delBtn) {
-        delBtn.addEventListener('click', () => deleteEmployee(item));
-      }
+    container.querySelectorAll('.emp-icon-btn.delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        const item = employeeList.find(x => x.id === id);
+        if (item) deleteEmployee(item);
+      });
     });
   }
 
