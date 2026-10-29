@@ -145,9 +145,13 @@ jobs:
           echo "=== 3. CONFIGURATION ASSERTION GATE (PERIKSA TOML LOKAL) ==="
           echo "ℹ️ CATATAN: Ini adalah verifikasi integritas kode sumber lokal, bukan bukti identitas cloud runtime."
 
-          # A. Verifikasi api/wrangler.toml: Nama Worker harus tepat fm-operations-api
+          # A. Verifikasi api/wrangler.toml: Nama Worker harus tepat fm-operations-api dan account_id FCMS
           grep -E '^[[:space:]]*name[[:space:]]*=[[:space:]]*"fm-operations-api"[[:space:]]*$' api/wrangler.toml || {
             echo "❌ FATAL: api/wrangler.toml harus memiliki name = \"fm-operations-api\". Dibatalkan."
+            exit 1
+          }
+          grep -E '^[[:space:]]*account_id[[:space:]]*=[[:space:]]*"293440e04e5d0c8073e7e2893750b527"[[:space:]]*$' api/wrangler.toml || {
+            echo "❌ FATAL: api/wrangler.toml harus memiliki account_id = \"293440e04e5d0c8073e7e2893750b527\". Dibatalkan."
             exit 1
           }
           if grep -iE 'facilitycare-fcvm-api' api/wrangler.toml; then
@@ -174,6 +178,10 @@ jobs:
           fi
 
           # C. Verifikasi root wrangler.toml
+          grep -E '^[[:space:]]*account_id[[:space:]]*=[[:space:]]*"293440e04e5d0c8073e7e2893750b527"[[:space:]]*$' wrangler.toml || {
+            echo "❌ FATAL: account_id di root wrangler.toml harus \"293440e04e5d0c8073e7e2893750b527\". Dibatalkan."
+            exit 1
+          }
           grep -E '^[[:space:]]*database_id[[:space:]]*=[[:space:]]*"62b4b6e5-a718-40bc-9aab-6a700b82a9c9"[[:space:]]*$' wrangler.toml || {
             echo "❌ FATAL: database_id di root wrangler.toml harus \"62b4b6e5-a718-40bc-9aab-6a700b82a9c9\". Dibatalkan."
             exit 1
@@ -182,6 +190,10 @@ jobs:
           # D. Verifikasi frontend/wrangler.toml dan target Cloudflare Pages
           test -f frontend/wrangler.toml || {
             echo "❌ FATAL: frontend/wrangler.toml tidak ditemukan! Dibatalkan."
+            exit 1
+          }
+          grep -E '^[[:space:]]*account_id[[:space:]]*=[[:space:]]*"293440e04e5d0c8073e7e2893750b527"[[:space:]]*$' frontend/wrangler.toml || {
+            echo "❌ FATAL: frontend/wrangler.toml harus memiliki account_id = \"293440e04e5d0c8073e7e2893750b527\". Dibatalkan."
             exit 1
           }
           if grep -iE 'fcvm|facilitycare-fcvm' frontend/wrangler.toml; then

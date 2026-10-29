@@ -1,6 +1,7 @@
-name = "fm-operations-frontend"
+name = "facilitycare-system"
+account_id = "293440e04e5d0c8073e7e2893750b527"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-10-22"
 
 [vars]
-API_BASE_URL = "https://fm-operations-api.YOUR_SUBDOMAIN.workers.dev"
+API_BASE_URL = "https://fm-operations-api.facilitycare-audydental.workers.dev"

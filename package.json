@@ -10,8 +10,8 @@
     "build": "node build-root.js",
     "dev:api": "npm run dev --workspace=api",
     "dev:frontend": "npm run dev --workspace=frontend",
-    "deploy:api": "npm run deploy --workspace=api",
-    "deploy:frontend": "npm run deploy --workspace=frontend",
+    "deploy:api": "node scripts/preflight-guard.mjs && npm run deploy --workspace=api",
+    "deploy:frontend": "node scripts/preflight-guard.mjs && npm run deploy --workspace=frontend",
     "db:migrate": "wrangler d1 execute fm-operations-db --file=schema/migrations.sql",
     "db:migrate:remote": "wrangler d1 execute fm-operations-db --remote --file=schema/migrations.sql"
   },

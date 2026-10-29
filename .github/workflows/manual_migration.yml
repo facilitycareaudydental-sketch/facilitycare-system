@@ -1,22 +1,18 @@
-name: Manual DB Migration
+name: Manual DB Migration (Disabled - Safe No-Op)
 
 on:
   workflow_dispatch:
-    inputs:
-      sql:
-        description: 'SQL to execute'
-        required: false
-        default: 'SELECT 1'
 
 jobs:
   run-migration:
-    name: 🗄️ Run SQL Migration
+    name: 🗄️ Run SQL Migration (Disabled)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run Migration v4 via Node script (Direct API)
-        env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node create_tables.js
+      - name: Disabled Legacy Migration Notice
+        run: |
+          echo "NOTICE: Legacy manual migration workflow is disabled for production safety."
+          echo "Reason: Missing create_tables.js script and absence of FCMS target/account preflight verification."
+          echo "Use controlled D1 migrations with explicit FCMS target verification (fcms-production-db) instead."
+          exit 0
