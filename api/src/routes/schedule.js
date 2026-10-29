@@ -123,24 +123,62 @@ async function createSchedule(request, env, origin) {
 async function updateSchedule(id, request, env, origin) {
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-  const existing = await env.DB.prepare('SELECT id FROM activity_schedule WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM activity_schedule WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
 
-  const { branch_id, activity_type, period, pic, opening_date, target_date, completion_date, status, notes } = body;
-  const updatedRecord = { ...existing, branch_id: branch_id || existing.branch_id, activity_type: activity_type || existing.activity_type, period: period || existing.period, pic: pic || existing.pic, opening_date: opening_date || existing.opening_date, target_date: target_date || existing.target_date, completion_date: completion_date || existing.completion_date, status: status !== null && status !== undefined && status !== '' ? status : existing.status, notes: notes || existing.notes };
-  
+  const branch_id = body.branch_id !== undefined ? (body.branch_id ? Number(body.branch_id) : null) : existing.branch_id;
+  const activity_type = body.activity_type !== undefined ? body.activity_type : existing.activity_type;
+  const period = body.period !== undefined ? body.period : existing.period;
+  const pic = body.pic !== undefined ? (body.pic || null) : existing.pic;
+  const opening_date = body.opening_date !== undefined ? (body.opening_date || null) : existing.opening_date;
+  const target_date = body.target_date !== undefined ? (body.target_date || null) : existing.target_date;
+  const completion_date = body.completion_date !== undefined ? (body.completion_date || null) : existing.completion_date;
+  const status = body.status !== undefined ? (body.status !== null && body.status !== '' ? body.status : '') : existing.status;
+  const notes = body.notes !== undefined ? (body.notes || null) : existing.notes;
+
+  const updatedRecord = {
+    ...existing,
+    branch_id,
+    activity_type,
+    period,
+    pic,
+    opening_date,
+    target_date,
+    completion_date,
+    status,
+    notes,
+    row_version: (existing.row_version || 0) + 1,
+    last_sync_source: 'FCMS'
+  };
+
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE activity_schedule SET
-        branch_id = COALESCE(?, branch_id), activity_type = COALESCE(?, activity_type),
-        period = COALESCE(?, period), pic = COALESCE(?, pic),
-        opening_date = COALESCE(?, opening_date), target_date = COALESCE(?, target_date),
-        completion_date = COALESCE(?, completion_date), status = COALESCE(?, status),
-        notes = COALESCE(?, notes), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS'
+        branch_id = ?,
+        activity_type = ?,
+        period = ?,
+        pic = ?,
+        opening_date = ?,
+        target_date = ?,
+        completion_date = ?,
+        status = ?,
+        notes = ?,
+        updated_at = datetime('now'),
+        row_version = COALESCE(row_version, 0) + 1,
+        last_sync_source = 'FCMS'
        WHERE id = ?`
-    ).bind(branch_id || null, activity_type || null, period || null, pic || null,
-      opening_date || null, target_date || null, completion_date || null,
-      status !== null && status !== undefined && status !== '' ? status : '', notes || null, id),
+    ).bind(
+      branch_id,
+      activity_type,
+      period,
+      pic,
+      opening_date,
+      target_date,
+      completion_date,
+      status,
+      notes,
+      id
+    ),
     buildOutboxQuery(env, 'Time Line', id, 'UPDATE', mapDBToPayload('Time Line', updatedRecord))
   ]);
 
