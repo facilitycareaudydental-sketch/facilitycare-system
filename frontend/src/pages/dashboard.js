@@ -168,7 +168,7 @@ function chartOpts(extra={}) {
 }
 
 // ── Skeleton HTML ──────────────────────────────────────────────────────────
-const skelKPI = () => Array(6).fill(0).map(()=>`
+const skelKPI = () => Array(5).fill(0).map(()=>`
   <div class="kpi-card" style="pointer-events:none;padding:16px">
     <div style="display:flex; gap:16px; align-items:flex-start">
       <div class="skeleton" style="width:48px;height:48px;border-radius:12px;flex-shrink:0"></div>
@@ -184,7 +184,7 @@ const skelKPI = () => Array(6).fill(0).map(()=>`
     </div>
   </div>`).join('');
 
-const skelMini = () => Array(6).fill(0).map(()=>`
+const skelMini = () => Array(5).fill(0).map(()=>`
   <div class="mini-stat" style="pointer-events:none">
     <div class="skeleton" style="width:40px;height:40px;border-radius:10px;flex-shrink:0"></div>
     <div style="flex:1">
@@ -544,7 +544,6 @@ function renderKPI(kpi) {
 
   const cards = [
     { icon:'👥', label:'Karyawan Aktif',        sub:'Total karyawan aktif',       href:'#/employees?dash_filter=active',   color:'kpi-blue',   key:'employees',  trendPct:'+2%', trendColor:'#10B981', points:'0,20 10,18 20,22 30,12 40,15 50,8 60,10 70,5 80,6 90,2 100,0' },
-    { icon:'🔄', label:'Reliefer Aktif',        sub:'Karyawan reliefer',       href:'#/employees?dash_filter=reliefer',   color:'kpi-purple',   key:'reliever_total',  trendPct:'0%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
     { icon:'📄', label:'Kontrak Aktif',          sub:'Kontrak yang masih berjalan',href:'#/contracts?dash_filter=active',   color:'kpi-green',  key:'contracts',  trendPct:'+1%', trendColor:'#10B981', points:'0,15 20,18 40,10 60,12 80,5 100,2' },
     { icon:'⏳', label:'Kontrak Habis 30 Hari',  sub:'Akan segera berakhir',       href:'#/contracts?dash_filter=expiring30',   color:'kpi-warn',   key:'expiring30', trendPct:'+25%',trendColor:'#F59E0B', points:'0,25 20,22 40,24 60,15 80,18 100,5' },
     { icon:'⚠️', label:'Permasalahan Open',    sub:'Belum diselesaikan',         href:'#/issues?dash_filter=open',      color:'kpi-red',    key:'issues',     trendPct:'0%',  trendColor:'#EF4444', points:'0,20 20,18 40,22 60,19 80,21 100,20' },
@@ -698,15 +697,6 @@ function renderMiniStats(kpi) {
       color:'mini-green' 
     },
     { 
-      id: 'mini-reliefer',
-      icon:'🔄', 
-      label:'Report Reliefer',   
-      dropdown: renderMonthDropdown('dash-reliefer-month'),
-      val: aggs.relievers_by_month?.[curYM] ?? kpi.reliever_completed?.current ?? 0,    
-      href:`#/relievers?dash_filter=reliever&month=${curYM}`,  
-      color:'mini-teal' 
-    },
-    { 
       id: 'mini-fogging',
       icon:'💨', 
       label:'Report Fogging',      
@@ -786,7 +776,6 @@ function renderMiniStats(kpi) {
     }
   };
 
-  setupMonthDropdown('dash-reliefer-month', 'mini-reliefer', 'relievers_by_month', '#/relievers?dash_filter=reliever');
   setupMonthDropdown('dash-inspeksi-month', 'mini-inspeksi', 'inspeksi_by_month', '#/timeline?dash_filter=inspeksi');
   setupMonthDropdown('dash-gcdc-month', 'mini-gcdc', 'gcdc_by_month', '#/timeline?dash_filter=gcdc');
   setupMonthDropdown('dash-fogging-month', 'mini-fogging', 'fogging_by_month', '#/reports/fogging?dash_filter=fogging');
