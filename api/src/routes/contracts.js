@@ -51,7 +51,7 @@ async function listContracts(request, env, origin) {
   if (branch_id) { conditions.push('c.branch_id = ?'); values.push(branch_id); }
   if (status) { conditions.push('c.status = ?'); values.push(status); }
   if (expiring_days) {
-    conditions.push("c.end_date <= date('now', '+' || ? || ' days') AND c.end_date >= date('now')");
+    conditions.push("c.end_date IS NOT NULL AND c.end_date != '' AND c.end_date <= date('now', '+' || ? || ' days') AND c.end_date >= date('now')");
     values.push(expiring_days);
   }
 
@@ -63,11 +63,17 @@ async function listContracts(request, env, origin) {
 
   const rows = await env.DB.prepare(
     `SELECT c.*, e.full_name as employee_name, b.full_name as branch_name,
-      CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER) as days_remaining
+      CASE 
+        WHEN c.end_date IS NOT NULL AND c.end_date != '' 
+        THEN CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER)
+        ELSE NULL 
+      END as days_remaining
      FROM contracts c 
      LEFT JOIN employees e ON c.employee_id = e.id
      LEFT JOIN branches b ON c.branch_id = b.id
-     ${where} ORDER BY c.end_date ASC LIMIT ? OFFSET ?`
+     ${where} 
+     ORDER BY CASE WHEN c.end_date IS NULL OR c.end_date = '' THEN 1 ELSE 0 END, c.end_date ASC 
+     LIMIT ? OFFSET ?`
   ).bind(...values, limit, offset).all();
 
   return paginated(rows.results, countResult.total, page, limit, origin);
@@ -76,7 +82,11 @@ async function listContracts(request, env, origin) {
 async function getContract(id, env, origin) {
   const row = await env.DB.prepare(
     `SELECT c.*, e.full_name as employee_name, b.full_name as branch_name,
-      CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER) as days_remaining
+      CASE 
+        WHEN c.end_date IS NOT NULL AND c.end_date != '' 
+        THEN CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER)
+        ELSE NULL 
+      END as days_remaining
      FROM contracts c 
      LEFT JOIN employees e ON c.employee_id = e.id
      LEFT JOIN branches b ON c.branch_id = b.id
@@ -92,10 +102,22 @@ async function createContract(request, env, origin) {
   const { employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes } = body;
   if (!employee_id) return error('employee_id required', 400, origin);
 
+  const cleanStartDate = (start_date && typeof start_date === 'string' && start_date.trim()) ? start_date.trim() : null;
+  const cleanEndDate = (end_date && typeof end_date === 'string' && end_date.trim()) ? end_date.trim() : null;
+
   const result = await env.DB.prepare(
     'INSERT INTO contracts (employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(employee_id, branch_id || null, division || 'FACILITY CARE', start_date || '', end_date || '',
-    contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null).run();
+  ).bind(
+    employee_id,
+    branch_id || null,
+    division || 'FACILITY CARE',
+    cleanStartDate,
+    cleanEndDate,
+    contract_type || null,
+    pkwt_number || null,
+    status !== null && status !== undefined && status !== '' ? status : '',
+    notes || null
+  ).run();
 
   const newId = result.meta.last_row_id;
   const emp = await env.DB.prepare('SELECT full_name FROM employees WHERE id = ?').bind(employee_id).first();
@@ -105,7 +127,7 @@ async function createContract(request, env, origin) {
     await runSync(env.DB, 'contracts', newId, {
       empName,
       branchId: branch_id || null,
-      endDate: end_date,
+      endDate: cleanEndDate,
       status: status !== null && status !== undefined && status !== '' ? status : ''
     });
   } catch (syncErr) {
@@ -118,25 +140,44 @@ async function createContract(request, env, origin) {
 async function updateContract(id, request, env, origin) {
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
-  const existing = await env.DB.prepare('SELECT id FROM contracts WHERE id = ?').bind(id).first();
+  const existing = await env.DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first();
   if (!existing) return notFound(origin);
 
-  const { employee_id, branch_id, division, start_date, end_date, contract_type, pkwt_number, status, notes } = body;
+  const employee_id = body.employee_id !== undefined ? (body.employee_id || null) : existing.employee_id;
+  const branch_id = body.branch_id !== undefined ? (body.branch_id || null) : existing.branch_id;
+  const division = body.division !== undefined ? (body.division || null) : existing.division;
+  const start_date = body.start_date !== undefined ? (body.start_date && String(body.start_date).trim() ? String(body.start_date).trim() : null) : existing.start_date;
+  const end_date = body.end_date !== undefined ? (body.end_date && String(body.end_date).trim() ? String(body.end_date).trim() : null) : existing.end_date;
+  const contract_type = body.contract_type !== undefined ? (body.contract_type || null) : existing.contract_type;
+  const pkwt_number = body.pkwt_number !== undefined ? (body.pkwt_number || null) : existing.pkwt_number;
+  const status = body.status !== undefined ? (body.status !== null && body.status !== '' ? body.status : '') : existing.status;
+  const notes = body.notes !== undefined ? (body.notes || null) : existing.notes;
+
   await env.DB.prepare(
     `UPDATE contracts SET 
-      employee_id = COALESCE(?, employee_id),
-      branch_id = COALESCE(?, branch_id),
-      division = COALESCE(?, division),
-      start_date = COALESCE(?, start_date),
-      end_date = COALESCE(?, end_date),
-      contract_type = COALESCE(?, contract_type),
-      pkwt_number = COALESCE(?, pkwt_number),
-      status = COALESCE(?, status),
+      employee_id = ?,
+      branch_id = ?,
+      division = ?,
+      start_date = ?,
+      end_date = ?,
+      contract_type = ?,
+      pkwt_number = ?,
+      status = ?,
       notes = ?,
       updated_at = datetime('now')
      WHERE id = ?`
-  ).bind(employee_id || null, branch_id || null, division || null, start_date || null,
-    end_date || null, contract_type || null, pkwt_number || null, status !== null && status !== undefined && status !== '' ? status : '', notes || null, id).run();
+  ).bind(
+    employee_id,
+    branch_id,
+    division,
+    start_date,
+    end_date,
+    contract_type,
+    pkwt_number,
+    status,
+    notes,
+    id
+  ).run();
 
   // Sync updated values
   const updatedContract = await env.DB.prepare('SELECT employee_id, branch_id, end_date, status FROM contracts WHERE id = ?').bind(id).first();
@@ -179,7 +220,9 @@ async function importContracts(request, env, origin) {
     const countBefore = countBeforeRes.c;
     
     for (const item of body) {
-      if (!item.employee_id || !item.start_date || !item.end_date) continue;
+      if (!item.employee_id) continue;
+      const cleanStartDate = (item.start_date && typeof item.start_date === 'string' && item.start_date.trim()) ? item.start_date.trim() : null;
+      const cleanEndDate = (item.end_date && typeof item.end_date === 'string' && item.end_date.trim()) ? item.end_date.trim() : null;
 
       const existing = await env.DB.prepare('SELECT id FROM contracts WHERE employee_id = ? ORDER BY id DESC LIMIT 1').bind(item.employee_id).first();
       
@@ -189,8 +232,8 @@ async function importContracts(request, env, origin) {
         ).bind(
           item.branch_id || null,
           item.division || 'FACILITY CARE',
-          item.start_date,
-          item.end_date,
+          cleanStartDate,
+          cleanEndDate,
           item.contract_type || null,
           item.pkwt_number || null,
           item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',
@@ -206,8 +249,8 @@ async function importContracts(request, env, origin) {
           item.employee_id,
           item.branch_id || null,
           item.division || 'FACILITY CARE',
-          item.start_date,
-          item.end_date,
+          cleanStartDate,
+          cleanEndDate,
           item.contract_type || null,
           item.pkwt_number || null,
           item.status !== null && item.status !== undefined && item.status !== '' ? item.status : '',

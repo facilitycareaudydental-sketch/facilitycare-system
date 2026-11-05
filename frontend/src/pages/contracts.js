@@ -156,9 +156,11 @@ export async function renderContracts(container, params) {
       // 4. Status Filter Pills
       if (selectedStatus === 'Aktif' && item.status !== 'Aktif') return false;
       if (selectedStatus === 'Expiring30') {
+        const hasEnd = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
+        if (!hasEnd) return false;
         const tetap = isTetap(item.end_date);
-        const rem = Number(item.days_remaining);
-        if (item.status !== 'Aktif' || tetap || isNaN(rem) || rem < 0 || rem > 30) {
+        const rem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
+        if (item.status !== 'Aktif' || tetap || rem === null || isNaN(rem) || rem < 0 || rem > 30) {
           return false;
         }
       }
@@ -169,10 +171,12 @@ export async function renderContracts(container, params) {
 
       // 5. Expiring Days Select Filter
       if (selectedExpiring !== 'all') {
+        const hasEnd = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
+        if (!hasEnd) return false;
         const limitDays = parseInt(selectedExpiring, 10);
         const tetap = isTetap(item.end_date);
-        const rem = Number(item.days_remaining);
-        if (tetap || item.status !== 'Aktif' || isNaN(rem) || rem < 0 || rem > limitDays) {
+        const rem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
+        if (tetap || item.status !== 'Aktif' || rem === null || isNaN(rem) || rem < 0 || rem > limitDays) {
           return false;
         }
       }
@@ -450,15 +454,15 @@ export async function renderContracts(container, params) {
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
-              Tanggal Mulai Kontrak <span style="color:#DC2626;">*</span>
+              Tanggal Mulai Kontrak
             </label>
             <input type="date" id="con-modal-start" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              value="${defaultStartDate}" required />
+              value="${defaultStartDate}" />
           </div>
 
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
-              Tanggal Selesai Kontrak <span id="con-modal-end-required" style="color:#DC2626; display:${defaultIsTetap ? 'none' : 'inline'};">*</span>
+              Tanggal Selesai Kontrak
             </label>
             <input type="date" id="con-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; ${defaultIsTetap ? 'opacity:0.5; background-color:#F8FAFC; cursor:not-allowed;' : 'background-color:#FFFFFF;'}" 
               value="${defaultEndDate}" ${defaultIsTetap ? 'disabled' : ''} />
@@ -502,9 +506,11 @@ export async function renderContracts(container, params) {
         const branch_id = branchEl?.value;
         const division = divEl?.value || 'FACILITY CARE';
         const status = statusEl?.value || 'Aktif';
-        const start_date = startEl?.value;
+        const rawStartDate = startEl?.value?.trim();
+        const start_date = rawStartDate || null;
         const is_tetap = isTetapEl?.checked;
-        const end_date = is_tetap ? '2099-12-31' : (endEl?.value || '');
+        const rawEndDate = endEl?.value?.trim();
+        const end_date = is_tetap ? '2099-12-31' : (rawEndDate || null);
         const contract_type = typeEl?.value;
         const pkwt_number = pkwtEl?.value;
         const notes = notesEl?.value?.trim() || null;
@@ -517,16 +523,6 @@ export async function renderContracts(container, params) {
         if (!branch_id) {
           toastError('Harap pilih cabang penempatan!');
           branchEl?.focus();
-          return;
-        }
-        if (!start_date) {
-          toastError('Harap tentukan tanggal mulai kontrak!');
-          startEl?.focus();
-          return;
-        }
-        if (!is_tetap && !end_date) {
-          toastError('Harap tentukan tanggal selesai kontrak atau centang Karyawan Tetap / PKWTT!');
-          endEl?.focus();
           return;
         }
         if (!is_tetap && start_date && end_date && end_date < start_date) {
@@ -581,7 +577,6 @@ export async function renderContracts(container, params) {
       const startInput = modalEl.querySelector('#con-modal-start');
       const typeSelect = modalEl.querySelector('#con-modal-type');
       const pkwtSelect = modalEl.querySelector('#con-modal-pkwt');
-      const reqAsterisk = modalEl.querySelector('#con-modal-end-required');
 
       if (!isTetapCheck || !endInput) return;
 
@@ -593,7 +588,6 @@ export async function renderContracts(container, params) {
           endInput.style.backgroundColor = '#F8FAFC';
           endInput.style.cursor = 'not-allowed';
           endInput.value = '';
-          if (reqAsterisk) reqAsterisk.style.display = 'none';
           if (syncDropdowns) {
             if (typeSelect) typeSelect.value = 'PKWTT (TETAP)';
             if (pkwtSelect) pkwtSelect.value = 'TETAP';
@@ -604,13 +598,9 @@ export async function renderContracts(container, params) {
           endInput.style.opacity = '1';
           endInput.style.backgroundColor = '#FFFFFF';
           endInput.style.cursor = 'default';
-          if (reqAsterisk) reqAsterisk.style.display = 'inline';
           if (syncDropdowns) {
             if (typeSelect && typeSelect.value === 'PKWTT (TETAP)') typeSelect.value = 'KONTRAK 1 TAHUN';
             if (pkwtSelect && pkwtSelect.value === 'TETAP') pkwtSelect.value = 'PKWT 1';
-          }
-          if (startInput && startInput.value && !endInput.value && typeSelect) {
-            endInput.value = computeContractEndDate(startInput.value, typeSelect.value);
           }
         }
       }
@@ -702,6 +692,8 @@ export async function renderContracts(container, params) {
     }
     const exportData = contractsList.map(c => {
       const tetap = isTetap(c.end_date);
+      const hasEnd = Boolean(c.end_date && String(c.end_date).trim() && c.end_date !== '-');
+      const rem = c.days_remaining !== null && c.days_remaining !== undefined && c.days_remaining !== '' ? Number(c.days_remaining) : null;
       return {
         'Nama Lengkap': c.employee_name || '',
         'Cabang': c.branch_name || '',
@@ -709,8 +701,8 @@ export async function renderContracts(container, params) {
         'No. PKWT': c.pkwt_number || '',
         'Tipe Kontrak': c.contract_type || '',
         'Tanggal Mulai': c.start_date || '',
-        'Tanggal Selesai': tetap ? 'Tetap / PKWTT' : (c.end_date || ''),
-        'Sisa Hari': tetap ? 'Tetap' : (c.days_remaining !== null && c.days_remaining !== undefined ? `${c.days_remaining} Hari` : ''),
+        'Tanggal Selesai': tetap ? 'Tetap / PKWTT' : (hasEnd ? c.end_date : '-'),
+        'Sisa Hari': tetap ? 'Tetap' : (hasEnd && rem !== null && !isNaN(rem) ? rem + ' Hari' : '-'),
         'Status': c.status || '',
         'Catatan': c.notes || ''
       };
@@ -727,9 +719,11 @@ export async function renderContracts(container, params) {
     const totalCount = contractsList.length;
     const activeCount = contractsList.filter(c => c.status === 'Aktif').length;
     const expiringCount = contractsList.filter(c => {
+      const hasEnd = Boolean(c.end_date && String(c.end_date).trim() && c.end_date !== '-');
+      if (!hasEnd) return false;
       const tetap = isTetap(c.end_date);
-      const rem = Number(c.days_remaining);
-      return c.status === 'Aktif' && !tetap && !isNaN(rem) && rem >= 0 && rem <= 30;
+      const rem = c.days_remaining !== null && c.days_remaining !== undefined && c.days_remaining !== '' ? Number(c.days_remaining) : null;
+      return c.status === 'Aktif' && !tetap && rem !== null && !isNaN(rem) && rem >= 0 && rem <= 30;
     }).length;
     const permanentCount = contractsList.filter(c => isTetap(c.end_date) && c.status === 'Aktif').length;
     const nonActiveCount = contractsList.filter(c => c.status !== 'Aktif').length;
@@ -1633,9 +1627,11 @@ export async function renderContracts(container, params) {
                         avatarClass = 'rel';
                       }
 
+                      const hasEndDate = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
                       const tetap = isTetap(item.end_date);
                       const isAktif = item.status === 'Aktif';
-                      const rem = Number(item.days_remaining);
+                      const rawRem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
+                      const rem = (hasEndDate && !tetap && rawRem !== null && !isNaN(rawRem)) ? rawRem : null;
 
                       let statusBadgeClass = 'con-status-aktif';
                       let statusBadgeText = '🟢 Aktif';
@@ -1644,15 +1640,20 @@ export async function renderContracts(container, params) {
                         statusBadgeClass = 'con-status-tetap';
                         statusBadgeText = '🏛️ PKWTT (Tetap)';
                       } else if (isAktif) {
-                        if (rem <= 0) {
-                          statusBadgeClass = 'con-status-danger';
-                          statusBadgeText = '⚠️ Habis Hari Ini';
-                        } else if (rem <= 30) {
-                          statusBadgeClass = 'con-status-warning';
-                          statusBadgeText = `⚠️ Sisa ${rem} Hari`;
+                        if (rem !== null) {
+                          if (rem <= 0) {
+                            statusBadgeClass = 'con-status-danger';
+                            statusBadgeText = '⚠️ Habis Hari Ini';
+                          } else if (rem <= 30) {
+                            statusBadgeClass = 'con-status-warning';
+                            statusBadgeText = `⚠️ Sisa ${rem} Hari`;
+                          } else {
+                            statusBadgeClass = 'con-status-aktif';
+                            statusBadgeText = `🟢 Aktif (${rem} Hari)`;
+                          }
                         } else {
                           statusBadgeClass = 'con-status-aktif';
-                          statusBadgeText = `🟢 Aktif (${rem} Hari)`;
+                          statusBadgeText = '🟢 Aktif';
                         }
                       } else {
                         statusBadgeClass = 'con-status-danger';
@@ -1692,10 +1693,10 @@ export async function renderContracts(container, params) {
                             ${formatDateIndo(item.start_date)}
                           </td>
                           <td style="white-space:nowrap; font-weight:600; ${tetap ? 'color:#4338CA; font-weight:700;' : 'color:#1E293B;'}">
-                            ${tetap ? 'Tetap / PKWTT' : formatDateIndo(item.end_date)}
+                            ${tetap ? 'Tetap / PKWTT' : (hasEndDate ? formatDateIndo(item.end_date) : '-')}
                           </td>
-                          <td style="white-space:nowrap; font-size:0.82rem; font-weight:600; ${tetap ? 'color:#15803D;' : (rem <= 30 && isAktif ? 'color:#D97706; font-weight:700;' : 'color:#475569;')}">
-                            ${tetap ? 'Karyawan Tetap (Permanen)' : (rem <= 0 ? 'Masa Kontrak Telah Habis' : `${rem} Hari Tersisa`)}
+                          <td style="white-space:nowrap; font-size:0.82rem; font-weight:600; ${tetap ? 'color:#15803D;' : (rem !== null && rem <= 30 && isAktif ? 'color:#D97706; font-weight:700;' : 'color:#475569;')}">
+                            ${tetap ? 'Karyawan Tetap (Permanen)' : (rem !== null ? (rem <= 0 ? 'Masa Kontrak Telah Habis' : `${rem} Hari Tersisa`) : '-')}
                           </td>
                           <td style="text-align:center; white-space:nowrap;">
                             <span class="con-status-badge ${statusBadgeClass}">
@@ -1742,9 +1743,11 @@ export async function renderContracts(container, params) {
               avatarClass = 'rel';
             }
 
+            const hasEndDate = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
             const tetap = isTetap(item.end_date);
             const isAktif = item.status === 'Aktif';
-            const rem = Number(item.days_remaining);
+            const rawRem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
+            const rem = (hasEndDate && !tetap && rawRem !== null && !isNaN(rawRem)) ? rawRem : null;
 
             // Determine status badge class and label
             let statusBadgeClass = 'con-status-aktif';
@@ -1754,15 +1757,20 @@ export async function renderContracts(container, params) {
               statusBadgeClass = 'con-status-tetap';
               statusBadgeText = '🏛️ PKWTT (Tetap)';
             } else if (isAktif) {
-              if (rem <= 0) {
-                statusBadgeClass = 'con-status-danger';
-                statusBadgeText = '⚠️ Habis Hari Ini';
-              } else if (rem <= 30) {
-                statusBadgeClass = 'con-status-warning';
-                statusBadgeText = `⚠️ Sisa ${rem} Hari`;
+              if (rem !== null) {
+                if (rem <= 0) {
+                  statusBadgeClass = 'con-status-danger';
+                  statusBadgeText = '⚠️ Habis Hari Ini';
+                } else if (rem <= 30) {
+                  statusBadgeClass = 'con-status-warning';
+                  statusBadgeText = `⚠️ Sisa ${rem} Hari`;
+                } else {
+                  statusBadgeClass = 'con-status-aktif';
+                  statusBadgeText = `🟢 Aktif (${rem} Hari)`;
+                }
               } else {
                 statusBadgeClass = 'con-status-aktif';
-                statusBadgeText = `🟢 Aktif (${rem} Hari)`;
+                statusBadgeText = '🟢 Aktif';
               }
             } else {
               statusBadgeClass = 'con-status-danger';
@@ -1818,13 +1826,13 @@ export async function renderContracts(container, params) {
                   <div class="con-info-row">
                     <span class="con-info-label">🏁 Selesai Kontrak:</span>
                     <span class="con-info-val" style="${tetap ? 'color:#4338CA; font-weight:700;' : ''}">
-                      ${tetap ? 'Tetap / PKWTT' : formatDateIndo(item.end_date)}
+                      ${tetap ? 'Tetap / PKWTT' : (hasEndDate ? formatDateIndo(item.end_date) : '-')}
                     </span>
                   </div>
                   <div class="con-info-row">
                     <span class="con-info-label">⏳ Masa Berlaku:</span>
-                    <span class="con-info-val" style="${tetap ? 'color:#15803D;' : (rem <= 30 && isAktif ? 'color:#D97706; font-weight:700;' : '')}">
-                      ${tetap ? 'Karyawan Tetap (Permanen)' : (rem <= 0 ? 'Masa Kontrak Telah Habis' : `${rem} Hari Tersisa`)}
+                    <span class="con-info-val" style="${tetap ? 'color:#15803D;' : (rem !== null && rem <= 30 && isAktif ? 'color:#D97706; font-weight:700;' : '')}">
+                      ${tetap ? 'Karyawan Tetap (Permanen)' : (rem !== null ? (rem <= 0 ? 'Masa Kontrak Telah Habis' : `${rem} Hari Tersisa`) : '-')}
                     </span>
                   </div>
                 </div>
