@@ -1,3 +1,4 @@
+import { getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 
@@ -136,6 +137,9 @@ function saveStoredAssets(list) {
 
 // ── MAIN RENDER FUNCTION ────────────────────────────────────────────────────────
 export async function renderSOPSecurity(container) {
+  const currentUser = getUser();
+  const canEdit = hasPermission(currentUser, 'sop', 'write');
+  const canDelete = hasPermission(currentUser, 'sop', 'delete');
   let activeTab = 'ik'; // 'ik' | 'zonasi' | 'assets' | 'policy' | 'links'
   let currentSearch = '';
   let currentCategory = 'all';
@@ -157,9 +161,11 @@ export async function renderSOPSecurity(container) {
           </p>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          ${canDelete ? `
           <button id="btn-reset-sec-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🔄 Reset ke Standar
           </button>
+          ` : ''}
           <button id="btn-print-sec" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
@@ -283,9 +289,11 @@ export async function renderSOPSecurity(container) {
             <div id="sec-ik-count-label" style="font-size:0.85rem; color:var(--text-3); font-weight:600;">
               Menampilkan ${listIK.length} Instruksi Kerja
             </div>
+            ${canEdit ? `
             <button id="btn-add-sec-ik" class="btn btn-primary" style="font-weight:600; padding:7px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem; background:#1E40AF; border-color:#1E40AF;">
               ➕ Tambah IK Baru
             </button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -391,12 +399,16 @@ export async function renderSOPSecurity(container) {
 
                   <!-- Quick Action Buttons: Edit & Hapus -->
                   <div style="display:flex; gap:4px;">
+                    ${canEdit ? `
                     <button class="btn btn-sm btn-ghost btn-edit-sec-ik" data-id="${ik.id}" title="Edit Instruksi Kerja" style="padding:4px 8px; border-radius:6px; font-size:0.9rem; cursor:pointer;">
                       ✏️
                     </button>
+                    ` : ''}
+                    ${canDelete ? `
                     <button class="btn btn-sm btn-ghost btn-delete-sec-ik" data-id="${ik.id}" title="Hapus Instruksi Kerja" style="padding:4px 8px; border-radius:6px; font-size:0.9rem; color:#DC2626; cursor:pointer;">
                       🗑️
                     </button>
+                    ` : ''}
                   </div>
                 </div>
 
@@ -548,6 +560,7 @@ export async function renderSOPSecurity(container) {
 
   // MODAL FORM TAMBAH & EDIT IK
   function openIKFormModal(existingIK = null) {
+    if (!canEdit) return;
     const isEdit = !!existingIK;
     const initialTools = existingIK ? existingIK.tools.join('\n') : '';
     const initialSteps = existingIK ? existingIK.steps.join('\n') : '';
@@ -812,9 +825,11 @@ export async function renderSOPSecurity(container) {
 
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           <input type="text" id="sec-asset-search" class="form-control" placeholder="Cari nama aset / tipe / PIC..." value="${assetSearch}" style="height:36px; border-radius:8px; font-size:0.875rem; width:240px;">
+            ${canEdit ? `
           <button id="btn-add-sec-asset" class="btn btn-primary" style="font-weight:600; padding:6px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem; background:#1E40AF; border-color:#1E40AF;">
             ➕ Tambah Aset Baru
           </button>
+            ` : ''}
         </div>
       </div>
 
@@ -857,8 +872,12 @@ export async function renderSOPSecurity(container) {
                     <td style="padding:10px 14px; color:var(--text-2);">${escapeHtml(item.description)}</td>
                     <td style="padding:10px 14px; font-weight:600; color:#1E40AF;">${escapeHtml(item.pic || '-')}</td>
                     <td style="padding:10px 14px; text-align:center;">
+                    ${canEdit ? `
                       <button class="btn btn-sm btn-ghost btn-edit-asset" data-no="${item.no}" title="Edit Aset" style="padding:4px 6px; cursor:pointer;">✏️</button>
+                    ` : ''}
+                    ${canDelete ? `
                       <button class="btn btn-sm btn-ghost btn-delete-asset" data-no="${item.no}" title="Hapus Aset" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>
+                    ` : ''}
                     </td>
                   </tr>
                 `).join('')}
@@ -916,6 +935,7 @@ export async function renderSOPSecurity(container) {
 
   // MODAL FORM TAMBAH & EDIT ASET
   function openAssetFormModal(existingAsset = null) {
+    if (!canEdit) return;
     const isEdit = !!existingAsset;
     const contentHtml = `
       <form id="asset-edit-form" style="display:flex; flex-direction:column; gap:14px; font-size:0.88rem;">

@@ -1,4 +1,4 @@
-import { apiFetch, getUser } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
@@ -153,7 +153,7 @@ export async function renderIssues(container, params) {
   }
 
   const currentUser = getUser();
-  const canEdit = currentUser?.role !== 'viewer';
+  const canEdit = hasPermission(currentUser, 'issues', 'write');
 
   // Load cache data
   try {

@@ -68,8 +68,8 @@ export function hasPermission(user, moduleOrAction = 'read', action = null) {
     admin: 4,
     manager: 3,
     spv: 2,
-    editor_khusus: 2,
-    input_lembur: 2,
+    editor_khusus: 1,
+    input_lembur: 1,
     viewer: 1
   };
   const level = roleLevels[role] || 0;

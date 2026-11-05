@@ -1,4 +1,4 @@
-import { apiFetch } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 
@@ -102,6 +102,9 @@ function getPlatformMeta(url = '') {
 }
 
 export async function renderChecklist(container) {
+  const currentUser = getUser();
+  const canEdit = hasPermission(currentUser, 'checklist', 'write');
+  const canDelete = hasPermission(currentUser, 'checklist', 'delete');
   let documents = [];
   let activeCategory = 'all';
   let searchQuery = '';
@@ -679,6 +682,7 @@ export async function renderChecklist(container) {
 
   // Add / Edit Modal Form
   function openDocumentModal(item = null) {
+    if (!canEdit) return;
     const isEdit = !!item;
     const existingCats = Array.from(new Set(documents.map(d => d.category).filter(Boolean)));
     
@@ -877,10 +881,12 @@ export async function renderChecklist(container) {
               </h1>
             </div>
             <div class="doc-hero-actions" style="display:flex; align-items:center; gap:8px;">
+              ${canEdit ? `
               <button id="doc-btn-add" class="btn btn-primary" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap; border:none;">
                 <span>➕</span>
                 <span>Tambah Dokumen Baru</span>
               </button>
+              ` : ''}
               <button id="doc-btn-excel" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
@@ -1006,12 +1012,16 @@ export async function renderChecklist(container) {
                             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                           </button>
                         ` : ''}
+                        ${canEdit ? `
                         <button class="doc-icon-btn edit-doc-btn" title="Edit Dokumen" data-id="${doc.id}">
                           <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
+                        ` : ''}
+                        ${canDelete ? `
                         <button class="doc-icon-btn delete delete-doc-btn" title="Hapus Dokumen" data-id="${doc.id}">
                           <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
+                        ` : ''}
                       </div>
                     </div>
                   </div>

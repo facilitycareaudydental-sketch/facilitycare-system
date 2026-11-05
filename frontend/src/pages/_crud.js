@@ -1,5 +1,5 @@
 // Generic CRUD page builder - used by all modules
-import { apiFetch, CLIENT_SIDE_MAX_ROWS, IS_DEVELOPMENT, getUser } from '../config.js';
+import { apiFetch, CLIENT_SIDE_MAX_ROWS, IS_DEVELOPMENT, getUser, hasPermission } from '../config.js';
 import { createTable, createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { buildFormHTML, getFormData, populateForm } from '../components/form.js';
@@ -30,6 +30,11 @@ export function buildCrudPage({
   paginationMode = 'server', // 'server' or 'client'
 }) {
   const user = getUser();
+  if (!hasPermission(user, 'delete')) {
+    canDelete = false;
+    bulkDelete = false;
+  }
+
   if (user && user.role === 'viewer') {
     canCreate = false;
     canEdit = false;

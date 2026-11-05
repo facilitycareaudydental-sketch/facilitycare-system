@@ -1,3 +1,4 @@
+import { getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 
@@ -433,6 +434,9 @@ function saveStoredChem(list) {
 
 // ── MAIN RENDER FUNCTION ────────────────────────────────────────────────────────
 export async function renderSOPFacilityCare(container) {
+  const currentUser = getUser();
+  const canEdit = hasPermission(currentUser, 'sop', 'write');
+  const canDelete = hasPermission(currentUser, 'sop', 'delete');
   let activeTab = 'ik'; // 'ik' | 'tools' | 'policy' | 'links'
   let currentSearch = '';
   let currentCategory = 'all';
@@ -455,9 +459,11 @@ export async function renderSOPFacilityCare(container) {
           </p>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          ${canDelete ? `
           <button id="btn-reset-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🔄 Reset ke Standar
           </button>
+          ` : ''}
           <button id="btn-print-sop" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
@@ -586,9 +592,11 @@ export async function renderSOPFacilityCare(container) {
             <div id="ik-count-label" style="font-size:0.85rem; color:var(--text-3); font-weight:600;">
               Menampilkan ${listIK.length} dari ${listIK.length} Instruksi Kerja
             </div>
+            ${canEdit ? `
             <button id="btn-add-ik" class="btn btn-primary" style="font-weight:600; padding:7px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
               ➕ Tambah IK Baru
             </button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -696,12 +704,16 @@ export async function renderSOPFacilityCare(container) {
 
                   <!-- Quick Action Buttons: Edit & Hapus -->
                   <div style="display:flex; gap:4px;">
+                    ${canEdit ? `
                     <button class="btn btn-sm btn-ghost btn-edit-ik" data-id="${ik.id}" title="Edit Instruksi Kerja" style="padding:4px 8px; border-radius:6px; font-size:0.9rem; cursor:pointer;">
                       ✏️
                     </button>
+                    ` : ''}
+                    ${canDelete ? `
                     <button class="btn btn-sm btn-ghost btn-delete-ik" data-id="${ik.id}" title="Hapus Instruksi Kerja" style="padding:4px 8px; border-radius:6px; font-size:0.9rem; color:#DC2626; cursor:pointer;">
                       🗑️
                     </button>
+                    ` : ''}
                   </div>
                 </div>
 
@@ -862,6 +874,7 @@ export async function renderSOPFacilityCare(container) {
 
   // MODAL TAMBAH & EDIT IK
   function openIKFormModal(existingIK = null) {
+    if (!canEdit) return;
     const isEdit = !!existingIK;
     const initialTools = existingIK ? existingIK.tools.join('\n') : '';
     const initialSteps = existingIK ? existingIK.steps.join('\n') : '';
@@ -1007,9 +1020,11 @@ export async function renderSOPFacilityCare(container) {
 
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           <input type="text" id="tool-search" class="form-control" placeholder="Cari nama / peruntukan / rasio..." value="${toolSearch}" style="height:36px; border-radius:8px; font-size:0.875rem; width:240px;">
+            ${canEdit ? `
           <button id="btn-add-tool-chem" class="btn btn-primary" style="font-weight:600; padding:6px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             ➕ ${toolView === 'tools' ? 'Tambah Alat Baru' : 'Tambah Chemical Baru'}
           </button>
+            ` : ''}
         </div>
       </div>
 
@@ -1049,8 +1064,12 @@ export async function renderSOPFacilityCare(container) {
                       <td style="padding:10px 14px;"><span class="badge" style="background:#E0F2FE; color:#0369A1; font-weight:600;">${escapeHtml(item.qty)}</span></td>
                       <td style="padding:10px 14px; color:var(--text-2);">${escapeHtml(item.area)}</td>
                       <td style="padding:10px 14px; text-align:center;">
+                    ${canEdit ? `
                         <button class="btn btn-sm btn-ghost btn-edit-tool" data-no="${item.no}" title="Edit Alat" style="padding:4px 6px; cursor:pointer;">✏️</button>
+                    ` : ''}
+                    ${canDelete ? `
                         <button class="btn btn-sm btn-ghost btn-delete-tool" data-no="${item.no}" title="Hapus Alat" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>
+                    ` : ''}
                       </td>
                     </tr>
                   `).join('')}
@@ -1114,8 +1133,12 @@ export async function renderSOPFacilityCare(container) {
                       <td style="padding:10px 14px;"><span style="background:#EFF6FF; color:#1E40AF; padding:3px 8px; border-radius:6px; font-weight:600; font-size:0.82rem;">${escapeHtml(item.ratio)}</span></td>
                       <td style="padding:10px 14px; color:var(--text-2);">${escapeHtml(item.function)}</td>
                       <td style="padding:10px 14px; text-align:center;">
+                    ${canEdit ? `
                         <button class="btn btn-sm btn-ghost btn-edit-chem" data-no="${item.no}" title="Edit Chemical" style="padding:4px 6px; cursor:pointer;">✏️</button>
+                    ` : ''}
+                    ${canDelete ? `
                         <button class="btn btn-sm btn-ghost btn-delete-chem" data-no="${item.no}" title="Hapus Chemical" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>
+                    ` : ''}
                       </td>
                     </tr>
                   `).join('')}
@@ -1179,6 +1202,7 @@ export async function renderSOPFacilityCare(container) {
 
   // MODAL FORM TAMBAH & EDIT ALAT
   function openToolFormModal(existingTool = null) {
+    if (!canEdit) return;
     const isEdit = !!existingTool;
     const contentHtml = `
       <form id="tool-edit-form" style="display:flex; flex-direction:column; gap:14px; font-size:0.88rem;">
@@ -1232,6 +1256,7 @@ export async function renderSOPFacilityCare(container) {
 
   // MODAL FORM TAMBAH & EDIT CHEMICAL
   function openChemFormModal(existingChem = null) {
+    if (!canEdit) return;
     const isEdit = !!existingChem;
     const contentHtml = `
       <form id="chem-edit-form" style="display:flex; flex-direction:column; gap:14px; font-size:0.88rem;">

@@ -1,4 +1,4 @@
-import { apiFetch, getUser } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
@@ -50,7 +50,7 @@ export async function renderTraining(container) {
   let isLoading = false;
 
   const currentUser = getUser();
-  const canEdit = currentUser?.role !== 'viewer';
+  const canEdit = hasPermission(currentUser, 'training', 'write');
 
   // Load branches & employees cache
   try {
