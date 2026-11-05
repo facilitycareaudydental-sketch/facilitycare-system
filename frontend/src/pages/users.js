@@ -38,12 +38,12 @@ export async function renderUsers(container) {
         {
           type: 'row', fields: [
             { name: 'full_name', label: 'Nama Lengkap', required: true, placeholder: 'Nama lengkap', value: data?.full_name },
-            { name: 'username', label: 'Username', required: !isEdit, placeholder: 'username', value: data?.username },
+            { name: 'username', label: 'Username', required: true, placeholder: 'username', value: data?.username, autocomplete: 'off' },
           ]
         },
         {
           type: 'row', fields: [
-            { name: 'email', label: 'Email', type: 'email', required: !isEdit, placeholder: 'email@contoh.com', value: data?.email },
+            { name: 'email', label: 'Email', type: 'email', required: true, placeholder: 'email@contoh.com', value: data?.email, autocomplete: 'off' },
             { name: 'role', label: 'Role', type: 'select', required: true, options: [
               { value: 'superadmin', label: 'Super Admin' },
               { value: 'admin', label: 'Admin' },
@@ -57,11 +57,21 @@ export async function renderUsers(container) {
         },
         {
           type: 'row', fields: [
-            { name: 'password', label: isEdit ? 'Password Baru (kosongkan jika tidak diubah)' : 'Password', type: 'password', required: !isEdit, placeholder: 'Min. 6 karakter' },
+            { name: 'password', label: isEdit ? 'Password Baru (kosongkan jika tidak diubah)' : 'Password', type: 'password', required: !isEdit, placeholder: 'Min. 6 karakter', autocomplete: 'new-password' },
             { name: 'is_active', label: 'Status Aktif', type: 'checkbox', checkLabel: 'User aktif', value: isEdit ? data?.is_active : 1 },
           ]
         },
       ];
+    },
+    onBeforeSubmit: (body, data) => {
+      if (body.full_name) body.full_name = String(body.full_name).trim();
+      if (body.username) body.username = String(body.username).trim();
+      if (body.email) body.email = String(body.email).trim().toLowerCase();
+      // On edit, if password is blank, remove it so password isn't overwritten
+      if (data && (!body.password || String(body.password).trim() === '')) {
+        delete body.password;
+      }
+      return body;
     },
     exportOptions: {
       moduleName: 'users',
@@ -88,7 +98,7 @@ export async function renderUsers(container) {
         const payload = json.map(row => ({
           full_name: String(row['Nama Lengkap'] || '').trim(),
           username: String(row['Username'] || '').trim(),
-          email: String(row['Email'] || '').trim(),
+          email: String(row['Email'] || '').trim().toLowerCase(),
           role: String(row['Role'] || '').trim() || 'viewer',
           password: String(row['Password'] || '').trim(),
         })).filter(row => row.username && row.password && row.email && row.full_name);

@@ -86,15 +86,21 @@ export default {
 
         const config = moduleMap[path];
         if (!config) return error('Invalid bulk delete module', 400, origin);
-        if (!hasPermission(user, config.perm, 'delete') && !hasPermission(user, config.perm, 'write')) return forbidden(origin);
+        if (!hasPermission(user, config.perm, 'delete')) return forbidden(origin);
 
         try {
           const { ids } = await request.json();
           if (!Array.isArray(ids) || ids.length === 0) return error('No IDs provided', 400, origin);
           
+          let targetIds = ids;
+          if (config.table === 'users') {
+            targetIds = ids.filter(id => Number(id) !== Number(user.id));
+            if (targetIds.length === 0) return error('Tidak dapat menghapus akun sendiri', 400, origin);
+          }
+          
           const chunkSize = 50;
-          for (let i = 0; i < ids.length; i += chunkSize) {
-            const chunk = ids.slice(i, i + chunkSize);
+          for (let i = 0; i < targetIds.length; i += chunkSize) {
+            const chunk = targetIds.slice(i, i + chunkSize);
             const placeholders = chunk.map(() => '?').join(',');
             await env.DB.prepare(`DELETE FROM ${config.table} WHERE id IN (${placeholders})`).bind(...chunk).run();
             
@@ -109,6 +115,14 @@ export default {
               }
             }
           }
+                    // Record bulk delete in audit_logs
+          try {
+            const { logAudit } = await import('./utils/audit.js');
+            await logAudit(env, user, 'DELETE', config.perm, ids.slice(0, 50).join(','), { count: ids.length, ids }, null);
+          } catch (auditErr) {
+            console.error('Failed to log bulk delete audit:', auditErr);
+          }
+
           return ok({ message: `Deleted ${ids.length} items` }, 200, origin);
         } catch (e) {
           return error('Server Error: ' + e.message, 500, origin);
@@ -200,7 +214,7 @@ export default {
         return await receiveWebhook(request, env, origin);
       }
 
-      if (path.startsWith('/api/sync/health') || path.startsWith('/api/sync/status') || path.startsWith('/api/sync/queue') || path.startsWith('/api/sync/metrics') || path.startsWith('/api/sync/errors')) {
+      if (path.startsWith('/api/sync/health') || path.startsWith('/api/sync/status') || path.startsWith('/api/sync/queue') || path.startsWith('/api/sync/metrics') || path.startsWith('/api/sync/errors') || path.startsWith('/api/sync/performance') || path.startsWith('/api/sync/actions/')) {
         return handleMonitoring(request, env, origin);
       }
 
@@ -212,7 +226,10 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    // ctx.waitUntil(syncGoogleSheets(env)); // DISABLED: Legacy manual sync fallback
+    if (env && env.ENVIRONMENT === 'staging' && env.SYNC_MODE !== 'LIVE') {
+      console.log('[STAGING] Scheduled cron skipped external sync processing (SYNC_MODE != LIVE).');
+      return;
+    }
     ctx.waitUntil(processOutbox(env)); // New Phase 1 Bidirectional Sweeper
   }
 };

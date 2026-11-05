@@ -32,7 +32,7 @@
       "format": "esm"
     },
     "frontend/src/components/form.js": {
-      "bytes": 5894,
+      "bytes": 6114,
       "imports": [],
       "format": "esm"
     },
@@ -843,7 +843,7 @@
       "format": "esm"
     },
     "frontend/src/pages/users.js": {
-      "bytes": 4827,
+      "bytes": 5282,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-HILPI56D.js": {
+    "frontend/dist/assets/app-ZJFDGJQV.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1316,7 +1316,7 @@
           "bytesInOutput": 15771
         },
         "frontend/src/components/form.js": {
-          "bytesInOutput": 3429
+          "bytesInOutput": 3689
         },
         "frontend/src/utils/calendarBus.js": {
           "bytesInOutput": 718
@@ -1397,7 +1397,7 @@
           "bytesInOutput": 5994
         },
         "frontend/src/pages/users.js": {
-          "bytesInOutput": 2995
+          "bytesInOutput": 3330
         },
         "frontend/src/pages/branches.js": {
           "bytesInOutput": 1884
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28861
         }
       },
-      "bytes": 797273
+      "bytes": 797868
     }
   }
 }

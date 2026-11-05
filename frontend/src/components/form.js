@@ -62,13 +62,16 @@ export function buildFormHTML(fields) {
         input = `<input type="number" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" min="${field.min || ''}" max="${field.max || ''}" step="${field.step || '1'}" ${required} ${roNum}>`;
         break;
       case 'email':
-        input = `<input type="email" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required}>`;
+        input = `<input type="email" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required} autocomplete="${field.autocomplete || 'off'}">`;
+        break;
+      case 'password':
+        input = `<input type="password" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required} autocomplete="${field.autocomplete || 'new-password'}">`;
         break;
       case 'url':
         input = `<input type="url" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || 'https://...'}" ${required}>`;
         break;
       default:
-        input = `<input type="${field.type || 'text'}" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required} autocomplete="off">`;
+        input = `<input type="${field.type || 'text'}" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required} autocomplete="${field.autocomplete || 'off'}">`;
     }
 
     const hint = field.hint ? `<div class="form-hint">${field.hint}</div>` : '';
