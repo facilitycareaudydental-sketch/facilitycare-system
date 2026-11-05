@@ -132,7 +132,7 @@ async function updateContract(id, request, env, origin) {
       contract_type = COALESCE(?, contract_type),
       pkwt_number = COALESCE(?, pkwt_number),
       status = COALESCE(?, status),
-      notes = COALESCE(?, notes),
+      notes = ?,
       updated_at = datetime('now')
      WHERE id = ?`
   ).bind(employee_id || null, branch_id || null, division || null, start_date || null,

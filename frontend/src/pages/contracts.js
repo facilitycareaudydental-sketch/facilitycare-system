@@ -1,4 +1,4 @@
-import { apiFetch, getUser } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { getCachedBranches, getCachedEmployees } from '../utils/dataCache.js';
 import { createModal } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
@@ -77,7 +77,9 @@ export async function renderContracts(container, params) {
   }
 
   const currentUser = getUser();
-  const canEdit = currentUser && currentUser.role !== 'viewer';
+  const canAdd = hasPermission(currentUser, 'contracts', 'write');
+  const canEdit = hasPermission(currentUser, 'contracts', 'write');
+  const canDelete = hasPermission(currentUser, 'contracts', 'delete');
 
   // Load option data
   try {
@@ -243,7 +245,7 @@ export async function renderContracts(container, params) {
                         ${historyText}
                       </div>
                     </div>
-                    ${canEdit ? `
+                    ${canAdd ? `
                       <button class="btn btn-primary btn-add-contract-for-emp" data-empid="${m.id}" data-empname="${String(m.full_name).replace(/"/g, '&quot;')}" data-branchid="${m.branch_id || ''}" data-division="${m.division || 'FACILITY CARE'}" style="font-size:0.76rem; padding:5px 10px; border-radius:6px; background:#2563EB;">
                         + Buat Kontrak
                       </button>
@@ -292,6 +294,32 @@ export async function renderContracts(container, params) {
     }
   }
 
+  // Helper hitung otomatis tanggal selesai kontrak dari tanggal mulai & durasi
+  function computeContractEndDate(startDateStr, contractType) {
+    if (!startDateStr) return '';
+    const parts = String(startDateStr).split('-').map(Number);
+    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return '';
+    const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (isNaN(dt.getTime())) return '';
+
+    if (contractType === 'KONTRAK 6 BULAN') {
+      dt.setMonth(dt.getMonth() + 6);
+      dt.setDate(dt.getDate() - 1);
+    } else if (contractType === 'KONTRAK 1 TAHUN') {
+      dt.setFullYear(dt.getFullYear() + 1);
+      dt.setDate(dt.getDate() - 1);
+    } else if (contractType === 'KONTRAK 2 TAHUN') {
+      dt.setFullYear(dt.getFullYear() + 2);
+      dt.setDate(dt.getDate() - 1);
+    } else {
+      return '';
+    }
+    const resY = dt.getFullYear();
+    const resM = String(dt.getMonth() + 1).padStart(2, '0');
+    const resD = String(dt.getDate()).padStart(2, '0');
+    return `${resY}-${resM}-${resD}`;
+  }
+
   // Open Add/Edit Contract Modal
   function openFormModal(item = null) {
     const isEdit = !!(item && item.id);
@@ -301,12 +329,33 @@ export async function renderContracts(container, params) {
     const defaultBranchId = item?.branch_id || '';
     const defaultDivision = item?.division || 'FACILITY CARE';
     const defaultStatus = item?.status || 'Aktif';
-    const defaultStartDate = item?.start_date ? String(item.start_date).slice(0, 10) : '';
-    const defaultEndDate = (item?.end_date && !isTetap(item.end_date)) ? String(item.end_date).slice(0, 10) : '';
-    const defaultIsTetap = item ? isTetap(item.end_date) : false;
     const defaultContractType = item?.contract_type || 'KONTRAK 1 TAHUN';
     const defaultPkwt = item?.pkwt_number || 'PKWT 1';
     const defaultNotes = item?.notes || '';
+
+    // Penentuan default isTetap secara cerdas:
+    // Jika jenis kontrak atau nomor PKWT secara eksplisit menunjukkan PKWT (6 Bulan, 1 Tahun, 2 Tahun, PKWT 1-6),
+    // maka status default adalah PKWT (bukan Tetap), meskipun di database tanggal sebelumnya tersimpan 2099-12-31 karena default import/migrasi.
+    let defaultIsTetap = false;
+    if (item) {
+      if (item.contract_type === 'PKWTT (TETAP)' || item.pkwt_number === 'TETAP') {
+        defaultIsTetap = true;
+      } else if (item.contract_type && (item.contract_type.startsWith('KONTRAK') || item.contract_type.includes('BULAN') || item.contract_type.includes('TAHUN'))) {
+        defaultIsTetap = false;
+      } else if (item.pkwt_number && item.pkwt_number.startsWith('PKWT')) {
+        defaultIsTetap = false;
+      } else {
+        defaultIsTetap = isTetap(item.end_date);
+      }
+    }
+
+    const defaultStartDate = item?.start_date ? String(item.start_date).slice(0, 10) : '';
+    let defaultEndDate = (item?.end_date && !isTetap(item.end_date)) ? String(item.end_date).slice(0, 10) : '';
+
+    // Jika PKWT, tanggal mulai tersedia, tapi tanggal selesai kosong, hitung otomatis sebagai saran
+    if (!defaultIsTetap && defaultStartDate && !defaultEndDate) {
+      defaultEndDate = computeContractEndDate(defaultStartDate, defaultContractType);
+    }
 
     const contentHtml = `
       <div style="display:flex; flex-direction:column; gap:14px;">
@@ -409,9 +458,9 @@ export async function renderContracts(container, params) {
 
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
-              Tanggal Selesai Kontrak
+              Tanggal Selesai Kontrak <span id="con-modal-end-required" style="color:#DC2626; display:${defaultIsTetap ? 'none' : 'inline'};">*</span>
             </label>
-            <input type="date" id="con-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; ${defaultIsTetap ? 'opacity:0.5;' : ''}" 
+            <input type="date" id="con-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; ${defaultIsTetap ? 'opacity:0.5; background-color:#F8FAFC; cursor:not-allowed;' : 'background-color:#FFFFFF;'}" 
               value="${defaultEndDate}" ${defaultIsTetap ? 'disabled' : ''} />
             <div style="margin-top:6px; display:flex; align-items:center; gap:6px;">
               <input type="checkbox" id="con-modal-is-tetap" ${defaultIsTetap ? 'checked' : ''} style="cursor:pointer;" />
@@ -432,7 +481,7 @@ export async function renderContracts(container, params) {
       </div>
     `;
 
-    createModal({
+    const modalObj = createModal({
       title: modalTitle,
       content: contentHtml,
       confirmText: isEdit ? '💾 Simpan Perubahan' : '➕ Tambah Kontrak',
@@ -455,7 +504,7 @@ export async function renderContracts(container, params) {
         const status = statusEl?.value || 'Aktif';
         const start_date = startEl?.value;
         const is_tetap = isTetapEl?.checked;
-        const end_date = is_tetap ? '2099-12-31' : (endEl?.value || '2099-12-31');
+        const end_date = is_tetap ? '2099-12-31' : (endEl?.value || '');
         const contract_type = typeEl?.value;
         const pkwt_number = pkwtEl?.value;
         const notes = notesEl?.value?.trim() || null;
@@ -473,6 +522,16 @@ export async function renderContracts(container, params) {
         if (!start_date) {
           toastError('Harap tentukan tanggal mulai kontrak!');
           startEl?.focus();
+          return;
+        }
+        if (!is_tetap && !end_date) {
+          toastError('Harap tentukan tanggal selesai kontrak atau centang Karyawan Tetap / PKWTT!');
+          endEl?.focus();
+          return;
+        }
+        if (!is_tetap && start_date && end_date && end_date < start_date) {
+          toastError('Tanggal selesai kontrak tidak boleh lebih awal dari tanggal mulai kontrak!');
+          endEl?.focus();
           return;
         }
 
@@ -512,22 +571,95 @@ export async function renderContracts(container, params) {
       }
     });
 
-    // Auto-disable end_date input if is_tetap checked
+    // Sinkronisasi otomatis tanggal selesai kontrak, durasi, PKWT, dan checkbox Tetap
     setTimeout(() => {
-      const isTetapCheck = document.getElementById('con-modal-is-tetap');
-      const endInput = document.getElementById('con-modal-end');
-      if (isTetapCheck && endInput) {
-        isTetapCheck.addEventListener('change', (e) => {
-          if (e.target.checked) {
-            endInput.disabled = true;
-            endInput.style.opacity = '0.5';
+      const modalEl = modalObj?.overlay || document.querySelector('.modal-overlay:last-child');
+      if (!modalEl) return;
+
+      const isTetapCheck = modalEl.querySelector('#con-modal-is-tetap');
+      const endInput = modalEl.querySelector('#con-modal-end');
+      const startInput = modalEl.querySelector('#con-modal-start');
+      const typeSelect = modalEl.querySelector('#con-modal-type');
+      const pkwtSelect = modalEl.querySelector('#con-modal-pkwt');
+      const reqAsterisk = modalEl.querySelector('#con-modal-end-required');
+
+      if (!isTetapCheck || !endInput) return;
+
+      function updateTetapState(isTetap, syncDropdowns = true) {
+        if (isTetap) {
+          isTetapCheck.checked = true;
+          endInput.disabled = true;
+          endInput.style.opacity = '0.5';
+          endInput.style.backgroundColor = '#F8FAFC';
+          endInput.style.cursor = 'not-allowed';
+          endInput.value = '';
+          if (reqAsterisk) reqAsterisk.style.display = 'none';
+          if (syncDropdowns) {
+            if (typeSelect) typeSelect.value = 'PKWTT (TETAP)';
+            if (pkwtSelect) pkwtSelect.value = 'TETAP';
+          }
+        } else {
+          isTetapCheck.checked = false;
+          endInput.disabled = false;
+          endInput.style.opacity = '1';
+          endInput.style.backgroundColor = '#FFFFFF';
+          endInput.style.cursor = 'default';
+          if (reqAsterisk) reqAsterisk.style.display = 'inline';
+          if (syncDropdowns) {
+            if (typeSelect && typeSelect.value === 'PKWTT (TETAP)') typeSelect.value = 'KONTRAK 1 TAHUN';
+            if (pkwtSelect && pkwtSelect.value === 'TETAP') pkwtSelect.value = 'PKWT 1';
+          }
+          if (startInput && startInput.value && !endInput.value && typeSelect) {
+            endInput.value = computeContractEndDate(startInput.value, typeSelect.value);
+          }
+        }
+      }
+
+      isTetapCheck.addEventListener('change', (e) => {
+        updateTetapState(e.target.checked, true);
+        if (!e.target.checked) endInput.focus();
+      });
+
+      if (typeSelect) {
+        typeSelect.addEventListener('change', (e) => {
+          const val = e.target.value;
+          if (val === 'PKWTT (TETAP)') {
+            updateTetapState(true, false);
+            if (pkwtSelect) pkwtSelect.value = 'TETAP';
           } else {
-            endInput.disabled = false;
-            endInput.style.opacity = '1';
+            updateTetapState(false, false);
+            if (pkwtSelect && pkwtSelect.value === 'TETAP') pkwtSelect.value = 'PKWT 1';
+            if (startInput && startInput.value) {
+              endInput.value = computeContractEndDate(startInput.value, val);
+            }
           }
         });
       }
-    }, 100);
+
+      if (pkwtSelect) {
+        pkwtSelect.addEventListener('change', (e) => {
+          const val = e.target.value;
+          if (val === 'TETAP') {
+            if (typeSelect) typeSelect.value = 'PKWTT (TETAP)';
+            updateTetapState(true, false);
+          } else {
+            if (typeSelect && typeSelect.value === 'PKWTT (TETAP)') typeSelect.value = 'KONTRAK 1 TAHUN';
+            updateTetapState(false, false);
+            if (startInput && startInput.value && typeSelect) {
+              endInput.value = computeContractEndDate(startInput.value, typeSelect.value);
+            }
+          }
+        });
+      }
+
+      if (startInput) {
+        startInput.addEventListener('change', (e) => {
+          if (!isTetapCheck.checked && e.target.value && typeSelect) {
+            endInput.value = computeContractEndDate(e.target.value, typeSelect.value);
+          }
+        });
+      }
+    }, 20);
   }
 
   // Delete Contract
@@ -1321,7 +1453,7 @@ export async function renderContracts(container, params) {
 
             <!-- Action Buttons 1 Baris Sejajar -->
             <div class="con-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              ${canEdit ? `
+              ${canAdd ? `
                 <button id="con-btn-add" class="btn btn-primary con-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   <span>Tambah Kontrak</span>
@@ -1581,6 +1713,8 @@ export async function renderContracts(container, params) {
                                 <button class="con-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Kontrak">
                                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 </button>
+                              ` : ''}
+                              ${canDelete ? `
                                 <button class="con-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Kontrak">
                                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                                 </button>
@@ -1719,6 +1853,8 @@ export async function renderContracts(container, params) {
                       <button class="con-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Kontrak">
                         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       </button>
+                    ` : ''}
+                    ${canDelete ? `
                       <button class="con-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Kontrak">
                         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                       </button>
