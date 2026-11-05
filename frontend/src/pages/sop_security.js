@@ -169,9 +169,9 @@ export async function renderSOPSecurity(container) {
           <button id="btn-print-sec" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
-          <button id="btn-export-sec" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          ${hasPermission(currentUser, "export") ? `<button id="btn-export-sec" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             📥 Download Data Excel
-          </button>
+          </button>` : ''}
         </div>
       </div>
 

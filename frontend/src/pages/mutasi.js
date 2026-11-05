@@ -1,4 +1,4 @@
-import { apiFetch, getUser } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
@@ -36,7 +36,9 @@ export async function renderMutasi(container) {
   let viewMode = localStorage.getItem('fcms_mutasi_view_mode') || 'card';
 
   const currentUser = getUser();
-  const canEdit = currentUser?.role !== 'viewer';
+  const canAdd = hasPermission(currentUser, 'mutasi', 'write');
+  const canEdit = hasPermission(currentUser, 'mutasi', 'write');
+  const canDelete = hasPermission(currentUser, 'mutasi', 'delete');
 
   // Load branches and employees
   try {
@@ -71,6 +73,10 @@ export async function renderMutasi(container) {
 
   // Export to Excel
   async function exportToExcel() {
+    if (!hasPermission(currentUser, 'export')) {
+      toastError('Anda tidak memiliki izin untuk mengekspor data.');
+      return;
+    }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
       const exportData = mutasiList.map((m, idx) => ({
@@ -117,6 +123,15 @@ export async function renderMutasi(container) {
 
   // Open Form Modal (Add / Edit)
   function openMutasiModal(item = null) {
+    const isEditCheck = !!item;
+    if (isEditCheck && !canEdit) {
+      toastError('Anda tidak memiliki izin untuk mengedit data mutasi.');
+      return;
+    }
+    if (!isEditCheck && !canAdd) {
+      toastError('Anda tidak memiliki izin untuk menambah data mutasi.');
+      return;
+    }
     if (!canEdit) return;
     const isEdit = !!item;
     const defaultTanggal = item?.tanggal ? item.tanggal.slice(0, 10) : new Date().toISOString().slice(0, 10);
@@ -840,17 +855,17 @@ export async function renderMutasi(container) {
             </div>
 
             <div class="mutasi-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              ${canEdit ? `
+              ${canAdd ? `
                 <button id="mutasi-btn-add" class="btn btn-primary mutasi-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   <span>Tambah Mutasi</span>
                 </button>
               ` : ''}
               
-              <button id="mutasi-btn-excel" class="btn btn-ghost mutasi-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+              ${hasPermission(currentUser, "export") ? `<button id="mutasi-btn-excel" class="btn btn-ghost mutasi-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
-              </button>
+              </button>` : ''}
 
               <button id="mutasi-btn-refresh" class="btn btn-ghost mutasi-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -977,7 +992,7 @@ export async function renderMutasi(container) {
                       <th>Cabang Tujuan</th>
                       <th style="text-align:center;">Status</th>
                       <th style="text-align:center;">Dokumen SK</th>
-                      ${canEdit ? `<th style="width:90px; text-align:center;">Aksi</th>` : ''}
+                      ${canEdit || canDelete ? `<th style="width:90px; text-align:center;">Aksi</th>` : ''}
                     </tr>
                   </thead>
                   <tbody>
@@ -1028,15 +1043,19 @@ export async function renderMutasi(container) {
                               <span style="font-size:0.75rem; color:#94A3B8;">(Tanpa Dokumen)</span>
                             `}
                           </td>
-                          ${canEdit ? `
+                          ${canEdit || canDelete ? `
                             <td style="text-align:center; white-space:nowrap;">
                               <div style="display:inline-flex; align-items:center; gap:6px;">
-                                <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
-                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                </button>
-                                <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
-                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                                </button>
+                                ${canEdit ? `
+                                  <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                  </button>
+                                ` : ''}
+                                ${canDelete ? `
+                                  <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                  </button>
+                                ` : ''}
                               </div>
                             </td>
                           ` : ''}
@@ -1116,14 +1135,18 @@ export async function renderMutasi(container) {
                         `}
                       </div>
 
-                      ${canEdit ? `
+                      ${canEdit || canDelete ? `
                         <div style="display:flex; align-items:center; gap:6px;">
-                          <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          </button>
-                          <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                          </button>
+                          ${canEdit ? `
+                            <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
+                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                          ` : ''}
+                          ${canDelete ? `
+                            <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
+                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                          ` : ''}
                         </div>
                       ` : ''}
                     </div>

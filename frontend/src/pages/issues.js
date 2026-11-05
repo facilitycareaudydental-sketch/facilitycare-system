@@ -188,6 +188,10 @@ export async function renderIssues(container, params) {
 
   // Export to Excel
   async function exportToExcel() {
+    if (!hasPermission(currentUser, 'export')) {
+      toastError('Anda tidak memiliki izin untuk mengekspor data.');
+      return;
+    }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
       const exportData = issuesList.map((item, idx) => ({
@@ -1138,10 +1142,10 @@ export async function renderIssues(container, params) {
                 </button>
               ` : ''}
               
-              <button id="issues-btn-excel" class="btn btn-ghost issues-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+              ${hasPermission(currentUser, "export") ? `<button id="issues-btn-excel" class="btn btn-ghost issues-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
-              </button>
+              </button>` : ''}
 
               <button id="issues-btn-refresh" class="btn btn-ghost issues-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" class="${isLoading ? 'spin-icon' : ''}"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>

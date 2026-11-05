@@ -326,6 +326,15 @@ export async function renderContracts(container, params) {
 
   // Open Add/Edit Contract Modal
   function openFormModal(item = null) {
+    const isEditCheck = !!(item && item.id);
+    if (isEditCheck && !canEdit) {
+      toastError('Anda tidak memiliki izin untuk mengedit kontrak.');
+      return;
+    }
+    if (!isEditCheck && !canAdd) {
+      toastError('Anda tidak memiliki izin untuk menambah kontrak.');
+      return;
+    }
     const isEdit = !!(item && item.id);
     const modalTitle = isEdit ? `✏️ Edit Kontrak: ${item.employee_name || 'Karyawan'}` : '➕ Tambah Kontrak Karyawan Baru';
 
@@ -686,6 +695,10 @@ export async function renderContracts(container, params) {
 
   // Ekspor Excel
   function exportToExcel() {
+    if (!hasPermission(currentUser, 'export')) {
+      toastError('Anda tidak memiliki izin untuk mengekspor data.');
+      return;
+    }
     if (!contractsList.length) {
       toastError('Belum ada data kontrak untuk diekspor.');
       return;
@@ -1454,15 +1467,19 @@ export async function renderContracts(container, params) {
                 </button>
               ` : ''}
 
+              ${hasPermission(currentUser, "export") ? `
               <button id="con-btn-excel" class="btn btn-ghost con-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
               </button>
+              ` : ''}
 
+              ${canEdit ? `
               <button id="con-btn-missing" class="btn btn-ghost con-btn-missing" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#FCA5A5; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;" title="Cek Karyawan Aktif yang belum memiliki Kontrak Aktif">
                 <span>🔍</span>
                 <span>Cek Selisih</span>
               </button>
+              ` : ''}
 
               <button id="con-btn-refresh" class="btn btn-ghost con-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>

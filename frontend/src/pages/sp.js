@@ -1,4 +1,4 @@
-import { apiFetch } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
@@ -133,6 +133,10 @@ function formatDateIndo(dateStr) {
 }
 
 export async function renderSP(container) {
+  const currentUser = getUser();
+  const canAdd = hasPermission(currentUser, 'sp', 'write');
+  const canEdit = hasPermission(currentUser, 'sp', 'write');
+  const canDelete = hasPermission(currentUser, 'sp', 'delete');
   let spList = [];
   let branchOptions = [];
   let employeeOptions = [];
@@ -791,6 +795,15 @@ export async function renderSP(container) {
 
   // Modal Terbitkan / Edit SP
   function openSPModal(item = null) {
+    const isEditCheck = !!item;
+    if (isEditCheck && !canEdit) {
+      toastError('Anda tidak memiliki izin untuk mengedit data SP.');
+      return;
+    }
+    if (!isEditCheck && !canAdd) {
+      toastError('Anda tidak memiliki izin untuk menambah data SP.');
+      return;
+    }
     const isEdit = !!item;
     const defaultTanggal = item?.tanggal ? item.tanggal.slice(0, 10) : new Date().toISOString().slice(0, 10);
     
@@ -1077,6 +1090,10 @@ export async function renderSP(container) {
 
   // Export to Excel
   async function exportToExcel() {
+    if (!hasPermission(currentUser, 'export')) {
+      toastError('Anda tidak memiliki izin untuk mengekspor data.');
+      return;
+    }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
       const exportData = spList.map((s, idx) => {
@@ -1119,15 +1136,17 @@ export async function renderSP(container) {
               </h1>
             </div>
             <div class="sp-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>Terbitkan SP</span>
-              </button>
+              ${canAdd ? `
+                <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Terbitkan SP</span>
+                </button>
+              ` : ''}
               
-              <button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+              ${hasPermission(currentUser, "export") ? `<button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
-              </button>
+              </button>` : ''}
 
               <button id="sp-btn-refresh" class="btn btn-ghost sp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -1320,12 +1339,16 @@ export async function renderSP(container) {
                                   <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                                 </a>
                               ` : ''}
-                              <button class="sp-icon-btn sp-edit-btn" title="Edit Data SP" data-id="${s.id}">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                              </button>
-                              <button class="sp-icon-btn delete sp-delete-btn" title="Hapus" data-id="${s.id}">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                              </button>
+                              ${canEdit ? `
+                                <button class="sp-icon-btn sp-edit-btn" title="Edit Data SP" data-id="${s.id}">
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                              ` : ''}
+                              ${canDelete ? `
+                                <button class="sp-icon-btn delete sp-delete-btn" title="Hapus" data-id="${s.id}">
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                              ` : ''}
                             </div>
                           </td>
                         </tr>
@@ -1396,12 +1419,16 @@ export async function renderSP(container) {
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                           </a>
                         ` : ''}
-                        <button class="sp-icon-btn sp-edit-btn" title="Edit Data SP" data-id="${s.id}">
-                          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>
-                        <button class="sp-icon-btn delete sp-delete-btn" title="Hapus" data-id="${s.id}">
-                          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
+                        ${canEdit ? `
+                          <button class="sp-icon-btn sp-edit-btn" title="Edit Data SP" data-id="${s.id}">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                        ` : ''}
+                        ${canDelete ? `
+                          <button class="sp-icon-btn delete sp-delete-btn" title="Hapus" data-id="${s.id}">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          </button>
+                        ` : ''}
                       </div>
                     </div>
                   </div>

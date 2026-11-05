@@ -35,9 +35,29 @@ if (fs.existsSync(functionsDir)) {
 }
 
 // Replace API URL placeholder in index.html
-const apiUrl = process.env.API_BASE_URL || '';
+const envName = process.env.ENVIRONMENT || process.env.TARGET_ENV || 'development';
+let apiUrl = process.env.API_BASE_URL !== undefined ? process.env.API_BASE_URL : '';
+
+// In staging, if API_BASE_URL is not provided or empty, inject '/api' for clean same-origin proxying
+if (envName.toLowerCase() === 'staging' && !apiUrl) {
+  apiUrl = '/api';
+}
+
 let html = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
 html = html.replace('__API_BASE_URL__', apiUrl);
+html = html.replace('__ENVIRONMENT__', envName);
+
+// Validate build output to prevent unreplaced placeholders or production leaks in staging
+if (html.includes('__API_BASE_URL__') || html.includes('__ENVIRONMENT__')) {
+  console.error('[BUILD ERROR] Unreplaced configuration placeholders remain in dist/index.html');
+  process.exit(1);
+}
+
+if (envName.toLowerCase() === 'staging' && html.includes('fm-operations-api.facilitycare-audydental.workers.dev')) {
+  console.error('[SECURITY FATAL] Production Worker URL detected in staging build output!');
+  process.exit(1);
+}
+
 fs.writeFileSync(path.join(distDir, 'index.html'), html);
 
 
@@ -80,7 +100,8 @@ if (esbuildCmd) {
 
     // Patch index.html to reference the hashed filename
     let htmlContent = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8');
-    htmlContent = htmlContent.replace(/\/assets\/app(?:-[a-z0-9]+)?\.js/, `/assets/${outFilename}`);
+    const cacheBuster = `?v=${Date.now()}`;
+    htmlContent = htmlContent.replace(/\/assets\/app(?:-[a-zA-Z0-9]+)?\.js(?:\?[^"]*)?/, `/assets/${outFilename}${cacheBuster}`);
     fs.writeFileSync(path.join(distDir, 'index.html'), htmlContent);
     console.log(`✅ index.html patched: /assets/${outFilename}`);
   } catch (err) {

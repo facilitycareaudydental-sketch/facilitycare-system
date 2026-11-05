@@ -1,4 +1,4 @@
-import { apiFetch, getUser } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { getCachedBranches } from '../utils/dataCache.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
@@ -63,7 +63,9 @@ export async function renderEmployees(container, params) {
   }
 
   const currentUser = getUser();
-  const canEdit = currentUser?.role !== 'viewer';
+  const canAdd = hasPermission(currentUser, 'employees', 'write');
+  const canEdit = hasPermission(currentUser, 'employees', 'write');
+  const canDelete = hasPermission(currentUser, 'employees', 'delete');
 
   // Load branches
   try {
@@ -95,6 +97,10 @@ export async function renderEmployees(container, params) {
 
   // Export to Excel
   async function exportToExcel() {
+    if (!hasPermission(currentUser, 'export')) {
+      toastError('Anda tidak memiliki izin untuk mengekspor data.');
+      return;
+    }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
       const exportData = employeeList.map((emp, idx) => ({
@@ -118,6 +124,15 @@ export async function renderEmployees(container, params) {
 
   // Modal Tambah / Edit Karyawan
   function openEmployeeModal(item = null) {
+    const isEditCheck = !!item;
+    if (isEditCheck && !canEdit) {
+      toastError('Anda tidak memiliki izin untuk mengedit data karyawan.');
+      return;
+    }
+    if (!isEditCheck && !canAdd) {
+      toastError('Anda tidak memiliki izin untuk menambah data karyawan.');
+      return;
+    }
     const isEdit = !!item;
     const defaultDivision = item?.division || 'FACILITY CARE';
     const defaultStatus = item?.status || 'Aktif';
@@ -1011,17 +1026,17 @@ export async function renderEmployees(container, params) {
             </div>
 
             <div class="emp-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              ${canEdit ? `
+              ${canAdd ? `
                 <button id="emp-btn-add" class="btn btn-primary emp-btn-add" style="background:#2563EB; padding:9px 16px; border-radius:10px; font-weight:700; display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   <span>Tambah Karyawan</span>
                 </button>
               ` : ''}
               
-              <button id="emp-btn-excel" class="btn btn-ghost emp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+              ${hasPermission(currentUser, "export") ? `<button id="emp-btn-excel" class="btn btn-ghost emp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
-              </button>
+              </button>` : ''}
 
               <button id="emp-btn-refresh" class="btn btn-ghost emp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" class="${isLoading ? 'spin-icon' : ''}"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -1232,6 +1247,8 @@ export async function renderEmployees(container, params) {
                                 <button class="emp-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Karyawan">
                                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 </button>
+                              ` : ''}
+                              ${canDelete ? `
                                 <button class="emp-icon-btn delete" data-action="delete" data-id="${item.id}" title="Nonaktifkan Karyawan">
                                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                                 </button>
@@ -1347,6 +1364,8 @@ export async function renderEmployees(container, params) {
                       <button class="emp-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Karyawan">
                         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       </button>
+                    ` : ''}
+                    ${canDelete ? `
                       <button class="emp-icon-btn delete" data-action="delete" data-id="${item.id}" title="Nonaktifkan Karyawan">
                         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                       </button>

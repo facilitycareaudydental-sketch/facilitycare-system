@@ -41,6 +41,10 @@ export function hasPermission(user, moduleOrAction = 'read', action = null) {
     module = moduleOrAction;
     act = action;
 
+    if (act === 'export') {
+      return role === 'manager';
+    }
+
     if (role === 'input_lembur') {
       if (module === 'overtime') {
         if (act === 'read' || act === 'write') return true;
@@ -63,6 +67,10 @@ export function hasPermission(user, moduleOrAction = 'read', action = null) {
     act = moduleOrAction || 'read';
   }
 
+  if (role === 'editor_khusus' || role === 'input_lembur' || role === 'viewer') {
+    if (act === 'export' || act === 'write' || act === 'delete' || act === 'admin') return false;
+  }
+
   const roleLevels = {
     superadmin: 5,
     admin: 4,
@@ -76,6 +84,7 @@ export function hasPermission(user, moduleOrAction = 'read', action = null) {
   if (act === 'read') return level >= 1;
   if (act === 'write') return level >= 2;
   if (act === 'delete') return level >= 3;
+  if (act === 'export') return level >= 3;
   if (act === 'admin') return level >= 4;
   return false;
 }

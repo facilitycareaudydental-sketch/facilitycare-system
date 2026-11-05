@@ -46,13 +46,13 @@ window.formatDate = (d) => {
 };
 
 // Page imports
-import { renderDashboard } from './pages/dashboard.js?v=force61';
+import { renderDashboard } from './pages/dashboard.js';
 import { renderLogin } from './pages/login.js';
-import { renderEmployees } from './pages/employees.js?v=force61';
-import { renderContracts } from './pages/contracts.js?v=force61';
-import { renderSchedule } from './pages/schedule.js?v=force61';
-import { renderIssues } from './pages/issues.js?v=force61';
-import { renderOneOnOne } from './pages/one_on_one.js?v=force61';
+import { renderEmployees } from './pages/employees.js';
+import { renderContracts } from './pages/contracts.js';
+import { renderSchedule } from './pages/schedule.js';
+import { renderIssues } from './pages/issues.js';
+import { renderOneOnOne } from './pages/one_on_one.js';
 import { renderTraining } from './pages/training.js';
 import { renderRelievers } from './pages/relievers.js';
 import { renderInspectionReports } from './pages/inspection_reports.js';
@@ -536,7 +536,14 @@ async function init() {
   registerRoute('/users',              requireAuth(({ main }) => renderUsers(main)));
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));
   registerRoute('/profile',            requireAuth(({ main }) => renderProfile(main)));
-  registerRoute('/settings/import',    requireAuth(({ main }) => renderImportPage(main)));
+  registerRoute('/settings/import',    requireAuth(({ main }) => {
+    const user = getUser();
+    if (!user || (user.role !== 'superadmin' && user.role !== 'admin')) {
+      navigate('/dashboard');
+      return;
+    }
+    renderImportPage(main);
+  }));
   registerRoute('/audit-logs',         requireAuth(({ main }) => renderAuditLogs(main)));
 
   const token = getToken();
