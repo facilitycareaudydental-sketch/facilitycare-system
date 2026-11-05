@@ -1,7 +1,7 @@
 {
   "inputs": {
     "frontend/src/config.js": {
-      "bytes": 8586,
+      "bytes": 3088,
       "imports": [],
       "format": "esm"
     },
@@ -171,7 +171,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js": {
-      "bytes": 81833,
+      "bytes": 81843,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -352,7 +352,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js?v=force61": {
-      "bytes": 81833,
+      "bytes": 81843,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1286,7 +1286,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-3ZZETO6U.js": {
+    "frontend/dist/assets/app-EVR2QHJN.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1298,7 +1298,7 @@
           "bytesInOutput": 3314
         },
         "frontend/src/config.js": {
-          "bytesInOutput": 4558
+          "bytesInOutput": 1663
         },
         "frontend/src/router.js": {
           "bytesInOutput": 762
@@ -1349,7 +1349,7 @@
           "bytesInOutput": 51905
         },
         "frontend/src/pages/contracts.js?v=force61": {
-          "bytesInOutput": 63937
+          "bytesInOutput": 63945
         },
         "frontend/src/pages/schedule.js?v=force61": {
           "bytesInOutput": 5983
@@ -1433,7 +1433,7 @@
           "bytesInOutput": 28861
         }
       },
-      "bytes": 799453
+      "bytes": 796566
     }
   }
 }

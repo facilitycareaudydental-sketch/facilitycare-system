@@ -1,4 +1,4 @@
-import { apiFetch, getUser, hasPermission } from '../config.js';
+import { apiFetch, getUser } from '../config.js';
 import { getCachedBranches, getCachedEmployees } from '../utils/dataCache.js';
 import { createModal } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
@@ -77,9 +77,9 @@ export async function renderContracts(container, params) {
   }
 
   const currentUser = getUser();
-  const canAdd = hasPermission(currentUser, 'contracts', 'write');
-  const canEdit = hasPermission(currentUser, 'contracts', 'write');
-  const canDelete = hasPermission(currentUser, 'contracts', 'delete');
+  const canEdit = currentUser && currentUser.role !== 'viewer';
+  const canAdd = currentUser && currentUser.role !== 'viewer';
+  const canDelete = currentUser && (currentUser.role === 'superadmin' || currentUser.role === 'admin');
 
   // Load option data
   try {
