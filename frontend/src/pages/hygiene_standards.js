@@ -1,4 +1,4 @@
-import { apiFetch, getUser } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
@@ -82,6 +82,10 @@ export function getZoneForRoom(roomName) {
 }
 
 export async function renderHygieneStandards(container) {
+  const user = getUser();
+  const canEdit = user && (user.role === 'superadmin' || user.role === 'admin');
+  const canExport = hasPermission(user, 'export');
+
   container.innerHTML = `
     <!-- Header Section -->
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
@@ -105,12 +109,16 @@ export async function renderHygieneStandards(container) {
         <button id="btn-print-hygiene" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP Standar Kebersihan">
           🖨️ Cetak SOP
         </button>
+        ${canExport ? `
         <button id="btn-export-hygiene" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
           📥 Export Excel
         </button>
+        ` : ''}
+        ${canEdit ? `
         <button id="btn-add-hygiene" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
           + Tambah Parameter
         </button>
+        ` : ''}
       </div>
     </div>
 
@@ -203,8 +211,7 @@ export async function renderHygieneStandards(container) {
   let currentZone = 'all';
   let currentView = 'table'; // 'table' or 'zone'
   let allItems = [];
-  const user = getUser();
-  const canEdit = user && ['superadmin', 'admin', 'manager', 'spv'].includes(user.role);
+  // canEdit defined at top
 
   async function loadData() {
     try {
@@ -551,6 +558,10 @@ export async function renderHygieneStandards(container) {
   }
 
   function openItemModal(item = null) {
+    if (!canEdit) {
+      toastError('Anda tidak memiliki izin untuk menambah atau mengedit parameter kebersihan.');
+      return;
+    }
     const isEdit = !!item;
     const allRooms = Array.from(new Set(allItems.map(i => i.room_name))).filter(Boolean).sort();
 

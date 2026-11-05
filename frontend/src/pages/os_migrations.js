@@ -1,4 +1,4 @@
-import { apiFetch, getUser } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
@@ -17,6 +17,10 @@ const STATUS_CONFIG = {
 };
 
 export async function renderOSMigrations(container) {
+  const user = getUser();
+  const canEdit = user && (user.role === 'superadmin' || user.role === 'admin');
+  const canExport = hasPermission(user, 'export');
+
   container.innerHTML = `
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
       <div>
@@ -33,12 +37,16 @@ export async function renderOSMigrations(container) {
             📋 Tabel Data
           </button>
         </div>
+        ${canExport ? `
         <button id="btn-export-migrations" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; height:38px; padding:0 14px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-sizing:border-box;">
           📥 Export Excel
         </button>
+        ` : ''}
+        ${canEdit ? `
         <button id="btn-add-migration" class="btn btn-primary" style="font-weight:700; height:38px; padding:0 16px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-sizing:border-box; background:#2563EB; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
           + Tambah Cabang
         </button>
+        ` : ''}
       </div>
     </div>
 
@@ -90,8 +98,7 @@ export async function renderOSMigrations(container) {
   let currentView = 'board'; // 'board' or 'table'
   let summaryData = null;
   let allBranches = [];
-  let user = getUser();
-  const canEdit = user && ['superadmin', 'admin', 'manager', 'spv'].includes(user.role);
+  // canEdit defined at top
 
   // Load branches for modal dropdown
   apiFetch('/api/branches?all=1').then(r => {
@@ -511,6 +518,10 @@ export async function renderOSMigrations(container) {
   }
 
   function showFormModal(item = null) {
+    if (!canEdit) {
+      toastError('Anda tidak memiliki izin untuk menambah atau mengedit migrasi OS.');
+      return;
+    }
     const isEdit = !!item;
     const title = isEdit ? 'Edit Jadwal Migrasi OS' : 'Tambah Jadwal Migrasi OS';
 
@@ -607,8 +618,8 @@ export async function renderOSMigrations(container) {
           const res = await apiFetch(url, { method, body: JSON.stringify(payload) });
 
           if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || 'Gagal menyimpan data');
+            const errMsg = res.data?.error || res.data?.message || 'Gagal menyimpan data';
+            throw new Error(errMsg);
           }
 
           toastSuccess(isEdit ? 'Jadwal migrasi berhasil diupdate' : 'Jadwal migrasi berhasil ditambahkan');
@@ -653,12 +664,12 @@ export async function renderOSMigrations(container) {
   });
 
   // Add migration button
-  document.getElementById('btn-add-migration').addEventListener('click', () => {
+  document.getElementById('btn-add-migration')?.addEventListener('click', () => {
     showFormModal();
   });
 
   // Export Excel button
-  document.getElementById('btn-export-migrations').addEventListener('click', () => {
+  document.getElementById('btn-export-migrations')?.addEventListener('click', () => {
     const rows = getFilteredRows();
     if (!rows.length) {
       toastError('Tidak ada data untuk diexport');

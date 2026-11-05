@@ -1,7 +1,7 @@
 {
   "inputs": {
     "frontend/src/config.js": {
-      "bytes": 3384,
+      "bytes": 2974,
       "imports": [],
       "format": "esm"
     },
@@ -47,7 +47,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js": {
-      "bytes": 26964,
+      "bytes": 26428,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -352,7 +352,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js?v=v3": {
-      "bytes": 26964,
+      "bytes": 26428,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -626,7 +626,7 @@
       "format": "esm"
     },
     "frontend/src/pages/hygiene_standards.js": {
-      "bytes": 40995,
+      "bytes": 41297,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -907,7 +907,7 @@
       "format": "esm"
     },
     "frontend/src/pages/os_migrations.js": {
-      "bytes": 35708,
+      "bytes": 36004,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -933,7 +933,7 @@
       "format": "esm"
     },
     "frontend/src/pages/dac.js": {
-      "bytes": 34160,
+      "bytes": 34453,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1131,7 +1131,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-C5VSDSLX.js": {
+    "frontend/dist/assets/app-FEYGJXIL.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1143,7 +1143,7 @@
           "bytesInOutput": 3314
         },
         "frontend/src/config.js": {
-          "bytesInOutput": 1837
+          "bytesInOutput": 1419
         },
         "frontend/src/router.js": {
           "bytesInOutput": 762
@@ -1158,7 +1158,7 @@
           "bytesInOutput": 3435
         },
         "frontend/src/pages/_crud.js": {
-          "bytesInOutput": 15777
+          "bytesInOutput": 15767
         },
         "frontend/src/components/form.js": {
           "bytesInOutput": 3689
@@ -1179,10 +1179,10 @@
           "bytesInOutput": 52168
         },
         "frontend/src/pages/contracts.js": {
-          "bytesInOutput": 65011
+          "bytesInOutput": 64996
         },
         "frontend/src/pages/issues.js": {
-          "bytesInOutput": 44988
+          "bytesInOutput": 44990
         },
         "frontend/src/pages/one_on_one.js": {
           "bytesInOutput": 4847
@@ -1197,7 +1197,7 @@
           "bytesInOutput": 35744
         },
         "frontend/src/pages/_crud.js?v=v3": {
-          "bytesInOutput": 15777
+          "bytesInOutput": 15767
         },
         "frontend/src/pages/relievers.js": {
           "bytesInOutput": 4972
@@ -1215,7 +1215,7 @@
           "bytesInOutput": 4334
         },
         "frontend/src/pages/sop_facility_care.js": {
-          "bytesInOutput": 71807
+          "bytesInOutput": 71809
         },
         "frontend/src/pages/sop_security.js": {
           "bytesInOutput": 58934
@@ -1224,7 +1224,7 @@
           "bytesInOutput": 34394
         },
         "frontend/src/pages/hygiene_standards.js": {
-          "bytesInOutput": 34111
+          "bytesInOutput": 34268
         },
         "frontend/src/pages/forms.js": {
           "bytesInOutput": 5994
@@ -1254,19 +1254,19 @@
           "bytesInOutput": 42955
         },
         "frontend/src/pages/overtime.js": {
-          "bytesInOutput": 43114
+          "bytesInOutput": 43118
         },
         "frontend/src/pages/audit_logs.js": {
           "bytesInOutput": 2802
         },
         "frontend/src/pages/os_migrations.js": {
-          "bytesInOutput": 30073
+          "bytesInOutput": 30222
         },
         "frontend/src/pages/dac.js": {
-          "bytesInOutput": 28861
+          "bytesInOutput": 29009
         }
       },
-      "bytes": 800837
+      "bytes": 800846
     }
   }
 }

@@ -30,40 +30,36 @@ export function buildCrudPage({
   paginationMode = 'server', // 'server' or 'client'
 }) {
   const user = getUser();
-  if (!hasPermission(user, 'delete')) {
-    canDelete = false;
-    bulkDelete = false;
-  }
+  const isAdminOrSuper = user && (user.role === 'superadmin' || user.role === 'admin');
 
-  if (user && user.role === 'viewer') {
-    canCreate = false;
-    canEdit = false;
-    canDelete = false;
+  if (!isAdminOrSuper) {
+    exportOptions = null; // No export/import/template for non-admin
     bulkDelete = false;
-    exportOptions = null;
-  }
-  
-  if (user && user.role === 'editor_khusus') {
-    if (apiPath !== '/api/issues' && apiPath !== '/api/overtime') {
-      canCreate = false;
-      canEdit = false;
-      canDelete = false;
-      bulkDelete = false;
-      exportOptions = null;
-    }
-  }
 
-  if (user && user.role === 'input_lembur') {
-    if (apiPath === '/api/overtime') {
-      canDelete = false;
-      bulkDelete = false;
-      exportOptions = null;
+    if (user && user.role === 'editor_khusus') {
+      if (apiPath !== '/api/issues' && apiPath !== '/api/overtime') {
+        canCreate = false;
+        canEdit = false;
+        canDelete = false;
+      }
+    } else if (user && user.role === 'input_lembur') {
+      if (apiPath === '/api/overtime') {
+        canDelete = false;
+      } else {
+        canCreate = false;
+        canEdit = false;
+        canDelete = false;
+      }
     } else {
+      // Strictly viewer only for all other roles
       canCreate = false;
       canEdit = false;
       canDelete = false;
+    }
+  } else {
+    if (!hasPermission(user, 'delete')) {
+      canDelete = false;
       bulkDelete = false;
-      exportOptions = null;
     }
   }
 

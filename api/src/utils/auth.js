@@ -20,6 +20,9 @@ export function generateSessionId() {
 }
 
 export async function createToken(payload, secret) {
+  if (!secret || typeof secret !== 'string' || secret.trim() === '') {
+    throw new Error('JWT_SECRET_REQUIRED: Valid JWT_SECRET is required to sign tokens.');
+  }
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const body = btoa(JSON.stringify({ ...payload, iat: Date.now() }));
   const data = `${header}.${body}`;
@@ -36,6 +39,9 @@ export async function createToken(payload, secret) {
 }
 
 export async function verifyToken(token, secret) {
+  if (!secret || typeof secret !== 'string' || secret.trim() === '') {
+    return null;
+  }
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -63,7 +69,11 @@ export async function authenticate(request, env) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.slice(7);
-  const payload = await verifyToken(token, env.JWT_SECRET || 'dev-secret-change-me');
+  if (!env?.JWT_SECRET || typeof env.JWT_SECRET !== 'string' || env.JWT_SECRET.trim() === '') {
+    console.error('AUTH_FATAL: JWT_SECRET environment variable is not configured.');
+    return null;
+  }
+  const payload = await verifyToken(token, env.JWT_SECRET);
   if (!payload) return null;
   // Look up user
   const user = await env.DB.prepare(
@@ -74,8 +84,12 @@ export async function authenticate(request, env) {
 }
 
 export function hasPermission(user, module, action) {
-  if (user.role === 'superadmin') return true;
+  if (user.role === 'superadmin' || user.role === 'admin') return true;
   
+  if (action === 'export' || action === 'import' || action === 'admin') {
+    return false;
+  }
+
   if (user.role === 'input_lembur') {
     if (module === 'overtime') {
       if (action === 'read' || action === 'write') return true;
@@ -95,19 +109,6 @@ export function hasPermission(user, module, action) {
     return false;
   }
   
-  // For simplicity, role-based checks
-  const rolePermissions = {
-    admin: { level: 4 },
-    manager: { level: 3 },
-    spv: { level: 2 },
-    viewer: { level: 1 },
-  };
-  const writeModules = ['employees', 'contracts', 'schedule', 'issues', 'one_on_one',
-    'training', 'relievers', 'reports', 'sop', 'checklist', 'forms', 'supply_requests', 'hygiene_standards', 'os_migrations', 'dac'];
-  const userLevel = rolePermissions[user.role]?.level || 0;
-  if (action === 'read') return userLevel >= 1;
-  if (action === 'write') return userLevel >= 2;
-  if (action === 'delete') return userLevel >= 3;
-  if (action === 'admin') return userLevel >= 4;
-  return false;
+  // Selain superadmin / admin: cukup viewer saja!
+  return action === 'read';
 }

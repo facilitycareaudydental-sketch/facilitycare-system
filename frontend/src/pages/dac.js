@@ -1,4 +1,4 @@
-import { apiFetch, getUser } from '../config.js';
+import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
@@ -19,6 +19,10 @@ const CATEGORY_COLORS = {
 };
 
 export async function renderDAC(container) {
+  const user = getUser();
+  const canEdit = user && (user.role === 'superadmin' || user.role === 'admin');
+  const canExport = hasPermission(user, 'export');
+
   container.innerHTML = `
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
       <div>
@@ -41,12 +45,16 @@ export async function renderDAC(container) {
         <button id="btn-print-dac" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP untuk Ruang Janitor">
           🖨️ Cetak SOP
         </button>
+        ${canExport ? `
         <button id="btn-export-dac" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
           📥 Export Excel
         </button>
+        ` : ''}
+        ${canEdit ? `
         <button id="btn-add-dac" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
           + Tambah Aktivitas
         </button>
+        ` : ''}
       </div>
     </div>
 
@@ -101,8 +109,7 @@ export async function renderDAC(container) {
   let currentShift = 'pagi'; // 'pagi', 'siang', or 'all'
   let currentView = 'timeline'; // 'timeline' or 'table'
   let allItems = [];
-  const user = getUser();
-  const canEdit = user && ['superadmin', 'admin', 'manager', 'spv'].includes(user.role);
+  // canEdit defined at top
 
   async function loadData() {
     try {
@@ -385,6 +392,10 @@ export async function renderDAC(container) {
   }
 
   function showFormModal(item = null) {
+    if (!canEdit) {
+      toastError('Anda tidak memiliki izin untuk menambah atau mengedit aktivitas.');
+      return;
+    }
     const isEdit = !!item;
     const title = isEdit ? 'Edit Aktivitas DAC' : 'Tambah Aktivitas DAC';
 
@@ -471,8 +482,8 @@ export async function renderDAC(container) {
           const res = await apiFetch(url, { method, body: JSON.stringify(payload) });
 
           if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || 'Gagal menyimpan aktivitas');
+            const errMsg = res.data?.error || res.data?.message || 'Gagal menyimpan aktivitas';
+            throw new Error(errMsg);
           }
 
           toastSuccess(isEdit ? 'Aktivitas berhasil diperbarui' : 'Aktivitas berhasil ditambahkan');
@@ -611,7 +622,7 @@ export async function renderDAC(container) {
   });
 
   // Add button
-  document.getElementById('btn-add-dac').addEventListener('click', () => {
+  document.getElementById('btn-add-dac')?.addEventListener('click', () => {
     showFormModal();
   });
 
@@ -621,7 +632,7 @@ export async function renderDAC(container) {
   });
 
   // Export Excel
-  document.getElementById('btn-export-dac').addEventListener('click', () => {
+  document.getElementById('btn-export-dac')?.addEventListener('click', () => {
     const items = getFilteredItems();
     if (!items.length) {
       toastError('Tidak ada data untuk diexport');
