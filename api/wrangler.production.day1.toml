@@ -1,0 +1,35 @@
+# ==============================================================================
+# FCMS PRODUCTION WORKER — DAY-1 ZERO-GAS / ZERO-CRON PROFILE
+# ──────────────────────────────────────────────────────────────────────────────
+# Optional Day-1 configuration for `fm-operations-api` when operating without
+# Google Apps Script / Google Sheets integration (`SYNC_MODE = "DRY_RUN"` and
+# scheduled crons disabled for 0 background worker invocations/day).
+# Identical bindings & identifiers to `wrangler.toml`.
+# ==============================================================================
+
+name = "fm-operations-api"
+account_id = "293440e04e5d0c8073e7e2893750b527"
+main = "src/index.js"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fcms-production-db"
+database_id = "62b4b6e5-a718-40bc-9aab-6a700b82a9c9"
+migrations_dir = "../schema/migrations"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "4acb3038c5b042b8ad3c87473d02a434"
+
+[vars]
+ENVIRONMENT = "production"
+SYNC_MODE = "DRY_RUN"
+CORS_ORIGIN = "https://facilitycare-system.pages.dev"
+# Confidential secrets (JWT_SECRET, SYNC_WEBHOOK_SECRET, SUPERADMIN_BOOTSTRAP_TOKEN)
+# must be set via `npx wrangler secret put <KEY> --config api/wrangler.production.day1.toml`.
+
+# Day-1 Zero-GAS Mode: Cron triggers intentionally disabled (0 invocations/day).
+# [triggers]
+# crons = []

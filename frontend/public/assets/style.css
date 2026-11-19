@@ -293,9 +293,11 @@ strong { font-weight: 600; }
   backdrop-filter: blur(2px);
   z-index: 299;
   opacity: 0;
-  transition: opacity var(--transition);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition), visibility var(--transition);
 }
-.sidebar-overlay.show { opacity: 1; }
+.sidebar-overlay.show { opacity: 1; visibility: visible; pointer-events: auto; }
 
 /* ── Topbar ─────────────────────────────────────────────────── */
 .topbar {
@@ -1084,7 +1086,7 @@ strong { font-weight: 600; }
   .topbar-search { width: 200px; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mini-stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .charts-row, .bottom-row, .tables-row {

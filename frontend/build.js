@@ -324,7 +324,8 @@ if (!configScriptMatch) {
   console.error('[SECURITY FATAL] Missing inline window.__FM_CONFIG script for CSP hashing!');
   process.exit(1);
 }
-const configScriptHash = crypto.createHash('sha256').update(configScriptMatch[1], 'utf8').digest('base64');
+const normalizedConfigScript = configScriptMatch[1].replace(/\r\n?/g, '\n');
+const configScriptHash = crypto.createHash('sha256').update(normalizedConfigScript, 'utf8').digest('base64');
 
 // Verify all external <script> tags in index.html are pinned with SRI + crossorigin (no -latest/@latest)
 const externalScripts = [...html.matchAll(/<script\b[^>]*\bsrc=["'](https?:\/\/[^"']+)["'][^>]*>/gi)];

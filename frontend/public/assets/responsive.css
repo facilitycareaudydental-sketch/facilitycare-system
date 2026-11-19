@@ -114,7 +114,8 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     --topbar-h: 60px;
   }
   /* Sidebar stays LEFT in the row, just narrower */
-  .sidebar        { width: 220px; }
+  .sidebar        { width: 220px; position: relative; transform: none; }
+  .sidebar-overlay { display: none !important; pointer-events: none !important; }
   .kpi-row        { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
   .mini-stats-row { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
   .charts-row,
