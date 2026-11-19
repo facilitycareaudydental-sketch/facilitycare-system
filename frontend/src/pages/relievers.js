@@ -1,14 +1,15 @@
 import { buildCrudPage } from './_crud.js?v=v3';
 import { apiFetch } from '../config.js';
-import { getCachedBranches, getCachedEmployeeNames, getCachedEmployees } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployees, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
+import { submitJournaledImport } from '../utils/import_client.js';
 
 export async function renderRelievers(container, params) {
   window.__RELIEVER_BUILD__ = "V3";
   console.log("RELIEVER PAGE LOADED");
   const branchOptions = await getCachedBranches();
-  const employeeOptions = await getCachedEmployeeNames();
+  const employeeOptions = await getCachedEmployees();
   
   const dashFilter = params ? params.get('dash_filter') : null;
   
@@ -20,9 +21,6 @@ export async function renderRelievers(container, params) {
     const targetMonth = params && params.get('month') ? params.get('month') : curM;
     defFilters = { status: 'Done', month: targetMonth };
   }
-
-  console.log("RAW", await getCachedEmployees());
-  console.log("OPTIONS", employeeOptions);
 
   const getEmpOptions = (val) => {
     if (val && !employeeOptions.find(o => o.value === val)) {
@@ -52,19 +50,11 @@ export async function renderRelievers(container, params) {
     title: 'Jadwal Reliefer',
     icon: '🔄',
     apiPath: '/api/relievers',
-    bulkDelete: true,
+    bulkDelete: false, // Disabled to prevent D1 vs Google Sheets outbox sync mismatch
     itemLabel: 'Reliefer',
-    paginationMode: 'client',
     enableMobileFilterSheet: true,
     defaultFilters: defFilters,
-    onDataLoaded: (items) => {
-      // Sort descending by backup_date
-      return items.sort((a, b) => {
-        const da = a.backup_date ? new Date(a.backup_date).getTime() : 0;
-        const db = b.backup_date ? new Date(b.backup_date).getTime() : 0;
-        return db - da;
-      });
-    },
+    defaultSort: 'backup_date_desc',
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'original_fc_name', label: 'Nama Facility care' },
@@ -92,8 +82,27 @@ export async function renderRelievers(container, params) {
       },
       {
         type: 'row', fields: [
-          { name: 'original_fc_name', label: 'Nama Facility care', type: 'combobox', options: getEmpOptions(data?.original_fc_name), value: data?.original_fc_name },
-          { name: 'reliever_name', label: 'Relifer', type: 'combobox', required: true, options: getRelieverOptions(data?.reliever_name), value: data?.reliever_name },
+          {
+            name: 'original_fc_name',
+            label: 'Nama Facility care',
+            type: 'employee-combobox',
+            allowManual: true,
+            hasEmployeeIdSchema: false,
+            manualBadgeText: 'Belum terhubung ke Master Karyawan (nama manual)',
+            options: employeeOptions,
+            value: data?.original_fc_name || '',
+          },
+          {
+            name: 'reliever_name',
+            label: 'Relifer',
+            type: 'employee-combobox',
+            required: true,
+            allowManual: true,
+            hasEmployeeIdSchema: false,
+            manualBadgeText: 'Belum terhubung ke Master Karyawan (nama manual)',
+            options: [...relieverOptions.map(r => ({ full_name: r, branch_name: 'Tenaga Pengganti (Reliefer)', division: '' })), ...employeeOptions],
+            value: data?.reliever_name || '',
+          },
         ]
       },
       {
@@ -112,30 +121,28 @@ export async function renderRelievers(container, params) {
     ],
     exportOptions: {
       moduleName: 'relievers',
-      onExport: async () => {
-        const res = await apiFetch(`/api/relievers${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
-        if (res.ok) {
-          const data = res.data.data.map(d => ({
-            'Cabang': d.branch_name || '',
-            'Nama Facility care': d.original_fc_name || '',
-            'Periode': d.period || '',
-            'Relifer': d.reliever_name || '',
-            'Tanggal Back Up': d.backup_date || '',
-            'Tanggal Selesai': d.completion_date || '',
-            'Keterangan': d.reason || '',
-            'Shift': d.shift || '',
-            'Status': d.status || ''
-          }));
-          
-          if (data.length === 0) {
-            // Include headers even if empty
-            data.push({
-              'Cabang': '', 'Nama Facility care': '', 'Periode': '', 'Relifer': '',
-              'Tanggal Back Up': '', 'Tanggal Selesai': '', 'Keterangan': '', 'Shift': '', 'Status': ''
-            });
-          }
-          downloadExcel(data, 'Data_Reliefer');
-        } else throw new Error('Gagal mengambil data');
+      onExport: async (filters) => {
+        const rows = await fetchExportRows('/api/relievers/export', filters);
+        const data = rows.map(d => ({
+          'Cabang': d.branch_name || '',
+          'Nama Facility care': d.original_fc_name || '',
+          'Periode': d.period || '',
+          'Relifer': d.reliever_name || '',
+          'Tanggal Back Up': d.backup_date || '',
+          'Tanggal Selesai': d.completion_date || '',
+          'Keterangan': d.reason || '',
+          'Shift': d.shift || '',
+          'Status': d.status || ''
+        }));
+
+        if (data.length === 0) {
+          // Include headers even if empty
+          data.push({
+            'Cabang': '', 'Nama Facility care': '', 'Periode': '', 'Relifer': '',
+            'Tanggal Back Up': '', 'Tanggal Selesai': '', 'Keterangan': '', 'Shift': '', 'Status': ''
+          });
+        }
+        downloadExcel(data, 'Data_Reliefer');
       },
       onTemplate: () => {
         const template = [
@@ -143,7 +150,7 @@ export async function renderRelievers(container, params) {
         ];
         downloadExcel(template, 'Template_Import_Reliefer');
       },
-      onImport: async (json) => {
+      onImport: async (json, importCtx = {}) => {
         const bRes = await apiFetch('/api/branches?all=1');
         const rawBranches = bRes.data?.data || [];
         
@@ -166,12 +173,14 @@ export async function renderRelievers(container, params) {
           status: String(row['Status'] || '').trim(),
         })).filter(row => row.reliever_name && row.backup_date);
         
-        const res = await apiFetch('/api/import/relievers', {
-          method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+        return await submitJournaledImport({
+          module: 'relievers',
+          label: 'Jadwal Reliefer',
+          endpoint: '/api/import/relievers',
+          body: { rows: payload, onDuplicate: 'update' },
+          idempotencyKey: importCtx?.idempotencyKey,
+          recover: Boolean(importCtx?.recover),
         });
-        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     }
   });

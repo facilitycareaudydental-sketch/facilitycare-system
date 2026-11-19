@@ -1,7 +1,9 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
-import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployees, fetchExportRows } from '../utils/dataCache.js';
+import { createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
+import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
 
 // ── INITIAL PRE-SEEDED DATA SP (Sesuai Catatan Operasional FCMS) ────────────
 const INITIAL_SP = [
@@ -145,6 +147,16 @@ export async function renderSP(container) {
   let selectedDivision = 'all';
   let searchQuery = '';
   let viewMode = localStorage.getItem('fcms_sp_view_mode') || 'card';
+  let currentPage = 1;
+  const PAGE_LIMIT = 20;
+  let totalItems = 0;
+  let totalPages = 1;
+  let serverStats = {
+    total: 0, active: 0, expiring: 0, expired: 0,
+    sp1: 0, sp2: 0, sp3: 0, teguran: 0, uniqueEmployees: 0
+  };
+  let searchDebounce = null;
+  let hasRendered = false;
 
   // Inject Styles
   const styleId = 'fcms-sp-page-styles';
@@ -691,106 +703,97 @@ export async function renderSP(container) {
     `;
   }
 
-  // Load Data
-  async function loadData() {
-    try {
-      const [branchRes, empRes] = await Promise.all([
-        getCachedBranches(),
-        getCachedEmployeeNames()
-      ]);
-      branchOptions = branchRes || [];
-      employeeOptions = empRes || [];
+  function getActiveFilters() {
+    const params = { sort: 'date_desc' };
+    if (searchQuery && searchQuery.trim()) params.search = searchQuery.trim();
+    if (selectedBranch && selectedBranch !== 'all') params.branch_id = selectedBranch;
+    if (selectedDivision && selectedDivision !== 'all') params.division = selectedDivision;
+    if (selectedFilter && selectedFilter !== 'all') params.filter = selectedFilter;
+    return params;
+  }
 
-      const res = await apiFetch('/api/sp?limit=1000');
-      if (res.ok && res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-        spList = res.data.data;
-        localStorage.setItem('fcms_sp_data_cache', JSON.stringify(spList));
-      } else {
-        const cached = localStorage.getItem('fcms_sp_data_cache');
-        if (cached) {
-          spList = JSON.parse(cached);
-        } else {
-          spList = [...INITIAL_SP];
-          localStorage.setItem('fcms_sp_data_cache', JSON.stringify(spList));
+  function updateStatsUI() {
+    const set = (sel, val) => {
+      const el = container.querySelector(sel);
+      if (el) el.textContent = String(val ?? 0);
+    };
+    set('#sp-stat-active', serverStats.active);
+    set('#sp-stat-expiring', serverStats.expiring);
+    set('#sp-stat-expired', serverStats.expired);
+    set('#sp-stat-unique', serverStats.uniqueEmployees);
+    set('#sp-pill-count-all', serverStats.total);
+    set('#sp-pill-count-active', serverStats.active);
+    set('#sp-pill-count-expiring', serverStats.expiring);
+    set('#sp-pill-count-expired', serverStats.expired);
+    set('#sp-pill-count-sp1', serverStats.sp1);
+    set('#sp-pill-count-sp2', serverStats.sp2);
+    set('#sp-pill-count-sp3', serverStats.sp3);
+  }
+
+  // Load Data
+  async function loadData({ refreshStats = true } = {}) {
+    try {
+      if (branchOptions.length === 0 || employeeOptions.length === 0) {
+        const [branchRes, empRes] = await Promise.all([
+          getCachedBranches(),
+          getCachedEmployees()
+        ]);
+        branchOptions = branchRes || [];
+        employeeOptions = empRes || [];
+      }
+
+      const filters = getActiveFilters();
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(PAGE_LIMIT),
+        ...filters
+      });
+      if (refreshStats) params.set('include_stats', '1');
+
+      const res = await apiFetch('/api/sp?' + params.toString());
+      if (res.ok && res.data?.data && Array.isArray(res.data.data)) {
+        const pg = res.data.pagination || {};
+        totalItems = Number(pg.total ?? res.data.data.length);
+        totalPages = Math.max(1, Number(pg.pages || pg.totalPages || Math.ceil(totalItems / PAGE_LIMIT) || 1));
+        if (res.data.data.length === 0 && currentPage > totalPages) {
+          currentPage = totalPages;
+          return loadData({ refreshStats });
         }
+        spList = res.data.data;
+        if (res.data.stats) {
+          serverStats = { ...serverStats, ...res.data.stats };
+        }
+      } else {
+        spList = [];
+        totalItems = 0;
+        totalPages = 1;
+        if (!res.ok) toastError(res.data?.error || 'Gagal memuat data SP dari server');
       }
     } catch (err) {
-      console.warn('Fallback loading SP data from cache/seed:', err);
-      const cached = localStorage.getItem('fcms_sp_data_cache');
-      spList = cached ? JSON.parse(cached) : [...INITIAL_SP];
+      console.warn('Error loading SP data:', err);
+      spList = [];
+      totalItems = 0;
+      totalPages = 1;
+      toastError('Gagal memuat data SP: ' + err.message);
     }
-    renderUI();
+
+    if (!hasRendered) {
+      hasRendered = true;
+      renderUI();
+    } else {
+      if (refreshStats) updateStatsUI();
+      renderListContent();
+    }
   }
 
-  // Filter & Search Logic
+  // Server-filtered page data
   function getFilteredSP() {
-    return spList.filter(item => {
-      // Search
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch = !q ||
-        (item.employee_name || '').toLowerCase().includes(q) ||
-        (item.branch_name || '').toLowerCase().includes(q) ||
-        (item.division || '').toLowerCase().includes(q) ||
-        (item.sp_type || '').toLowerCase().includes(q);
-
-      // Branch filter
-      const matchBranch = selectedBranch === 'all' || String(item.branch_id) === String(selectedBranch);
-
-      // Division filter
-      const matchDiv = selectedDivision === 'all' || item.division === selectedDivision;
-
-      // Status/Level Filter
-      const meta = getSPStatusMeta(item.akhir_sp);
-      let matchFilter = true;
-      if (selectedFilter === 'active') matchFilter = !meta.isExpired;
-      else if (selectedFilter === 'expiring') matchFilter = meta.isExpiringSoon;
-      else if (selectedFilter === 'expired') matchFilter = meta.isExpired;
-      else if (selectedFilter === 'sp1') matchFilter = (item.sp_type || '').toUpperCase() === 'SP 1';
-      else if (selectedFilter === 'sp2') matchFilter = (item.sp_type || '').toUpperCase() === 'SP 2';
-      else if (selectedFilter === 'sp3') matchFilter = (item.sp_type || '').toUpperCase() === 'SP 3';
-      else if (selectedFilter === 'teguran') matchFilter = (item.sp_type || '').toUpperCase().includes('TEGURAN');
-
-      return matchSearch && matchBranch && matchDiv && matchFilter;
-    });
+    return spList;
   }
 
-  // Calculate Metrics
+  // Global metrics from backend stats
   function getMetrics() {
-    let activeCount = 0;
-    let expiringCount = 0;
-    let expiredCount = 0;
-    let sp1Count = 0;
-    let sp2Count = 0;
-    let sp3Count = 0;
-    let teguranCount = 0;
-    const employeeSet = new Set();
-
-    spList.forEach(item => {
-      if (item.employee_name) employeeSet.add(item.employee_name.toLowerCase().trim());
-      const meta = getSPStatusMeta(item.akhir_sp);
-      if (meta.isExpired) expiredCount++;
-      else activeCount++;
-
-      if (meta.isExpiringSoon) expiringCount++;
-
-      const t = (item.sp_type || '').toUpperCase();
-      if (t === 'SP 1') sp1Count++;
-      else if (t === 'SP 2') sp2Count++;
-      else if (t === 'SP 3') sp3Count++;
-      else if (t.includes('TEGURAN')) teguranCount++;
-    });
-
-    return {
-      total: spList.length,
-      active: activeCount,
-      expiring: expiringCount,
-      expired: expiredCount,
-      sp1: sp1Count,
-      sp2: sp2Count,
-      sp3: sp3Count,
-      teguran: teguranCount,
-      uniqueEmployees: employeeSet.size
-    };
+    return serverStats;
   }
 
   // Modal Terbitkan / Edit SP
@@ -823,11 +826,7 @@ export async function renderSP(container) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Nama Karyawan <span style="color:#DC2626;">*</span>
             </label>
-            <input type="text" id="sp-modal-emp" list="sp-emp-list" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="Pilih atau ketik nama..." value="${item?.employee_name ? String(item.employee_name).replace(/"/g, '&quot;') : ''}" required />
-            <datalist id="sp-emp-list">
-              ${employeeOptions.map(e => `<option value="${e.label}">${e.label}</option>`).join('')}
-            </datalist>
+            <div id="sp-modal-emp-mount"></div>
           </div>
 
           <div>
@@ -912,6 +911,20 @@ export async function renderSP(container) {
       }
     });
 
+    const empCombobox = mountEmployeeCombobox(content.querySelector('#sp-modal-emp-mount'), {
+      mode: 'single',
+      inputId: 'sp-modal-emp',
+      inputName: 'employee_name',
+      placeholder: 'Cari nama karyawan...',
+      required: true,
+      allowManual: true,
+      hasEmployeeIdSchema: true,
+      manualBadgeText: 'Belum terhubung ke Master Karyawan',
+      employees: employeeOptions,
+      initialEmployeeId: item?.employee_id || null,
+      initialEmployeeName: item?.employee_name || '',
+    });
+
     createModal({
       title: isEdit ? '✏️ Edit Data Surat Peringatan (SP)' : '➕ Terbitkan Surat Peringatan (SP) Baru',
       content,
@@ -919,7 +932,9 @@ export async function renderSP(container) {
       confirmText: isEdit ? 'Simpan Perubahan' : 'Terbitkan SP',
       confirmClass: 'btn-primary',
       onConfirm: async (_, close) => {
-        const employee_name = (content.querySelector('#sp-modal-emp').value || '').trim();
+        const empSelection = empCombobox.getValue();
+        const employee_name = (empSelection.employee_name || '').trim();
+        const employee_id = empSelection.employee_id ?? null;
         const division = content.querySelector('#sp-modal-div').value;
         const branch_id = content.querySelector('#sp-modal-branch').value;
         const sp_type = content.querySelector('#sp-modal-type').value;
@@ -930,6 +945,7 @@ export async function renderSP(container) {
 
         if (!employee_name) {
           toastError('Nama Karyawan wajib diisi');
+          empCombobox.inputEl?.focus();
           return;
         }
         if (!branch_id) {
@@ -946,6 +962,7 @@ export async function renderSP(container) {
 
         const payload = {
           employee_name,
+          employee_id,
           division,
           branch_id: Number(branch_id),
           branch_name,
@@ -954,7 +971,8 @@ export async function renderSP(container) {
           akhir_sp,
           document_link,
           notes,
-          status: getSPStatusMeta(akhir_sp).status
+          status: getSPStatusMeta(akhir_sp).status,
+          ...(isEdit ? { row_version: item?.row_version !== undefined && item?.row_version !== null ? Number(item.row_version) : 1 } : {})
         };
 
         try {
@@ -963,22 +981,32 @@ export async function renderSP(container) {
               method: 'PUT',
               body: JSON.stringify(payload)
             });
-            const idx = spList.findIndex(s => s.id === item.id);
-            if (idx !== -1) spList[idx] = { ...spList[idx], ...payload };
+            if (!res.ok) {
+              if (res.status === 409) {
+                toastError('Konflik OCC: Data telah diubah oleh pengguna lain. Silakan muat ulang halaman.');
+                close();
+                await loadData({ refreshStats: true });
+                return;
+              }
+              toastError(res.data?.error || 'Gagal memperbarui data SP');
+              return;
+            }
             toastSuccess('Data SP berhasil diperbarui');
           } else {
             const res = await apiFetch('/api/sp', {
               method: 'POST',
               body: JSON.stringify(payload)
             });
-            const newId = res.ok && res.data?.id ? res.data.id : Date.now();
-            spList.unshift({ id: newId, ...payload });
+            if (!res.ok) {
+              toastError(res.data?.error || 'Gagal menerbitkan data SP');
+              return;
+            }
+            currentPage = 1;
             toastSuccess('Surat Peringatan baru berhasil diterbitkan');
           }
 
-          localStorage.setItem('fcms_sp_data_cache', JSON.stringify(spList));
           close();
-          renderUI();
+          await loadData({ refreshStats: true });
         } catch (err) {
           console.error('Error saving SP:', err);
           toastError('Gagal menyimpan SP: ' + err.message);
@@ -989,18 +1017,24 @@ export async function renderSP(container) {
 
   // Delete SP
   function deleteSP(item) {
+    if (!canDelete) {
+      toastError('Anda tidak memiliki izin untuk menghapus data SP.');
+      return;
+    }
     confirmDialog(
       `Hapus data Surat Peringatan untuk karyawan <strong>${item.employee_name}</strong> (${item.sp_type})?`,
       async () => {
         try {
-          await apiFetch(`/api/sp/${item.id}`, { method: 'DELETE' });
+          const res = await apiFetch(`/api/sp/${item.id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            toastError(res.data?.error || 'Gagal menghapus data SP dari server');
+            return;
+          }
+          toastSuccess(`Data SP ${item.employee_name} berhasil dihapus`);
+          await loadData({ refreshStats: true });
         } catch (e) {
-          console.warn('API delete error fallback to local:', e);
+          toastError('Gagal menghapus data SP: ' + e.message);
         }
-        spList = spList.filter(s => s.id !== item.id);
-        localStorage.setItem('fcms_sp_data_cache', JSON.stringify(spList));
-        toastSuccess(`Data SP ${item.employee_name} berhasil dihapus`);
-        renderUI();
       },
       'Hapus Data SP'
     );
@@ -1096,7 +1130,8 @@ export async function renderSP(container) {
     }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
-      const exportData = spList.map((s, idx) => {
+      const rows = await fetchExportRows('/api/sp/export', getActiveFilters());
+      const exportData = rows.map((s, idx) => {
         const meta = getSPStatusMeta(s.akhir_sp);
         return {
           'No': idx + 1,
@@ -1113,151 +1148,16 @@ export async function renderSP(container) {
         };
       });
       downloadExcel(exportData, `Data_Surat_Peringatan_FCMS_${new Date().toISOString().slice(0, 10)}`);
-      toastSuccess('Berhasil mengunduh data SP ke format Excel.');
+      toastSuccess(`Berhasil mengunduh ${rows.length} data SP ke format Excel.`);
     } catch (err) {
       toastError('Gagal ekspor: ' + err.message);
     }
   }
 
-  // Render UI Function
-  function renderUI() {
-    const filtered = getFilteredSP();
-    const metrics = getMetrics();
 
-    container.innerHTML = `
-      <div class="sp-page-container">
-        
-        <!-- Hero Header -->
-        <div class="sp-hero-card">
-          <div class="sp-hero-header">
-            <div>
-              <h1 class="sp-hero-title">
-                <span>📜</span> Monitoring Data SP (Surat Peringatan)
-              </h1>
-            </div>
-            <div class="sp-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              ${canAdd ? `
-                <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
-                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  <span>Terbitkan SP</span>
-                </button>
-              ` : ''}
-              
-              ${hasPermission(currentUser, "export") ? `<button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
-                <span>📥</span>
-                <span>Ekspor Excel</span>
-              </button>` : ''}
-
-              <button id="sp-btn-refresh" class="btn btn-ghost sp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Quick Metrics -->
-          <div class="sp-stats-grid">
-            <div class="sp-stat-box">
-              <div class="sp-stat-icon" style="background:rgba(239,68,68,0.2); color:#F87171;">🔴</div>
-              <div>
-                <div class="sp-stat-value">${metrics.active}</div>
-                <div class="sp-stat-label">SP Aktif Berlaku</div>
-              </div>
-            </div>
-
-            <div class="sp-stat-box">
-              <div class="sp-stat-icon" style="background:rgba(245,158,11,0.2); color:#FBBF24;">⚠️</div>
-              <div>
-                <div class="sp-stat-value">${metrics.expiring}</div>
-                <div class="sp-stat-label">Segera Berakhir (&lt;30 Hari)</div>
-              </div>
-            </div>
-
-            <div class="sp-stat-box">
-              <div class="sp-stat-icon" style="background:rgba(16,185,129,0.2); color:#34D399;">✅</div>
-              <div>
-                <div class="sp-stat-value">${metrics.expired}</div>
-                <div class="sp-stat-label">Masa Sanksi Selesai</div>
-              </div>
-            </div>
-
-            <div class="sp-stat-box">
-              <div class="sp-stat-icon" style="background:rgba(59,130,246,0.2); color:#60A5FA;">👥</div>
-              <div>
-                <div class="sp-stat-value">${metrics.uniqueEmployees} <span style="font-size:0.8rem; font-weight:400; color:#94A3B8;">karyawan</span></div>
-                <div class="sp-stat-label">Total Terkena Sanksi</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Controls Panel -->
-        <div class="sp-controls-panel">
-          <div class="sp-controls-top">
-            <div class="sp-search-wrapper">
-              <span class="sp-search-icon">🔍</span>
-              <input type="text" id="sp-search-input" class="sp-search-input" placeholder="Cari nama karyawan, cabang, atau divisi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
-            </div>
-
-            <!-- Branch Dropdown -->
-            <select id="sp-filter-branch" class="sp-filter-select">
-              <option value="all">Semua Cabang (${branchOptions.length})</option>
-              ${branchOptions.map(b => `<option value="${b.value}" ${String(selectedBranch) === String(b.value) ? 'selected' : ''}>${b.label}</option>`).join('')}
-            </select>
-
-            <!-- Division Dropdown -->
-            <select id="sp-filter-division" class="sp-filter-select">
-              <option value="all" ${selectedDivision === 'all' ? 'selected' : ''}>Semua Divisi</option>
-              <option value="FACILITY CARE" ${selectedDivision === 'FACILITY CARE' ? 'selected' : ''}>FACILITY CARE</option>
-              <option value="SECURITY" ${selectedDivision === 'SECURITY' ? 'selected' : ''}>SECURITY</option>
-            </select>
-
-            <div class="sp-view-toggle">
-              <button type="button" class="sp-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card" title="Tampilan Kartu">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                <span>Kartu</span>
-              </button>
-              <button type="button" class="sp-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table" title="Tampilan Tabel">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                <span>Tabel</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Filter Pills -->
-          <div class="sp-filter-pills">
-            <button class="sp-pill ${selectedFilter === 'all' ? 'active' : ''}" data-filter="all">
-              <span>Semua SP</span>
-              <span class="sp-pill-count">${metrics.total}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'active' ? 'active' : ''}" data-filter="active">
-              <span>🔴 SP Aktif</span>
-              <span class="sp-pill-count">${metrics.active}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'expiring' ? 'active' : ''}" data-filter="expiring">
-              <span>⚠️ &lt;30 Hari</span>
-              <span class="sp-pill-count">${metrics.expiring}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'expired' ? 'active' : ''}" data-filter="expired">
-              <span>✅ Selesai</span>
-              <span class="sp-pill-count">${metrics.expired}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'sp1' ? 'active' : ''}" data-filter="sp1">
-              <span>SP 1</span>
-              <span class="sp-pill-count">${metrics.sp1}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'sp2' ? 'active' : ''}" data-filter="sp2">
-              <span>SP 2</span>
-              <span class="sp-pill-count">${metrics.sp2}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'sp3' ? 'active' : ''}" data-filter="sp3">
-              <span>SP 3</span>
-              <span class="sp-pill-count">${metrics.sp3}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Content Area -->
-        <div id="sp-list-container">
+  // Render only the dynamic list content HTML (Card / Table / Empty State)
+  function buildSPListHTML(filtered) {
+    return `
           ${filtered.length === 0 ? `
             <div class="sp-empty-state">
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
@@ -1291,7 +1191,7 @@ export async function renderSP(container) {
                       const typeMeta = getSPTypeBadge(s.sp_type);
                       return `
                         <tr data-id="${s.id}">
-                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${idx + 1}</td>
+                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${((currentPage - 1) * PAGE_LIMIT) + idx + 1}</td>
                           <td>
                             <div style="display:flex; align-items:center; gap:10px;">
                               <div class="sp-avatar-box" style="width:34px; height:34px; font-size:0.78rem; border-radius:8px;">
@@ -1436,26 +1336,10 @@ export async function renderSP(container) {
               }).join('')}
             </div>
           `}
-        </div>
-
-      </div>
     `;
-
-    bindEvents();
   }
 
-  // Bind Listeners
-  function bindEvents() {
-    // Top Buttons
-    const btnAdd = container.querySelector('#sp-btn-add');
-    if (btnAdd) btnAdd.onclick = () => openSPModal();
-
-    const btnExcel = container.querySelector('#sp-btn-excel');
-    if (btnExcel) btnExcel.onclick = () => exportToExcel();
-
-    const btnRefresh = container.querySelector('#sp-btn-refresh');
-    if (btnRefresh) btnRefresh.onclick = () => loadData();
-
+  function bindListEvents() {
     const btnReset = container.querySelector('#sp-btn-reset-filter');
     if (btnReset) {
       btnReset.onclick = () => {
@@ -1463,62 +1347,20 @@ export async function renderSP(container) {
         selectedBranch = 'all';
         selectedDivision = 'all';
         selectedFilter = 'all';
-        renderUI();
+        currentPage = 1;
+        clearTimeout(searchDebounce);
+        const searchInput = container.querySelector('#sp-search-input');
+        if (searchInput) searchInput.value = '';
+        const branchFilter = container.querySelector('#sp-filter-branch');
+        if (branchFilter) branchFilter.value = 'all';
+        const divFilter = container.querySelector('#sp-filter-division');
+        if (divFilter) divFilter.value = 'all';
+        container.querySelectorAll('.sp-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-filter') === 'all');
+        });
+        loadData({ refreshStats: false });
       };
     }
-
-    // Search Input
-    const searchInput = container.querySelector('#sp-search-input');
-    if (searchInput) {
-      searchInput.oninput = (e) => {
-        searchQuery = e.target.value;
-        renderUI();
-        const newSearch = container.querySelector('#sp-search-input');
-        if (newSearch) {
-          newSearch.focus();
-          newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
-        }
-      };
-    }
-
-    // Branch Filter
-    const branchFilter = container.querySelector('#sp-filter-branch');
-    if (branchFilter) {
-      branchFilter.onchange = (e) => {
-        selectedBranch = e.target.value;
-        renderUI();
-      };
-    }
-
-    // Division Filter
-    const divFilter = container.querySelector('#sp-filter-division');
-    if (divFilter) {
-      divFilter.onchange = (e) => {
-        selectedDivision = e.target.value;
-        renderUI();
-      };
-    }
-
-
-    // Filter Pills
-    container.querySelectorAll('.sp-pill').forEach(pill => {
-      pill.onclick = () => {
-        selectedFilter = pill.getAttribute('data-filter') || 'all';
-        renderUI();
-      };
-    });
-
-    // View Mode Switcher (Kartu vs Tabel)
-    container.querySelectorAll('.sp-view-btn').forEach(btn => {
-      btn.onclick = () => {
-        const mode = btn.getAttribute('data-view');
-        if (mode && mode !== viewMode) {
-          viewMode = mode;
-          localStorage.setItem('fcms_sp_view_mode', mode);
-          renderUI();
-        }
-      };
-    });
 
     // Detail Buttons / Links
     container.querySelectorAll('.sp-detail-btn, .sp-view-detail-link').forEach(el => {
@@ -1551,7 +1393,254 @@ export async function renderSP(container) {
     });
   }
 
+  function renderPagination() {
+    const pgContainer = container.querySelector('#sp-pagination-container');
+    if (!pgContainer) return;
+    pgContainer.innerHTML = '';
+    const pgEl = createPagination({
+      page: currentPage,
+      pages: totalPages,
+      total: totalItems,
+      limit: PAGE_LIMIT,
+      onPage: (newPage) => {
+        currentPage = newPage;
+        loadData({ refreshStats: false });
+      }
+    });
+    if (pgEl) pgContainer.appendChild(pgEl);
+  }
+
+  function renderListContent() {
+    const listContainer = container.querySelector('#sp-list-container');
+    if (!listContainer) return;
+    const filtered = getFilteredSP();
+    listContainer.innerHTML = buildSPListHTML(filtered);
+    renderPagination();
+    bindListEvents();
+  }
+  // Render UI Function
+  function renderUI() {
+    const filtered = getFilteredSP();
+    const metrics = getMetrics();
+
+    container.innerHTML = `
+      <div class="sp-page-container">
+        
+        <!-- Hero Header -->
+        <div class="sp-hero-card">
+          <div class="sp-hero-header">
+            <div>
+              <h1 class="sp-hero-title">
+                <span>📜</span> Monitoring Data SP (Surat Peringatan)
+              </h1>
+            </div>
+            <div class="sp-hero-actions" style="display:flex; align-items:center; gap:8px;">
+              ${canAdd ? `
+                <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Terbitkan SP</span>
+                </button>
+              ` : ''}
+              
+              ${hasPermission(currentUser, "export") ? `<button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                <span>📥</span>
+                <span>Ekspor Excel</span>
+              </button>` : ''}
+
+              <button id="sp-btn-refresh" class="btn btn-ghost sp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Metrics -->
+          <div class="sp-stats-grid">
+            <div class="sp-stat-box">
+              <div class="sp-stat-icon" style="background:rgba(239,68,68,0.2); color:#F87171;">🔴</div>
+              <div>
+                <div class="sp-stat-value" id="sp-stat-active">${metrics.active}</div>
+                <div class="sp-stat-label">SP Aktif Berlaku</div>
+              </div>
+            </div>
+
+            <div class="sp-stat-box">
+              <div class="sp-stat-icon" style="background:rgba(245,158,11,0.2); color:#FBBF24;">⚠️</div>
+              <div>
+                <div class="sp-stat-value" id="sp-stat-expiring">${metrics.expiring}</div>
+                <div class="sp-stat-label">Segera Berakhir (&lt;30 Hari)</div>
+              </div>
+            </div>
+
+            <div class="sp-stat-box">
+              <div class="sp-stat-icon" style="background:rgba(16,185,129,0.2); color:#34D399;">✅</div>
+              <div>
+                <div class="sp-stat-value" id="sp-stat-expired">${metrics.expired}</div>
+                <div class="sp-stat-label">Masa Sanksi Selesai</div>
+              </div>
+            </div>
+
+            <div class="sp-stat-box">
+              <div class="sp-stat-icon" style="background:rgba(59,130,246,0.2); color:#60A5FA;">👥</div>
+              <div>
+                <div class="sp-stat-value"><span id="sp-stat-unique">${metrics.uniqueEmployees}</span> <span style="font-size:0.8rem; font-weight:400; color:#94A3B8;">karyawan</span></div>
+                <div class="sp-stat-label">Total Terkena Sanksi</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="sp-controls-panel">
+          <div class="sp-controls-top">
+            <div class="sp-search-wrapper">
+              <span class="sp-search-icon">🔍</span>
+              <input type="text" id="sp-search-input" class="sp-search-input" placeholder="Cari nama karyawan, cabang, atau divisi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
+            </div>
+
+            <!-- Branch Dropdown -->
+            <select id="sp-filter-branch" class="sp-filter-select">
+              <option value="all">Semua Cabang (${branchOptions.length})</option>
+              ${branchOptions.map(b => `<option value="${b.value}" ${String(selectedBranch) === String(b.value) ? 'selected' : ''}>${b.label}</option>`).join('')}
+            </select>
+
+            <!-- Division Dropdown -->
+            <select id="sp-filter-division" class="sp-filter-select">
+              <option value="all" ${selectedDivision === 'all' ? 'selected' : ''}>Semua Divisi</option>
+              <option value="FACILITY CARE" ${selectedDivision === 'FACILITY CARE' ? 'selected' : ''}>FACILITY CARE</option>
+              <option value="SECURITY" ${selectedDivision === 'SECURITY' ? 'selected' : ''}>SECURITY</option>
+            </select>
+
+            <div class="sp-view-toggle">
+              <button type="button" class="sp-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card" title="Tampilan Kartu">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Kartu</span>
+              </button>
+              <button type="button" class="sp-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table" title="Tampilan Tabel">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                <span>Tabel</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Pills -->
+          <div class="sp-filter-pills">
+            <button class="sp-pill ${selectedFilter === 'all' ? 'active' : ''}" data-filter="all">
+              <span>Semua SP</span>
+              <span class="sp-pill-count" id="sp-pill-count-all">${metrics.total}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'active' ? 'active' : ''}" data-filter="active">
+              <span>🔴 SP Aktif</span>
+              <span class="sp-pill-count" id="sp-pill-count-active">${metrics.active}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'expiring' ? 'active' : ''}" data-filter="expiring">
+              <span>⚠️ &lt;30 Hari</span>
+              <span class="sp-pill-count" id="sp-pill-count-expiring">${metrics.expiring}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'expired' ? 'active' : ''}" data-filter="expired">
+              <span>✅ Selesai</span>
+              <span class="sp-pill-count" id="sp-pill-count-expired">${metrics.expired}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'sp1' ? 'active' : ''}" data-filter="sp1">
+              <span>SP 1</span>
+              <span class="sp-pill-count" id="sp-pill-count-sp1">${metrics.sp1}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'sp2' ? 'active' : ''}" data-filter="sp2">
+              <span>SP 2</span>
+              <span class="sp-pill-count" id="sp-pill-count-sp2">${metrics.sp2}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'sp3' ? 'active' : ''}" data-filter="sp3">
+              <span>SP 3</span>
+              <span class="sp-pill-count" id="sp-pill-count-sp3">${metrics.sp3}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="sp-list-container">
+          ${buildSPListHTML(filtered)}
+        </div>
+
+        <!-- Pagination Container -->
+        <div id="sp-pagination-container"></div>
+
+      </div>
+    `;
+
+    renderPagination();
+    bindEvents();
+  }
+
+  // Bind Listeners
+  function bindEvents() {
+    // Top Buttons
+    const btnAdd = container.querySelector('#sp-btn-add');
+    if (btnAdd) btnAdd.onclick = () => openSPModal();
+
+    const btnExcel = container.querySelector('#sp-btn-excel');
+    if (btnExcel) btnExcel.onclick = () => exportToExcel();
+
+    const btnRefresh = container.querySelector('#sp-btn-refresh');
+    if (btnRefresh) btnRefresh.onclick = () => loadData({ refreshStats: true });
+
+    const searchInput = container.querySelector('#sp-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadData({ refreshStats: false });
+        }, 350);
+      });
+    }
+
+    const branchFilter = container.querySelector('#sp-filter-branch');
+    if (branchFilter) {
+      branchFilter.addEventListener('change', (e) => {
+        selectedBranch = e.target.value;
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      });
+    }
+
+    const divFilter = container.querySelector('#sp-filter-division');
+    if (divFilter) {
+      divFilter.addEventListener('change', (e) => {
+        selectedDivision = e.target.value;
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      });
+    }
+
+    container.querySelectorAll('.sp-view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-view');
+        if (!mode || mode === viewMode) return;
+        viewMode = mode;
+        localStorage.setItem('fcms_sp_view_mode', viewMode);
+        container.querySelectorAll('.sp-view-btn').forEach(b => {
+          b.classList.toggle('active', b === btn);
+        });
+        renderListContent();
+      });
+    });
+
+    container.querySelectorAll('.sp-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        selectedFilter = pill.getAttribute('data-filter') || 'all';
+        container.querySelectorAll('.sp-pill').forEach(p => {
+          p.classList.toggle('active', p === pill);
+        });
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      });
+    });
+
+    // Initial bind of list events
+    bindListEvents();
+  }
+
   // Initial Load
-  await loadData();
+  await loadData({ refreshStats: true });
 }
 

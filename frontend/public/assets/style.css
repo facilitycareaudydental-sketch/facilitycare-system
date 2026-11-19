@@ -1427,6 +1427,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   width: 52px; height: 52px;
   border-radius: 14px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563EB, #0EA5E9);
   box-shadow: 0 6px 20px rgba(37,99,235,.4);
 }
 .login-logo { display: block; }
@@ -1807,4 +1811,306 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
  
 .bulk-toolbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 16px; border: 1px solid var(--border-color); }  
-.bulk-toolbar #bulk-count { font-weight: 600; color: var(--primary); margin-right: auto; } 
+.bulk-toolbar #bulk-count { font-weight: 600; color: var(--primary); margin-right: auto; }
+
+/* ── Unified Employee Search Combobox ────────────────────────── */
+.fc-emp-combobox {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.fc-emp-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+.fc-emp-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  pointer-events: none;
+  z-index: 2;
+  transition: color 0.15s ease;
+}
+.fc-emp-input-wrap:focus-within .fc-emp-search-icon {
+  color: #2563EB;
+}
+.fc-emp-input {
+  width: 100% !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 0 38px 0 42px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-radius: 12px !important;
+  font-size: 0.95rem !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  color: #0F172A !important;
+  background: #FFFFFF !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  line-height: normal !important;
+}
+.fc-emp-input::placeholder {
+  color: #94A3B8 !important;
+  font-weight: 400 !important;
+  font-size: 0.92rem !important;
+}
+.fc-emp-input:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.12) !important;
+  background: #FFFFFF !important;
+}
+.fc-emp-clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: #E2E8F0;
+  color: #64748B;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.15s ease;
+  z-index: 2;
+  padding: 0;
+}
+.fc-emp-clear-btn:hover {
+  background: #CBD5E1;
+  color: #0F172A;
+}
+.fc-emp-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1070;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: none;
+  padding: 4px 0;
+  box-sizing: border-box;
+}
+.fc-emp-dropdown.open {
+  display: block;
+}
+.fc-emp-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.fc-emp-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fc-emp-dropdown::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 999px;
+}
+.fc-emp-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+.fc-emp-option {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background-color 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-sizing: border-box;
+}
+.fc-emp-option:last-child {
+  border-bottom: none;
+}
+.fc-emp-option:hover,
+.fc-emp-option.active {
+  background: #F0F7FF;
+}
+.fc-emp-option.active {
+  background: #EFF6FF;
+  border-left: 3px solid #2563EB;
+  padding-left: 11px;
+}
+.fc-emp-option-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.fc-emp-option-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #0F172A;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+.fc-emp-option-meta {
+  font-size: 0.78rem;
+  color: #64748B;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fc-emp-option-manual {
+  background: #FFFDF5;
+  border-top: 1px dashed #FCD34D;
+}
+.fc-emp-option-manual:hover,
+.fc-emp-option-manual.active {
+  background: #FEF9C3;
+}
+.fc-emp-option-manual .fc-emp-option-name {
+  color: #92400E;
+  font-weight: 600;
+}
+.fc-emp-manual-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fc-emp-manual-icon {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #D97706;
+  line-height: 1;
+}
+.fc-emp-manual-badge-row {
+  margin-top: 4px;
+}
+.fc-emp-empty {
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  color: #64748B;
+  text-align: center;
+}
+.fc-emp-status-row {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.fc-emp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.fc-emp-badge-master {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+.fc-emp-badge-manual {
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+.fc-emp-chips {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fc-emp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #F1F5F9;
+  color: #1E293B;
+  border: 1px solid #CBD5E1;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.fc-emp-chip.manual {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FCD34D;
+}
+.fc-emp-chip-tag {
+  font-size: 0.68rem;
+  padding: 1px 5px;
+  background: #F59E0B;
+  color: #FFFFFF;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.fc-emp-chip-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  color: #64748B;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fc-emp-chip-remove:hover {
+  color: #EF4444;
+}
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #F1F5F9;
+  color: #1E293B;
+  border: 1px solid #CBD5E1;
+  max-width: 100%;
+}
+.fc-emp-chip.manual {
+  background: #FFFBEB;
+  color: #92400E;
+  border-color: #FCD34D;
+}
+.fc-emp-chip-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #FDE68A;
+  color: #78350F;
+}
+.fc-emp-chip-remove {
+  border: none;
+  background: transparent;
+  color: #64748B;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.fc-emp-chip-remove:hover {
+  color: #DC2626;
+}

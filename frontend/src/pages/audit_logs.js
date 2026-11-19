@@ -1,9 +1,12 @@
 import { buildCrudPage } from './_crud.js';
-import { getUser } from '../config.js';
+import { getUser, apiFetch } from '../config.js';
+import { escapeHtml } from '../utils/sanitize.js';
+import { fetchExportRows } from '../utils/dataCache.js';
+import { downloadExcel } from '../utils/excel.js';
 
 export async function renderAuditLogs(container) {
   const currentUser = getUser();
-  if (!currentUser || !['superadmin', 'admin'].includes(currentUser.role)) {
+  if (!currentUser || currentUser.role !== 'superadmin') {
     container.innerHTML = '<div class="empty-state"><p class="text-danger">Akses ditolak.</p></div>';
     return;
   }
@@ -19,57 +22,112 @@ export async function renderAuditLogs(container) {
     canEdit: false,
     canDelete: false,
     bulkDelete: false,
-    exportOptions: null,
+    exportOptions: {
+      moduleName: 'audit_logs',
+      filename: 'FCMS_Audit_Logs',
+      template: false,
+      import: false,
+      onExport: async (filters) => {
+        const rows = await fetchExportRows('/api/audit-logs/export', filters);
+        const mapped = (rows || []).map((r) => ({
+          'ID': r.id,
+          'Waktu': r.created_at || '-',
+          'Pengguna': r.user_name || 'Sistem',
+          'Role': r.user_role || '-',
+          'Aksi': r.action || '-',
+          'Modul': r.module || '-',
+          'ID Target': r.target_id || '-'
+        }));
+        downloadExcel(mapped, 'FCMS_Audit_Logs', 'Audit Logs');
+      }
+    },
     columns: [
       { key: 'created_at', label: 'Waktu', nowrap: true, render: v => {
           const d = new Date(v);
-          return d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'medium' });
+          return Number.isNaN(d.getTime()) ? escapeHtml(v || '-') : d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'medium' });
       }},
-      { key: 'user_name', label: 'Pengguna', render: (v, row) => `<strong>${v || 'Sistem'}</strong><br><small class="text-muted" style="text-transform:capitalize">${row.user_role || ''}</small>` },
+      { key: 'user_name', label: 'Pengguna', render: (v, row) => `<strong>${escapeHtml(v || 'Sistem')}</strong><br><small class="text-muted" style="text-transform:capitalize">${escapeHtml(row.user_role || '')}</small>` },
       { key: 'action', label: 'Aksi', render: v => {
-        const colors = { CREATE: 'badge-success', UPDATE: 'badge-info', DELETE: 'badge-danger' };
-        return `<span class="badge ${colors[v] || 'badge-neutral'}">${v}</span>`;
+        const colors = {
+          CREATE: 'badge-success',
+          UPDATE: 'badge-info',
+          DELETE: 'badge-danger',
+          LOGIN: 'badge-primary',
+          LOGOUT: 'badge-neutral'
+        };
+        return `<span class="badge ${colors[v] || 'badge-neutral'}">${escapeHtml(v)}</span>`;
       }},
-      { key: 'module', label: 'Modul', render: v => `<span style="text-transform:capitalize">${(v||'').replace('_', ' ')}</span>` },
+      { key: 'module', label: 'Modul', render: v => `<span style="text-transform:capitalize">${escapeHtml((v || '').replace(/_/g, ' '))}</span>` },
       { key: 'target_id', label: 'ID Target' },
-      { key: 'id', label: 'Detail', render: (v, row) => `<button class="btn btn-xs btn-outline" onclick="window.viewAuditDetail('${v}')">Lihat Detail</button>` }
+      { key: 'id', label: 'Detail', render: (v) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-xs btn-outline';
+        btn.textContent = 'Lihat Detail';
+        btn.addEventListener('click', () => window.viewAuditDetail?.(v));
+        return btn;
+      }}
     ],
     filterFields: [
-      { type: 'search', placeholder: 'Cari pengguna, modul...' },
+      { type: 'search', placeholder: 'Cari ID, pengguna, modul...' },
       { type: 'select', name: 'action', options: [
           { value: '', label: 'Semua Aksi' },
           { value: 'CREATE', label: 'Tambah (CREATE)' },
           { value: 'UPDATE', label: 'Ubah (UPDATE)' },
-          { value: 'DELETE', label: 'Hapus (DELETE)' }
+          { value: 'DELETE', label: 'Hapus (DELETE)' },
+          { value: 'LOGIN', label: 'Masuk (LOGIN)' },
+          { value: 'LOGOUT', label: 'Keluar (LOGOUT)' }
       ]},
       { type: 'select', name: 'module', options: [
           { value: '', label: 'Semua Modul' },
           { value: 'employees', label: 'Karyawan' },
-          { value: 'schedule', label: 'Jadwal' },
+          { value: 'contracts', label: 'Kontrak' },
+          { value: 'sp', label: 'Data SP' },
+          { value: 'mutasi', label: 'Data Mutasi' },
+          { value: 'overtime', label: 'Lembur' },
+          { value: 'schedule', label: 'Time Line / Jadwal' },
+          { value: 'os_migrations', label: 'Migrasi OS' },
           { value: 'issues', label: 'Permasalahan' },
-          { value: 'relievers', label: 'Reliefer' },
-          { value: 'contracts', label: 'Kontrak' }
+          { value: 'training', label: 'Training' },
+          { value: 'reports', label: 'Laporan Operasional' },
+          { value: 'sop', label: 'SOP Facility Care & Security' },
+          { value: 'checklist', label: 'Master Document' },
+          { value: 'hygiene_standards', label: 'Master Hygiene' },
+          { value: 'dac', label: 'Master DAC' },
+          { value: 'users', label: 'Manajemen User' },
+          { value: 'branches', label: 'Manajemen Cabang' },
+          { value: 'auth', label: 'Autentikasi' }
       ]}
     ]
   });
 
-  // Attach global detail viewer function
-  window.viewAuditDetail = async (id) => {
-    // Wait for the modal component to be ready or just use standard fetch since we already have the row in memory.
-    // Actually, since buildCrudPage handles data loading, we might not have direct access to the row here easily.
-    // Instead, we can fetch the exact row from the API. Or we can just use the cached table data.
-    // But since the API returns old_data and new_data, we can show it in an alert or modal.
-    try {
-       const res = await fetch(`/api/audit-logs?search=${id}`, {
-           headers: { 'Authorization': `Bearer ${localStorage.getItem('fm_token')}` }
-       });
-       const data = await res.json();
-       const row = (data.data || []).find(r => String(r.id) === String(id));
-       if (!row) return alert('Data tidak ditemukan');
+  const pageActions = container.querySelector('.page-actions');
+  if (pageActions && currentUser && currentUser.role === 'superadmin') {
+    const syncBtn = document.createElement('a');
+    syncBtn.href = '#/sync';
+    syncBtn.id = 'btn-audit-sync-health';
+    syncBtn.className = 'btn btn-primary';
+    syncBtn.style.cssText = 'text-decoration:none;display:inline-flex;align-items:center;gap:6px';
+    syncBtn.innerHTML = '🩺 Sync & Health Dashboard';
+    pageActions.appendChild(syncBtn);
+  }
 
+  // Attach global detail viewer function using direct GET /api/audit-logs/:id
+  window.viewAuditDetail = async (id) => {
+    try {
+       const result = await apiFetch(`/api/audit-logs/${encodeURIComponent(id)}`);
+       const row = result?.data?.data || null;
+       if (!result?.ok || !row) return alert('Data tidak ditemukan');
+
+       const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
        const formatJSON = (str) => {
          if (!str) return 'Tidak ada data';
-         try { return JSON.stringify(JSON.parse(str), null, 2); } catch { return str; }
+         try {
+           const val = typeof str === 'object' ? str : JSON.parse(str);
+           return escHtml(JSON.stringify(val, null, 2));
+         } catch {
+           return escHtml(String(str));
+         }
        };
 
        const content = `
@@ -85,7 +143,6 @@ export async function renderAuditLogs(container) {
          </div>
        `;
 
-       // Import modal dynamically
        const { createModal } = await import('../components/modal.js');
        createModal({
          title: `Detail Audit Log #${id}`,
@@ -93,7 +150,7 @@ export async function renderAuditLogs(container) {
          width: '800px',
          hideFooter: true
        });
-    } catch(e) {
+    } catch {
        alert('Gagal mengambil detail');
     }
   };

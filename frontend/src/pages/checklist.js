@@ -1,4 +1,6 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
+import { fetchExportRows } from '../utils/dataCache.js';
+import { createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 
@@ -108,6 +110,16 @@ export async function renderChecklist(container) {
   let documents = [];
   let activeCategory = 'all';
   let searchQuery = '';
+  let currentPage = 1;
+  const PAGE_LIMIT = 20;
+  let totalItems = 0;
+  let totalPages = 1;
+  let serverStats = {
+    categoryCounts: { all: 0 },
+    linkedCount: 0
+  };
+  let searchDebounce = null;
+  let hasRendered = false;
 
   // Inject Custom Styles
   const styleId = 'fcms-master-doc-styles';
@@ -633,58 +645,139 @@ export async function renderChecklist(container) {
     document.head.appendChild(styleEl);
   }
 
+  function getActiveFilters() {
+    const params = {};
+    if (searchQuery && searchQuery.trim()) params.search = searchQuery.trim();
+    if (activeCategory && activeCategory !== 'all') params.category = activeCategory;
+    return params;
+  }
+
+  function buildCategoryPillsHTML() {
+    const stats = getCategoryStats();
+    const uniqueCats = Object.keys(stats).filter(k => k !== 'all');
+    return `
+      <button class="doc-pill ${activeCategory === 'all' ? 'active' : ''}" data-cat="all">
+        <span>Semua Dokumen</span>
+        <span class="doc-pill-count">${stats.all || 0}</span>
+      </button>
+      ${uniqueCats.map(cat => {
+        const meta = getCategoryMeta(cat);
+        const isActive = activeCategory === cat;
+        const safeCat = String(cat).replace(/"/g, '&quot;');
+        return `
+          <button class="doc-pill ${isActive ? 'active' : ''}" data-cat="${safeCat}">
+            <span>${meta.icon}</span>
+            <span>${cat}</span>
+            <span class="doc-pill-count">${stats[cat] || 0}</span>
+          </button>
+        `;
+      }).join('')}
+    `;
+  }
+
+  function bindCategoryPills() {
+    container.querySelectorAll('.doc-pill').forEach(pill => {
+      pill.onclick = () => {
+        activeCategory = pill.getAttribute('data-cat') || 'all';
+        container.querySelectorAll('.doc-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-cat') === activeCategory);
+        });
+        currentPage = 1;
+        loadDocuments({ refreshStats: false });
+      };
+    });
+  }
+
+  function updateStatsUI() {
+    const stats = getCategoryStats();
+    const uniqueCats = Object.keys(stats).filter(k => k !== 'all');
+    const totalDocs = Number(stats.all ?? 0);
+    const linkedCount = Number(serverStats.linkedCount ?? 0);
+
+    const set = (sel, val) => {
+      const el = container.querySelector(sel);
+      if (el) el.textContent = String(val ?? 0);
+    };
+    set('#doc-stat-total', totalDocs);
+    set('#doc-stat-categories', uniqueCats.length);
+    set('#doc-stat-linked', linkedCount);
+    set('#doc-stat-linked-total', totalDocs);
+
+    const pillsContainer = container.querySelector('#doc-filter-pills');
+    if (pillsContainer) {
+      pillsContainer.innerHTML = buildCategoryPillsHTML();
+      bindCategoryPills();
+    }
+  }
+
   // Fetch Documents from API
-  async function loadDocuments() {
+  async function loadDocuments({ refreshStats = true } = {}) {
     try {
-      const res = await apiFetch('/api/checklist?limit=1000');
-      if (res.ok && res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-        documents = res.data.data;
-        localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
-      } else {
-        const cached = localStorage.getItem('fcms_master_doc_cache');
-        if (cached) {
-          documents = JSON.parse(cached);
-        } else {
-          documents = [...INITIAL_DOCUMENTS];
-          localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
+      const filters = getActiveFilters();
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(PAGE_LIMIT),
+        ...filters
+      });
+      if (refreshStats) params.set('include_stats', '1');
+
+      const res = await apiFetch('/api/checklist?' + params.toString());
+      if (res.ok && res.data && Array.isArray(res.data.data)) {
+        const pg = res.data.pagination || {};
+        totalItems = Number(pg.total ?? res.data.data.length);
+        totalPages = Math.max(1, Number(pg.pages || pg.totalPages || Math.ceil(totalItems / PAGE_LIMIT) || 1));
+        if (res.data.data.length === 0 && currentPage > totalPages) {
+          currentPage = totalPages;
+          return loadDocuments({ refreshStats });
         }
+        documents = res.data.data;
+        if (res.data.stats) {
+          serverStats = {
+            categoryCounts: res.data.stats.categoryCounts || { all: totalItems },
+            linkedCount: Number(res.data.stats.linkedCount ?? 0)
+          };
+        }
+      } else {
+        documents = [];
+        totalItems = 0;
+        totalPages = 1;
+        if (!res.ok) toastError(res.data?.error || 'Gagal memuat dokumen dari server');
       }
     } catch (err) {
-      console.warn('Fallback loading documents from cache/seed:', err);
-      const cached = localStorage.getItem('fcms_master_doc_cache');
-      documents = cached ? JSON.parse(cached) : [...INITIAL_DOCUMENTS];
+      console.warn('Error loading documents:', err);
+      documents = [];
+      totalItems = 0;
+      totalPages = 1;
+      toastError('Gagal memuat dokumen: ' + err.message);
     }
-    renderUI();
+
+    if (!hasRendered) {
+      hasRendered = true;
+      renderUI();
+    } else {
+      if (refreshStats) updateStatsUI();
+      renderListContent();
+    }
   }
 
-  // Filter & Search Logic
+  // Server-filtered page data
   function getFilteredDocuments() {
-    return documents.filter(doc => {
-      const matchCat = activeCategory === 'all' || doc.category === activeCategory;
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch = !q || 
-        (doc.name || '').toLowerCase().includes(q) ||
-        (doc.category || '').toLowerCase().includes(q) ||
-        (doc.description || '').toLowerCase().includes(q);
-      return matchCat && matchSearch;
-    });
+    return documents;
   }
 
-  // Collect unique categories with counts
+  // Collect unique categories with global counts
   function getCategoryStats() {
-    const stats = { all: documents.length };
-    documents.forEach(d => {
-      const cat = d.category || 'Lainnya';
-      stats[cat] = (stats[cat] || 0) + 1;
-    });
-    return stats;
+    return serverStats.categoryCounts || { all: 0 };
   }
 
   // Add / Edit Modal Form
   function openDocumentModal(item = null) {
     if (!canEdit) return;
     const isEdit = !!item;
-    const existingCats = Array.from(new Set(documents.map(d => d.category).filter(Boolean)));
+    const existingCats = Array.from(new Set([
+      ...Object.keys(serverStats.categoryCounts || {}).filter(k => k !== 'all' && k !== 'Lainnya'),
+      ...documents.map(d => d.category).filter(Boolean)
+    ]));
     
     const content = document.createElement('div');
     content.innerHTML = `
@@ -771,34 +864,25 @@ export async function renderChecklist(container) {
               method: 'PUT',
               body: JSON.stringify(payload)
             });
-            if (res.ok) {
-              const idx = documents.findIndex(d => d.id === item.id);
-              if (idx !== -1) documents[idx] = { ...documents[idx], ...payload };
-              toastSuccess('Dokumen berhasil diperbarui');
-            } else {
-              // Local fallback
-              const idx = documents.findIndex(d => d.id === item.id);
-              if (idx !== -1) documents[idx] = { ...documents[idx], ...payload };
-              toastSuccess('Dokumen disimpan secara lokal');
+            if (!res.ok) {
+              toastError(res.data?.error || 'Gagal memperbarui dokumen');
+              return;
             }
+            toastSuccess('Dokumen berhasil diperbarui');
           } else {
             const res = await apiFetch('/api/checklist', {
               method: 'POST',
               body: JSON.stringify(payload)
             });
-            if (res.ok && res.data?.id) {
-              documents.unshift({ id: res.data.id, ...payload });
-              toastSuccess('Dokumen baru berhasil ditambahkan');
-            } else {
-              // Local fallback
-              const newId = Date.now();
-              documents.unshift({ id: newId, ...payload });
-              toastSuccess('Dokumen baru ditambahkan secara lokal');
+            if (!res.ok) {
+              toastError(res.data?.error || 'Gagal menambahkan dokumen');
+              return;
             }
+            currentPage = 1;
+            toastSuccess('Dokumen baru berhasil ditambahkan');
           }
-          localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
           close();
-          renderUI();
+          await loadDocuments({ refreshStats: true });
         } catch (err) {
           console.error('Error saving document:', err);
           toastError('Gagal menyimpan dokumen: ' + err.message);
@@ -809,21 +893,23 @@ export async function renderChecklist(container) {
 
   // Delete Document
   function deleteDocument(doc) {
+    if (!canDelete) {
+      toastError('Anda tidak memiliki izin untuk menghapus dokumen.');
+      return;
+    }
     confirmDialog(
       `Apakah Anda yakin ingin menghapus dokumen <strong>"${doc.name}"</strong>?`,
       async () => {
         try {
           const res = await apiFetch(`/api/checklist/${doc.id}`, { method: 'DELETE' });
-          if (!res.ok) console.warn('API delete warning:', res);
-          documents = documents.filter(d => d.id !== doc.id);
-          localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
+          if (!res.ok) {
+            toastError(res.data?.error || 'Gagal menghapus dokumen');
+            return;
+          }
           toastSuccess(`Dokumen "${doc.name}" berhasil dihapus`);
-          renderUI();
+          await loadDocuments({ refreshStats: true });
         } catch (err) {
-          documents = documents.filter(d => d.id !== doc.id);
-          localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
-          toastSuccess(`Dokumen "${doc.name}" berhasil dihapus`);
-          renderUI();
+          toastError('Gagal menghapus dokumen: ' + err.message);
         }
       },
       'Hapus Dokumen'
@@ -851,7 +937,8 @@ export async function renderChecklist(container) {
     }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
-      const exportData = documents.map((d, index) => ({
+      const rows = await fetchExportRows('/api/checklist/export', getActiveFilters());
+      const exportData = rows.map((d, index) => ({
         'No': index + 1,
         'Nama Dokumen': d.name || '',
         'Kategori': d.category || '',
@@ -860,112 +947,17 @@ export async function renderChecklist(container) {
         'Deskripsi / Keterangan': d.description || ''
       }));
       downloadExcel(exportData, `Master_Dokumen_FCMS_${new Date().toISOString().slice(0, 10)}`);
-      toastSuccess('Berhasil mengunduh data dokumen ke Excel.');
+      toastSuccess(`Berhasil mengunduh ${rows.length} data dokumen ke Excel.`);
     } catch (err) {
       toastError('Gagal mengekspor data: ' + err.message);
     }
   }
 
-  // Main UI Renderer
-  function renderUI() {
-    const filtered = getFilteredDocuments();
-    const stats = getCategoryStats();
-    const uniqueCats = Object.keys(stats).filter(k => k !== 'all');
-    const linkedCount = documents.filter(d => !!d.document_link).length;
 
-    container.innerHTML = `
-      <div class="doc-page-container">
-        
-        <!-- Hero Header -->
-        <div class="doc-hero-card">
-          <div class="doc-hero-header">
-            <div>
-              <h1 class="doc-hero-title">
-                <span>📋</span> Master Document & Template Standar
-              </h1>
-            </div>
-            <div class="doc-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              ${canEdit ? `
-              <button id="doc-btn-add" class="btn btn-primary" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap; border:none;">
-                <span>➕</span>
-                <span>Tambah Dokumen Baru</span>
-              </button>
-              ` : ''}
-              ${hasPermission(currentUser, "export") ? `<button id="doc-btn-excel" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
-                <span>📥</span>
-                <span>Ekspor Excel</span>
-              </button>` : ''}
-              <button id="doc-btn-refresh" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
-                <span>🔄</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Quick Metrics -->
-          <div class="doc-stats-grid">
-            <div class="doc-stat-box">
-              <div class="doc-stat-icon">📄</div>
-              <div>
-                <div class="doc-stat-value">${documents.length}</div>
-                <div class="doc-stat-label">Total Dokumen</div>
-              </div>
-            </div>
-            <div class="doc-stat-box">
-              <div class="doc-stat-icon">🗂️</div>
-              <div>
-                <div class="doc-stat-value">${uniqueCats.length}</div>
-                <div class="doc-stat-label">Kategori Dokumen</div>
-              </div>
-            </div>
-            <div class="doc-stat-box">
-              <div class="doc-stat-icon" style="background:rgba(16,185,129,0.18); color:#34D399;">🌐</div>
-              <div>
-                <div class="doc-stat-value">${linkedCount} <span style="font-size:0.8rem; font-weight:400; color:#94A3B8;">/ ${documents.length}</span></div>
-                <div class="doc-stat-label">Tautan Online</div>
-              </div>
-            </div>
-            <div class="doc-stat-box">
-              <div class="doc-stat-icon" style="background:rgba(168,85,247,0.18); color:#C084FC;">⚡</div>
-              <div>
-                <div class="doc-stat-value">Aktif</div>
-                <div class="doc-stat-label">Status Repositori</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Controls: Search, View Switch, Category Pills -->
-        <div class="doc-controls-panel">
-          <div class="doc-controls-top">
-            <div class="doc-search-wrapper" style="width:100%;">
-              <span class="doc-search-icon">🔍</span>
-              <input type="text" id="doc-search-input" class="doc-search-input" placeholder="Cari nama dokumen, kategori, atau deskripsi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
-            </div>
-          </div>
-
-          <!-- Category Pills -->
-          <div class="doc-filter-pills">
-            <button class="doc-pill ${activeCategory === 'all' ? 'active' : ''}" data-cat="all">
-              <span>Semua Dokumen</span>
-              <span class="doc-pill-count">${stats.all || 0}</span>
-            </button>
-            ${uniqueCats.map(cat => {
-              const meta = getCategoryMeta(cat);
-              const isActive = activeCategory === cat;
-              return `
-                <button class="doc-pill ${isActive ? 'active' : ''}" data-cat="${cat}">
-                  <span>${meta.icon}</span>
-                  <span>${cat}</span>
-                  <span class="doc-pill-count">${stats[cat] || 0}</span>
-                </button>
-              `;
-            }).join('')}
-          </div>
-        </div>
-
-        <!-- Documents View Container -->
-        <div id="doc-list-view">
-          ${filtered.length === 0 ? `
+  // Render only dynamic list content HTML (Card / Empty State)
+  function buildDocumentListHTML(filtered) {
+    return `
+    ${filtered.length === 0 ? `
             <div class="doc-empty-state">
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
               <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Dokumen Ditemukan</h3>
@@ -1033,58 +1025,26 @@ export async function renderChecklist(container) {
               }).join('')}
             </div>
           `}
-        </div>
-
-      </div>
     `;
-
-    // Event Listeners Binding
-    bindEvents();
   }
 
-  // Bind Listeners
-  function bindEvents() {
-    // Top Buttons
-    const btnAdd = container.querySelector('#doc-btn-add');
-    if (btnAdd) btnAdd.onclick = () => openDocumentModal();
-
-    const btnExcel = container.querySelector('#doc-btn-excel');
-    if (btnExcel) btnExcel.onclick = () => exportToExcel();
-
-    const btnRefresh = container.querySelector('#doc-btn-refresh');
-    if (btnRefresh) btnRefresh.onclick = () => loadDocuments();
-
+  function bindListEvents() {
+    // Reset Filter Button inside list
     const btnResetFilter = container.querySelector('#doc-btn-reset-filter');
     if (btnResetFilter) {
       btnResetFilter.onclick = () => {
         searchQuery = '';
         activeCategory = 'all';
-        renderUI();
+        currentPage = 1;
+        clearTimeout(searchDebounce);
+        const searchInput = container.querySelector('#doc-search-input');
+        if (searchInput) searchInput.value = '';
+        container.querySelectorAll('.doc-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-cat') === 'all');
+        });
+        loadDocuments({ refreshStats: false });
       };
     }
-
-    // Search Input
-    const searchInput = container.querySelector('#doc-search-input');
-    if (searchInput) {
-      searchInput.oninput = (e) => {
-        searchQuery = e.target.value;
-        const filtered = getFilteredDocuments();
-        renderUI();
-        const newSearch = container.querySelector('#doc-search-input');
-        if (newSearch) {
-          newSearch.focus();
-          newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
-        }
-      };
-    }
-
-    // Category Pills
-    container.querySelectorAll('.doc-pill').forEach(pill => {
-      pill.onclick = () => {
-        activeCategory = pill.getAttribute('data-cat') || 'all';
-        renderUI();
-      };
-    });
 
     // Copy Link Buttons
     container.querySelectorAll('.copy-link-btn').forEach(btn => {
@@ -1117,7 +1077,165 @@ export async function renderChecklist(container) {
     });
   }
 
+  function renderPagination() {
+    const pgContainer = container.querySelector('#doc-pagination-container');
+    if (!pgContainer) return;
+    pgContainer.innerHTML = '';
+    const pgEl = createPagination({
+      page: currentPage,
+      pages: totalPages,
+      total: totalItems,
+      limit: PAGE_LIMIT,
+      onPage: (newPage) => {
+        currentPage = newPage;
+        loadDocuments({ refreshStats: false });
+      }
+    });
+    if (pgEl) pgContainer.appendChild(pgEl);
+  }
+
+  function renderListContent() {
+    const listContainer = container.querySelector('#doc-list-view');
+    if (!listContainer) return;
+    const filtered = getFilteredDocuments();
+    listContainer.innerHTML = buildDocumentListHTML(filtered);
+    renderPagination();
+    bindListEvents();
+  }
+
+  // Main UI Renderer
+  function renderUI() {
+    const filtered = getFilteredDocuments();
+    const stats = getCategoryStats();
+    const uniqueCats = Object.keys(stats).filter(k => k !== 'all');
+    const totalDocs = Number(stats.all ?? 0);
+    const linkedCount = Number(serverStats.linkedCount ?? 0);
+
+    container.innerHTML = `
+      <div class="doc-page-container">
+        
+        <!-- Hero Header -->
+        <div class="doc-hero-card">
+          <div class="doc-hero-header">
+            <div>
+              <h1 class="doc-hero-title">
+                <span>📋</span> Master Document & Template Standar
+              </h1>
+            </div>
+            <div class="doc-hero-actions" style="display:flex; align-items:center; gap:8px;">
+              ${canEdit ? `
+              <button id="doc-btn-add" class="btn btn-primary" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap; border:none;">
+                <span>➕</span>
+                <span>Tambah Dokumen Baru</span>
+              </button>
+              ` : ''}
+              ${hasPermission(currentUser, "export") ? `<button id="doc-btn-excel" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                <span>📥</span>
+                <span>Ekspor Excel</span>
+              </button>` : ''}
+              <button id="doc-btn-refresh" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+                <span>🔄</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Metrics -->
+          <div class="doc-stats-grid">
+            <div class="doc-stat-box">
+              <div class="doc-stat-icon">📄</div>
+              <div>
+                <div class="doc-stat-value" id="doc-stat-total">${totalDocs}</div>
+                <div class="doc-stat-label">Total Dokumen</div>
+              </div>
+            </div>
+            <div class="doc-stat-box">
+              <div class="doc-stat-icon">🗂️</div>
+              <div>
+                <div class="doc-stat-value" id="doc-stat-categories">${uniqueCats.length}</div>
+                <div class="doc-stat-label">Kategori Dokumen</div>
+              </div>
+            </div>
+            <div class="doc-stat-box">
+              <div class="doc-stat-icon" style="background:rgba(16,185,129,0.18); color:#34D399;">🌐</div>
+              <div>
+                <div class="doc-stat-value"><span id="doc-stat-linked">${linkedCount}</span> <span style="font-size:0.8rem; font-weight:400; color:#94A3B8;">/ <span id="doc-stat-linked-total">${totalDocs}</span></span></div>
+                <div class="doc-stat-label">Tautan Online</div>
+              </div>
+            </div>
+            <div class="doc-stat-box">
+              <div class="doc-stat-icon" style="background:rgba(168,85,247,0.18); color:#C084FC;">⚡</div>
+              <div>
+                <div class="doc-stat-value">Aktif</div>
+                <div class="doc-stat-label">Status Repositori</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls: Search, View Switch, Category Pills -->
+        <div class="doc-controls-panel">
+          <div class="doc-controls-top">
+            <div class="doc-search-wrapper" style="width:100%;">
+              <span class="doc-search-icon">🔍</span>
+              <input type="text" id="doc-search-input" class="doc-search-input" placeholder="Cari nama dokumen, kategori, atau deskripsi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
+            </div>
+          </div>
+
+          <!-- Category Pills -->
+          <div class="doc-filter-pills" id="doc-filter-pills">
+            ${buildCategoryPillsHTML()}
+          </div>
+        </div>
+
+        <!-- Documents View Container -->
+        <div id="doc-list-view">
+          ${buildDocumentListHTML(filtered)}
+        </div>
+
+        <!-- Pagination Container -->
+        <div id="doc-pagination-container"></div>
+
+      </div>
+    `;
+
+    // Event Listeners Binding
+    renderPagination();
+    bindEvents();
+  }
+
+  // Bind Listeners
+  function bindEvents() {
+    // Top Buttons
+    const btnAdd = container.querySelector('#doc-btn-add');
+    if (btnAdd) btnAdd.onclick = () => openDocumentModal();
+
+    const btnExcel = container.querySelector('#doc-btn-excel');
+    if (btnExcel) btnExcel.onclick = () => exportToExcel();
+
+    const btnRefresh = container.querySelector('#doc-btn-refresh');
+    if (btnRefresh) btnRefresh.onclick = () => loadDocuments({ refreshStats: true });
+
+    // Search Input (debounced)
+    const searchInput = container.querySelector('#doc-search-input');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        searchQuery = e.target.value;
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadDocuments({ refreshStats: false });
+        }, 350);
+      };
+    }
+
+    // Category Pills
+    bindCategoryPills();
+
+    // Initial bind of list events
+    bindListEvents();
+  }
+
   // Initial Load
-  await loadDocuments();
+  await loadDocuments({ refreshStats: true });
 }
 

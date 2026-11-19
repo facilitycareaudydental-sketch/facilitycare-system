@@ -1,8 +1,9 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
-import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployeeNames, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
+import { submitJournaledImport } from '../utils/import_client.js';
 
 export async function renderBasecampReports(container) {
   const branchOptions = await getCachedBranches();
@@ -29,7 +30,7 @@ export async function renderBasecampReports(container) {
     title: 'Rekap Laporan Basecamp',
     icon: '📝',
     apiPath: '/api/reports/basecamp',
-    bulkDelete: true,
+    bulkDelete: false,
     enableMobileFilterSheet: true,
     itemLabel: 'Laporan Basecamp',
     columns: [
@@ -42,6 +43,7 @@ export async function renderBasecampReports(container) {
       { key: 'notes', label: 'Keterangan', render: v => v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-') },
     ],
     filterFields: [
+      { type: 'search', placeholder: 'Cari permasalahan, PIC, cabang...' },
       { type: 'select', name: 'pic', label: 'PIC', options: ['Berlin', 'Ade'] },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'period', label: 'Periode', options: ['Q1', 'Q2', 'Q3', 'Q4'] },
@@ -82,20 +84,17 @@ export async function renderBasecampReports(container) {
     exportOptions: {
       moduleName: 'basecamp_reports',
       onExport: async (filters) => {
-        const qs = new URLSearchParams(filters || {}).toString();
-        const res = await apiFetch(`/api/reports/basecamp?limit=10000&${qs}`);
-        if (res.ok) {
-          const data = res.data.data.map(d => ({
-            'Tgl Info': d.info_date || '',
-            'Cabang': d.branch_name || '',
-            'Permasalahan': d.problem || '',
-            'PIC': d.pic || '',
-            'Tgl Done': d.done_date || '',
-            'Status': d.status || '',
-            'Keterangan': d.notes || ''
-          }));
-          downloadExcel(data, `Rekap_Laporan_Basecamp_${new Date().toISOString().slice(0,10)}`);
-        } else throw new Error('Gagal mengambil data');
+        const rows = await fetchExportRows('/api/reports/basecamp/export', filters);
+        const data = rows.map(d => ({
+          'Tgl Info': d.info_date || '',
+          'Cabang': d.branch_name || '',
+          'Permasalahan': d.problem || '',
+          'PIC': d.pic || '',
+          'Tgl Done': d.done_date || '',
+          'Status': d.status || '',
+          'Keterangan': d.notes || ''
+        }));
+        downloadExcel(data, `Rekap_Laporan_Basecamp_${new Date().toISOString().slice(0,10)}`);
       },
       onTemplate: () => {
         const template = [
@@ -103,11 +102,16 @@ export async function renderBasecampReports(container) {
         ];
         downloadExcel(template, 'Template_Import_Basecamp');
       },
-      onImport: async (json) => {
+      onImport: async (json, importCtx = {}) => {
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = String(str || '').toLowerCase();
-          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          const s = String(str || '').toLowerCase().trim();
+          const codeMatch = s.match(/^(\d{3})/);
+          if (codeMatch) {
+            const byCode = branchOptions.find(r => String(r.code || '').trim() === codeMatch[1] || String(r.label || '').toLowerCase().startsWith(codeMatch[1] + '.'));
+            if (byCode) return byCode.value;
+          }
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
           return b ? b.value : null;
         };
         
@@ -143,12 +147,14 @@ export async function renderBasecampReports(container) {
           notes: String(row['Keterangan'] || row['Catatan'] || '').trim(),
         })).filter(row => row.info_date && row.branch_id && row.problem);
         
-        const res = await apiFetch('/api/reports/basecamp/import', {
-          method: 'POST',
-          body: JSON.stringify(payload)
+        return await submitJournaledImport({
+          module: 'basecamp_reports',
+          label: 'Laporan Basecamp',
+          endpoint: '/api/reports/basecamp/import',
+          body: payload,
+          idempotencyKey: importCtx?.idempotencyKey,
+          recover: Boolean(importCtx?.recover),
         });
-        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     }
   });

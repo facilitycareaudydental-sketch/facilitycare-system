@@ -1,120 +1,16 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
-import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployees, fetchExportRows } from '../utils/dataCache.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
+import { createPagination } from '../components/table.js';
+import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
 
-// Pre-seeded fallback data jika API offline / inisialisasi awal
-const INITIAL_ISSUES = [
-  {
-    id: 1,
-    report_date: '2026-08-27',
-    branch_id: 19,
-    branch_name: '019. Cinere',
-    category: 'SDM',
-    source: 'AM',
-    complaint: 'Keluhan AM fc atas nama Malik bau badan, dan sudah dibilangin berulang kali terkait kebersihan seragam dan deodoran.',
-    employee_name: 'MALIK',
-    fc_specialist: 'Mizwar',
-    solution: 'Diberikan teguran lisan, edukasi kebersihan diri, dan pendampingan seragam cadangan di klinik.',
-    status: 'Done',
-    completion_date: '2026-08-28',
-    day_count: 1
-  },
-  {
-    id: 2,
-    report_date: '2026-08-26',
-    branch_id: 0,
-    branch_name: '000. Management',
-    category: 'SDM',
-    source: 'Berlin',
-    complaint: 'Security atas nama Reza suhelmi meninggalkan area tugas jaga tanpa personil pengganti saat jam operasional klinik.',
-    employee_name: 'REZA SUHELMI',
-    fc_specialist: 'Ade Surahman',
-    solution: 'Pemanggilan investigasi dan penerbitan Surat Peringatan (SP) sesuai SOP security.',
-    status: 'Done',
-    completion_date: '2026-08-27',
-    day_count: 1
-  },
-  {
-    id: 3,
-    report_date: '2026-07-27',
-    branch_id: 30,
-    branch_name: '030. Ciputat',
-    category: 'SDM',
-    source: 'AM',
-    complaint: 'Terinfo kembali permasalahan FC Ciputat, terkait standar pembersihan area dental unit yang belum memenuhi checklist hygiene.',
-    employee_name: 'HENDRA',
-    fc_specialist: 'Berlin Ariansyah',
-    solution: 'Re-training modul pembersihan dental unit dan monitoring harian oleh supervisor.',
-    status: 'In Progress',
-    completion_date: null,
-    day_count: null
-  },
-  {
-    id: 4,
-    report_date: '2026-06-24',
-    branch_id: 30,
-    branch_name: '030. Ciputat',
-    category: 'SDM',
-    source: 'AM',
-    complaint: 'FC atas nama Hendra mengintimidasi rcp pada saat briefing pagi mengenai pembagian area kerja.',
-    employee_name: 'HENDRA',
-    fc_specialist: 'Berlin Ariansyah',
-    solution: 'Mediasi bersama AM dan HR, diberikan pembinaan konseling perilaku kerja.',
-    status: 'Done',
-    completion_date: '2026-06-25',
-    day_count: 1
-  },
-  {
-    id: 5,
-    report_date: '2026-06-05',
-    branch_id: 0,
-    branch_name: '000. Management',
-    category: 'SDM',
-    source: 'Berlin',
-    complaint: 'Kinerja kurang dan ada komplain dari cabang mengenai ketidakhadiran berkala personil pengganti.',
-    employee_name: 'Indra',
-    fc_specialist: 'Ade',
-    solution: 'Evaluasi penempatan dan pembinaan kedisiplinan kerja.',
-    status: 'Done',
-    completion_date: '2026-06-08',
-    day_count: 3
-  },
-  {
-    id: 6,
-    report_date: '2026-06-05',
-    branch_id: 0,
-    branch_name: '000. Management',
-    category: 'SDM',
-    source: 'Ade',
-    complaint: 'Sering tidak masuk kerja dan memalsukan surat dokter saat izin sakit.',
-    employee_name: 'Kristian',
-    fc_specialist: 'Ade Surahman',
-    solution: 'Investigasi ke klinik dokter terkait dan eskalasi ke HRD untuk tindakan tegas.',
-    status: 'Done',
-    completion_date: '2026-06-07',
-    day_count: 2
-  },
-  {
-    id: 7,
-    report_date: '2026-05-25',
-    branch_id: 19,
-    branch_name: '019. Cinere',
-    category: 'SDM',
-    source: 'SPV',
-    complaint: 'Tidak masuk kerja tanpa kabar (alpa), dan sudah di-one on one oleh SPV terkait absensi.',
-    employee_name: 'Malik',
-    fc_specialist: 'Mizwar',
-    solution: 'Pemberian SP 1 dan penandatanganan komitmen kehadiran kerja.',
-    status: 'Done',
-    completion_date: '2026-05-26',
-    day_count: 1
-  }
-];
+// Fallback kosong bila API offline (mencegah data keluhan/PII tertanam di bundle klien)
+const INITIAL_ISSUES = [];
 
 const CATEGORY_LIST = ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'];
 const STATUS_LIST = ['Open', 'In Progress', 'Done'];
-const SOURCE_LIST = ['SPV', 'AM', 'RCP', 'Perawat', 'FC', 'Security', 'Berlin', 'Ade', 'Pattrel', 'Dentrel'];
+const SOURCE_LIST = ['SPV', 'AM', 'RCP', 'Perawat', 'FC', 'Berlin', 'Ade', 'Pattrel', 'Dentrel'];
 
 // Format tanggal lokal Indonesia
 function formatDateIndo(dateStr) {
@@ -136,7 +32,15 @@ function getInitials(name) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+// Validasi strict row_version untuk Optimistic Concurrency Control (OCC)
+function parseValidRowVersion(raw) {
+  if (raw === undefined || raw === null || raw === '') return null;
+  const num = Number(raw);
+  return Number.isInteger(num) && num >= 0 ? num : null;
+}
+
 export async function renderIssues(container, params) {
+  const PAGE_LIMIT = 20;
   let issuesList = [];
   let branchOptions = [];
   let employeeOptions = [];
@@ -144,57 +48,132 @@ export async function renderIssues(container, params) {
   let selectedCategory = 'all';
   let selectedBranch = 'all';
   let searchQuery = '';
+  let currentPage = 1;
+  let totalItems = 0;
+  let totalPages = 1;
+  let statsLoaded = false;
+  let serverStats = { total: 0, open: 0, inProgress: 0, openAndProgress: 0, done: 0, currentMonth: 0 };
+  let searchDebounce = null;
   let isLoading = false;
 
   // Handle dashboard filter parameter
   const dashFilter = params ? params.get('dash_filter') : null;
   if (dashFilter === 'open') {
-    selectedStatus = 'Open';
+    selectedStatus = 'all'; // Default to all so list is never empty; user can click In Progress pill to view active issue
   }
 
   const currentUser = getUser();
-  const canEdit = hasPermission(currentUser, 'issues', 'write');
+  const canCreate = hasPermission(currentUser, 'issues', 'create');
+  const canEdit = hasPermission(currentUser, 'issues', 'update');
+  const canDelete = hasPermission(currentUser, 'issues', 'delete');
 
   // Load cache data
   try {
     [branchOptions, employeeOptions] = await Promise.all([
       getCachedBranches(),
-      getCachedEmployeeNames()
+      getCachedEmployees()
     ]);
   } catch (err) {
     console.error('Error fetching cache:', err);
   }
 
-  // Load Issues Data from API
-  async function loadData() {
+  function getActiveFilters() {
+    const filters = { sort: 'date_desc' };
+    if (searchQuery.trim()) filters.search = searchQuery.trim();
+    if (selectedBranch && selectedBranch !== 'all') filters.branch_id = selectedBranch;
+    if (selectedCategory && selectedCategory !== 'all') filters.category = selectedCategory;
+    if (selectedStatus && selectedStatus !== 'all') filters.status = selectedStatus;
+    return filters;
+  }
+
+  function updateStatsUI() {
+    const set = (id, val) => {
+      const el = container.querySelector(id);
+      if (el) el.textContent = val;
+    };
+    set('#issues-stat-total', serverStats.total);
+    set('#issues-stat-open-prog', serverStats.openAndProgress);
+    set('#issues-stat-done', serverStats.done);
+    set('#issues-stat-month', serverStats.currentMonth);
+    set('#issues-pill-count-all', serverStats.total);
+    set('#issues-pill-count-open', serverStats.open);
+    set('#issues-pill-count-inprogress', serverStats.inProgress);
+    set('#issues-pill-count-done', serverStats.done);
+  }
+
+  // Load Issues Data from API (Server-Side Pagination)
+  async function loadData({ refreshStats = true } = {}) {
     isLoading = true;
-    renderUI();
+    const hasShell = Boolean(container.querySelector('#issues-list-container'));
+    if (!hasShell) {
+      renderUI();
+    } else {
+      const listEl = container.querySelector('#issues-list-container');
+      if (listEl) {
+        listEl.innerHTML = '<div class="issues-empty-state"><p style="color:#64748B; margin:0;">Memuat data permasalahan...</p></div>';
+      }
+    }
     try {
-      const res = await apiFetch('/api/issues?limit=10000');
+      const qs = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(PAGE_LIMIT),
+        ...getActiveFilters(),
+      });
+      if (refreshStats || !statsLoaded) {
+        qs.set('include_stats', '1');
+      }
+      const res = await apiFetch(`/api/issues?${qs.toString()}`);
       if (res.ok) {
-        const raw = res.data?.data || res.data || [];
-        issuesList = Array.isArray(raw) && raw.length > 0 ? raw : INITIAL_ISSUES;
+        const raw = res.data?.data || [];
+        issuesList = Array.isArray(raw) ? raw : [];
+        const pag = res.data?.pagination || {};
+        totalItems = Number(pag.total ?? issuesList.length);
+        totalPages = Math.max(1, Number(pag.pages ?? Math.ceil(totalItems / PAGE_LIMIT)) || 1);
+        currentPage = Math.max(1, Number(pag.page ?? currentPage));
+        if (res.data?.stats) {
+          serverStats = res.data.stats;
+          statsLoaded = true;
+        }
+        if (issuesList.length === 0 && currentPage > totalPages) {
+          currentPage = totalPages;
+          isLoading = false;
+          return loadData({ refreshStats });
+        }
       } else {
-        issuesList = INITIAL_ISSUES;
+        issuesList = [];
+        totalItems = 0;
+        totalPages = 1;
+        toastError(res.data?.error || 'Gagal memuat data permasalahan');
       }
     } catch (e) {
-      console.warn('Gagal load issues, menggunakan data lokal:', e);
-      issuesList = INITIAL_ISSUES;
+      console.warn('Gagal load issues:', e);
+      issuesList = [];
+      totalItems = 0;
+      totalPages = 1;
+      toastError('Gagal memuat data permasalahan: ' + e.message);
     } finally {
       isLoading = false;
-      renderUI();
+      if (container.querySelector('#issues-list-container')) {
+        updateStatsUI();
+        renderListContent();
+      } else {
+        renderUI();
+      }
     }
   }
 
-  // Export to Excel
+  // Export to Excel (All matching filtered rows via /api/issues/export)
   async function exportToExcel() {
     if (!hasPermission(currentUser, 'export')) {
       toastError('Anda tidak memiliki izin untuk mengekspor data.');
       return;
     }
     try {
-      const { downloadExcel } = await import('../utils/excel.js');
-      const exportData = issuesList.map((item, idx) => ({
+      const [{ downloadExcel }, rows] = await Promise.all([
+        import('../utils/excel.js'),
+        fetchExportRows('/api/issues/export', getActiveFilters())
+      ]);
+      const exportData = rows.map((item, idx) => ({
         'No': idx + 1,
         'Tanggal Info': item.report_date || '',
         'Cabang': item.branch_name || '',
@@ -217,6 +196,12 @@ export async function renderIssues(container, params) {
 
   // Quick Status Updater
   async function quickUpdateStatus(issue, newStatus) {
+    if (!canEdit) return;
+    const currentRowVersion = parseValidRowVersion(issue?.row_version);
+    if (currentRowVersion === null) {
+      toastError('Versi data (row_version) tidak tersedia. Silakan muat ulang data sebelum memperbarui status.');
+      return;
+    }
     try {
       const completion_date = newStatus === 'Done' 
         ? (issue.completion_date || new Date().toISOString().split('T')[0]) 
@@ -233,6 +218,7 @@ export async function renderIssues(container, params) {
 
       const payload = {
         ...issue,
+        row_version: currentRowVersion,
         status: newStatus,
         completion_date,
         day_count
@@ -244,7 +230,14 @@ export async function renderIssues(container, params) {
       });
 
       if (res.ok) {
+        const nextRowVersion = parseValidRowVersion(res.data?.data?.row_version ?? res.data?.row_version);
+        if (nextRowVersion !== null) {
+          issue.row_version = nextRowVersion;
+        }
         toastSuccess(`Status masalah diubah ke "${newStatus}"`);
+        await loadData();
+      } else if (res.status === 409) {
+        toastError('Konflik data (HTTP 409): Issue ini telah diubah oleh pengguna atau sesi lain. Silakan muat ulang data terbaru.');
         await loadData();
       } else {
         toastError(res.data?.error || 'Gagal memperbarui status');
@@ -257,16 +250,20 @@ export async function renderIssues(container, params) {
   // Modal Tambah / Edit
   function openIssueModal(item = null) {
     const isEdit = !!item;
+    if (isEdit ? !canEdit : !canCreate) return;
+    const initialRowVersion = isEdit ? parseValidRowVersion(item?.row_version) : null;
     const today = new Date().toISOString().split('T')[0];
     const defaultDate = item?.report_date || today;
     const defaultCategory = item?.category || 'SDM';
-    const defaultSource = item?.source || 'AM';
+    const defaultSource = item?.source ? String(item.source).trim() : '';
+    const hasLegacySource = isEdit && defaultSource && !SOURCE_LIST.includes(defaultSource);
     const defaultStatus = item?.status || 'Open';
 
     const content = document.createElement('div');
     content.className = 'issue-modal-body';
     content.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:14px;">
+        ${isEdit ? `<input type="hidden" id="iss-modal-row-version" value="${initialRowVersion !== null ? initialRowVersion : ''}" />` : ''}
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
@@ -307,11 +304,11 @@ export async function renderIssues(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Sumber Laporan
             </label>
-            <input list="iss-source-options" id="iss-modal-source" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="Contoh: AM, SPV, Berlin..." value="${defaultSource}" />
-            <datalist id="iss-source-options">
-              ${SOURCE_LIST.map(s => `<option value="${s}">`).join('')}
-            </datalist>
+            <select id="iss-modal-source" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">
+              <option value="">-- Pilih Sumber Laporan --</option>
+              ${SOURCE_LIST.map(s => `<option value="${s}" ${defaultSource === s ? 'selected' : ''}>${s}</option>`).join('')}
+              ${hasLegacySource ? `<option value="${defaultSource.replace(/"/g, '&quot;')}" selected>${defaultSource} (Historis)</option>` : ''}
+            </select>
           </div>
         </div>
 
@@ -328,11 +325,7 @@ export async function renderIssues(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Nama Personil FC / Security
             </label>
-            <input list="iss-emp-options" id="iss-modal-employee" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="Ketik nama karyawan terkait..." value="${item?.employee_name ? String(item.employee_name).replace(/"/g, '&quot;') : ''}" />
-            <datalist id="iss-emp-options">
-              ${employeeOptions.map(e => `<option value="${e.label}">`).join('')}
-            </datalist>
+            <div id="iss-modal-emp-mount"></div>
           </div>
 
           <div>
@@ -342,7 +335,7 @@ export async function renderIssues(container, params) {
             <input list="iss-spec-options" id="iss-modal-spec" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
               placeholder="Contoh: Mizwar, Ade, Berlin..." value="${item?.fc_specialist ? String(item.fc_specialist).replace(/"/g, '&quot;') : ''}" />
             <datalist id="iss-spec-options">
-              ${employeeOptions.map(e => `<option value="${e.label}">`).join('')}
+              ${employeeOptions.map(e => `<option value="${e.full_name || e.label || ''}">`).join('')}
             </datalist>
           </div>
         </div>
@@ -415,19 +408,35 @@ export async function renderIssues(container, params) {
       }
     });
 
+    const empCombobox = mountEmployeeCombobox(content.querySelector('#iss-modal-emp-mount'), {
+      mode: 'single',
+      inputId: 'iss-modal-employee',
+      inputName: 'employee_name',
+      placeholder: 'Cari nama karyawan...',
+      allowManual: true,
+      hasEmployeeIdSchema: false,
+      employees: employeeOptions,
+      initialEmployeeName: item?.employee_name || '',
+    });
+
+    let isSubmitting = false;
+
     createModal({
       title: isEdit ? '✏️ Edit Data Permasalahan' : '➕ Tambah Data Permasalahan',
       content,
       size: 'md',
       confirmText: isEdit ? 'Simpan Perubahan' : 'Simpan Permasalahan',
       confirmClass: 'btn-primary',
-      onConfirm: async (_, close) => {
+      onConfirm: async (overlay, close) => {
+        if (isSubmitting) return;
+
         const report_date = content.querySelector('#iss-modal-date').value;
         const branch_id = content.querySelector('#iss-modal-branch').value;
         const category = content.querySelector('#iss-modal-category').value;
         const source = (content.querySelector('#iss-modal-source').value || '').trim();
         const complaint = (content.querySelector('#iss-modal-complaint').value || '').trim();
-        const employee_name = (content.querySelector('#iss-modal-employee').value || '').trim();
+        const empSelection = empCombobox.getValue();
+        const employee_name = empSelection.employee_name || '';
         const fc_specialist = (content.querySelector('#iss-modal-spec').value || '').trim();
         const solution = (content.querySelector('#iss-modal-solution').value || '').trim();
         const status = content.querySelector('#iss-modal-status').value;
@@ -436,6 +445,17 @@ export async function renderIssues(container, params) {
         if (!report_date || !branch_id || !complaint || !category) {
           toastError('Harap lengkapi Tanggal, Cabang, Kategori, dan Keluhan!');
           return;
+        }
+
+        let editRowVersion = null;
+        if (isEdit) {
+          const rowVersionEl = content.querySelector('#iss-modal-row-version');
+          const rawVersion = rowVersionEl ? rowVersionEl.value : initialRowVersion;
+          editRowVersion = parseValidRowVersion(rawVersion);
+          if (editRowVersion === null) {
+            toastError('Versi data (row_version) tidak tersedia. Silakan muat ulang data sebelum menyimpan perubahan.');
+            return;
+          }
         }
 
         let day_count = null;
@@ -456,8 +476,13 @@ export async function renderIssues(container, params) {
           solution,
           status,
           completion_date,
-          day_count
+          day_count,
+          ...(isEdit ? { row_version: editRowVersion } : {})
         };
+
+        const confirmBtn = overlay?.querySelector?.('.modal-confirm');
+        isSubmitting = true;
+        if (confirmBtn) confirmBtn.disabled = true;
 
         try {
           let res;
@@ -474,7 +499,19 @@ export async function renderIssues(container, params) {
           }
 
           if (res.ok) {
+            if (isEdit) {
+              const nextRowVersion = parseValidRowVersion(res.data?.data?.row_version ?? res.data?.row_version);
+              if (nextRowVersion !== null && item) {
+                item.row_version = nextRowVersion;
+              }
+            } else {
+              currentPage = 1;
+            }
             toastSuccess(isEdit ? 'Permasalahan berhasil diperbarui!' : 'Permasalahan baru berhasil ditambahkan!');
+            close();
+            await loadData();
+          } else if (isEdit && res.status === 409) {
+            toastError('Konflik data (HTTP 409): Issue ini telah diubah oleh pengguna atau sesi lain. Silakan muat ulang data sebelum mengedit kembali.');
             close();
             await loadData();
           } else {
@@ -482,6 +519,9 @@ export async function renderIssues(container, params) {
           }
         } catch (err) {
           toastError('Terjadi kesalahan: ' + err.message);
+        } finally {
+          isSubmitting = false;
+          if (confirmBtn) confirmBtn.disabled = false;
         }
       }
     });
@@ -489,6 +529,7 @@ export async function renderIssues(container, params) {
 
   // Delete Issue
   async function deleteIssue(item) {
+    if (!canDelete) return;
     confirmDialog({
       title: 'Hapus Permasalahan?',
       message: `Apakah Anda yakin ingin menghapus tiket permasalahan dari <strong>${item.branch_name || 'cabang'}</strong>:<br><br><em>"${item.complaint}"</em>?`,
@@ -512,66 +553,229 @@ export async function renderIssues(container, params) {
     });
   }
 
-  // Filter Data
+  // Filter Data (server already filters & paginates)
   function getFilteredList() {
-    return issuesList.filter(item => {
-      // Search
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const matchComplaint = (item.complaint || '').toLowerCase().includes(q);
-        const matchEmp = (item.employee_name || '').toLowerCase().includes(q);
-        const matchBranch = (item.branch_name || '').toLowerCase().includes(q);
-        const matchSource = (item.source || '').toLowerCase().includes(q);
-        const matchCategory = (item.category || '').toLowerCase().includes(q);
-        const matchSol = (item.solution || '').toLowerCase().includes(q);
-        if (!matchComplaint && !matchEmp && !matchBranch && !matchSource && !matchCategory && !matchSol) {
-          return false;
-        }
+    return issuesList;
+  }
+
+
+  // Render only the dynamic cards grid content HTML (Cards / Empty State)
+  function buildIssuesListHTML(filtered) {
+    if (filtered.length === 0) {
+      return `
+            <div class="issues-empty-state">
+              <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
+              <h3 style="font-size:1.15rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak ada permasalahan yang cocok</h3>
+              <p style="font-size:0.85rem; color:#64748B; margin:0 0 16px 0;">Coba sesuaikan kata kunci pencarian atau filter status yang dipilih.</p>
+              <button id="issues-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
+            </div>
+      `;
+    }
+
+    return filtered.map(item => {
+      const cat = item.category || 'Lainnya';
+      const catClass = `issues-category-${cat.toLowerCase().replace(/[^a-z0-9]/g, '')}` || 'issues-category-lainnya';
+      
+      const st = item.status || 'Open';
+      let stClass = 'issues-status-open';
+      let stText = '⚠️ Open';
+      if (st === 'In Progress') {
+        stClass = 'issues-status-progress';
+        stText = '⏳ In Progress';
+      } else if (st === 'Done') {
+        stClass = 'issues-status-done';
+        stText = '✅ Done';
       }
 
-      // Status
-      if (selectedStatus !== 'all' && item.status !== selectedStatus) {
-        return false;
+      const priority = item.priority || 'Normal';
+      let prClass = 'priority-normal';
+      if (priority === 'High' || priority === 'Tinggi') prClass = 'priority-high';
+      if (priority === 'Low' || priority === 'Rendah') prClass = 'priority-low';
+
+      return `
+        <div class="issues-card" data-id="${item.id}">
+          <div class="issues-card-top">
+            <span class="issues-category-badge ${catClass}">
+              ${cat === 'SDM' ? '👥' : (cat === 'Cleaning' ? '🧹' : (cat === 'Aset' ? '📦' : '📋'))} ${cat}
+            </span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="issues-priority-badge ${prClass}">${priority}</span>
+              <span class="issues-status-badge ${stClass}">${stText}</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="issues-title">${item.complaint || 'Tidak ada uraian permasalahan'}</div>
+            <div style="font-size:0.75rem; color:#94A3B8; margin-top:2px;">
+              ID #${item.id} • Sumber: ${item.source || '-'}
+            </div>
+          </div>
+
+          <div class="issues-details-grid">
+            <div class="issues-detail-item">
+              <span>🏢</span>
+              <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.branch_name || '-'}">
+                ${item.branch_name || 'Semua Cabang'}
+              </span>
+            </div>
+            <div class="issues-detail-item">
+              <span>📅</span>
+              <span>${item.report_date ? formatDateIndo(item.report_date) : '-'}</span>
+            </div>
+            <div class="issues-detail-item">
+              <span>👤</span>
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.employee_name || '-'}">
+                ${item.employee_name || '-'}
+              </span>
+            </div>
+            <div class="issues-detail-item">
+              <span>🕒</span>
+              <span>${item.created_at ? item.created_at.slice(0, 10) : '-'}</span>
+            </div>
+          </div>
+
+          ${item.solution ? `
+            <div class="issues-solution-box">
+              <div class="issues-solution-title">
+                <span>💡</span> Solusi / Tindakan:
+              </div>
+              <div>${item.solution}</div>
+            </div>
+          ` : ''}
+
+          <div class="issues-card-footer">
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${canEdit ? `
+                ${st === 'Open' ? `
+                  <button class="issues-quick-btn start" data-action="quick-progress" title="Mulai Penanganan">
+                    ▶️ Proses
+                  </button>
+                ` : ''}
+                ${st === 'In Progress' ? `
+                  <button class="issues-quick-btn complete" data-action="quick-done" title="Tandai Selesai">
+                    ✅ Selesai
+                  </button>
+                ` : ''}
+                ${st === 'Done' ? `
+                  <button class="issues-quick-btn reopen" data-action="quick-reopen" title="Buka Kembali Masalah">
+                    🔄 Reopen
+                  </button>
+                ` : ''}
+              ` : ''}
+            </div>
+
+            <div class="issues-action-btns">
+              ${canEdit ? `
+                <button class="issues-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Masalah">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+              ` : ''}
+              ${canDelete ? `
+                <button class="issues-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Masalah">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function bindListEvents() {
+    const resetBtn = container.querySelector('#issues-reset-filter');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        searchQuery = '';
+        selectedBranch = 'all';
+        selectedCategory = 'all';
+        selectedStatus = 'all';
+        const searchInput = container.querySelector('#issues-search-input');
+        if (searchInput) searchInput.value = '';
+        const branchFilter = container.querySelector('#issues-branch-filter');
+        if (branchFilter) branchFilter.value = 'all';
+        const catFilter = container.querySelector('#issues-category-filter');
+        if (catFilter) catFilter.value = 'all';
+        container.querySelectorAll('.issues-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-status') === 'all');
+        });
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      });
+    }
+
+    container.querySelectorAll('.issues-card').forEach(card => {
+      const id = Number(card.dataset.id);
+      const item = issuesList.find(x => x.id === id);
+      if (!item) return;
+
+      const editBtn = card.querySelector('[data-action="edit"]');
+      if (editBtn) {
+        editBtn.addEventListener('click', () => openIssueModal(item));
       }
 
-      // Category
-      if (selectedCategory !== 'all' && item.category !== selectedCategory) {
-        return false;
+      const delBtn = card.querySelector('[data-action="delete"]');
+      if (delBtn) {
+        delBtn.addEventListener('click', () => deleteIssue(item));
       }
 
-      // Branch
-      if (selectedBranch !== 'all' && String(item.branch_id) !== String(selectedBranch)) {
-        return false;
+      const progBtn = card.querySelector('[data-action="quick-progress"]');
+      if (progBtn) {
+        progBtn.addEventListener('click', () => quickUpdateStatus(item, 'In Progress'));
       }
 
-      return true;
+      const doneBtn = card.querySelector('[data-action="quick-done"]');
+      if (doneBtn) {
+        doneBtn.addEventListener('click', () => quickUpdateStatus(item, 'Done'));
+      }
+
+      const reopenBtn = card.querySelector('[data-action="quick-reopen"]');
+      if (reopenBtn) {
+        reopenBtn.addEventListener('click', () => quickUpdateStatus(item, 'Open'));
+      }
     });
   }
 
+  function renderPagination() {
+    const pagEl = container.querySelector('#issues-pagination-container');
+    if (!pagEl) return;
+    pagEl.innerHTML = '';
+    const nav = createPagination({
+      page: currentPage,
+      pages: totalPages,
+      total: totalItems,
+      limit: PAGE_LIMIT,
+      onPage: (targetPage) => {
+        currentPage = targetPage;
+        loadData({ refreshStats: false });
+      }
+    });
+    if (nav) pagEl.appendChild(nav);
+  }
+
+  function renderListContent() {
+    const listContainer = container.querySelector('#issues-list-container');
+    if (!listContainer) return;
+    const filtered = getFilteredList();
+    listContainer.innerHTML = buildIssuesListHTML(filtered);
+    renderPagination();
+    bindListEvents();
+  }
   // Main UI Renderer
   function renderUI() {
     const filtered = getFilteredList();
 
-    // KPI Metrics calculation
-    const totalIssues = issuesList.length;
-    const openAndProgress = issuesList.filter(i => i.status === 'Open' || i.status === 'In Progress').length;
-    const doneCount = issuesList.filter(i => i.status === 'Done').length;
-
-    // Masalah Bulan Ini
-    const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
-    const bulanIniCount = issuesList.filter(i => {
-      if (!i.report_date) return false;
-      const d = new Date(i.report_date);
-      return !isNaN(d.getTime()) && d.getFullYear() === curYear && d.getMonth() === curMonth;
-    }).length;
+    // KPI Metrics from server stats
+    const totalIssues = serverStats.total;
+    const openAndProgress = serverStats.openAndProgress;
+    const doneCount = serverStats.done;
+    const bulanIniCount = serverStats.currentMonth;
 
     // Counts for status pills
-    const countAll = issuesList.length;
-    const countOpen = issuesList.filter(i => i.status === 'Open').length;
-    const countInProgress = issuesList.filter(i => i.status === 'In Progress').length;
-    const countDone = issuesList.filter(i => i.status === 'Done').length;
+    const countAll = serverStats.total;
+    const countOpen = serverStats.open;
+    const countInProgress = serverStats.inProgress;
+    const countDone = serverStats.done;
 
     container.innerHTML = `
       <style>
@@ -1061,28 +1265,28 @@ export async function renderIssues(container, params) {
             width: 100% !important;
             display: flex !important;
             align-items: center !important;
-            gap: 6px !important;
-            flex-wrap: nowrap !important;
-            overflow-x: auto !important;
-            scrollbar-width: none !important;
-            padding-bottom: 2px !important;
+            gap: 8px !important;
+            flex-wrap: wrap !important;
+            overflow-x: visible !important;
           }
           .issues-hero-actions::-webkit-scrollbar {
             display: none;
           }
           .issues-btn-add {
-            flex: 1 1 auto !important;
+            width: 100% !important;
             justify-content: center !important;
-            padding: 8px 10px !important;
-            font-size: 0.82rem !important;
+            padding: 9px 12px !important;
+            font-size: 0.85rem !important;
             white-space: nowrap !important;
+            height: 40px !important;
           }
           .issues-btn-excel {
             flex: 1 1 auto !important;
             justify-content: center !important;
-            padding: 8px 10px !important;
-            font-size: 0.82rem !important;
+            padding: 8px 12px !important;
+            font-size: 0.85rem !important;
             white-space: nowrap !important;
+            height: 38px !important;
           }
           .issues-btn-refresh {
             width: 38px !important;
@@ -1135,7 +1339,7 @@ export async function renderIssues(container, params) {
             </div>
 
             <div class="issues-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              ${canEdit ? `
+              ${canCreate ? `
                 <button id="issues-btn-add" class="btn btn-primary issues-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
                   <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   <span>Tambah Permasalahan</span>
@@ -1158,7 +1362,7 @@ export async function renderIssues(container, params) {
             <div class="issues-stat-box">
               <div class="issues-stat-icon" style="background:rgba(239, 68, 68, 0.2); color:#FCA5A5;">⚠️</div>
               <div>
-                <div class="issues-stat-val">${totalIssues}</div>
+                <div class="issues-stat-val" id="issues-stat-total">${totalIssues}</div>
                 <div class="issues-stat-lbl">Total Permasalahan</div>
               </div>
             </div>
@@ -1166,7 +1370,7 @@ export async function renderIssues(container, params) {
             <div class="issues-stat-box">
               <div class="issues-stat-icon" style="background:rgba(245, 158, 11, 0.2); color:#FCD34D;">⏳</div>
               <div>
-                <div class="issues-stat-val">${openAndProgress}</div>
+                <div class="issues-stat-val" id="issues-stat-open-prog">${openAndProgress}</div>
                 <div class="issues-stat-lbl">Open & In Progress</div>
               </div>
             </div>
@@ -1174,7 +1378,7 @@ export async function renderIssues(container, params) {
             <div class="issues-stat-box">
               <div class="issues-stat-icon" style="background:rgba(16, 185, 129, 0.2); color:#6EE7B7;">✅</div>
               <div>
-                <div class="issues-stat-val">${doneCount}</div>
+                <div class="issues-stat-val" id="issues-stat-done">${doneCount}</div>
                 <div class="issues-stat-lbl">Tuntas (Done)</div>
               </div>
             </div>
@@ -1182,7 +1386,7 @@ export async function renderIssues(container, params) {
             <div class="issues-stat-box">
               <div class="issues-stat-icon" style="background:rgba(59, 130, 246, 0.2); color:#93C5FD;">📅</div>
               <div>
-                <div class="issues-stat-val">${bulanIniCount}</div>
+                <div class="issues-stat-val" id="issues-stat-month">${bulanIniCount}</div>
                 <div class="issues-stat-lbl">Bulan Berjalan</div>
               </div>
             </div>
@@ -1221,158 +1425,33 @@ export async function renderIssues(container, params) {
           <div class="issues-filter-pills">
             <div class="issues-pill ${selectedStatus === 'all' ? 'active' : ''}" data-status="all">
               <span>Semua Status</span>
-              <span class="issues-pill-count">${countAll}</span>
+              <span class="issues-pill-count" id="issues-pill-count-all">${countAll}</span>
             </div>
             <div class="issues-pill ${selectedStatus === 'Open' ? 'active' : ''}" data-status="Open">
               <span class="issues-pill-dot" style="background:#F59E0B;"></span>
               <span>Open</span>
-              <span class="issues-pill-count">${countOpen}</span>
+              <span class="issues-pill-count" id="issues-pill-count-open">${countOpen}</span>
             </div>
             <div class="issues-pill ${selectedStatus === 'In Progress' ? 'active' : ''}" data-status="In Progress">
               <span class="issues-pill-dot" style="background:#3B82F6;"></span>
               <span>In Progress</span>
-              <span class="issues-pill-count">${countInProgress}</span>
+              <span class="issues-pill-count" id="issues-pill-count-inprogress">${countInProgress}</span>
             </div>
             <div class="issues-pill ${selectedStatus === 'Done' ? 'active' : ''}" data-status="Done">
               <span class="issues-pill-dot" style="background:#10B981;"></span>
               <span>Done</span>
-              <span class="issues-pill-count">${countDone}</span>
+              <span class="issues-pill-count" id="issues-pill-count-done">${countDone}</span>
             </div>
           </div>
         </div>
 
         <!-- Exclusive Cards Grid -->
-        <div class="issues-cards-grid">
-          ${filtered.length === 0 ? `
-            <div class="issues-empty-state">
-              <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
-              <h3 style="font-size:1.15rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak ada permasalahan yang cocok</h3>
-              <p style="font-size:0.85rem; color:#64748B; margin:0 0 16px 0;">Coba sesuaikan kata kunci pencarian atau filter status yang dipilih.</p>
-              <button id="issues-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
-            </div>
-          ` : filtered.map(item => {
-            const cat = item.category || 'Lainnya';
-            const catClass = `issues-category-${cat.toLowerCase().replace(/[^a-z0-9]/g, '')}` || 'issues-category-lainnya';
-            
-            const st = item.status || 'Open';
-            let stClass = 'issues-status-open';
-            let stText = '⚠️ Open';
-            if (st === 'In Progress') {
-              stClass = 'issues-status-inprogress';
-              stText = '🔄 In Progress';
-            } else if (st === 'Done') {
-              stClass = 'issues-status-done';
-              stText = '✅ Done';
-            }
-
-            const compBoxStatus = st === 'Done' ? 'status-done' : (st === 'In Progress' ? 'status-inprogress' : '');
-
-            return `
-              <div class="issues-card" data-id="${item.id}">
-                <!-- Top Badges Row -->
-                <div class="issues-card-top">
-                  <span class="issues-category-badge ${catClass}">
-                    🏷️ ${cat}
-                  </span>
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="issues-status-badge ${stClass}">
-                      ${stText}
-                    </span>
-                    <span style="font-size:0.8rem; color:#64748B; display:flex; align-items:center; gap:4px;">
-                      🗓️ ${formatDateIndo(item.report_date)}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Complaint Box -->
-                <div class="issues-complaint-box ${compBoxStatus}">
-                  "${item.complaint || '-'}"
-                </div>
-
-                <!-- Person & Location Box -->
-                <div class="issues-person-box">
-                  <div class="issues-avatar-box">
-                    ${getInitials(item.employee_name)}
-                  </div>
-                  <div style="min-width:0; flex:1;">
-                    <div class="issues-person-sub">PERSONIL FC / SECURITY</div>
-                    <div class="issues-person-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                      ${item.employee_name || 'Tidak ada personil spesifik'}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Details Grid -->
-                <div class="issues-details-grid">
-                  <div class="issues-detail-item" style="grid-column: 1 / -1;">
-                    <span style="color:#64748B;">📍 Cabang:</span>
-                    <strong style="color:#0F172A;">${item.branch_name || 'Cabang Tidak Diketahui'}</strong>
-                  </div>
-                  <div class="issues-detail-item">
-                    <span style="color:#64748B;">🗣️ Sumber:</span>
-                    <strong>${item.source || '-'}</strong>
-                  </div>
-                  <div class="issues-detail-item">
-                    <span style="color:#64748B;">🛡️ Spesialis:</span>
-                    <strong>${item.fc_specialist || '-'}</strong>
-                  </div>
-                </div>
-
-                <!-- Solution & Completion Box (if available) -->
-                ${item.solution || item.completion_date ? `
-                  <div class="issues-solution-box">
-                    ${item.solution ? `
-                      <div class="issues-solution-title">
-                        <span>💡 Tindak Lanjut / Solusi:</span>
-                      </div>
-                      <div style="margin-bottom:${item.completion_date ? '6px' : '0'};">
-                        ${item.solution}
-                      </div>
-                    ` : ''}
-                    ${item.completion_date ? `
-                      <div style="font-size:0.76rem; color:#15803D; font-weight:600; display:flex; align-items:center; gap:4px;">
-                        <span>⏱️ Selesai: ${formatDateIndo(item.completion_date)}</span>
-                        ${item.day_count != null ? `<span>(Durasi: ${item.day_count} Hari)</span>` : ''}
-                      </div>
-                    ` : ''}
-                  </div>
-                ` : ''}
-
-                <!-- Footer Actions -->
-                <div class="issues-card-footer">
-                  <div>
-                    ${canEdit ? (
-                      st === 'Open' ? `
-                        <button class="issues-quick-btn start" data-action="quick-progress" data-id="${item.id}" title="Ubah status ke In Progress">
-                          <span>🔄 Mulai Tangani</span>
-                        </button>
-                      ` : st === 'In Progress' ? `
-                        <button class="issues-quick-btn complete" data-action="quick-done" data-id="${item.id}" title="Tandai selesai">
-                          <span>✅ Selesaikan</span>
-                        </button>
-                      ` : `
-                        <button class="issues-quick-btn reopen" data-action="quick-reopen" data-id="${item.id}" title="Buka kembali tiket masalah">
-                          <span>↩️ Buka Kembali</span>
-                        </button>
-                      `
-                    ) : ''}
-                  </div>
-
-                  <div class="issues-action-btns">
-                    ${canEdit ? `
-                      <button class="issues-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Masalah">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <button class="issues-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Masalah">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                      </button>
-                    ` : ''}
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('')}
+        <div id="issues-list-container" class="issues-cards-grid">
+          ${buildIssuesListHTML(filtered)}
         </div>
+
+        <!-- Pagination Container -->
+        <div id="issues-pagination-container"></div>
 
       </div>
     `;
@@ -1382,13 +1461,11 @@ export async function renderIssues(container, params) {
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value;
-        renderUI();
-        // Keep focus and cursor
-        const el = container.querySelector('#issues-search-input');
-        if (el) {
-          el.focus();
-          el.setSelectionRange(el.value.length, el.value.length);
-        }
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadData({ refreshStats: false });
+        }, 350);
       });
     }
 
@@ -1396,7 +1473,8 @@ export async function renderIssues(container, params) {
     if (branchFilter) {
       branchFilter.addEventListener('change', (e) => {
         selectedBranch = e.target.value;
-        renderUI();
+        currentPage = 1;
+        loadData({ refreshStats: false });
       });
     }
 
@@ -1404,7 +1482,8 @@ export async function renderIssues(container, params) {
     if (categoryFilter) {
       categoryFilter.addEventListener('change', (e) => {
         selectedCategory = e.target.value;
-        renderUI();
+        currentPage = 1;
+        loadData({ refreshStats: false });
       });
     }
 
@@ -1412,7 +1491,11 @@ export async function renderIssues(container, params) {
     container.querySelectorAll('.issues-pill').forEach(pill => {
       pill.addEventListener('click', () => {
         selectedStatus = pill.dataset.status;
-        renderUI();
+        container.querySelectorAll('.issues-pill').forEach(p => {
+          p.classList.toggle('active', p === pill);
+        });
+        currentPage = 1;
+        loadData({ refreshStats: false });
       });
     });
 
@@ -1424,7 +1507,15 @@ export async function renderIssues(container, params) {
         selectedBranch = 'all';
         selectedCategory = 'all';
         selectedStatus = 'all';
-        renderUI();
+        currentPage = 1;
+        clearTimeout(searchDebounce);
+        if (searchInput) searchInput.value = '';
+        if (branchFilter) branchFilter.value = 'all';
+        if (categoryFilter) categoryFilter.value = 'all';
+        container.querySelectorAll('.issues-pill').forEach(p => {
+          p.classList.toggle('active', p.dataset.status === 'all');
+        });
+        loadData({ refreshStats: false });
       });
     }
 
@@ -1441,42 +1532,13 @@ export async function renderIssues(container, params) {
 
     const refreshBtn = container.querySelector('#issues-btn-refresh');
     if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => loadData());
+      refreshBtn.addEventListener('click', () => loadData({ refreshStats: true }));
     }
 
-    // Card Action Buttons Delegation
-    container.querySelectorAll('.issues-card').forEach(card => {
-      const id = Number(card.dataset.id);
-      const item = issuesList.find(x => x.id === id);
-      if (!item) return;
-
-      const editBtn = card.querySelector('[data-action="edit"]');
-      if (editBtn) {
-        editBtn.addEventListener('click', () => openIssueModal(item));
-      }
-
-      const delBtn = card.querySelector('[data-action="delete"]');
-      if (delBtn) {
-        delBtn.addEventListener('click', () => deleteIssue(item));
-      }
-
-      const progBtn = card.querySelector('[data-action="quick-progress"]');
-      if (progBtn) {
-        progBtn.addEventListener('click', () => quickUpdateStatus(item, 'In Progress'));
-      }
-
-      const doneBtn = card.querySelector('[data-action="quick-done"]');
-      if (doneBtn) {
-        doneBtn.addEventListener('click', () => quickUpdateStatus(item, 'Done'));
-      }
-
-      const reopenBtn = card.querySelector('[data-action="quick-reopen"]');
-      if (reopenBtn) {
-        reopenBtn.addEventListener('click', () => quickUpdateStatus(item, 'Open'));
-      }
-    });
+    renderPagination();
+    bindListEvents();
   }
 
   // Initial load
-  await loadData();
+  await loadData({ refreshStats: true });
 }

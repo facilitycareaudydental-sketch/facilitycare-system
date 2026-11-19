@@ -1,4 +1,54 @@
 import { confirmDialog } from './modal.js';
+import { sanitizeHtmlFragment } from '../utils/sanitize.js';
+
+export const MAX_BULK_IDS = 100;
+
+/**
+ * Attempts to toggle a single row ID in a Set without exceeding maxLimit.
+ * Existing selections remain untouched when rejected.
+ */
+export function toggleBulkSelectionItem(selectedIds, id, checked, maxLimit = MAX_BULK_IDS) {
+  if (!checked) {
+    selectedIds.delete(id);
+    return { accepted: true, count: selectedIds.size };
+  }
+  if (selectedIds.has(id)) {
+    return { accepted: true, count: selectedIds.size };
+  }
+  if (selectedIds.size >= maxLimit) {
+    return {
+      accepted: false,
+      count: selectedIds.size,
+      reason: `Maksimum ${maxLimit} item dapat dipilih untuk penghapusan bulk`
+    };
+  }
+  selectedIds.add(id);
+  return { accepted: true, count: selectedIds.size };
+}
+
+/**
+ * Attempts to select or deselect all rows on the current page.
+ * Rejects without truncating or clearing existing selections if total would exceed maxLimit.
+ */
+export function toggleBulkSelectionPage(selectedIds, pageRows, checked, maxLimit = MAX_BULK_IDS) {
+  const ids = (pageRows || [])
+    .map(r => (typeof r === 'object' && r !== null ? r.id : r))
+    .filter(id => id !== undefined && id !== null);
+  if (!checked) {
+    ids.forEach(id => selectedIds.delete(id));
+    return { accepted: true, count: selectedIds.size };
+  }
+  const newIds = ids.filter(id => !selectedIds.has(id));
+  if (selectedIds.size + newIds.length > maxLimit) {
+    return {
+      accepted: false,
+      count: selectedIds.size,
+      reason: `Maksimum ${maxLimit} item dapat dipilih untuk penghapusan bulk (saat ini ${selectedIds.size} item sudah dipilih)`
+    };
+  }
+  newIds.forEach(id => selectedIds.add(id));
+  return { accepted: true, count: selectedIds.size };
+}
 
 // Reusable data table with pagination
 export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data', bulkSelect = null }) {
@@ -26,12 +76,25 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
     selectAll.type = 'checkbox';
     selectAll.id = 'select-all-checkbox';
     selectAll.title = 'Pilih semua';
+    const maxSelect = bulkSelect.maxSelect || Infinity;
     selectAll.addEventListener('change', () => {
-      data.forEach(row => {
-        if (selectAll.checked) bulkSelect.selectedIds.add(row.id);
-        else bulkSelect.selectedIds.delete(row.id);
-      });
-      wrapper.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = selectAll.checked);
+      if (Number.isFinite(maxSelect)) {
+        const res = toggleBulkSelectionPage(bulkSelect.selectedIds, data, selectAll.checked, maxSelect);
+        if (!res.accepted) {
+          selectAll.checked = false;
+          if (typeof bulkSelect.onLimitExceeded === 'function') bulkSelect.onLimitExceeded(res.reason);
+        }
+        const cbs = wrapper.querySelectorAll('.row-checkbox');
+        data.forEach((row, idx) => {
+          if (cbs[idx]) cbs[idx].checked = bulkSelect.selectedIds.has(row.id);
+        });
+      } else {
+        data.forEach(row => {
+          if (selectAll.checked) bulkSelect.selectedIds.add(row.id);
+          else bulkSelect.selectedIds.delete(row.id);
+        });
+        wrapper.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = selectAll.checked);
+      }
       bulkSelect.onToggle();
     });
     thCheck.appendChild(selectAll);
@@ -55,6 +118,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
 
   // Body
   const tbody = document.createElement('tbody');
+  const maxSelect = bulkSelect?.maxSelect || Infinity;
   data.forEach(row => {
     const tr = document.createElement('tr');
 
@@ -68,12 +132,23 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
       cb.className = 'row-checkbox';
       cb.checked = bulkSelect.selectedIds.has(row.id);
       cb.addEventListener('change', () => {
-        if (cb.checked) bulkSelect.selectedIds.add(row.id);
-        else {
-          bulkSelect.selectedIds.delete(row.id);
-          // uncheck select-all if any deselected
-          const selectAll = document.getElementById('select-all-checkbox');
-          if (selectAll) selectAll.checked = false;
+        if (Number.isFinite(maxSelect)) {
+          const res = toggleBulkSelectionItem(bulkSelect.selectedIds, row.id, cb.checked, maxSelect);
+          if (!res.accepted) {
+            cb.checked = false;
+            if (typeof bulkSelect.onLimitExceeded === 'function') bulkSelect.onLimitExceeded(res.reason);
+          } else if (!cb.checked) {
+            const selectAll = document.getElementById('select-all-checkbox');
+            if (selectAll) selectAll.checked = false;
+          }
+        } else {
+          if (cb.checked) bulkSelect.selectedIds.add(row.id);
+          else {
+            bulkSelect.selectedIds.delete(row.id);
+            // uncheck select-all if any deselected
+            const selectAll = document.getElementById('select-all-checkbox');
+            if (selectAll) selectAll.checked = false;
+          }
         }
         bulkSelect.onToggle();
       });
@@ -86,7 +161,7 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
       if (col.render) {
         const rendered = col.render(row[col.key], row);
         if (rendered instanceof HTMLElement) td.appendChild(rendered);
-        else td.innerHTML = rendered || '';
+        else td.innerHTML = rendered ? sanitizeHtmlFragment(rendered) : '';
       } else {
         td.textContent = row[col.key] !== null && row[col.key] !== undefined && row[col.key] !== '' ? row[col.key] : '';
       }
@@ -125,7 +200,14 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
         btn.addEventListener('click', () => action.handler(row));
         btnGroup.appendChild(btn);
       });
-      // Individual delete button removed globally as per user request
+      if (onDelete) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-xs btn-ghost text-danger';
+        btn.innerHTML = '🗑️';
+        btn.title = 'Hapus';
+        btn.addEventListener('click', () => onDelete(row));
+        btnGroup.appendChild(btn);
+      }
       td.appendChild(btnGroup);
       tr.appendChild(td);
     }
@@ -137,13 +219,20 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
 }
 
 export function createPagination({ page, pages, total, limit, onPage }) {
-  if (pages <= 1) return null;
+  if (!pages || pages <= 1) return null;
+  const safePage = Math.min(Math.max(1, Number(page) || 1), pages);
+  const safeLimit = Math.max(1, Number(limit) || 20);
+  const safeTotal = Math.max(0, Number(total) || 0);
   const nav = document.createElement('div');
   nav.className = 'pagination';
 
   const info = document.createElement('span');
   info.className = 'pagination-info';
-  info.textContent = `Total: ${total} data`;
+  const fromIdx = safeTotal > 0 ? ((safePage - 1) * safeLimit) + 1 : 0;
+  const toIdx = safeTotal > 0 ? Math.min(safeTotal, safePage * safeLimit) : 0;
+  info.textContent = safeTotal > 0
+    ? `Hal. ${safePage} / ${pages} • ${fromIdx}-${toIdx} dari ${safeTotal} data`
+    : `Total: ${safeTotal} data`;
   nav.appendChild(info);
 
   const btns = document.createElement('div');
@@ -158,15 +247,15 @@ export function createPagination({ page, pages, total, limit, onPage }) {
     btns.appendChild(btn);
   };
 
-  addBtn('«', 1, page === 1);
-  addBtn('‹', page - 1, page === 1);
+  addBtn('«', 1, safePage === 1);
+  addBtn('‹', safePage - 1, safePage === 1);
 
-  const start = Math.max(1, page - 2);
-  const end = Math.min(pages, page + 2);
-  for (let i = start; i <= end; i++) addBtn(i, i, false, i === page);
+  const start = Math.max(1, safePage - 2);
+  const end = Math.min(pages, safePage + 2);
+  for (let i = start; i <= end; i++) addBtn(i, i, false, i === safePage);
 
-  addBtn('›', page + 1, page === pages);
-  addBtn('»', pages, page === pages);
+  addBtn('›', safePage + 1, safePage === pages);
+  addBtn('»', pages, safePage === pages);
 
   nav.appendChild(btns);
   return nav;

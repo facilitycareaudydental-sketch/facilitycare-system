@@ -1,7 +1,9 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
-import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployees, fetchExportRows } from '../utils/dataCache.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
+import { createPagination } from '../components/table.js';
+import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
 
 // Pre-seeded fallback data jika API offline / inisialisasi awal
 const INITIAL_MUTASI = [
@@ -25,6 +27,7 @@ function formatDateIndo(dateStr) {
 }
 
 export async function renderMutasi(container) {
+  const PAGE_LIMIT = 20;
   let mutasiList = [];
   let branchOptions = [];
   let employeeOptions = [];
@@ -32,6 +35,12 @@ export async function renderMutasi(container) {
   let selectedFromBranch = 'all';
   let selectedToBranch = 'all';
   let searchQuery = '';
+  let currentPage = 1;
+  let totalItems = 0;
+  let totalPages = 1;
+  let statsLoaded = false;
+  let serverStats = { total: 0, proses: 0, selesai: 0, currentMonth: 0 };
+  let searchDebounce = null;
   let isLoading = false;
   let viewMode = localStorage.getItem('fcms_mutasi_view_mode') || 'card';
 
@@ -44,42 +53,108 @@ export async function renderMutasi(container) {
   try {
     [branchOptions, employeeOptions] = await Promise.all([
       getCachedBranches(),
-      getCachedEmployeeNames()
+      getCachedEmployees()
     ]);
   } catch (err) {
     console.error('Error fetching cache:', err);
   }
 
-  // Load Mutasi Data from API
-  async function loadData() {
+  function getActiveFilters() {
+    const filters = { sort: 'date_desc' };
+    if (searchQuery.trim()) filters.search = searchQuery.trim();
+    if (selectedFromBranch && selectedFromBranch !== 'all') filters.from_branch_id = selectedFromBranch;
+    if (selectedToBranch && selectedToBranch !== 'all') filters.to_branch_id = selectedToBranch;
+    if (selectedStatus && selectedStatus !== 'all') filters.status = selectedStatus;
+    return filters;
+  }
+
+  function updateStatsUI() {
+    const set = (id, val) => {
+      const el = container.querySelector(id);
+      if (el) el.textContent = val;
+    };
+    set('#mutasi-stat-total', serverStats.total);
+    set('#mutasi-stat-proses', serverStats.proses);
+    set('#mutasi-stat-selesai', serverStats.selesai);
+    set('#mutasi-stat-month', serverStats.currentMonth);
+    set('#mutasi-pill-count-all', serverStats.total);
+    set('#mutasi-pill-count-proses', serverStats.proses);
+    set('#mutasi-pill-count-selesai', serverStats.selesai);
+  }
+
+  // Load Mutasi Data from API (Server-Side Pagination)
+  async function loadData({ refreshStats = true } = {}) {
     isLoading = true;
-    renderUI();
+    const hasShell = Boolean(container.querySelector('#mutasi-list-container'));
+    if (!hasShell) {
+      renderUI();
+    } else {
+      const listEl = container.querySelector('#mutasi-list-container');
+      if (listEl) {
+        listEl.innerHTML = '<div class="mutasi-empty-state"><p style="color:#64748B; margin:0;">Memuat data mutasi...</p></div>';
+      }
+    }
     try {
-      const res = await apiFetch('/api/mutasi?limit=10000');
+      const qs = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(PAGE_LIMIT),
+        ...getActiveFilters(),
+      });
+      if (refreshStats || !statsLoaded) {
+        qs.set('include_stats', '1');
+      }
+      const res = await apiFetch(`/api/mutasi?${qs.toString()}`);
       if (res.ok) {
-        const raw = res.data?.data || res.data || [];
-        mutasiList = Array.isArray(raw) && raw.length > 0 ? raw : INITIAL_MUTASI;
+        const raw = res.data?.data || [];
+        mutasiList = Array.isArray(raw) ? raw : [];
+        const pag = res.data?.pagination || {};
+        totalItems = Number(pag.total ?? mutasiList.length);
+        totalPages = Math.max(1, Number(pag.pages ?? Math.ceil(totalItems / PAGE_LIMIT)) || 1);
+        currentPage = Math.max(1, Number(pag.page ?? currentPage));
+        if (res.data?.stats) {
+          serverStats = res.data.stats;
+          statsLoaded = true;
+        }
+        if (mutasiList.length === 0 && currentPage > totalPages) {
+          currentPage = totalPages;
+          isLoading = false;
+          return loadData({ refreshStats });
+        }
       } else {
-        mutasiList = INITIAL_MUTASI;
+        mutasiList = [];
+        totalItems = 0;
+        totalPages = 1;
+        toastError(res.data?.error || 'Gagal memuat data mutasi');
       }
     } catch (e) {
-      console.warn('Gagal load mutasi, menggunakan data lokal:', e);
-      mutasiList = INITIAL_MUTASI;
+      console.warn('Gagal load mutasi:', e);
+      mutasiList = [];
+      totalItems = 0;
+      totalPages = 1;
+      toastError('Gagal memuat data mutasi: ' + e.message);
     } finally {
       isLoading = false;
-      renderUI();
+      if (container.querySelector('#mutasi-list-container')) {
+        updateStatsUI();
+        renderListContent();
+      } else {
+        renderUI();
+      }
     }
   }
 
-  // Export to Excel
+  // Export to Excel (All matching filtered rows via /api/mutasi/export)
   async function exportToExcel() {
     if (!hasPermission(currentUser, 'export')) {
       toastError('Anda tidak memiliki izin untuk mengekspor data.');
       return;
     }
     try {
-      const { downloadExcel } = await import('../utils/excel.js');
-      const exportData = mutasiList.map((m, idx) => ({
+      const [{ downloadExcel }, rows] = await Promise.all([
+        import('../utils/excel.js'),
+        fetchExportRows('/api/mutasi/export', getActiveFilters())
+      ]);
+      const exportData = rows.map((m, idx) => ({
         'No': idx + 1,
         'Tanggal': m.tanggal || '',
         'Nama Karyawan': m.employee_name || '',
@@ -97,7 +172,7 @@ export async function renderMutasi(container) {
 
   // Delete Mutasi
   async function deleteMutasi(id) {
-    if (!canEdit) return;
+    if (!canDelete) return;
     const item = mutasiList.find(m => m.id === id);
     confirmDialog({
       title: 'Hapus Data Mutasi',
@@ -109,8 +184,7 @@ export async function renderMutasi(container) {
           const res = await apiFetch(`/api/mutasi/${id}`, { method: 'DELETE' });
           if (res.ok) {
             toastSuccess('Data mutasi berhasil dihapus');
-            mutasiList = mutasiList.filter(m => m.id !== id);
-            renderUI();
+            await loadData({ refreshStats: true });
           } else {
             toastError(res.data?.error || 'Gagal menghapus mutasi');
           }
@@ -139,7 +213,7 @@ export async function renderMutasi(container) {
     const content = document.createElement('div');
     content.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:16px;">
-        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Tanggal Mutasi <span style="color:#DC2626;">*</span>
@@ -163,17 +237,10 @@ export async function renderMutasi(container) {
           <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
             Nama Karyawan <span style="color:#DC2626;">*</span>
           </label>
-          <input list="emp-list-options" id="mutasi-modal-emp" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Ketik atau pilih nama karyawan..." value="${item?.employee_name ? String(item.employee_name).replace(/"/g, '&quot;') : ''}" required />
-          <datalist id="emp-list-options">
-            ${employeeOptions.map(e => {
-              const name = typeof e === 'string' ? e : (e.label || e.name || '');
-              return `<option value="${name}">`;
-            }).join('')}
-          </datalist>
+          <div id="mutasi-modal-emp-mount"></div>
         </div>
 
-        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
           <div>
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Cabang Asal <span style="color:#DC2626;">*</span>
@@ -213,6 +280,20 @@ export async function renderMutasi(container) {
       </div>
     `;
 
+    const empCombobox = mountEmployeeCombobox(content.querySelector('#mutasi-modal-emp-mount'), {
+      mode: 'single',
+      inputId: 'mutasi-modal-emp',
+      inputName: 'employee_name',
+      placeholder: 'Cari nama karyawan...',
+      required: true,
+      allowManual: true,
+      hasEmployeeIdSchema: true,
+      manualBadgeText: 'Belum terhubung ke Master Karyawan',
+      employees: employeeOptions,
+      initialEmployeeId: item?.employee_id || null,
+      initialEmployeeName: item?.employee_name || '',
+    });
+
     createModal({
       title: isEdit ? '✏️ Edit Data Mutasi Karyawan' : '➕ Tambah Data Mutasi Karyawan',
       content,
@@ -221,7 +302,9 @@ export async function renderMutasi(container) {
       confirmClass: 'btn-primary',
       onConfirm: async (_, close) => {
         const tanggal = content.querySelector('#mutasi-modal-tanggal').value;
-        const employee_name = (content.querySelector('#mutasi-modal-emp').value || '').trim();
+        const empSelection = empCombobox.getValue();
+        const employee_name = (empSelection.employee_name || '').trim();
+        const employee_id = empSelection.employee_id ?? null;
         const from_branch_id = content.querySelector('#mutasi-modal-from').value;
         const to_branch_id = content.querySelector('#mutasi-modal-to').value;
         const status = content.querySelector('#mutasi-modal-status').value;
@@ -233,6 +316,7 @@ export async function renderMutasi(container) {
         }
         if (!employee_name) {
           toastError('Nama karyawan wajib diisi');
+          empCombobox.inputEl?.focus();
           return;
         }
         if (!from_branch_id) {
@@ -249,13 +333,15 @@ export async function renderMutasi(container) {
 
         const payload = {
           tanggal,
+          employee_id,
           employee_name,
           from_branch_id: Number(from_branch_id),
           from_branch_name: bFrom ? bFrom.label : 'Cabang Asal',
           to_branch_id: Number(to_branch_id),
           to_branch_name: bTo ? bTo.label : 'Cabang Tujuan',
           status,
-          document_link
+          document_link,
+          ...(isEdit ? { row_version: item?.row_version !== undefined && item?.row_version !== null ? Number(item.row_version) : 1 } : {})
         };
 
         try {
@@ -266,11 +352,15 @@ export async function renderMutasi(container) {
             });
             if (res.ok) {
               toastSuccess('Data mutasi berhasil diperbarui');
-              const idx = mutasiList.findIndex(m => m.id === item.id);
-              if (idx !== -1) mutasiList[idx] = { ...mutasiList[idx], ...payload };
               close();
-              renderUI();
+              await loadData({ refreshStats: true });
             } else {
+              if (res.status === 409) {
+                toastError('Konflik OCC: Data telah diubah oleh pengguna lain. Silakan muat ulang halaman.');
+                close();
+                await loadData({ refreshStats: true });
+                return;
+              }
               toastError(res.data?.error || 'Gagal memperbarui data mutasi');
             }
           } else {
@@ -280,10 +370,8 @@ export async function renderMutasi(container) {
             });
             if (res.ok) {
               toastSuccess('Data mutasi baru berhasil ditambahkan');
-              const newId = res.data?.id || (Date.now());
-              mutasiList.unshift({ id: newId, ...payload });
               close();
-              renderUI();
+              await loadData({ refreshStats: true });
             } else {
               toastError(res.data?.error || 'Gagal menambahkan mutasi');
             }
@@ -295,55 +383,280 @@ export async function renderMutasi(container) {
     });
   }
 
-  // Filter & Search Logic
+  // Filter & Search Logic (server already filters & paginates)
   function getFilteredList() {
-    return mutasiList.filter(m => {
-      // Search
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const matchEmp = (m.employee_name || '').toLowerCase().includes(q);
-        const matchFrom = (m.from_branch_name || '').toLowerCase().includes(q);
-        const matchTo = (m.to_branch_name || '').toLowerCase().includes(q);
-        if (!matchEmp && !matchFrom && !matchTo) return false;
-      }
+    return mutasiList;
+  }
 
-      // From Branch Filter
-      if (selectedFromBranch !== 'all' && String(m.from_branch_id) !== String(selectedFromBranch)) {
-        return false;
-      }
 
-      // To Branch Filter
-      if (selectedToBranch !== 'all' && String(m.to_branch_id) !== String(selectedToBranch)) {
-        return false;
-      }
+  // Render only the dynamic list content HTML (Card / Table / Empty State)
+  function buildMutasiListHTML(filtered) {
+    return `
+          ${filtered.length === 0 ? `
+            <div class="mutasi-empty-state">
+              <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
+              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Data Mutasi Ditemukan</h3>
+              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
+              <button id="mutasi-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
+                Reset Filter
+              </button>
+            </div>
+          ` : viewMode === 'table' ? `
+            <div class="mutasi-table-card">
+              <div class="mutasi-table-responsive">
+                <table class="mutasi-table">
+                  <thead>
+                    <tr>
+                      <th style="width:45px; text-align:center;">No</th>
+                      <th>Nama Karyawan</th>
+                      <th>Tanggal Mutasi</th>
+                      <th>Cabang Asal</th>
+                      <th>Cabang Tujuan</th>
+                      <th style="text-align:center;">Status</th>
+                      <th style="text-align:center;">Dokumen SK</th>
+                      ${canEdit || canDelete ? `<th style="width:90px; text-align:center;">Aksi</th>` : ''}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.map((m, idx) => {
+                      const isSelesai = m.status === 'Selesai';
+                      const initials = (m.employee_name || 'Karyawan').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+                      return `
+                        <tr data-id="${m.id}">
+                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${((currentPage - 1) * PAGE_LIMIT) + idx + 1}</td>
+                          <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                              <div class="mutasi-avatar-box" style="width:34px; height:34px; font-size:0.78rem; border-radius:8px;">
+                                ${initials}
+                              </div>
+                              <div>
+                                <div style="font-weight:700; color:#0F172A; white-space:nowrap;">${m.employee_name}</div>
+                                <div style="font-size:0.72rem; color:#64748B;">ID Mutasi: #${m.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                            🗓️ ${formatDateIndo(m.tanggal)}
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <div style="font-weight:600; color:#334155; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;">
+                              <span>📍</span>
+                              <span>${m.from_branch_name || '-'}</span>
+                            </div>
+                          </td>
+                          <td style="white-space:nowrap;">
+                            <div style="font-weight:700; color:#2563EB; font-size:0.85rem; display:inline-flex; align-items:center; gap:5px;">
+                              <span>➔</span>
+                              <span>${m.to_branch_name || '-'}</span>
+                            </div>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            <span class="mutasi-status-badge ${isSelesai ? 'selesai' : 'proses'}">
+                              <span>${isSelesai ? '✅' : '⏳'}</span>
+                              <span>${m.status || 'Proses'}</span>
+                            </span>
+                          </td>
+                          <td style="text-align:center; white-space:nowrap;">
+                            ${m.document_link ? `
+                              <a href="${m.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.76rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                                <span>📄 Buka SK</span>
+                              </a>
+                            ` : `
+                              <span style="font-size:0.75rem; color:#94A3B8;">(Tanpa Dokumen)</span>
+                            `}
+                          </td>
+                          ${canEdit || canDelete ? `
+                            <td style="text-align:center; white-space:nowrap;">
+                              <div style="display:inline-flex; align-items:center; gap:6px;">
+                                ${canEdit ? `
+                                  <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                  </button>
+                                ` : ''}
+                                ${canDelete ? `
+                                  <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                  </button>
+                                ` : ''}
+                              </div>
+                            </td>
+                          ` : ''}
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : `
+            <div class="mutasi-cards-grid">
+              ${filtered.map(m => {
+                const isSelesai = m.status === 'Selesai';
+                const initials = (m.employee_name || 'Karyawan').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+                return `
+                  <div class="mutasi-card" data-id="${m.id}">
+                    <div>
+                      <!-- Card Header: Status & Tanggal -->
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <span class="mutasi-status-badge ${isSelesai ? 'selesai' : 'proses'}">
+                          <span>${isSelesai ? '✅' : '⏳'}</span>
+                          <span>${m.status || 'Proses'}</span>
+                        </span>
+                        <span style="font-size:0.8rem; font-weight:600; color:#64748B; display:inline-flex; align-items:center; gap:4px;">
+                          <span>🗓️</span>
+                          <span>${formatDateIndo(m.tanggal)}</span>
+                        </span>
+                      </div>
 
-      // Status Filter
-      if (selectedStatus !== 'all' && m.status !== selectedStatus) {
-        return false;
-      }
+                      <!-- Employee Info -->
+                      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                        <div class="mutasi-avatar-box">
+                          ${initials}
+                        </div>
+                        <div style="min-width:0;">
+                          <h4 style="margin:0 0 3px 0; font-size:1.02rem; font-weight:700; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${m.employee_name}
+                          </h4>
+                          <div style="font-size:0.75rem; color:#64748B;">
+                            ID Mutasi: #${m.id}
+                          </div>
+                        </div>
+                      </div>
 
-      return true;
+                      <!-- Route Visual Box -->
+                      <div class="mutasi-route-box">
+                        <div class="mutasi-route-node mutasi-from-node">
+                          <div class="mutasi-route-label">Cabang Asal</div>
+                          <div class="mutasi-route-branch" title="${m.from_branch_name || '-'}">
+                            ${m.from_branch_name || '-'}
+                          </div>
+                        </div>
+
+                        <div class="mutasi-route-arrow">
+                          ➔
+                        </div>
+
+                        <div class="mutasi-route-node mutasi-to-node">
+                          <div class="mutasi-route-label">Cabang Tujuan</div>
+                          <div class="mutasi-route-branch" style="color:#2563EB;" title="${m.to_branch_name || '-'}">
+                            ${m.to_branch_name || '-'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Card Footer: Dokumen & Aksi -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #F1F5F9; margin-top:8px;">
+                      <div>
+                        ${m.document_link ? `
+                          <a href="${m.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.78rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                            <span>📄 Buka SK</span>
+                          </a>
+                        ` : `
+                          <span style="font-size:0.75rem; color:#94A3B8;">(Tanpa Dokumen)</span>
+                        `}
+                      </div>
+
+                      ${canEdit || canDelete ? `
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          ${canEdit ? `
+                            <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
+                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                          ` : ''}
+                          ${canDelete ? `
+                            <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
+                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                          ` : ''}
+                        </div>
+                      ` : ''}
+                    </div>
+
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+    `;
+  }
+
+  function renderPagination() {
+    const pagEl = container.querySelector('#mutasi-pagination-container');
+    if (!pagEl) return;
+    pagEl.innerHTML = '';
+    const nav = createPagination({
+      page: currentPage,
+      pages: totalPages,
+      total: totalItems,
+      limit: PAGE_LIMIT,
+      onPage: (targetPage) => {
+        currentPage = targetPage;
+        loadData({ refreshStats: false });
+      }
+    });
+    if (nav) pagEl.appendChild(nav);
+  }
+
+  function bindListEvents() {
+    const btnReset = container.querySelector('#mutasi-btn-reset-filter');
+    if (btnReset) {
+      btnReset.onclick = () => {
+        searchQuery = '';
+        selectedFromBranch = 'all';
+        selectedToBranch = 'all';
+        selectedStatus = 'all';
+        currentPage = 1;
+        const searchInput = container.querySelector('#mutasi-search-input');
+        if (searchInput) searchInput.value = '';
+        const fromFilter = container.querySelector('#mutasi-filter-from');
+        if (fromFilter) fromFilter.value = 'all';
+        const toFilter = container.querySelector('#mutasi-filter-to');
+        if (toFilter) toFilter.value = 'all';
+        container.querySelectorAll('.mutasi-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-status') === 'all');
+        });
+        loadData({ refreshStats: false });
+      };
+    }
+
+    // Edit Buttons
+    container.querySelectorAll('.mutasi-edit-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = Number(btn.getAttribute('data-id'));
+        const item = mutasiList.find(m => m.id === id);
+        if (item) openMutasiModal(item);
+      };
+    });
+
+    // Delete Buttons
+    container.querySelectorAll('.mutasi-delete-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = Number(btn.getAttribute('data-id'));
+        deleteMutasi(id);
+      };
     });
   }
 
+  function renderListContent() {
+    const listContainer = container.querySelector('#mutasi-list-container');
+    if (!listContainer) return;
+    const filtered = getFilteredList();
+    listContainer.innerHTML = buildMutasiListHTML(filtered);
+    renderPagination();
+    bindListEvents();
+  }
   // Main UI Renderer
   function renderUI() {
     const filtered = getFilteredList();
 
-    // KPI Metrics calculation
-    const totalCount = mutasiList.length;
-    const prosesCount = mutasiList.filter(m => m.status === 'Proses').length;
-    const selesaiCount = mutasiList.filter(m => m.status === 'Selesai').length;
-
-    // Mutasi Bulan Ini
-    const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
-    const bulanIniCount = mutasiList.filter(m => {
-      if (!m.tanggal) return false;
-      const d = new Date(m.tanggal);
-      return !isNaN(d.getTime()) && d.getFullYear() === curYear && d.getMonth() === curMonth;
-    }).length;
+    // KPI Metrics from server stats
+    const totalCount = serverStats.total;
+    const prosesCount = serverStats.proses;
+    const selesaiCount = serverStats.selesai;
+    const bulanIniCount = serverStats.currentMonth;
 
     container.innerHTML = `
       <style>
@@ -661,9 +974,16 @@ export async function renderMutasi(container) {
           align-items: center;
           justify-content: space-between;
           gap: 10px;
+          min-width: 0;
+          box-sizing: border-box;
+          width: 100%;
         }
         .mutasi-route-node {
           flex: 1;
+          min-width: 0;
+        }
+        .mutasi-to-node {
+          text-align: right;
         }
         .mutasi-route-label {
           font-size: 0.7rem;
@@ -837,6 +1157,38 @@ export async function renderMutasi(container) {
             overflow: hidden;
             padding: 14px !important;
           }
+          .mutasi-route-box {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+            padding: 11px 12px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .mutasi-route-node {
+            width: 100% !important;
+            min-width: 0 !important;
+            text-align: left !important;
+          }
+          .mutasi-to-node {
+            text-align: left !important;
+          }
+          .mutasi-route-branch {
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            font-size: 0.88rem !important;
+            line-height: 1.35 !important;
+          }
+          .mutasi-route-arrow {
+            align-self: center !important;
+            width: 26px !important;
+            height: 26px !important;
+            font-size: 0.85rem !important;
+            transform: rotate(90deg) !important;
+            margin: -2px 0 !important;
+          }
         }
       </style>
 
@@ -880,7 +1232,7 @@ export async function renderMutasi(container) {
                 📋
               </div>
               <div>
-                <div class="mutasi-stat-val">${totalCount}</div>
+                <div class="mutasi-stat-val" id="mutasi-stat-total">${totalCount}</div>
                 <div class="mutasi-stat-lbl">Total Mutasi</div>
               </div>
             </div>
@@ -890,7 +1242,7 @@ export async function renderMutasi(container) {
                 ⏳
               </div>
               <div>
-                <div class="mutasi-stat-val">${prosesCount}</div>
+                <div class="mutasi-stat-val" id="mutasi-stat-proses">${prosesCount}</div>
                 <div class="mutasi-stat-lbl">Dalam Proses</div>
               </div>
             </div>
@@ -900,7 +1252,7 @@ export async function renderMutasi(container) {
                 ✅
               </div>
               <div>
-                <div class="mutasi-stat-val">${selesaiCount}</div>
+                <div class="mutasi-stat-val" id="mutasi-stat-selesai">${selesaiCount}</div>
                 <div class="mutasi-stat-lbl">Mutasi Selesai</div>
               </div>
             </div>
@@ -910,7 +1262,7 @@ export async function renderMutasi(container) {
                 🗓️
               </div>
               <div>
-                <div class="mutasi-stat-val">${bulanIniCount}</div>
+                <div class="mutasi-stat-val" id="mutasi-stat-month">${bulanIniCount}</div>
                 <div class="mutasi-stat-lbl">Bulan Berjalan</div>
               </div>
             </div>
@@ -953,210 +1305,26 @@ export async function renderMutasi(container) {
           <div class="mutasi-filter-pills">
             <div class="mutasi-pill ${selectedStatus === 'all' ? 'active' : ''}" data-status="all">
               <span>Semua Mutasi</span>
-              <span class="badge" style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:10px; font-size:0.75rem;">${totalCount}</span>
+              <span class="badge" id="mutasi-pill-count-all" style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:10px; font-size:0.75rem;">${totalCount}</span>
             </div>
             <div class="mutasi-pill ${selectedStatus === 'Proses' ? 'active' : ''}" data-status="Proses">
               <span style="color:#D97706;">⏳</span>
               <span>Proses</span>
-              <span class="badge" style="background:rgba(217,119,6,0.15); color:#B45309; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${prosesCount}</span>
+              <span class="badge" id="mutasi-pill-count-proses" style="background:rgba(217,119,6,0.15); color:#B45309; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${prosesCount}</span>
             </div>
             <div class="mutasi-pill ${selectedStatus === 'Selesai' ? 'active' : ''}" data-status="Selesai">
               <span style="color:#16A34A;">✅</span>
               <span>Selesai</span>
-              <span class="badge" style="background:rgba(22,163,74,0.15); color:#15803D; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${selesaiCount}</span>
+              <span class="badge" id="mutasi-pill-count-selesai" style="background:rgba(22,163,74,0.15); color:#15803D; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${selesaiCount}</span>
             </div>
           </div>
         </div>
 
         <!-- Content Area: Murni Grid Kartu -->
         <div id="mutasi-list-container">
-          ${filtered.length === 0 ? `
-            <div class="mutasi-empty-state">
-              <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
-              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Data Mutasi Ditemukan</h3>
-              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
-              <button id="mutasi-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
-                Reset Filter
-              </button>
-            </div>
-          ` : viewMode === 'table' ? `
-            <div class="mutasi-table-card">
-              <div class="mutasi-table-responsive">
-                <table class="mutasi-table">
-                  <thead>
-                    <tr>
-                      <th style="width:45px; text-align:center;">No</th>
-                      <th>Nama Karyawan</th>
-                      <th>Tanggal Mutasi</th>
-                      <th>Cabang Asal</th>
-                      <th>Cabang Tujuan</th>
-                      <th style="text-align:center;">Status</th>
-                      <th style="text-align:center;">Dokumen SK</th>
-                      ${canEdit || canDelete ? `<th style="width:90px; text-align:center;">Aksi</th>` : ''}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${filtered.map((m, idx) => {
-                      const isSelesai = m.status === 'Selesai';
-                      const initials = (m.employee_name || 'Karyawan').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
-                      return `
-                        <tr data-id="${m.id}">
-                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${idx + 1}</td>
-                          <td>
-                            <div style="display:flex; align-items:center; gap:10px;">
-                              <div class="mutasi-avatar-box" style="width:34px; height:34px; font-size:0.78rem; border-radius:8px;">
-                                ${initials}
-                              </div>
-                              <div>
-                                <div style="font-weight:700; color:#0F172A; white-space:nowrap;">${m.employee_name}</div>
-                                <div style="font-size:0.72rem; color:#64748B;">ID Mutasi: #${m.id}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
-                            🗓️ ${formatDateIndo(m.tanggal)}
-                          </td>
-                          <td style="white-space:nowrap;">
-                            <div style="font-weight:600; color:#334155; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;">
-                              <span>📍</span>
-                              <span>${m.from_branch_name || '-'}</span>
-                            </div>
-                          </td>
-                          <td style="white-space:nowrap;">
-                            <div style="font-weight:700; color:#2563EB; font-size:0.85rem; display:inline-flex; align-items:center; gap:5px;">
-                              <span>➔</span>
-                              <span>${m.to_branch_name || '-'}</span>
-                            </div>
-                          </td>
-                          <td style="text-align:center; white-space:nowrap;">
-                            <span class="mutasi-status-badge ${isSelesai ? 'selesai' : 'proses'}">
-                              <span>${isSelesai ? '✅' : '⏳'}</span>
-                              <span>${m.status || 'Proses'}</span>
-                            </span>
-                          </td>
-                          <td style="text-align:center; white-space:nowrap;">
-                            ${m.document_link ? `
-                              <a href="${m.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.76rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-                                <span>📄 Buka SK</span>
-                              </a>
-                            ` : `
-                              <span style="font-size:0.75rem; color:#94A3B8;">(Tanpa Dokumen)</span>
-                            `}
-                          </td>
-                          ${canEdit || canDelete ? `
-                            <td style="text-align:center; white-space:nowrap;">
-                              <div style="display:inline-flex; align-items:center; gap:6px;">
-                                ${canEdit ? `
-                                  <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
-                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                  </button>
-                                ` : ''}
-                                ${canDelete ? `
-                                  <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
-                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                                  </button>
-                                ` : ''}
-                              </div>
-                            </td>
-                          ` : ''}
-                        </tr>
-                      `;
-                    }).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ` : `
-            <div class="mutasi-cards-grid">
-              ${filtered.map(m => {
-                const isSelesai = m.status === 'Selesai';
-                const initials = (m.employee_name || 'Karyawan').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
-                return `
-                  <div class="mutasi-card" data-id="${m.id}">
-                    <div>
-                      <!-- Card Header: Status & Tanggal -->
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <span class="mutasi-status-badge ${isSelesai ? 'selesai' : 'proses'}">
-                          <span>${isSelesai ? '✅' : '⏳'}</span>
-                          <span>${m.status || 'Proses'}</span>
-                        </span>
-                        <span style="font-size:0.8rem; font-weight:600; color:#64748B; display:inline-flex; align-items:center; gap:4px;">
-                          <span>🗓️</span>
-                          <span>${formatDateIndo(m.tanggal)}</span>
-                        </span>
-                      </div>
-
-                      <!-- Employee Info -->
-                      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-                        <div class="mutasi-avatar-box">
-                          ${initials}
-                        </div>
-                        <div style="min-width:0;">
-                          <h4 style="margin:0 0 3px 0; font-size:1.02rem; font-weight:700; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${m.employee_name}
-                          </h4>
-                          <div style="font-size:0.75rem; color:#64748B;">
-                            ID Mutasi: #${m.id}
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Route Visual Box -->
-                      <div class="mutasi-route-box">
-                        <div class="mutasi-route-node">
-                          <div class="mutasi-route-label">Cabang Asal</div>
-                          <div class="mutasi-route-branch" title="${m.from_branch_name || '-'}">
-                            ${m.from_branch_name || '-'}
-                          </div>
-                        </div>
-
-                        <div class="mutasi-route-arrow">
-                          ➔
-                        </div>
-
-                        <div class="mutasi-route-node" style="text-align:right;">
-                          <div class="mutasi-route-label">Cabang Tujuan</div>
-                          <div class="mutasi-route-branch" style="color:#2563EB;" title="${m.to_branch_name || '-'}">
-                            ${m.to_branch_name || '-'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Card Footer: Dokumen & Aksi -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #F1F5F9; margin-top:8px;">
-                      <div>
-                        ${m.document_link ? `
-                          <a href="${m.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.78rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-                            <span>📄 Buka SK</span>
-                          </a>
-                        ` : `
-                          <span style="font-size:0.75rem; color:#94A3B8;">(Tanpa Dokumen)</span>
-                        `}
-                      </div>
-
-                      ${canEdit || canDelete ? `
-                        <div style="display:flex; align-items:center; gap:6px;">
-                          ${canEdit ? `
-                            <button class="mutasi-icon-btn mutasi-edit-btn" title="Edit Data Mutasi" data-id="${m.id}">
-                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            </button>
-                          ` : ''}
-                          ${canDelete ? `
-                            <button class="mutasi-icon-btn delete mutasi-delete-btn" title="Hapus Mutasi" data-id="${m.id}">
-                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                            </button>
-                          ` : ''}
-                        </div>
-                      ` : ''}
-                    </div>
-
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          `}
+          ${buildMutasiListHTML(filtered)}
         </div>
+        <div id="mutasi-pagination-container"></div>
 
       </div>
     `;
@@ -1176,92 +1344,72 @@ export async function renderMutasi(container) {
 
     // Refresh button
     const btnRefresh = container.querySelector('#mutasi-btn-refresh');
-    if (btnRefresh) btnRefresh.onclick = () => loadData();
+    if (btnRefresh) btnRefresh.onclick = () => loadData({ refreshStats: true });
 
-    // Reset filter
-    const btnReset = container.querySelector('#mutasi-btn-reset-filter');
-    if (btnReset) {
-      btnReset.onclick = () => {
-        searchQuery = '';
-        selectedFromBranch = 'all';
-        selectedToBranch = 'all';
-        selectedStatus = 'all';
-        renderUI();
-      };
-    }
-
-    // Search input
-    const searchInput = container.querySelector('#mutasi-search-input');
-    if (searchInput) {
-      searchInput.oninput = (e) => {
-        searchQuery = e.target.value;
-        renderUI();
-        const newSearch = container.querySelector('#mutasi-search-input');
-        if (newSearch) {
-          newSearch.focus();
-          newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
-        }
-      };
-    }
-
-    // From branch filter
-    const fromFilter = container.querySelector('#mutasi-filter-from');
-    if (fromFilter) {
-      fromFilter.onchange = (e) => {
-        selectedFromBranch = e.target.value;
-        renderUI();
-      };
-    }
-
-    // To branch filter
-    const toFilter = container.querySelector('#mutasi-filter-to');
-    if (toFilter) {
-      toFilter.onchange = (e) => {
-        selectedToBranch = e.target.value;
-        renderUI();
-      };
-    }
-
-    // Status Pills
-    container.querySelectorAll('.mutasi-pill').forEach(pill => {
-      pill.onclick = () => {
-        selectedStatus = pill.getAttribute('data-status') || 'all';
-        renderUI();
-      };
-    });
-
-    // View Mode Switcher (Kartu vs Tabel)
+    // View toggle
     container.querySelectorAll('.mutasi-view-btn').forEach(btn => {
       btn.onclick = () => {
         const mode = btn.getAttribute('data-view');
         if (mode && mode !== viewMode) {
           viewMode = mode;
           localStorage.setItem('fcms_mutasi_view_mode', mode);
-          renderUI();
+          container.querySelectorAll('.mutasi-view-btn').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-view') === mode);
+          });
+          renderListContent();
         }
       };
     });
 
-    // Edit Buttons
-    container.querySelectorAll('.mutasi-edit-btn').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const id = Number(btn.getAttribute('data-id'));
-        const item = mutasiList.find(m => m.id === id);
-        if (item) openMutasiModal(item);
+    // Debounced search input
+    const searchInput = container.querySelector('#mutasi-search-input');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        searchQuery = e.target.value;
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadData({ refreshStats: false });
+        }, 350);
+      };
+    }
+
+    // Branch filters
+    const fromFilter = container.querySelector('#mutasi-filter-from');
+    if (fromFilter) {
+      fromFilter.onchange = (e) => {
+        selectedFromBranch = e.target.value;
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      };
+    }
+
+    const toFilter = container.querySelector('#mutasi-filter-to');
+    if (toFilter) {
+      toFilter.onchange = (e) => {
+        selectedToBranch = e.target.value;
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      };
+    }
+
+    // Status pills
+    container.querySelectorAll('.mutasi-pill').forEach(pill => {
+      pill.onclick = () => {
+        selectedStatus = pill.getAttribute('data-status') || 'all';
+        container.querySelectorAll('.mutasi-pill').forEach(p => {
+          p.classList.toggle('active', p === pill);
+        });
+        currentPage = 1;
+        loadData({ refreshStats: false });
       };
     });
 
-    // Delete Buttons
-    container.querySelectorAll('.mutasi-delete-btn').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const id = Number(btn.getAttribute('data-id'));
-        deleteMutasi(id);
-      };
-    });
+    // Render pagination and bind list events
+    renderPagination();
+    bindListEvents();
   }
 
   // Initial load
-  await loadData();
+  await loadData({ refreshStats: true });
 }

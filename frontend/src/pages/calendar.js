@@ -16,8 +16,8 @@ export async function renderCalendar(container) {
         <button class="btn btn-ghost btn-sm" id="cal-next">Next ›</button>
         <div class="calendar-filters">
           <label class="filter-check"><input type="checkbox" value="schedule"        checked class="cal-filter"> Jadwal</label>
+          <label class="filter-check"><input type="checkbox" value="reports"         checked class="cal-filter"> Laporan</label>
           <label class="filter-check"><input type="checkbox" value="issue"           checked class="cal-filter"> Permasalahan</label>
-          <label class="filter-check"><input type="checkbox" value="reliever"        checked class="cal-filter"> Reliefer</label>
           <label class="filter-check"><input type="checkbox" value="training"        checked class="cal-filter"> Training</label>
           <label class="filter-check"><input type="checkbox" value="contract_expiry" checked class="cal-filter"> Kontrak Habis</label>
         </div>
@@ -82,10 +82,13 @@ export async function renderCalendar(container) {
       const labelEl = document.getElementById('cal-month-label');
       if (labelEl) labelEl.textContent = monthLabel;
 
+      const REPORT_EVENT_TYPES = new Set(['inspection', 'cleaning', 'fogging', 'basecamp']);
       const activeFilters = new Set(
         Array.from(document.querySelectorAll('.cal-filter:checked')).map(cb => cb.value)
       );
-      const filteredEvents = events.filter(e => activeFilters.has(e.type));
+      const filteredEvents = events.filter(e =>
+        activeFilters.has(e.type) || (activeFilters.has('reports') && REPORT_EVENT_TYPES.has(e.type))
+      );
 
       // Group events by date
       const byDate = {};
@@ -207,6 +210,10 @@ export async function renderCalendar(container) {
 
   // ── Initial render ─────────────────────────────────────────────
   renderMonth();
+
+  return () => {
+    calendarBus.off('data:changed', onDataChanged);
+  };
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -253,12 +260,12 @@ function typeLabel(type) {
   const map = {
     schedule:        '🗓 Jadwal',
     issue:           '⚠️ Permasalahan',
-    reliever:        '🔄 Reliefer',
     training:        '🎓 Training',
     contract_expiry: '📋 Kontrak Habis',
     cleaning:        '🧹 Cleaning',
     inspection:      '🔍 Inspeksi',
     fogging:         '💨 Fogging',
+    basecamp:        '🏠 Basecamp',
   };
   return map[type] || type;
 }

@@ -14,9 +14,11 @@ binding = "SESSIONS"
 id = "4acb3038c5b042b8ad3c87473d02a434"
 
 [vars]
-JWT_SECRET = "FacilityCare-AudyDental-FM-Ops-S3cr3t-K3y-2026!@#$"
+ENVIRONMENT = "production"
+SYNC_MODE = "DRY_RUN"
 CORS_ORIGIN = "https://facilitycare-system.pages.dev"
-SYNC_WEBHOOK_SECRET = "Rahasia-Sync-FCMS-2026-A1B2C3D4"
+# Note: Confidential secrets (JWT_SECRET, SYNC_WEBHOOK_SECRET) are provisioned
+# securely via Cloudflare Encrypted Secrets ('wrangler secret put <KEY>').
 
 [dev]
 port = 8787

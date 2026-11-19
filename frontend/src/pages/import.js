@@ -2,18 +2,37 @@
  * import.js — Halaman Settings → Import Data Awal
  * Alur: Upload → Validasi lokal → Preview → Pilih duplikat → Import → Ringkasan
  */
-import { apiFetch } from '../config.js';
+import { apiFetch, getUser } from '../config.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { validateWorkbook, generateTemplate, downloadErrorLog, SHEET_MAP } from '../utils/importer.js';
+import {
+  clearBatchRecoveryState,
+  clearImportSession,
+  computeImportFingerprint,
+  escapeHtml,
+  getBatchRecoveryState,
+  getIncompleteImportSessions,
+  renderImportStatusBannerHTML,
+  resumeImportSession,
+  saveBatchRecoveryState,
+  submitJournaledImport,
+} from '../utils/import_client.js';
 
 // Import order: validation referensi first, then employees, etc.
+// Reliever and Permintaan Chemical (supply) are excluded from FCMS Baru migration.
 const IMPORT_ORDER = [
-  'validation', 'employees', 'contracts', 'relievers', 'schedule', 'issues',
-  'one_on_one', 'training', 'checklist', 'sop',
-  'inspection', 'cleaning', 'fogging', 'basecamp', 'supply',
+  'validation', 'employees', 'contracts', 'schedule', 'issues',
+  'training', 'checklist', 'sop',
+  'inspection', 'cleaning', 'fogging', 'basecamp',
+  'sp', 'mutasi', 'forms',
 ];
 
 export function renderImportPage(container) {
+  const currentUser = getUser();
+  if (!currentUser || String(currentUser.role).toLowerCase() !== 'superadmin' || currentUser.isRestrictedToken === true || Number(currentUser.must_change_password) === 1) {
+    container.innerHTML = '<div class="empty-state"><p class="text-danger">Akses ditolak. Halaman ini hanya untuk Superadmin.</p></div>';
+    return;
+  }
   container.innerHTML = `
     <div class="page-header">
       <div class="header-content">
@@ -21,6 +40,7 @@ export function renderImportPage(container) {
         <p class="page-subtitle">Unggah file Excel untuk mengisi data aplikasi, atau sinkronkan langsung dari Google Sheets.</p>
       </div>
       <div class="page-actions" style="display:flex;gap:8px">
+        <a href="#/sync" id="btn-sync-health" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><span>🩺 Sync & Health Dashboard</span></a>
         <button id="btn-sync-google" class="btn btn-secondary">
           <span>🔄 Tarik Data dari Google Sheets</span>
         </button>
@@ -28,6 +48,9 @@ export function renderImportPage(container) {
         <button class="btn btn-secondary" id="btn-download-template">⬇️ Download Template</button>
       </div>
     </div>
+
+    <!-- Recovery Banner (interrupted / partial / locked session) -->
+    <div id="import-recovery-banner" style="display:none;margin-bottom:16px;"></div>
 
     <!-- STEP 1: Upload -->
     <div id="step-upload" class="import-step">
@@ -150,6 +173,7 @@ export function renderImportPage(container) {
       <div class="card">
         <div class="card-body">
           <div class="import-summary-header" id="summary-status-icon"></div>
+          <div id="summary-action-banner" style="margin-bottom:16px;"></div>
           <div class="import-summary-stats" id="summary-stats"></div>
           <div id="summary-module-results"></div>
           <div class="import-action-bar" style="margin-top:24px">
@@ -164,7 +188,10 @@ export function renderImportPage(container) {
   // ── State ──────────────────────────────────────────────────────────────────
   let currentFile    = null;
   let validationResults = null; // array of per-sheet results
-  let startTime      = 0;
+  let startTime         = 0;
+  let isImporting       = false;
+  let activeBatchState  = null;
+  let lastBatchResults  = null;
 
   // ── Elements ───────────────────────────────────────────────────────────────
   const steps = {
@@ -492,103 +519,358 @@ export function renderImportPage(container) {
     else toastSuccess('Log error berhasil didownload.');
   });
 
+  // ── Interrupted Session Recovery Banner (on mount) ─────────────────────────
+  const recoveryBannerEl = document.getElementById('import-recovery-banner');
+
+  function renderRecoveryBanner() {
+    if (!recoveryBannerEl) return;
+    const savedBatch = getBatchRecoveryState();
+    const unfinishedBatchItems = Array.isArray(savedBatch?.items)
+      ? savedBatch.items.filter(it => it.status !== 'ok')
+      : [];
+
+    if (savedBatch && (savedBatch.status === 'IN_PROGRESS' || savedBatch.status === 'INCOMPLETE' || unfinishedBatchItems.length > 0)) {
+      const pendingItems = unfinishedBatchItems.length > 0 ? unfinishedBatchItems : (savedBatch.items || []);
+      const firstErr = pendingItems.find(it => it.error || it.errorCode) || pendingItems[0] || {};
+      const hasLockConflict = pendingItems.some(it => it.httpStatus === 409 && it.errorCode === 'IMPORT_IN_PROGRESS')
+        || savedBatch.status === 'IN_PROGRESS';
+      const hasStoredRows = pendingItems.every(it => Array.isArray(it.rows) && it.rows.length > 0);
+
+      recoveryBannerEl.style.display = '';
+      recoveryBannerEl.innerHTML = renderImportStatusBannerHTML({
+        variant: 'recover',
+        title: `🔄 Sesi Import Sebelumnya Belum Selesai (${savedBatch.fileName || 'Excel'})`,
+        message: hasStoredRows
+          ? `${pendingItems.length} modul belum selesai (${firstErr.error || 'Terhenti akibat refresh atau koneksi terputus'}). Klik Coba Lagi / Lanjutkan untuk meneruskan dengan Idempotency-Key yang sama.`
+          : `${pendingItems.length} modul belum selesai. Upload ulang file Excel yang sama agar Idempotency-Key yang tersimpan otomatis digunakan kembali.`,
+        idempotencyKey: firstErr.idempotencyKey || '',
+        importJobId: firstErr.importJobId || '',
+        committedChunks: Number(firstErr.committedChunks || 0),
+        totalChunks: Number(firstErr.totalChunks || 0),
+        errorCode: firstErr.errorCode || savedBatch.status || '',
+        fingerprint: firstErr.fingerprint || 'batch',
+        canRetry: hasStoredRows,
+        canRecover: Boolean(hasStoredRows && hasLockConflict),
+        canDismiss: true,
+      });
+
+      recoveryBannerEl.querySelector('[data-import-action="retry"]')?.addEventListener('click', () => {
+        if (isImporting) return;
+        runImport(savedBatch.onDuplicate || 'skip', savedBatch, { recoverLocked: false });
+      });
+      recoveryBannerEl.querySelector('[data-import-action="recover"]')?.addEventListener('click', () => {
+        if (isImporting) return;
+        runImport(savedBatch.onDuplicate || 'skip', savedBatch, { recoverLocked: true });
+      });
+      recoveryBannerEl.querySelector('[data-import-action="dismiss"]')?.addEventListener('click', () => {
+        clearBatchRecoveryState();
+        (savedBatch.items || []).forEach(it => it.fingerprint && clearImportSession(it.fingerprint));
+        recoveryBannerEl.style.display = 'none';
+        recoveryBannerEl.innerHTML = '';
+      });
+      return;
+    }
+
+    const orphanSessions = getIncompleteImportSessions().filter(s => String(s.endpoint || '').startsWith('/api/import/'));
+    if (orphanSessions.length > 0) {
+      const s = orphanSessions[0];
+      recoveryBannerEl.style.display = '';
+      recoveryBannerEl.innerHTML = renderImportStatusBannerHTML({
+        variant: 'recover',
+        title: `🔄 Sesi Import Modul ${s.label || s.module} Belum Selesai`,
+        message: s.payloadStored
+          ? (s.errorMessage || 'Import terhenti sebelum selesai. Anda dapat melanjutkan dengan Idempotency-Key yang sama.')
+          : 'Upload ulang file Excel yang sama untuk melanjutkan dengan Idempotency-Key yang sama.',
+        idempotencyKey: s.idempotencyKey,
+        importJobId: s.importJobId,
+        committedChunks: s.committedChunks,
+        totalChunks: s.totalChunks,
+        errorCode: s.errorCode || s.status,
+        fingerprint: s.fingerprint,
+        canRetry: Boolean(s.payloadStored),
+        canRecover: Boolean(s.payloadStored && (s.status === 'IN_PROGRESS' || s.status === 'CONFLICT_IN_PROGRESS')),
+        canDismiss: true,
+      });
+
+      const handleSingleResume = async (recover) => {
+        if (isImporting) return;
+        isImporting = true;
+        try {
+          const res = await resumeImportSession(s.fingerprint, { recover });
+          clearImportSession(s.fingerprint);
+          recoveryBannerEl.style.display = 'none';
+          toastSuccess(res.idempotentReplay ? 'Replay idempoten berhasil (0 duplikat).' : 'Sesi import berhasil diselesaikan!');
+        } catch (err) {
+          toastError(err.message || 'Gagal melanjutkan import');
+          renderRecoveryBanner();
+        } finally {
+          isImporting = false;
+        }
+      };
+
+      recoveryBannerEl.querySelector('[data-import-action="retry"]')?.addEventListener('click', () => handleSingleResume(false));
+      recoveryBannerEl.querySelector('[data-import-action="recover"]')?.addEventListener('click', () => handleSingleResume(true));
+      recoveryBannerEl.querySelector('[data-import-action="dismiss"]')?.addEventListener('click', () => {
+        clearImportSession(s.fingerprint);
+        renderRecoveryBanner();
+      });
+      return;
+    }
+
+    recoveryBannerEl.style.display = 'none';
+    recoveryBannerEl.innerHTML = '';
+  }
+
+  renderRecoveryBanner();
+
   // ── Start Import ───────────────────────────────────────────────────────────
-  document.getElementById('btn-start-import').addEventListener('click', () => {
+  const btnStartImport = document.getElementById('btn-start-import');
+  btnStartImport.addEventListener('click', () => {
+    if (isImporting) {
+      toastError('Proses import sedang berjalan. Mohon tunggu hingga selesai.');
+      return;
+    }
     const strategy = document.querySelector('input[name="dup-strategy"]:checked')?.value || 'skip';
     runImport(strategy);
   });
 
   // ── Import Runner ──────────────────────────────────────────────────────────
-  async function runImport(onDuplicate) {
+  async function runImport(onDuplicate, resumeBatch = null, { recoverLocked = false, forceReplayCompleted = false } = {}) {
+    if (isImporting) return;
+    isImporting = true;
+    btnStartImport.disabled = true;
+
     showStep('importing');
+    if (recoveryBannerEl) recoveryBannerEl.style.display = 'none';
     startTime = Date.now();
 
-    // Build ordered list of modules to import
-    const toImport = [];
-    IMPORT_ORDER.forEach(module => {
-      const r = validationResults?.find(r => r.module === module && r.mapped?.length > 0);
-      if (r) toImport.push(r);
-    });
+    let batchItems;
+    if (resumeBatch && Array.isArray(resumeBatch.items)) {
+      batchItems = resumeBatch.items.map(it => ({ ...it }));
+    } else {
+      const toImport = [];
+      IMPORT_ORDER.forEach(module => {
+        const r = validationResults?.find(res => res.module === module && res.mapped?.length > 0);
+        if (r) toImport.push(r);
+      });
+      batchItems = toImport.map(r => ({
+        module: r.module,
+        label: r.label,
+        endpoint: `/api/import/${r.module}`,
+        rows: r.mapped,
+        rowCount: r.mapped.length,
+        status: 'pending',
+        inserted: 0,
+        updated: 0,
+        skipped: 0,
+        committedChunks: 0,
+        totalChunks: 0,
+        idempotencyKey: null,
+        fingerprint: null,
+        importJobId: null,
+        idempotentReplay: false,
+        httpStatus: null,
+        errorCode: null,
+        error: null,
+        recoverable: false,
+      }));
+    }
 
-    // Render steps list
+    for (const item of batchItems) {
+      const body = { rows: item.rows, onDuplicate };
+      if (!item.fingerprint) {
+        item.fingerprint = await computeImportFingerprint(item.endpoint, body);
+      }
+      if (!item.idempotencyKey) {
+        const prefix = String(item.module || 'imp').slice(0, 20);
+        item.idempotencyKey = (globalThis?.crypto?.randomUUID)
+          ? `imp_${prefix}_${globalThis.crypto.randomUUID()}`
+          : `imp_${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      }
+    }
+
+    const batchState = {
+      batchId: resumeBatch?.batchId || (globalThis?.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `batch_${Date.now()}`),
+      fileName: resumeBatch?.fileName || currentFile?.name || 'Excel Import',
+      onDuplicate,
+      status: 'IN_PROGRESS',
+      items: batchItems,
+    };
+    activeBatchState = batchState;
+    saveBatchRecoveryState(batchState);
+
     const stepsList = document.getElementById('import-steps-list');
-    stepsList.innerHTML = toImport.map(r => `
-      <div class="import-step-item" id="step-item-${r.module}">
-        <span class="step-item-icon" id="step-icon-${r.module}">⏸️</span>
-        <span class="step-item-label">${r.label} <span class="step-item-count">(${r.mapped.length} data)</span></span>
-        <span class="step-item-status" id="step-status-${r.module}"></span>
+    stepsList.innerHTML = batchItems.map(item => `
+      <div class="import-step-item" id="step-item-${item.module}">
+        <span class="step-item-icon" id="step-icon-${item.module}">${item.status === 'ok' && !forceReplayCompleted ? '✅' : '⏸️'}</span>
+        <span class="step-item-label">${escapeHtml(item.label)} <span class="step-item-count">(${item.rowCount || item.rows?.length || 0} data)</span></span>
+        <span class="step-item-status" id="step-status-${item.module}">${item.status === 'ok' && !forceReplayCompleted ? `<span class="badge badge-success">${item.inserted || 0} berhasil</span>` : ''}</span>
       </div>
     `).join('');
 
     const barEl    = document.getElementById('import-bar');
     const statusEl = document.getElementById('import-current-status');
 
-    const summary = {
-      totalSheets: toImport.length,
-      totalRows:   toImport.reduce((s, r) => s + r.mapped.length, 0),
-      inserted:    0,
-      skipped:     0,
-      failed:      0,
-      moduleResults: [],
-    };
+    try {
+      for (let i = 0; i < batchItems.length; i++) {
+        const item = batchItems[i];
+        const iconEl   = document.getElementById(`step-icon-${item.module}`);
+        const statusSm = document.getElementById(`step-status-${item.module}`);
 
-    // Import each module sequentially
-    for (let i = 0; i < toImport.length; i++) {
-      const r = toImport[i];
-      const iconEl   = document.getElementById(`step-icon-${r.module}`);
-      const statusSm = document.getElementById(`step-status-${r.module}`);
-
-      iconEl.textContent   = '🔄';
-      statusSm.textContent = 'Mengimport...';
-      statusEl.textContent = `Mengimport ${r.label}...`;
-      barEl.style.width    = `${Math.round((i / toImport.length) * 100)}%`;
-
-      try {
-        const res = await apiFetch(`/api/import/${r.module}`, {
-          method: 'POST',
-          body: JSON.stringify({ rows: r.mapped, onDuplicate }),
-        });
-
-        if (res.ok) {
-          const d = res.data;
-          summary.inserted += d.inserted || 0;
-          summary.skipped  += d.skipped  || 0;
-          summary.moduleResults.push({ label: r.label, inserted: d.inserted || 0, skipped: d.skipped || 0, status: 'ok' });
-          iconEl.textContent   = '✅';
-          statusSm.innerHTML   = `<span class="badge badge-success">${d.inserted || 0} berhasil</span>${d.skipped > 0 ? ` <span class="badge badge-neutral">${d.skipped} skip</span>` : ''}`;
-        } else {
-          summary.failed++;
-          summary.moduleResults.push({ label: r.label, inserted: 0, skipped: 0, status: 'error', error: res.data?.error });
-          iconEl.textContent   = '❌';
-          statusSm.innerHTML   = `<span class="badge badge-danger">Gagal</span>`;
+        if (item.status === 'ok' && !forceReplayCompleted) {
+          barEl.style.width = `${Math.round(((i + 1) / batchItems.length) * 100)}%`;
+          continue;
         }
-      } catch (err) {
-        summary.failed++;
-        summary.moduleResults.push({ label: r.label, inserted: 0, skipped: 0, status: 'error', error: err.message });
-        iconEl.textContent   = '❌';
-        statusSm.innerHTML   = `<span class="badge badge-danger">Gagal</span>`;
+
+        iconEl.textContent   = '🔄';
+        statusSm.textContent = recoverLocked && item.httpStatus === 409 ? 'Memulihkan lock...' : 'Mengimport...';
+        statusEl.textContent = `Mengimport ${item.label}... (${i + 1}/${batchItems.length})`;
+        barEl.style.width    = `${Math.round((i / Math.max(1, batchItems.length)) * 100)}%`;
+
+        saveBatchRecoveryState(batchState);
+
+        try {
+          const shouldRecover = Boolean(
+            recoverLocked && (item.httpStatus === 409 || item.errorCode === 'IMPORT_IN_PROGRESS' || item.status === 'pending' || item.status === 'error')
+          );
+          const res = await submitJournaledImport({
+            module: item.module,
+            label: item.label,
+            endpoint: item.endpoint,
+            body: { rows: item.rows, onDuplicate },
+            idempotencyKey: item.idempotencyKey,
+            recover: shouldRecover,
+          });
+
+          const d = res.data || {};
+          item.status = 'ok';
+          item.inserted = Number(d.inserted || 0);
+          item.updated = Number(d.updated || 0);
+          item.skipped = Number(d.skipped || 0);
+          item.idempotentReplay = Boolean(res.idempotentReplay || d.idempotentReplay);
+          item.importJobId = res.importJobId || d.importJobId || item.importJobId || null;
+          item.idempotencyKey = res.idempotencyKey || item.idempotencyKey;
+          item.httpStatus = res.status;
+          item.error = null;
+          item.errorCode = null;
+          item.recoverable = false;
+
+          iconEl.textContent = item.idempotentReplay ? '♻️' : '✅';
+          const replayBadge = item.idempotentReplay ? ' <span class="badge badge-info">Replay Idempoten</span>' : '';
+          const skipBadge = item.skipped > 0 ? ` <span class="badge badge-neutral">${item.skipped} skip</span>` : '';
+          const updBadge = item.updated > 0 ? ` <span class="badge badge-info">${item.updated} update</span>` : '';
+          statusSm.innerHTML = `<span class="badge badge-success">${item.inserted} berhasil</span>${updBadge}${skipBadge}${replayBadge}`;
+        } catch (err) {
+          item.status = 'error';
+          item.error = err.message || 'Gagal mengimport data';
+          item.errorCode = err.code || 'IMPORT_ERROR';
+          item.httpStatus = Number(err.status ?? 0);
+          item.committedChunks = Number(err.committedChunks || 0);
+          item.totalChunks = Number(err.totalChunks || 0);
+          item.importJobId = err.importJobId || item.importJobId || null;
+          item.idempotencyKey = err.idempotencyKey || item.idempotencyKey || null;
+          item.recoverable = Boolean(err.recoverable);
+
+          iconEl.textContent = item.httpStatus === 409 ? '⏳' : '❌';
+          const chunkBadge = item.totalChunks > 0 ? ` <span class="badge badge-warning">Chunk ${item.committedChunks}/${item.totalChunks}</span>` : '';
+          statusSm.innerHTML = `<span class="badge badge-danger">${escapeHtml(item.errorCode || 'Gagal')}</span>${chunkBadge}`;
+        }
+
+        batchState.status = batchItems.every(it => it.status === 'ok') ? 'COMPLETED' : 'INCOMPLETE';
+        saveBatchRecoveryState(batchState);
+        await sleep(80);
       }
 
-      await sleep(150); // small delay so user can see progress
+      const allSucceeded = batchItems.every(it => it.status === 'ok');
+      if (allSucceeded) {
+        clearBatchRecoveryState();
+      } else {
+        batchState.status = 'INCOMPLETE';
+        saveBatchRecoveryState(batchState);
+      }
+
+      const summary = {
+        totalSheets: batchItems.length,
+        totalRows: batchItems.reduce((s, it) => s + (it.rowCount || it.rows?.length || 0), 0),
+        inserted: batchItems.reduce((s, it) => s + (it.inserted || 0), 0),
+        updated: batchItems.reduce((s, it) => s + (it.updated || 0), 0),
+        skipped: batchItems.reduce((s, it) => s + (it.skipped || 0), 0),
+        failed: batchItems.filter(it => it.status !== 'ok').length,
+        hasReplays: batchItems.some(it => it.idempotentReplay),
+        moduleResults: batchItems,
+        batchState,
+      };
+
+      lastBatchResults = summary;
+      barEl.style.width = '100%';
+      statusEl.textContent = allSucceeded ? 'Selesai!' : 'Selesai dengan modul gagal/terhenti (dapat dilanjutkan)';
+      await sleep(250);
+
+      showSummary(summary);
+    } finally {
+      isImporting = false;
+      btnStartImport.disabled = false;
     }
-
-    barEl.style.width    = '100%';
-    statusEl.textContent = 'Selesai!';
-    await sleep(400);
-
-    showSummary(summary);
   }
 
   // ── Summary ────────────────────────────────────────────────────────────────
   function showSummary(summary) {
     showStep('summary');
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    const allOk    = summary.failed === 0;
+    const allOk    = summary.failed === 0 && summary.moduleResults.every(m => m.status === 'ok');
+    const hasConflict409 = summary.moduleResults.some(m => m.status !== 'ok' && m.httpStatus === 409 && m.errorCode === 'IMPORT_IN_PROGRESS');
+    const firstFailed = summary.moduleResults.find(m => m.status !== 'ok');
 
     document.getElementById('summary-status-icon').innerHTML = `
-      <div class="summary-icon">${allOk ? '🎉' : '⚠️'}</div>
-      <h2 class="summary-title">${allOk ? 'Import Berhasil!' : 'Import Selesai dengan Beberapa Error'}</h2>
+      <div class="summary-icon">${allOk ? (summary.hasReplays ? '♻️' : '🎉') : '⚠️'}</div>
+      <h2 class="summary-title">${allOk ? (summary.hasReplays ? 'Import & Replay Idempoten Berhasil!' : 'Import Berhasil!') : 'Import Belum Selesai (Dapat Dilanjutkan)'}</h2>
     `;
+
+    const actionBannerEl = document.getElementById('summary-action-banner');
+    if (actionBannerEl) {
+      if (!allOk && firstFailed) {
+        actionBannerEl.innerHTML = renderImportStatusBannerHTML({
+          variant: hasConflict409 ? 'warning' : 'error',
+          title: hasConflict409
+            ? '⏳ Ada Modul Terkunci / Sedang Berjalan (HTTP 409)'
+            : '⚠️ Beberapa Modul Gagal atau Terhenti di Tengah Proses',
+          message: firstFailed.error || 'Klik Coba Lagi untuk melanjutkan dengan Idempotency-Key yang sama tanpa menduplikasi data.',
+          idempotencyKey: firstFailed.idempotencyKey || '',
+          importJobId: firstFailed.importJobId || '',
+          committedChunks: firstFailed.committedChunks || 0,
+          totalChunks: firstFailed.totalChunks || 0,
+          errorCode: firstFailed.errorCode || '',
+          fingerprint: firstFailed.fingerprint || '',
+          canRetry: true,
+          canRecover: hasConflict409,
+          canDismiss: false,
+        });
+        actionBannerEl.querySelector('[data-import-action="retry"]')?.addEventListener('click', () => {
+          runImport(summary.batchState?.onDuplicate || 'skip', summary.batchState, { recoverLocked: false });
+        });
+        actionBannerEl.querySelector('[data-import-action="recover"]')?.addEventListener('click', () => {
+          runImport(summary.batchState?.onDuplicate || 'skip', summary.batchState, { recoverLocked: true });
+        });
+      } else if (allOk && summary.moduleResults.length > 0) {
+        const firstOk = summary.moduleResults[0];
+        actionBannerEl.innerHTML = renderImportStatusBannerHTML({
+          variant: 'success',
+          title: summary.hasReplays ? '♻️ Replay Idempoten Dikonfirmasi (0 Duplikat)' : '✅ Semua Modul Terkonfirmasi Server',
+          message: summary.hasReplays
+            ? 'Server mengembalikan hasil tersimpan menggunakan Idempotency-Key yang sama tanpa menulis baris ganda.'
+            : 'Semua chunk telah committed di server beserta Audit Log terkait.',
+          idempotencyKey: firstOk.idempotencyKey || '',
+          importJobId: firstOk.importJobId || '',
+          canReplay: true,
+          canDismiss: false,
+        });
+        actionBannerEl.querySelector('[data-import-action="replay"]')?.addEventListener('click', () => {
+          runImport(summary.batchState?.onDuplicate || 'skip', summary.batchState, { recoverLocked: false, forceReplayCompleted: true });
+        });
+      } else {
+        actionBannerEl.innerHTML = '';
+      }
+    }
 
     document.getElementById('summary-stats').innerHTML = `
       <div class="summary-stat-card">
@@ -607,6 +889,7 @@ export function renderImportPage(container) {
         <div class="stat-value">${summary.skipped}</div>
         <div class="stat-label">Dilewati (Duplikat)</div>
       </div>
+      ${summary.updated > 0 ? `<div class="summary-stat-card info"><div class="stat-value">${summary.updated}</div><div class="stat-label">Diperbarui</div></div>` : ''}
       ${summary.failed > 0 ? `<div class="summary-stat-card danger"><div class="stat-value">${summary.failed}</div><div class="stat-label">Modul Gagal</div></div>` : ''}
       <div class="summary-stat-card info">
         <div class="stat-value">${duration}s</div>
@@ -617,32 +900,53 @@ export function renderImportPage(container) {
     document.getElementById('summary-module-results').innerHTML = `
       <table class="data-table" style="margin-top:16px">
         <thead>
-          <tr><th>Modul</th><th style="text-align:center">Berhasil</th><th style="text-align:center">Dilewati</th><th style="text-align:center">Status</th></tr>
+          <tr><th>Modul</th><th style="text-align:center">Berhasil</th><th style="text-align:center">Dilewati</th><th style="text-align:center">Status & Journal</th></tr>
         </thead>
         <tbody>
-          ${summary.moduleResults.map(m => `
+          ${summary.moduleResults.map((m, idx) => `
             <tr>
-              <td>${m.label}</td>
-              <td style="text-align:center"><span class="badge badge-success">${m.inserted}</span></td>
-              <td style="text-align:center"><span class="badge badge-neutral">${m.skipped}</span></td>
+              <td>
+                <div><strong>${escapeHtml(m.label)}</strong></div>
+                ${m.idempotencyKey ? `<div style="font-size:.72rem;color:var(--text-muted)">Key: <code>${escapeHtml(m.idempotencyKey.slice(0, 26))}…</code>${m.importJobId ? ` | Job: <code>${escapeHtml(m.importJobId.slice(0, 10))}…</code>` : ''}</div>` : ''}
+              </td>
+              <td style="text-align:center"><span class="badge badge-success">${m.inserted || 0}</span>${m.updated > 0 ? ` <span class="badge badge-info">+${m.updated} upd</span>` : ''}</td>
+              <td style="text-align:center"><span class="badge badge-neutral">${m.skipped || 0}</span></td>
               <td style="text-align:center">
                 ${m.status === 'ok'
-                  ? '<span class="badge badge-success">✅ Sukses</span>'
-                  : `<span class="badge badge-danger" title="${m.error || ''}">❌ Gagal</span>`}
+                  ? `<span class="badge badge-success">${m.idempotentReplay ? '♻️ Replay Idempoten' : '✅ Sukses'}</span>`
+                  : `<div>
+                      <span class="badge badge-danger" title="${escapeHtml(m.error || '')}">❌ ${escapeHtml(m.errorCode || 'Gagal')}${m.httpStatus ? ` (${m.httpStatus})` : ''}</span>
+                      ${m.totalChunks > 0 ? `<div style="font-size:.72rem;margin-top:4px;">Chunk ${m.committedChunks}/${m.totalChunks}</div>` : ''}
+                      <div style="font-size:.75rem;color:var(--danger);margin-top:2px;">${escapeHtml(m.error || '')}</div>
+                      <button type="button" class="btn btn-primary btn-sm" style="margin-top:6px" data-row-retry="${idx}">🔄 Coba Lagi</button>
+                      ${m.httpStatus === 409 && m.errorCode === 'IMPORT_IN_PROGRESS' ? `<button type="button" class="btn btn-warning btn-sm" style="margin-top:6px" data-row-recover="${idx}">🛠️ Pulihkan</button>` : ''}
+                    </div>`}
               </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+
+    document.querySelectorAll('[data-row-retry]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        runImport(summary.batchState?.onDuplicate || 'skip', summary.batchState, { recoverLocked: false });
+      });
+    });
+    document.querySelectorAll('[data-row-recover]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        runImport(summary.batchState?.onDuplicate || 'skip', summary.batchState, { recoverLocked: true });
+      });
+    });
   }
 
   // ── Button actions in summary ──────────────────────────────────────────────
   document.getElementById('btn-import-again').addEventListener('click', () => {
-    currentFile = null; validationResults = null;
+    currentFile = null; validationResults = null; activeBatchState = null; lastBatchResults = null;
     fileInput.value = '';
     document.getElementById('file-info').style.display = 'none';
     uploadZone.style.display = '';
+    renderRecoveryBanner();
     showStep('upload');
   });
 

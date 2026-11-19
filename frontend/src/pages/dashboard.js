@@ -9,6 +9,7 @@
  * - Tidak pernah menampilkan [object Object]
  */
 import { apiFetch } from '../config.js';
+import { escapeHtml } from '../utils/sanitize.js';
 import { getActivePeriod, filterDashboardItem as filterSched } from './schedule.js';
 import { filterDashboardItem as filterEmp } from './employees.js';
 import { filterDashboardItem as filterContr } from './contracts.js';
@@ -30,7 +31,7 @@ const safeNum = (v, fb = 0) => {
 const safeStr = (v, fb = '—') => {
   if (v === null || v === undefined || v === '') return fb;
   const s = String(v).trim();
-  return (s === '' || s === '[object Object]') ? fb : s;
+  return (s === '' || s === '[object Object]') ? fb : escapeHtml(s);
 };
 const fmtDate = (s) => {
   if (!s) return '—';
@@ -273,6 +274,8 @@ function forceRemoveSkeletons() {
 
 // ── Main render ────────────────────────────────────────────────────────────
 export async function renderDashboard(container) {
+  if (!container) container = document.getElementById('main-content');
+  if (!container) return;
   destroyAllCharts();
   if (container._dashRefresh)  clearInterval(container._dashRefresh);
   if (container._skelTimeout)  clearTimeout(container._skelTimeout);
@@ -427,6 +430,8 @@ export async function renderDashboard(container) {
     </div>
   `;
 
+  renderQuickActions();
+
   document.getElementById('btn-dash-refresh')
     ?.addEventListener('click', () => fetchAll(container));
 
@@ -468,13 +473,17 @@ export async function renderDashboard(container) {
 // ── Fetch — each endpoint isolated, never blocks dashboard ─────────────────
 async function fetchAll(container) {
   // Clear safety timeout if we complete faster
-  if (container._skelTimeout) {
+  if (container && container._skelTimeout) {
     clearTimeout(container._skelTimeout);
     container._skelTimeout = null;
   }
 
-  // Fire all requests independently — one failure never kills others
-  const [kpi, trend, issuesSum, recentIssues, calendarData, contractChart, scheduleChartData, aggregatesData] =
+  const inspSelect = document.getElementById('filter-insp-month');
+  const inspMonth = inspSelect ? inspSelect.value : '';
+  const inspUrl = inspMonth ? `/api/dashboard/inspection-bar?month=${inspMonth}` : '/api/dashboard/inspection-bar';
+
+  // Fire all 9 requests concurrently in a single parallel wave — one failure never kills others
+  const [kpi, trend, issuesSum, recentIssues, calendarData, contractChart, scheduleChartData, aggregatesData, inspBar] =
     await Promise.all([
       safeFetch('/api/dashboard/kpi',               {}, 8000),
       safeFetch('/api/dashboard/issues-trend',       {}, 8000),
@@ -484,12 +493,8 @@ async function fetchAll(container) {
       safeFetch('/api/dashboard/contracts-chart',    {labels:[], data:[]}, 8000),
       safeFetch(`/api/dashboard/schedule-chart?year=${document.getElementById('filter-jadwal-year')?.value || new Date().getFullYear()}`, {}, 8000),
       safeFetch('/api/dashboard/dropdown-aggregates', {}, 8000),
+      safeFetch(inspUrl, {}, 8000),
     ]);
-    
-  const inspSelect = document.getElementById('filter-insp-month');
-  const inspMonth = inspSelect ? inspSelect.value : '';
-  const inspUrl = inspMonth ? `/api/dashboard/inspection-bar?month=${inspMonth}` : '/api/dashboard/inspection-bar';
-  const inspBar = await safeFetch(inspUrl, {}, 8000);
 
   // Store aggregates for dropdowns
   window.dashboardAggregates = aggregatesData || {};
@@ -552,7 +557,7 @@ function renderKPI(kpi) {
       icon: '📅',
       label: 'Jadwal',
       dropdown: `
-        <select id="dash-jadwal-period" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
+        <select id="dash-jadwal-period" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;">
           <option value="Q1" ${curQ === 'Q1' ? 'selected' : ''}>Q1</option>
           <option value="Q2" ${curQ === 'Q2' ? 'selected' : ''}>Q2</option>
           <option value="Q3" ${curQ === 'Q3' ? 'selected' : ''}>Q3</option>
@@ -623,6 +628,8 @@ function renderKPI(kpi) {
   // Add event listener for the Jadwal period dropdown
   const jadwalSelect = document.getElementById('dash-jadwal-period');
   if (jadwalSelect) {
+    jadwalSelect.addEventListener('click', (e) => e.stopPropagation());
+    jadwalSelect.addEventListener('mousedown', (e) => e.stopPropagation());
     const refreshJadwal = (p) => {
       const curAggs = window.dashboardAggregates?.schedule_by_quarter || {};
       const count = curAggs[p] || 0;
@@ -659,7 +666,7 @@ function renderMiniStats(kpi) {
   const curYM = `${curY}-${curM}`;
   
   const renderMonthDropdown = (id) => `
-    <select id="${id}" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
+    <select id="${id}" style="padding:0; font-size:1rem; line-height:1; border-radius:4px; background:transparent; border:none; color:var(--text-1); font-weight:700; cursor:pointer; outline:none;">
       <option value="${curY}-01" ${curYM === `${curY}-01` ? 'selected' : ''}>Jan</option>
       <option value="${curY}-02" ${curYM === `${curY}-02` ? 'selected' : ''}>Feb</option>
       <option value="${curY}-03" ${curYM === `${curY}-03` ? 'selected' : ''}>Mar</option>
@@ -702,11 +709,11 @@ function renderMiniStats(kpi) {
       label:'Report Fogging',      
       dropdown: renderMonthDropdown('dash-fogging-month'),
       val: aggs.fogging_by_month?.[curYM] ?? kpi.fogging_month?.current ?? 0,     
-      href:`#/reports/fogging?dash_filter=fogging&month=${curYM}`,     
+      href:`#/reports/fogging?dash_filter=fogging`,     
       color:'mini-purple' 
     },
     { icon:'🎓', label:'Training',     val:kpi.training_month?.current,   href:'#/training',            color:'mini-gray' },
-    { icon:'🏢', label:'Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal' },
+    { icon:'🏢', label:'Cabang',       val:kpi.branches?.current,          href:'#/branches',            color:'mini-teal', extra:'<div style="font-size:0.68rem; color:#64748B; margin-top:2px;" title="70 cabang operasional (001–070); tidak termasuk 000. Management & A01. Aesthica">Operasional (001–070)</div>' },
   ];
 
   row.innerHTML = items.map(s => {
@@ -756,6 +763,8 @@ function renderMiniStats(kpi) {
   const setupMonthDropdown = (selectId, cardId, aggKey, hrefBase) => {
     const sel = document.getElementById(selectId);
     if (sel) {
+      sel.addEventListener('click', (e) => e.stopPropagation());
+      sel.addEventListener('mousedown', (e) => e.stopPropagation());
       const refreshCount = (m) => {
         const curAggs = window.dashboardAggregates?.[aggKey] || {};
         const count = curAggs[m] || 0;
@@ -766,7 +775,7 @@ function renderMiniStats(kpi) {
         }
         const card = document.getElementById(cardId);
         if (card) {
-          const targetUrl = `${hrefBase}&month=${m}`;
+          const targetUrl = `${hrefBase}&month=${m}&explicit=1`;
           if (card.tagName === 'A') card.href = targetUrl;
           else card.dataset.href = targetUrl;
         }
@@ -1138,13 +1147,14 @@ function renderQuickActions() {
   const wrap = document.getElementById('quick-actions');
   if (!wrap) return;
   const btns = [
-    { label:'Buat Permasalahan', icon:'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>', bg:'#3B82F6', href:'#/issues' },
-    { label:'Permintaan Barang', icon:'📦', bg:'#10B981', href:'#/reports/supply' },
-    { label:'One on One Baru',   icon:'👥', bg:'#6366F1', href:'#/one-on-one' },
-    { label:'Input Kegiatan',    icon:'📋', bg:'#8B5CF6', href:'#/timeline' },
-    { label:'Buat Checklist',    icon:'📝', bg:'#0EA5E9', href:'#/checklist' },
-    { label:'Laporan Basecamp',  icon:'📊', bg:'#14B8A6', href:'#/reports/basecamp' },
-    { label:'Kalender',          icon:'📅', bg:'#8B5CF6', href:'#/calendar' },
+    { label:'Input Permasalahan', icon:'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>', bg:'#3B82F6', href:'#/issues' },
+    { label:'Input Lembur',       icon:'⏰', bg:'#F59E0B', href:'#/overtime' },
+    { label:'Tambah SP',          icon:'⚠️', bg:'#EF4444', href:'#/sp' },
+    { label:'Catat Training',     icon:'🎓', bg:'#10B981', href:'#/training' },
+    { label:'Input Kegiatan',     icon:'📋', bg:'#8B5CF6', href:'#/timeline' },
+    { label:'Master Document',    icon:'📝', bg:'#0EA5E9', href:'#/checklist' },
+    { label:'Laporan Basecamp',   icon:'📊', bg:'#14B8A6', href:'#/reports/basecamp' },
+    { label:'Kalender',           icon:'📅', bg:'#6366F1', href:'#/calendar' },
   ];
   wrap.innerHTML = btns.map(b => `
     <a href="${b.href}" class="action-btn">

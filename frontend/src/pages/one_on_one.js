@@ -1,7 +1,8 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
-import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployees, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge } from '../components/badges.js';
+import { submitJournaledImport } from '../utils/import_client.js';
 
 let branchOptions = [];
 
@@ -14,7 +15,7 @@ export function filterDashboardItem(s, type) {
 export async function renderOneOnOne(container, params) {
   const dashFilter = params ? params.get('dash_filter') : null;
   branchOptions = await getCachedBranches();
-  const employeeOptions = await getCachedEmployeeNames();
+  const employeeOptions = await getCachedEmployees();
   const rawPicOptions = ['Ade', 'Berlin'];
   
   const getEmpOptions = (val) => {
@@ -36,16 +37,10 @@ export async function renderOneOnOne(container, params) {
     title: 'One on One',
     icon: '💬',
     apiPath: '/api/one-on-one',
-    bulkDelete: true,
+    bulkDelete: false, // Disabled to prevent D1 vs Google Sheets outbox sync mismatch
     enableMobileFilterSheet: true,
     itemLabel: 'One on One',
-    paginationMode: 'client',
-    onDataLoaded: (items) => {
-      if (dashFilter) {
-        return items.filter(s => filterDashboardItem(s, dashFilter));
-      }
-      return items;
-    },
+    defaultFilters: dashFilter ? { dash_filter: dashFilter } : {},
     columns: [
       { key: 'meeting_date', label: 'Tanggal', nowrap: true , render: v => window.formatDate(v) },
       { key: 'branch_name', label: 'Cabang' },
@@ -66,23 +61,20 @@ export async function renderOneOnOne(container, params) {
     exportOptions: {
       moduleName: 'one_on_one',
       onExport: async (filters) => {
-        const qs = new URLSearchParams(filters || {}).toString();
-        const res = await apiFetch(`/api/one-on-one?limit=10000&${qs}`);
-        if (res.ok) {
-          const data = res.data.data.map(d => ({
-            'Tanggal': d.meeting_date || '',
-            'Cabang': d.branch_name || '',
-            'Nama Karyawan': d.employee_name || '',
-            'PIC': d.pic || '',
-            'Masalah': d.problem || '',
-            'Solusi': d.solution || '',
-            'Status': d.status || '',
-            'Tgl Selesai': d.completion_date || '',
-            'Dokumen': d.document_link || ''
-          }));
-          const { downloadExcel } = await import('../utils/excel.js');
-          downloadExcel(data, `Data_One_on_One_${new Date().toISOString().slice(0,10)}`);
-        } else throw new Error('Gagal mengambil data');
+        const rows = await fetchExportRows('/api/one-on-one/export', filters);
+        const data = rows.map(d => ({
+          'Tanggal': d.meeting_date || '',
+          'Cabang': d.branch_name || '',
+          'Nama Karyawan': d.employee_name || '',
+          'PIC': d.pic || '',
+          'Masalah': d.problem || '',
+          'Solusi': d.solution || '',
+          'Status': d.status || '',
+          'Tgl Selesai': d.completion_date || '',
+          'Dokumen': d.document_link || ''
+        }));
+        const { downloadExcel } = await import('../utils/excel.js');
+        downloadExcel(data, `Data_One_on_One_${new Date().toISOString().slice(0,10)}`);
       },
       onTemplate: async () => {
         const template = [
@@ -91,7 +83,7 @@ export async function renderOneOnOne(container, params) {
         const { downloadExcel } = await import('../utils/excel.js');
         downloadExcel(template, 'Template_Import_OneOnOne');
       },
-      onImport: async (json) => {
+      onImport: async (json, importCtx = {}) => {
         const matchBranch = (str) => {
           if (!str) return null;
           const s = String(str || '').toLowerCase();
@@ -130,12 +122,14 @@ export async function renderOneOnOne(container, params) {
           document_link: String(row['Dokumen'] || '').trim(),
         })).filter(r => r.meeting_date && r.employee_name && r.branch_id);
         
-        const res = await apiFetch('/api/import/one_on_one', {
-          method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+        return await submitJournaledImport({
+          module: 'one_on_one',
+          label: 'One on One',
+          endpoint: '/api/import/one_on_one',
+          body: { rows: payload, onDuplicate: 'update' },
+          idempotencyKey: importCtx?.idempotencyKey,
+          recover: Boolean(importCtx?.recover),
         });
-        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     },
     formFields: (data) => [
@@ -147,7 +141,19 @@ export async function renderOneOnOne(container, params) {
       },
       {
         type: 'row', fields: [
-          { name: 'employee_name', label: 'Nama Karyawan', type: 'select', required: true, options: getEmpOptions(data?.employee_name), value: data?.employee_name },
+          {
+            name: 'employee_name',
+            employeeIdField: 'employee_id',
+            label: 'Nama Karyawan',
+            type: 'employee-combobox',
+            required: true,
+            allowManual: true,
+            hasEmployeeIdSchema: true,
+            manualBadgeText: 'Belum terhubung ke Master Karyawan (disimpan sebagai nama manual)',
+            options: employeeOptions,
+            value: data?.employee_name || '',
+            employeeIdValue: data?.employee_id ?? null,
+          },
           { name: 'pic', label: 'PIC', type: 'select', options: getPicOptions(data?.pic), createApi: { path: '/api/pic', field: 'name' }, value: data?.pic },
         ]
       },

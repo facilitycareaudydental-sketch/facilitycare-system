@@ -2,6 +2,8 @@ import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
+import { fetchExportRows } from '../utils/dataCache.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 const CATEGORY_COLORS = {
   'Persiapan': { bg: '#F3E8FF', color: '#6B21A8', border: '#D8B4FE' },
@@ -20,7 +22,8 @@ const CATEGORY_COLORS = {
 
 export async function renderDAC(container) {
   const user = getUser();
-  const canEdit = user && (user.role === 'superadmin' || user.role === 'admin');
+  const canEdit = hasPermission(user, 'dac', 'write');
+  const canDelete = hasPermission(user, 'dac', 'delete');
   const canExport = hasPermission(user, 'export');
 
   container.innerHTML = `
@@ -127,18 +130,20 @@ export async function renderDAC(container) {
       // Populate category filter
       const catSelect = document.getElementById('dac-category-filter');
       const uniqueCats = Array.from(new Set(allItems.map(r => r.category))).sort();
-      catSelect.innerHTML = '<option value="">Semua Kategori</option>' + uniqueCats.map(c => `<option value="${c}">${c}</option>`).join('');
+      catSelect.innerHTML = '<option value="">Semua Kategori</option>' + uniqueCats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
       renderKPIs();
       renderView();
     } catch (err) {
-      document.getElementById('dac-view-container').innerHTML = `
+      const vc = document.getElementById('dac-view-container');
+      vc.innerHTML = `
         <div class="empty-state" style="padding:40px; text-align:center;">
           <div style="font-size:2rem; margin-bottom:8px;">⚠️</div>
-          <p style="color:var(--danger); font-weight:600;">Gagal memuat data DAC: ${err.message}</p>
-          <button class="btn btn-outline btn-sm" onclick="window.location.reload()">Muat Ulang</button>
+          <p style="color:var(--danger); font-weight:600;">Gagal memuat data DAC: ${escapeHtml(err.message)}</p>
+          <button type="button" id="dac-reload-btn" class="btn btn-outline btn-sm">Muat Ulang</button>
         </div>
       `;
+      vc.querySelector('#dac-reload-btn')?.addEventListener('click', () => window.location.reload());
     }
   }
 
@@ -272,10 +277,10 @@ export async function renderDAC(container) {
                       📍 ${item.location}
                     </span>
                   </div>
-                  ${canEdit ? `
+                  ${canEdit || canDelete ? `
                     <div style="display:flex; gap:4px;">
-                      <button class="btn btn-ghost btn-sm edit-dac-btn" data-id="${item.id}" title="Edit" style="padding:4px 8px; font-size:0.8rem; cursor:pointer;">✏️</button>
-                      <button class="btn btn-ghost btn-sm delete-dac-btn" data-id="${item.id}" data-name="${item.location}" title="Hapus" style="padding:4px 8px; font-size:0.8rem; color:var(--danger); cursor:pointer;">🗑️</button>
+                      ${canEdit ? `<button class="btn btn-ghost btn-sm edit-dac-btn" data-id="${item.id}" title="Edit" style="padding:4px 8px; font-size:0.8rem; cursor:pointer;">✏️</button>` : ''}
+                      ${canDelete ? `<button class="btn btn-ghost btn-sm delete-dac-btn" data-id="${item.id}" data-name="${item.location}" title="Hapus" style="padding:4px 8px; font-size:0.8rem; color:var(--danger); cursor:pointer;">🗑️</button>` : ''}
                     </div>
                   ` : ''}
                 </div>
@@ -315,7 +320,7 @@ export async function renderDAC(container) {
                 <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:140px;">KATEGORI</th>
                 <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:200px;">LOKASI / AREA</th>
                 <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3);">AKTIVITAS</th>
-                ${canEdit ? `<th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); text-align:right; width:100px;">AKSI</th>` : ''}
+                ${canEdit || canDelete ? `<th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); text-align:right; width:100px;">AKSI</th>` : ''}
               </tr>
             </thead>
             <tbody>
@@ -345,10 +350,10 @@ export async function renderDAC(container) {
                     <td style="padding:12px 14px; font-size:0.875rem; color:var(--text-2); line-height:1.4;">
                       ${item.activity}
                     </td>
-                    ${canEdit ? `
+                    ${canEdit || canDelete ? `
                       <td style="padding:12px 14px; text-align:right; white-space:nowrap;">
-                        <button class="btn btn-outline btn-sm edit-dac-btn" data-id="${item.id}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px; margin-right:4px;">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-dac-btn" data-id="${item.id}" data-name="${item.location}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px;">Hapus</button>
+                        ${canEdit ? `<button class="btn btn-outline btn-sm edit-dac-btn" data-id="${item.id}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px; margin-right:4px;">Edit</button>` : ''}
+                        ${canDelete ? `<button class="btn btn-danger btn-sm delete-dac-btn" data-id="${item.id}" data-name="${item.location}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px;">Hapus</button>` : ''}
                       </td>
                     ` : ''}
                   </tr>
@@ -407,7 +412,7 @@ export async function renderDAC(container) {
 
     const contentHtml = `
       <form id="dac-form" style="display:flex; flex-direction:column; gap:14px;">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="form-group">
             <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Pilih Shift *</label>
             <select name="shift" class="form-control" required style="width:100%; height:38px; border-radius:8px;">
@@ -422,7 +427,7 @@ export async function renderDAC(container) {
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="form-group">
             <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Jam Mulai (HH:MM) *</label>
             <input type="time" name="start_time" class="form-control" value="${item?.start_time || ''}" required style="width:100%; height:38px; border-radius:8px;">
@@ -632,23 +637,50 @@ export async function renderDAC(container) {
   });
 
   // Export Excel
-  document.getElementById('btn-export-dac')?.addEventListener('click', () => {
-    const items = getFilteredItems();
-    if (!items.length) {
-      toastError('Tidak ada data untuk diexport');
-      return;
+  document.getElementById('btn-export-dac')?.addEventListener('click', async () => {
+    try {
+      const search = (document.getElementById('dac-search')?.value || '').trim();
+      const category = document.getElementById('dac-category-filter')?.value || '';
+      const period = document.getElementById('dac-period-filter')?.value || '';
+
+      const params = {};
+      if (currentShift !== 'all') params.shift = currentShift;
+      if (category) params.category = category;
+      if (search) params.search = search;
+
+      let items = await fetchExportRows('/api/dac/export', params);
+      if (period === 'morning' || period === 'afternoon') {
+        items = items.filter(r => {
+          const startH = parseInt(String(r.start_time || '0').split(':')[0], 10);
+          if (period === 'morning') {
+            if (r.shift === 'pagi' && startH >= 12) return false;
+            if (r.shift === 'siang' && startH >= 17) return false;
+          } else {
+            if (r.shift === 'pagi' && startH < 12) return false;
+            if (r.shift === 'siang' && startH < 17) return false;
+          }
+          return true;
+        });
+      }
+
+      if (!items.length) {
+        toastError('Tidak ada data untuk diexport');
+        return;
+      }
+      const exportData = items.map(r => ({
+        'No': r.item_no,
+        'Shift': r.shift === 'pagi' ? 'Shift Pagi' : 'Shift Siang',
+        'Jam Mulai': r.start_time,
+        'Jam Selesai': r.end_time,
+        'Kategori': r.category,
+        'Lokasi / Area': r.location,
+        'Rincian Aktivitas': r.activity
+      }));
+      downloadExcel(exportData, `DAC_Daily_Activity_Cleaning_${currentShift}_${new Date().toISOString().slice(0, 10)}`);
+      toastSuccess('File Excel berhasil diunduh');
+    } catch (err) {
+      toastError('Gagal mengekspor data DAC: ' + err.message);
     }
-    const exportData = items.map(r => ({
-      'No': r.item_no,
-      'Shift': r.shift === 'pagi' ? 'Shift Pagi' : 'Shift Siang',
-      'Jam Mulai': r.start_time,
-      'Jam Selesai': r.end_time,
-      'Kategori': r.category,
-      'Lokasi / Area': r.location,
-      'Rincian Aktivitas': r.activity
-    }));
-    downloadExcel(exportData, `DAC_Daily_Activity_Cleaning_${currentShift}_${new Date().toISOString().slice(0, 10)}`);
-    toastSuccess('File Excel berhasil diunduh');
   });
 
   // Load initial data

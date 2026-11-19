@@ -1,4 +1,4 @@
-import { apiFetch, setToken, setUser } from '../config.js';
+import { apiFetch, setToken, setCsrfToken, setUser } from '../config.js';
 import { toastError, toastSuccess } from '../components/toast.js';
 
 export async function renderLogin(container) {
@@ -116,6 +116,7 @@ export async function renderLogin(container) {
 
       if (res.ok && res.data.success) {
         setToken(res.data.data.token);
+        setCsrfToken(res.data.data.csrf_token || null);
         setUser(res.data.data.user);
         toastSuccess('Login berhasil! Selamat datang 👋');
         window.dispatchEvent(new Event('fm:login'));

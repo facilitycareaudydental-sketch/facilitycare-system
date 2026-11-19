@@ -1,8 +1,9 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
-import { getCachedBranches } from '../utils/dataCache.js';
+import { getCachedBranches, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
+import { submitJournaledImport } from '../utils/import_client.js';
 
 export async function renderInspectionReports(container) {
   const branchOptions = await getCachedBranches();
@@ -15,7 +16,7 @@ export async function renderInspectionReports(container) {
     apiPath: '/api/reports/inspection',
     enableMobileFilterSheet: true,
     itemLabel: 'Laporan Inspeksi',
-    bulkDelete: true,
+    bulkDelete: false,
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'period', label: 'Periode', render: v => periodBadge(v) },
@@ -71,20 +72,17 @@ export async function renderInspectionReports(container) {
     exportOptions: {
       moduleName: 'inspection_reports',
       onExport: async (filters) => {
-        const qs = new URLSearchParams(filters || {}).toString();
-        const res = await apiFetch(`/api/reports/inspection?limit=10000&${qs}`);
-        if (res.ok) {
-          const data = res.data.data.map(d => ({
-            'Cabang': d.branch_name || '',
-            'Periode': d.period || '',
-            'Tanggal': d.inspection_date || '',
-            'Point FC': d.fc_score !== null && d.fc_score !== undefined ? d.fc_score : '',
-            'Point SPV': d.spv_score !== null && d.spv_score !== undefined ? d.spv_score : '',
-            'Status': d.status || '',
-            'Link Dokumen': d.document_link || ''
-          }));
-          downloadExcel(data, `Laporan_Inspeksi_Hygiene_${new Date().toISOString().slice(0,10)}`);
-        } else throw new Error('Gagal mengambil data');
+        const rows = await fetchExportRows('/api/reports/inspection/export', filters);
+        const data = rows.map(d => ({
+          'Cabang': d.branch_name || '',
+          'Periode': d.period || '',
+          'Tanggal': d.inspection_date || '',
+          'Point FC': d.fc_score !== null && d.fc_score !== undefined ? d.fc_score : '',
+          'Point SPV': d.spv_score !== null && d.spv_score !== undefined ? d.spv_score : '',
+          'Status': d.status || '',
+          'Link Dokumen': d.document_link || ''
+        }));
+        downloadExcel(data, `Laporan_Inspeksi_Hygiene_${new Date().toISOString().slice(0,10)}`);
       },
       onTemplate: () => {
         const template = [
@@ -92,11 +90,16 @@ export async function renderInspectionReports(container) {
         ];
         downloadExcel(template, 'Template_Import_Inspeksi');
       },
-      onImport: async (json) => {
+      onImport: async (json, importCtx = {}) => {
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = String(str || '').toLowerCase();
-          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          const s = String(str || '').toLowerCase().trim();
+          const codeMatch = s.match(/^(\d{3})/);
+          if (codeMatch) {
+            const byCode = branchOptions.find(r => String(r.code || '').trim() === codeMatch[1] || String(r.label || '').toLowerCase().startsWith(codeMatch[1] + '.'));
+            if (byCode) return byCode.value;
+          }
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
           return b ? b.value : null;
         };
         
@@ -133,12 +136,14 @@ export async function renderInspectionReports(container) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.branch_id && row.period && row.inspection_date);
         
-        const res = await apiFetch('/api/import/inspection', {
-          method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+        return await submitJournaledImport({
+          module: 'inspection_reports',
+          label: 'Laporan Inspeksi',
+          endpoint: '/api/import/inspection',
+          body: { rows: payload, onDuplicate: 'update' },
+          idempotencyKey: importCtx?.idempotencyKey,
+          recover: Boolean(importCtx?.recover),
         });
-        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     }
   });

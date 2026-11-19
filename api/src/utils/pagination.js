@@ -1,11 +1,39 @@
 // Pagination + query helpers
 
-export function getPagination(url) {
+// Pagination + query helpers
+
+export const DEFAULT_PAGE_LIMIT = 20;
+// Hard upper bound for paginated API responses enforced across all endpoints (E10).
+export const DEFAULT_MAX_PAGE_LIMIT = 100;
+export const HARD_MAX_PAGE_LIMIT = 100;
+
+function parseBoundedInt(raw, fallback, min, max) {
+  if (raw === null || raw === undefined) return fallback;
+  const trimmed = String(raw).trim();
+  if (!trimmed || !/^-?\d+$/.test(trimmed)) return fallback;
+  if (trimmed.startsWith('-')) return min;
+  if (trimmed.length > 12) return max;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+export function getPagination(url, options = {}) {
+  const defaultLimit = options.defaultLimit ?? DEFAULT_PAGE_LIMIT;
+  const maxLimit = options.maxLimit ?? DEFAULT_MAX_PAGE_LIMIT;
   const params = new URL(url).searchParams;
-  const page = Math.max(1, parseInt(params.get('page') || '1'));
-  const limit = Math.min(10000, Math.max(1, parseInt(params.get('limit') || '20')));
+  const page = parseBoundedInt(params.get('page'), 1, 1, 1000000);
+  const limit = parseBoundedInt(params.get('limit'), defaultLimit, 1, maxLimit);
   const offset = (page - 1) * limit;
   return { page, limit, offset };
+}
+
+export function resolveSortOrder(rawSort, sortMap, defaultKey) {
+  const key = String(rawSort || '').trim();
+  if (key && Object.prototype.hasOwnProperty.call(sortMap, key)) {
+    return sortMap[key];
+  }
+  return sortMap[defaultKey];
 }
 
 export function getSearchParam(url, key) {

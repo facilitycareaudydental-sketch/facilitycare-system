@@ -1,4 +1,4 @@
-import { getUser, hasPermission } from '../config.js';
+import { getUser, hasPermission, apiFetch } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 
@@ -406,6 +406,10 @@ function getStoredIK() {
 
 function saveStoredIK(list) {
   localStorage.setItem(KEY_IK, JSON.stringify(list));
+  apiFetch('/api/sop/bundle/' + KEY_IK, {
+    method: 'PUT',
+    body: JSON.stringify(list)
+  }).catch(() => {});
 }
 
 function getStoredTools() {
@@ -418,6 +422,10 @@ function getStoredTools() {
 
 function saveStoredTools(list) {
   localStorage.setItem(KEY_TOOLS, JSON.stringify(list));
+  apiFetch('/api/sop/bundle/' + KEY_TOOLS, {
+    method: 'PUT',
+    body: JSON.stringify(list)
+  }).catch(() => {});
 }
 
 function getStoredChem() {
@@ -430,6 +438,10 @@ function getStoredChem() {
 
 function saveStoredChem(list) {
   localStorage.setItem(KEY_CHEM, JSON.stringify(list));
+  apiFetch('/api/sop/bundle/' + KEY_CHEM, {
+    method: 'PUT',
+    body: JSON.stringify(list)
+  }).catch(() => {});
 }
 
 // ── MAIN RENDER FUNCTION ────────────────────────────────────────────────────────
@@ -442,6 +454,25 @@ export async function renderSOPFacilityCare(container) {
   let currentCategory = 'all';
   let toolView = 'tools'; // 'tools' | 'chemical'
   let toolSearch = '';
+
+  try {
+    const [remoteIK, remoteTools, remoteChem] = await Promise.all([
+      apiFetch('/api/sop/bundle/' + KEY_IK),
+      apiFetch('/api/sop/bundle/' + KEY_TOOLS),
+      apiFetch('/api/sop/bundle/' + KEY_CHEM),
+    ]);
+    if (remoteIK.ok && remoteIK.data?.data) {
+      localStorage.setItem(KEY_IK, JSON.stringify(remoteIK.data.data));
+    }
+    if (remoteTools.ok && remoteTools.data?.data) {
+      localStorage.setItem(KEY_TOOLS, JSON.stringify(remoteTools.data.data));
+    }
+    if (remoteChem.ok && remoteChem.data?.data) {
+      localStorage.setItem(KEY_CHEM, JSON.stringify(remoteChem.data.data));
+    }
+  } catch (e) {
+    console.warn('Could not load remote SOP bundle:', e);
+  }
 
   let listIK = getStoredIK();
   let listTools = getStoredTools();
@@ -526,6 +557,11 @@ export async function renderSOPFacilityCare(container) {
           localStorage.removeItem(KEY_IK);
           localStorage.removeItem(KEY_TOOLS);
           localStorage.removeItem(KEY_CHEM);
+          Promise.all([
+            apiFetch('/api/sop/bundle/' + KEY_IK, { method: 'DELETE' }),
+            apiFetch('/api/sop/bundle/' + KEY_TOOLS, { method: 'DELETE' }),
+            apiFetch('/api/sop/bundle/' + KEY_CHEM, { method: 'DELETE' }),
+          ]).catch(() => {});
           listIK = getStoredIK();
           listTools = getStoredTools();
           listChem = getStoredChem();

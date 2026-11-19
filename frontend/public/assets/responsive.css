@@ -646,5 +646,205 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     -webkit-overflow-scrolling: touch !important;
     width: 100% !important;
   }
+
+  /* Mutasi Route Box Mobile Wrapping */
+  .mutasi-route-box {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 11px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .mutasi-route-node {
+    width: 100% !important;
+    min-width: 0 !important;
+    text-align: left !important;
+  }
+  .mutasi-to-node {
+    text-align: left !important;
+  }
+  .mutasi-route-branch {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-size: 0.88rem !important;
+    line-height: 1.35 !important;
+  }
+  .mutasi-route-arrow {
+    align-self: center !important;
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.85rem !important;
+    transform: rotate(90deg) !important;
+    margin: -2px 0 !important;
+  }
+
+  /* DAC Timeline Card Mobile */
+  .dac-timeline-card {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 14px 16px !important;
+  }
+  .dac-timeline-card > div:first-child {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Lembur Time Box Mobile */
+  .lembur-time-box {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
 }
 
+
+
+/* ================================================================
+   FCMS MOBILE-FIRST RESPONSIVE & PWA SAFE AREA ENHANCEMENTS
+   Preserving 100% of existing card visual design, colors & shadows
+   ================================================================ */
+
+/* Safe Area Inset Variables for Android / iOS Standalone */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+@media (max-width: 768px) {
+  
+  /* UNIFIED RESPONSIVE HERO ACTION TOOLBARS (<=768px Mobile) */
+  .issues-hero-actions,
+  .con-hero-actions,
+  .emp-hero-actions,
+  .mutasi-hero-actions,
+  .lembur-hero-actions,
+  .sp-hero-actions,
+  .training-hero-actions,
+  .doc-hero-actions {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+  }
+
+  .issues-btn-add,
+  .con-btn-add,
+  .emp-btn-add,
+  .mutasi-btn-add,
+  .lembur-btn-add,
+  .sp-btn-add,
+  .training-btn-add,
+  .doc-btn-add {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 9px 12px !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap !important;
+    height: 40px !important;
+  }
+
+  .issues-btn-excel,
+  .con-btn-excel,
+  .emp-btn-excel,
+  .mutasi-btn-excel,
+  .lembur-btn-excel,
+  .sp-btn-excel,
+  .training-btn-excel {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap !important;
+    height: 38px !important;
+  }
+
+  .issues-btn-refresh,
+  .con-btn-refresh,
+  .emp-btn-refresh,
+  .mutasi-btn-refresh,
+  .lembur-btn-refresh,
+  .sp-btn-refresh,
+  .training-btn-refresh,
+  .doc-btn-refresh {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+    justify-content: center !important;
+  }
+
+  /* Safe area padding */
+  .topbar {
+    padding-top: var(--sat) !important;
+    padding-left: calc(12px + var(--sal)) !important;
+    padding-right: calc(12px + var(--sar)) !important;
+    height: calc(var(--topbar-h) + var(--sat)) !important;
+  }
+  .main-content {
+    padding-bottom: calc(20px + var(--sab)) !important;
+    padding-left: calc(12px + var(--sal)) !important;
+    padding-right: calc(12px + var(--sar)) !important;
+  }
+  .sidebar {
+    padding-top: calc(10px + var(--sat)) !important;
+    padding-bottom: calc(16px + var(--sab)) !important;
+  }
+
+  /* Bottom sheet modal styling with touch friendly spacing */
+  .modal {
+    padding-bottom: calc(16px + var(--sab)) !important;
+  }
+  .modal-footer {
+    padding-bottom: calc(12px + var(--sab)) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Topbar compact optimizations */
+  #btn-fullscreen {
+    display: none !important;
+  }
+  .topbar-subtitle {
+    display: none !important;
+  }
+  .topbar-greeting {
+    font-size: 0.85rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 170px !important;
+  }
+  .topbar-welcome {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+  .topbar-right {
+    gap: 6px !important;
+  }
+
+  /* Form controls touch friendliness without layout break */
+  .form-control, input[type="text"], input[type="password"], input[type="date"], select, textarea, .fc-emp-input {
+    font-size: 16px !important; /* Prevents auto-zoom on mobile virtual keyboard */
+  }
+  .fc-emp-input {
+    height: 48px !important;
+    min-height: 48px !important;
+  }
+  .fc-emp-dropdown {
+    max-height: 240px;
+  }
+}
+
+@media (max-width: 360px) {
+  .topbar-greeting {
+    max-width: 120px !important;
+    font-size: 0.8rem !important;
+  }
+}

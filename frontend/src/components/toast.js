@@ -12,10 +12,21 @@ function getContainer() {
 
 export function toast(message, type = 'info', duration = 3500) {
   const c = getContainer();
+  const safeType = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
   const el = document.createElement('div');
-  el.className = `toast toast-${type}`;
+  el.className = `toast toast-${safeType}`;
   const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
-  el.innerHTML = `<span class="toast-icon">${icons[type] || 'ℹ'}</span><span class="toast-msg">${message}</span>`;
+
+  const iconSpan = document.createElement('span');
+  iconSpan.className = 'toast-icon';
+  iconSpan.textContent = icons[safeType] || 'ℹ';
+
+  const msgSpan = document.createElement('span');
+  msgSpan.className = 'toast-msg';
+  msgSpan.textContent = message === null || message === undefined ? '' : String(message);
+
+  el.appendChild(iconSpan);
+  el.appendChild(msgSpan);
   c.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => {

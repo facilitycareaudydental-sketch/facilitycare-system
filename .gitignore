@@ -4,6 +4,9 @@ node_modules/
 
 # Build output
 frontend/dist/
+frontend/dist-staging/
+.staging-deploy-workspace/
+frontend/.staging-deploy-workspace/
 *.min.js
 
 # Wrangler
@@ -46,3 +49,23 @@ parse_data*.js
 # D1 local database
 *.sqlite
 *.db
+
+# Backups and recovery artifacts
+backups/
+*.sql.enc
+fcms_*.sql
+*.sql.tmp
+*.enc.tmp
+*.manifest.json.tmp
+*.backup.tmp
+*.manifest.json
+*.quarantined
+.quarantine/
+.fcms_backup.lock
+.fcms_backup.lock.*
+
+# Staging isolated configurations
+wrangler.staging.toml
+api/wrangler.staging.toml
+.env.staging
+.env.staging.local

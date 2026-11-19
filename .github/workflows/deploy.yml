@@ -58,10 +58,39 @@ jobs:
           test -f schema/migrations.sql      && echo "✅ schema/migrations.sql"
           test -f build-root.js              && echo "✅ build-root.js"
 
-      - name: Test frontend build
+      - name: Verify fail-closed build rejection without explicit env
+        run: |
+          if node build-root.js; then
+            echo "❌ FATAL: build-root.js harus menolak build tanpa --env/ENVIRONMENT eksplisit!"
+            exit 1
+          fi
+          echo "✅ Build tanpa environment eksplisit ditolak (fail-closed)."
+
+      - name: Test staging frontend build
         env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://fm-operations-api.placeholder.workers.dev' }}
-        run: node build-root.js
+          ENVIRONMENT: staging
+          API_BASE_URL: https://fm-operations-api-staging.facilitycare-audydental.workers.dev
+        run: |
+          node build-root.js --env=staging
+          grep -F "ENVIRONMENT: 'staging'" dist-staging/index.html
+          grep -F "API_BASE_URL: 'https://fm-operations-api-staging.facilitycare-audydental.workers.dev'" dist-staging/index.html
+          if grep -F "fm-operations-api.facilitycare-audydental.workers.dev" dist-staging/index.html; then
+            echo "❌ FATAL: URL Worker Production bocor ke bundle Staging!"
+            exit 1
+          fi
+
+      - name: Test production frontend build
+        env:
+          ENVIRONMENT: production
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://fm-operations-api.facilitycare-audydental.workers.dev' }}
+        run: |
+          node build-root.js --env=production
+          grep -F "ENVIRONMENT: 'production'" dist/index.html
+          grep -F "API_BASE_URL: 'https://fm-operations-api.facilitycare-audydental.workers.dev'" dist/index.html
+          if grep -iE "fm-operations-api-staging|fcvm" dist/index.html; then
+            echo "❌ FATAL: URL Worker Staging/FCVM bocor ke bundle Production!"
+            exit 1
+          fi
 
   # ============================================================
   # Pre-flight Target Verification Gate (HANYA Manual Dispatch dari main)
@@ -187,7 +216,17 @@ jobs:
             exit 1
           }
 
-          # D. Verifikasi frontend/wrangler.toml dan target Cloudflare Pages
+          # D. Verifikasi Environment & SYNC_MODE fail-closed di api/wrangler.toml
+          grep -E '^[[:space:]]*ENVIRONMENT[[:space:]]*=[[:space:]]*"production"[[:space:]]*$' api/wrangler.toml || {
+            echo "❌ FATAL: api/wrangler.toml harus menetapkan ENVIRONMENT = \"production\". Dibatalkan."
+            exit 1
+          }
+          grep -E '^[[:space:]]*SYNC_MODE[[:space:]]*=[[:space:]]*"DRY_RUN"[[:space:]]*$' api/wrangler.toml || {
+            echo "❌ FATAL: api/wrangler.toml harus mengunci SYNC_MODE = \"DRY_RUN\" secara default (fail-closed). Aktifasi LIVE memerlukan prosedur persetujuan terpisah. Dibatalkan."
+            exit 1
+          }
+
+          # E. Verifikasi frontend/wrangler.toml dan target Cloudflare Pages
           test -f frontend/wrangler.toml || {
             echo "❌ FATAL: frontend/wrangler.toml tidak ditemukan! Dibatalkan."
             exit 1
@@ -196,8 +235,8 @@ jobs:
             echo "❌ FATAL: frontend/wrangler.toml harus memiliki account_id = \"293440e04e5d0c8073e7e2893750b527\". Dibatalkan."
             exit 1
           }
-          if grep -iE 'fcvm|facilitycare-fcvm' frontend/wrangler.toml; then
-            echo "❌ FATAL: Ditemukan referensi FCVM di frontend/wrangler.toml! Dibatalkan."
+          if grep -iE 'fcvm|facilitycare-fcvm|fm-operations-api-staging' frontend/wrangler.toml; then
+            echo "❌ FATAL: Ditemukan referensi FCVM atau Staging di frontend/wrangler.toml! Dibatalkan."
             exit 1
           fi
           grep -F -- '--project-name=facilitycare-system' .github/workflows/deploy.yml > /dev/null 2>&1 || {
@@ -296,10 +335,18 @@ jobs:
       - name: Install root deps
         run: npm install
 
-      - name: Build Frontend
+      - name: Build Frontend (Explicit Production)
         env:
+          ENVIRONMENT: production
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: node build-root.js
+        run: |
+          node build-root.js --env=production
+          grep -F "ENVIRONMENT: 'production'" dist/index.html || exit 1
+          grep -F "API_BASE_URL: 'https://fm-operations-api.facilitycare-audydental.workers.dev'" dist/index.html || exit 1
+          if grep -iE "fm-operations-api-staging|fcvm" dist/index.html; then
+            echo "❌ FATAL: Terdeteksi referensi Staging/FCVM di dist/index.html Production!"
+            exit 1
+          fi
 
       - name: Deploy ke Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

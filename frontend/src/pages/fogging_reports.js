@@ -1,27 +1,29 @@
 import { buildCrudPage } from './_crud.js';
 import { apiFetch } from '../config.js';
-import { getCachedBranches } from '../utils/dataCache.js';
+import { getCachedBranches, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
+import { submitJournaledImport } from '../utils/import_client.js';
 
 export async function renderFoggingReports(container, params) {
   const branchOptions = await getCachedBranches();
   const years = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - i));
   
   const dashFilter = params ? params.get('dash_filter') : null;
+  const explicit = params ? params.get('explicit') === '1' : false;
+  const targetMonth = params ? params.get('month') : null;
   let defFilters = {};
+  
   if (dashFilter === 'fogging') {
-    const now = new Date();
-    let curM = String(now.getMonth() + 1).padStart(2, '0');
-    let curY = String(now.getFullYear());
-    
-    const targetMonth = params ? params.get('month') : null;
-    if (targetMonth && targetMonth.length === 7) {
-      curY = targetMonth.split('-')[0];
-      curM = targetMonth.split('-')[1];
+    if (explicit && targetMonth && targetMonth.length === 7) {
+      const [curY, curM] = targetMonth.split('-');
+      defFilters = { month: curM, year: curY };
+    } else {
+      // Tidak mengunci bulan berjalan secara otomatis saat membuka laporan historis
+      // Tampilkan seluruh data tahun berjalan (2026) agar seluruh record (termasuk Juli 2026) langsung terlihat
+      const curY = (targetMonth && targetMonth.length === 7) ? targetMonth.split('-')[0] : String(new Date().getFullYear());
+      defFilters = { year: curY };
     }
-    
-    defFilters = { status: 'Done', month: curM, year: curY };
   }
 
   buildCrudPage({
@@ -30,7 +32,7 @@ export async function renderFoggingReports(container, params) {
     icon: '💨',
     apiPath: '/api/reports/fogging',
     itemLabel: 'Fogging',
-    bulkDelete: true,
+    bulkDelete: false,
     enableMobileFilterSheet: true,
     defaultFilters: defFilters,
     columns: [
@@ -82,19 +84,16 @@ export async function renderFoggingReports(container, params) {
     exportOptions: {
       moduleName: 'fogging_reports',
       onExport: async (filters) => {
-        const qs = new URLSearchParams(filters || {}).toString();
-        const res = await apiFetch(`/api/reports/fogging?limit=10000&${qs}`);
-        if (res.ok) {
-          const data = res.data.data.map(d => ({
-            'Cabang': d.branch_name || '',
-            'Jenis': d.activity_type || 'Fogging',
-            'Periode': d.period || '',
-            'Tanggal': d.activity_date || '',
-            'Status': d.status || '',
-            'Link Dokumen': d.document_link || ''
-          }));
-          downloadExcel(data, `Laporan_Fogging_${new Date().toISOString().slice(0,10)}`);
-        } else throw new Error('Gagal mengambil data');
+        const rows = await fetchExportRows('/api/reports/fogging/export', filters);
+        const data = rows.map(d => ({
+          'Cabang': d.branch_name || '',
+          'Jenis': d.activity_type || 'Fogging',
+          'Periode': d.period || '',
+          'Tanggal': d.activity_date || '',
+          'Status': d.status || '',
+          'Link Dokumen': d.document_link || ''
+        }));
+        downloadExcel(data, `Laporan_Fogging_${new Date().toISOString().slice(0,10)}`);
       },
       onTemplate: () => {
         const template = [
@@ -102,11 +101,16 @@ export async function renderFoggingReports(container, params) {
         ];
         downloadExcel(template, 'Template_Import_Fogging');
       },
-      onImport: async (json) => {
+      onImport: async (json, importCtx = {}) => {
         const matchBranch = (str) => {
           if (!str) return null;
-          const s = String(str || '').toLowerCase();
-          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s);
+          const s = String(str || '').toLowerCase().trim();
+          const codeMatch = s.match(/^(\d{3})/);
+          if (codeMatch) {
+            const byCode = branchOptions.find(r => String(r.code || '').trim() === codeMatch[1] || String(r.label || '').toLowerCase().startsWith(codeMatch[1] + '.'));
+            if (byCode) return byCode.value;
+          }
+          const b = branchOptions.find(r => String(r.label || '').toLowerCase() === s || String(r.code || '').toLowerCase() === s || String(r.name || '').toLowerCase() === s);
           return b ? b.value : null;
         };
         
@@ -142,12 +146,14 @@ export async function renderFoggingReports(container, params) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.branch_id && row.period && row.activity_date);
         
-        const res = await apiFetch('/api/reports/fogging/import', {
-          method: 'POST',
-          body: JSON.stringify(payload)
+        return await submitJournaledImport({
+          module: 'fogging_reports',
+          label: 'Laporan Fogging',
+          endpoint: '/api/reports/fogging/import',
+          body: payload,
+          idempotencyKey: importCtx?.idempotencyKey,
+          recover: Boolean(importCtx?.recover),
         });
-        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
-        return res.data;
       }
     }
   });

@@ -1,4 +1,4 @@
-import { getUser, hasPermission } from '../config.js';
+import { getUser, hasPermission, apiFetch } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 
@@ -121,6 +121,10 @@ function getStoredIK() {
 
 function saveStoredIK(list) {
   localStorage.setItem(KEY_IK_SEC, JSON.stringify(list));
+  apiFetch('/api/sop/bundle/' + KEY_IK_SEC, {
+    method: 'PUT',
+    body: JSON.stringify(list)
+  }).catch(() => {});
 }
 
 function getStoredAssets() {
@@ -133,6 +137,10 @@ function getStoredAssets() {
 
 function saveStoredAssets(list) {
   localStorage.setItem(KEY_ASSETS_SEC, JSON.stringify(list));
+  apiFetch('/api/sop/bundle/' + KEY_ASSETS_SEC, {
+    method: 'PUT',
+    body: JSON.stringify(list)
+  }).catch(() => {});
 }
 
 // ── MAIN RENDER FUNCTION ────────────────────────────────────────────────────────
@@ -145,6 +153,21 @@ export async function renderSOPSecurity(container) {
   let currentCategory = 'all';
   let assetSearch = '';
   let zonasiView = 'cabang'; // 'cabang' | 'hq'
+
+  try {
+    const [remoteIK, remoteAssets] = await Promise.all([
+      apiFetch('/api/sop/bundle/' + KEY_IK_SEC),
+      apiFetch('/api/sop/bundle/' + KEY_ASSETS_SEC),
+    ]);
+    if (remoteIK.ok && remoteIK.data?.data) {
+      localStorage.setItem(KEY_IK_SEC, JSON.stringify(remoteIK.data.data));
+    }
+    if (remoteAssets.ok && remoteAssets.data?.data) {
+      localStorage.setItem(KEY_ASSETS_SEC, JSON.stringify(remoteAssets.data.data));
+    }
+  } catch (e) {
+    console.warn('Could not load remote Security SOP bundle:', e);
+  }
 
   let listIK = getStoredIK();
   let listAssets = getStoredAssets();
@@ -230,6 +253,10 @@ export async function renderSOPSecurity(container) {
         confirmDialog('Apakah Anda yakin ingin mengembalikan seluruh data Instruksi Kerja dan Klasifikasi Aset Security ke standar dokumen asli?', () => {
           localStorage.removeItem(KEY_IK_SEC);
           localStorage.removeItem(KEY_ASSETS_SEC);
+          Promise.all([
+            apiFetch('/api/sop/bundle/' + KEY_IK_SEC, { method: 'DELETE' }),
+            apiFetch('/api/sop/bundle/' + KEY_ASSETS_SEC, { method: 'DELETE' }),
+          ]).catch(() => {});
           listIK = getStoredIK();
           listAssets = getStoredAssets();
           toastSuccess('Data SOP Security berhasil di-reset ke standar dokumen');

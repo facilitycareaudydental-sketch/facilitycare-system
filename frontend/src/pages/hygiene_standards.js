@@ -2,6 +2,7 @@ import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
+import { fetchExportRows } from '../utils/dataCache.js';
 
 // 8 Kategori Zona Standar Kebersihan Fisik FCMS (Audy Dental)
 export const ZONES = {
@@ -83,7 +84,8 @@ export function getZoneForRoom(roomName) {
 
 export async function renderHygieneStandards(container) {
   const user = getUser();
-  const canEdit = user && (user.role === 'superadmin' || user.role === 'admin');
+  const canEdit = hasPermission(user, 'hygiene_standards', 'write');
+  const canDelete = hasPermission(user, 'hygiene_standards', 'delete');
   const canExport = hasPermission(user, 'export');
 
   container.innerHTML = `
@@ -363,6 +365,9 @@ export async function renderHygieneStandards(container) {
 
   function renderTableView(viewContainer, items) {
     viewContainer.innerHTML = `
+      <style>
+        .hygiene-std-row:hover { background-color: #F8FAFC; }
+      </style>
       <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
         <div style="overflow-x:auto;">
           <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem;">
@@ -372,14 +377,14 @@ export async function renderHygieneStandards(container) {
                 <th style="padding:14px 16px; width:220px;">Ruangan & Zona</th>
                 <th style="padding:14px 16px; width:280px;">Item / Objek Inspeksi</th>
                 <th style="padding:14px 16px;">Standar Kebersihan Fisik</th>
-                ${canEdit ? '<th style="padding:14px 16px; width:100px; text-align:center;">Aksi</th>' : ''}
+                ${canEdit || canDelete ? '<th style="padding:14px 16px; width:100px; text-align:center;">Aksi</th>' : ''}
               </tr>
             </thead>
             <tbody>
               ${items.map((item, idx) => {
                 const zInfo = getZoneForRoom(item.room_name);
                 return `
-                  <tr style="border-bottom:1px solid #F1F5F9; transition:background-color 0.15s ease;" onmouseover="this.style.backgroundColor='#F8FAFC'" onmouseout="this.style.backgroundColor='transparent'">
+                  <tr class="hygiene-std-row" style="border-bottom:1px solid #F1F5F9; transition:background-color 0.15s ease;">
                     <td style="padding:14px 16px; text-align:center; color:var(--text-3); font-weight:600; font-size:0.85rem;">
                       ${idx + 1}
                     </td>
@@ -403,15 +408,19 @@ export async function renderHygieneStandards(container) {
                         <span style="color:#059669; font-weight:700; margin-right:4px;">✓</span> ${item.cleanliness_standard}
                       </div>
                     </td>
-                    ${canEdit ? `
+                    ${canEdit || canDelete ? `
                       <td style="padding:14px 16px; text-align:center; vertical-align:middle;">
                         <div style="display:inline-flex; gap:6px;">
-                          <button class="btn btn-sm btn-ghost btn-edit-item" data-id="${item.id}" title="Edit Parameter" style="padding:6px 8px; border-radius:6px; color:#2563EB; cursor:pointer;">
-                            ✏️
-                          </button>
-                          <button class="btn btn-sm btn-ghost btn-delete-item" data-id="${item.id}" data-name="${item.item_name}" title="Hapus Parameter" style="padding:6px 8px; border-radius:6px; color:#DC2626; cursor:pointer;">
-                            🗑️
-                          </button>
+                          ${canEdit ? `
+                            <button class="btn btn-sm btn-ghost btn-edit-item" data-id="${item.id}" title="Edit Parameter" style="padding:6px 8px; border-radius:6px; color:#2563EB; cursor:pointer;">
+                              ✏️
+                            </button>
+                          ` : ''}
+                          ${canDelete ? `
+                            <button class="btn btn-sm btn-ghost btn-delete-item" data-id="${item.id}" data-name="${item.item_name}" title="Hapus Parameter" style="padding:6px 8px; border-radius:6px; color:#DC2626; cursor:pointer;">
+                              🗑️
+                            </button>
+                          ` : ''}
                         </div>
                       </td>
                     ` : ''}
@@ -485,7 +494,7 @@ export async function renderHygieneStandards(container) {
                             <th style="padding:8px 12px; width:40px; text-align:center;">No</th>
                             <th style="padding:8px 12px; width:260px;">Item / Objek Inspeksi</th>
                             <th style="padding:8px 12px;">Standar Kebersihan Fisik</th>
-                            ${canEdit ? '<th style="padding:8px 12px; width:80px; text-align:center;">Aksi</th>' : ''}
+                            ${canEdit || canDelete ? '<th style="padding:8px 12px; width:80px; text-align:center;">Aksi</th>' : ''}
                           </tr>
                         </thead>
                         <tbody>
@@ -503,11 +512,11 @@ export async function renderHygieneStandards(container) {
                                   <span>${item.cleanliness_standard}</span>
                                 </div>
                               </td>
-                              ${canEdit ? `
+                              ${canEdit || canDelete ? `
                                 <td style="padding:10px 12px; text-align:center; vertical-align:middle;">
                                   <div style="display:inline-flex; gap:4px;">
-                                    <button class="btn btn-sm btn-ghost btn-edit-item" data-id="${item.id}" title="Edit" style="padding:4px 6px; cursor:pointer;">✏️</button>
-                                    <button class="btn btn-sm btn-ghost btn-delete-item" data-id="${item.id}" data-name="${item.item_name}" title="Hapus" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>
+                                    ${canEdit ? `<button class="btn btn-sm btn-ghost btn-edit-item" data-id="${item.id}" title="Edit" style="padding:4px 6px; cursor:pointer;">✏️</button>` : ''}
+                                    ${canDelete ? `<button class="btn btn-sm btn-ghost btn-delete-item" data-id="${item.id}" data-name="${item.item_name}" title="Hapus" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>` : ''}
                                   </div>
                                 </td>
                               ` : ''}
@@ -541,6 +550,10 @@ export async function renderHygieneStandards(container) {
     // Delete item
     viewContainer.querySelectorAll('.btn-delete-item').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (!canDelete) {
+          toastError('Hanya Superadmin yang dapat menghapus parameter standar.');
+          return;
+        }
         const id = btn.dataset.id;
         const name = btn.dataset.name;
         confirmDialog(`Yakin ingin menghapus parameter standar <strong>"${name}"</strong>?`, async () => {
@@ -676,7 +689,8 @@ export async function renderHygieneStandards(container) {
       <body>
         <div class="no-print" style="background:#fef3c7; border:1px solid #f59e0b; padding:10px 14px; border-radius:6px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
           <span style="font-size:9pt; color:#92400e;">💡 <strong>Format Cetak SOP Standar Kebersihan Fisik FCMS</strong>. Siap dicetak untuk display janitor atau arsip operasional.</span>
-          <button onclick="window.print()" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">Cetak Sekarang</button>
+          <button id="hygiene-print-now-btn" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">Cetak Sekarang</button>
+          <script>document.getElementById('hygiene-print-now-btn')?.addEventListener('click', function(){ window.print(); });</script>
         </div>
 
         <div class="header">
@@ -753,21 +767,26 @@ export async function renderHygieneStandards(container) {
     printWindow.document.close();
   }
 
-  function exportExcel() {
-    const data = allItems.map((item, idx) => {
-      const zInfo = getZoneForRoom(item.room_name);
-      return {
-        'No': idx + 1,
-        'Kategori Zona': zInfo.zoneName,
-        'Ruangan / Lokasi': item.room_name,
-        'Item / Objek Inspeksi': item.item_name,
-        'Standar Kebersihan Fisik': item.cleanliness_standard
-      };
-    });
+  async function exportExcel() {
+    try {
+      const rows = await fetchExportRows('/api/hygiene-standards/export', {});
+      const data = rows.map((item, idx) => {
+        const zInfo = getZoneForRoom(item.room_name);
+        return {
+          'No': idx + 1,
+          'Kategori Zona': zInfo.zoneName,
+          'Ruangan / Lokasi': item.room_name,
+          'Item / Objek Inspeksi': item.item_name,
+          'Standar Kebersihan Fisik': item.cleanliness_standard
+        };
+      });
 
-    const dateStr = new Date().toISOString().slice(0, 10);
-    downloadExcel(data, `Master_Standar_Kebersihan_FCMS_${dateStr}`);
-    toastSuccess('Data master kebersihan berhasil diekspor ke Excel');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadExcel(data, `Master_Standar_Kebersihan_FCMS_${dateStr}`);
+      toastSuccess('Data master kebersihan berhasil diekspor ke Excel');
+    } catch (err) {
+      toastError('Gagal mengekspor data: ' + err.message);
+    }
   }
 
   // Event Listeners

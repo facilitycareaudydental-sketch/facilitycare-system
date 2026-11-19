@@ -1,7 +1,9 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
-import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployees, fetchExportRows } from '../utils/dataCache.js';
+import { createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
+import { mountEmployeeCombobox, parseParticipantList } from '../components/employeeCombobox.js';
 
 // Pre-seeded fallback data training jika API offline / inisialisasi awal
 const INITIAL_TRAINING = [
@@ -14,7 +16,7 @@ const INITIAL_TRAINING = [
   { id: 7, training_date: '2026-06-29', batch: 'Batch 5', subject: 'Basic Knowledge & Practical Skills', branch_id: 55, branch_name: '055. Gajah Mada', trainer: 'Berlin Ariansyah', participants: 'ELVAN JANGGA PRAMANA', score: 89, document_link: '' }
 ];
 
-const BATCH_LIST = ['Batch 5', 'Batch 4', 'Batch 3', 'Batch 2', 'Batch 1'];
+const BATCH_LIST = ['Batch 1', 'Batch 2', 'Batch 3', 'Batch 4', 'Batch 5'];
 const TRAINER_LIST = ['Berlin Ariansyah', 'Ade Surahman', 'Mizwar', 'Fajar', 'Ade', 'Berlin'];
 
 // Format tanggal lokal Indonesia
@@ -48,38 +50,101 @@ export async function renderTraining(container) {
   let selectedTrainer = 'all';
   let searchQuery = '';
   let isLoading = false;
+  let currentPage = 1;
+  const PAGE_LIMIT = 20;
+  let totalItems = 0;
+  let totalPages = 1;
+  let serverStats = {
+    totalSessions: 0,
+    totalBatches: 0,
+    currentMonth: 0,
+    totalParticipants: 0
+  };
+  let searchDebounce = null;
+  let hasRendered = false;
 
   const currentUser = getUser();
   const canEdit = hasPermission(currentUser, 'training', 'write');
+  const canDelete = hasPermission(currentUser, 'training', 'delete');
 
   // Load branches & employees cache
   try {
     [branchOptions, employeeOptions] = await Promise.all([
       getCachedBranches(),
-      getCachedEmployeeNames()
+      getCachedEmployees()
     ]);
   } catch (err) {
     console.error('Error fetching cache:', err);
   }
 
+  function getActiveFilters() {
+    const params = { sort: 'date_desc' };
+    if (searchQuery && searchQuery.trim()) params.search = searchQuery.trim();
+    if (selectedBranch && selectedBranch !== 'all') params.branch_id = selectedBranch;
+    if (selectedBatch && selectedBatch !== 'all') params.batch = selectedBatch;
+    if (selectedTrainer && selectedTrainer !== 'all') params.trainer = selectedTrainer;
+    return params;
+  }
+
+  function updateStatsUI() {
+    const set = (sel, val) => {
+      const el = container.querySelector(sel);
+      if (el) el.textContent = String(val ?? 0);
+    };
+    set('#tr-stat-sessions', serverStats.totalSessions);
+    set('#tr-stat-participants', serverStats.totalParticipants);
+    set('#tr-stat-batches', serverStats.totalBatches);
+    set('#tr-stat-month', serverStats.currentMonth);
+    set('#tr-pill-count-all', serverStats.totalSessions);
+  }
+
   // Load Training Data from API
-  async function loadData() {
+  async function loadData({ refreshStats = true } = {}) {
     isLoading = true;
-    renderUI();
     try {
-      const res = await apiFetch('/api/training?limit=10000');
-      if (res.ok) {
-        const raw = res.data?.data || res.data || [];
-        trainingList = Array.isArray(raw) && raw.length > 0 ? raw : INITIAL_TRAINING;
+      const filters = getActiveFilters();
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(PAGE_LIMIT),
+        ...filters
+      });
+      if (refreshStats) params.set('include_stats', '1');
+
+      const res = await apiFetch('/api/training?' + params.toString());
+      if (res.ok && res.data && Array.isArray(res.data.data)) {
+        const pg = res.data.pagination || {};
+        totalItems = Number(pg.total ?? res.data.data.length);
+        totalPages = Math.max(1, Number(pg.pages || pg.totalPages || Math.ceil(totalItems / PAGE_LIMIT) || 1));
+        if (res.data.data.length === 0 && currentPage > totalPages) {
+          currentPage = totalPages;
+          isLoading = false;
+          return loadData({ refreshStats });
+        }
+        trainingList = res.data.data;
+        if (res.data.stats) {
+          serverStats = { ...serverStats, ...res.data.stats };
+        }
       } else {
-        trainingList = INITIAL_TRAINING;
+        trainingList = [];
+        totalItems = 0;
+        totalPages = 1;
+        toastError(res.data?.error || 'Gagal memuat data training');
       }
     } catch (e) {
-      console.warn('Gagal load training, menggunakan data lokal:', e);
-      trainingList = INITIAL_TRAINING;
+      console.warn('Gagal load training:', e);
+      trainingList = [];
+      totalItems = 0;
+      totalPages = 1;
+      toastError('Gagal memuat data training: ' + e.message);
     } finally {
       isLoading = false;
-      renderUI();
+      if (!hasRendered) {
+        hasRendered = true;
+        renderUI();
+      } else {
+        if (refreshStats) updateStatsUI();
+        renderListContent();
+      }
     }
   }
 
@@ -91,7 +156,8 @@ export async function renderTraining(container) {
     }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
-      const exportData = trainingList.map((t, idx) => ({
+      const rows = await fetchExportRows('/api/training/export', getActiveFilters());
+      const exportData = rows.map((t, idx) => ({
         'No': idx + 1,
         'Tanggal': t.training_date || '',
         'Batch': t.batch || '',
@@ -104,7 +170,7 @@ export async function renderTraining(container) {
         'Catatan': t.notes || ''
       }));
       downloadExcel(exportData, `Data_Training_${new Date().toISOString().slice(0, 10)}`);
-      toastSuccess('Data training berhasil diekspor ke Excel!');
+      toastSuccess(`Berhasil mengunduh ${rows.length} data training ke Excel!`);
     } catch (err) {
       toastError('Gagal ekspor Excel: ' + err.message);
     }
@@ -112,7 +178,7 @@ export async function renderTraining(container) {
 
   // Delete Training
   async function deleteTraining(id) {
-    if (!canEdit) return;
+    if (!canDelete) return;
     const item = trainingList.find(t => t.id === id);
     confirmDialog({
       title: 'Hapus Data Training',
@@ -124,8 +190,7 @@ export async function renderTraining(container) {
           const res = await apiFetch(`/api/training/${id}`, { method: 'DELETE' });
           if (res.ok) {
             toastSuccess('Data training berhasil dihapus');
-            trainingList = trainingList.filter(t => t.id !== id);
-            renderUI();
+            await loadData({ refreshStats: true });
           } else {
             toastError(res.data?.error || 'Gagal menghapus data training');
           }
@@ -141,9 +206,9 @@ export async function renderTraining(container) {
     if (!canEdit) return;
     const isEdit = !!item;
     const defaultDate = item?.training_date ? item.training_date.slice(0, 10) : new Date().toISOString().slice(0, 10);
-    const defaultBatch = item?.batch || 'Batch 5';
+    const defaultBatch = isEdit ? (item?.batch ? String(item.batch).trim() : '') : '';
+    const hasLegacyBatch = isEdit && defaultBatch && !BATCH_LIST.includes(defaultBatch);
     const defaultTrainer = item?.trainer || 'Berlin Ariansyah';
-    const participantsText = formatParticipants(item?.participants) !== '-' ? formatParticipants(item?.participants) : '';
 
     const content = document.createElement('div');
     content.innerHTML = `
@@ -161,11 +226,11 @@ export async function renderTraining(container) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Batch Pelatihan <span style="color:#DC2626;">*</span>
             </label>
-            <input list="tr-batch-options" id="tr-modal-batch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="Pilih atau ketik batch..." value="${defaultBatch}" required />
-            <datalist id="tr-batch-options">
-              ${BATCH_LIST.map(b => `<option value="${b}">`).join('')}
-            </datalist>
+            <select id="tr-modal-batch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
+              <option value="">-- Pilih Batch Pelatihan --</option>
+              ${BATCH_LIST.map(b => `<option value="${b}" ${defaultBatch === b ? 'selected' : ''}>${b}</option>`).join('')}
+              ${hasLegacyBatch ? `<option value="${defaultBatch.replace(/"/g, '&quot;')}" selected>${defaultBatch} (Historis)</option>` : ''}
+            </select>
           </div>
         </div>
 
@@ -208,8 +273,7 @@ export async function renderTraining(container) {
           <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
             Nama Peserta Pelatihan <span style="color:#DC2626;">*</span>
           </label>
-          <textarea id="tr-modal-participants" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Ketik nama karyawan peserta training..." required>${participantsText}</textarea>
+          <div id="tr-modal-participants-mount"></div>
         </div>
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -240,6 +304,17 @@ export async function renderTraining(container) {
       </div>
     `;
 
+    const participantsCombo = mountEmployeeCombobox(content.querySelector('#tr-modal-participants-mount'), {
+      mode: 'multi',
+      inputId: 'tr-modal-participants',
+      inputName: 'participants',
+      placeholder: 'Cari nama karyawan peserta (klik / Enter untuk tambah)...',
+      allowManual: true,
+      hasEmployeeIdSchema: false,
+      employees: employeeOptions,
+      initialParticipants: parseParticipantList(item?.participants),
+    });
+
     createModal({
       title: isEdit ? '✏️ Edit Data Sesi Training' : '➕ Tambah Data Sesi Training',
       content,
@@ -252,7 +327,7 @@ export async function renderTraining(container) {
         const subject = (content.querySelector('#tr-modal-subject').value || '').trim();
         const branch_id = content.querySelector('#tr-modal-branch').value;
         const trainer = (content.querySelector('#tr-modal-trainer').value || '').trim();
-        const participants = (content.querySelector('#tr-modal-participants').value || '').trim();
+        const participants = (participantsCombo.getValue().participantsString || '').trim();
         const scoreVal = content.querySelector('#tr-modal-score').value;
         const score = scoreVal !== '' ? Number(scoreVal) : null;
         const document_link = (content.querySelector('#tr-modal-link').value || '').trim();
@@ -260,6 +335,10 @@ export async function renderTraining(container) {
 
         if (!training_date) {
           toastError('Tanggal training wajib diisi');
+          return;
+        }
+        if (!batch || (!(isEdit && batch === defaultBatch) && !BATCH_LIST.includes(batch))) {
+          toastError('Batch pelatihan wajib dipilih (Batch 1 - Batch 5)');
           return;
         }
         if (!subject) {
@@ -302,10 +381,8 @@ export async function renderTraining(container) {
             });
             if (res.ok) {
               toastSuccess('Data training berhasil diperbarui');
-              const idx = trainingList.findIndex(t => t.id === item.id);
-              if (idx !== -1) trainingList[idx] = { ...trainingList[idx], ...payload };
               close();
-              renderUI();
+              await loadData({ refreshStats: true });
             } else {
               toastError(res.data?.error || 'Gagal memperbarui data training');
             }
@@ -316,10 +393,9 @@ export async function renderTraining(container) {
             });
             if (res.ok) {
               toastSuccess('Sesi training baru berhasil ditambahkan');
-              const newId = res.data?.id || Date.now();
-              trainingList.unshift({ id: newId, ...payload });
+              currentPage = 1;
               close();
-              renderUI();
+              await loadData({ refreshStats: true });
             } else {
               toastError(res.data?.error || 'Gagal menambahkan training');
             }
@@ -331,70 +407,204 @@ export async function renderTraining(container) {
     });
   }
 
-  // Filter & Search Logic
+  // Server-filtered page data
   function getFilteredList() {
-    return trainingList.filter(t => {
-      // Search
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const matchSubj = (t.subject || '').toLowerCase().includes(q);
-        const matchTrainer = (t.trainer || '').toLowerCase().includes(q);
-        const matchPart = formatParticipants(t.participants).toLowerCase().includes(q);
-        const matchBranch = (t.branch_name || '').toLowerCase().includes(q);
-        const matchBatch = (t.batch || '').toLowerCase().includes(q);
-        if (!matchSubj && !matchTrainer && !matchPart && !matchBranch && !matchBatch) return false;
-      }
+    return trainingList;
+  }
 
-      // Batch Filter
-      if (selectedBatch !== 'all' && t.batch !== selectedBatch) {
-        return false;
-      }
 
-      // Branch Filter
-      if (selectedBranch !== 'all' && String(t.branch_id) !== String(selectedBranch)) {
-        return false;
-      }
+  // Render only the dynamic list content HTML (Cards Grid / Empty State)
+  function buildTrainingListHTML(filtered) {
+    return `
+    ${filtered.length === 0 ? `
+            <div class="training-empty-state">
+              <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
+              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Data Training Ditemukan</h3>
+              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
+              <button id="tr-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
+                Reset Filter
+              </button>
+            </div>
+          ` : `
+            <div class="training-cards-grid">
+              ${filtered.map(t => {
+                const participantsText = formatParticipants(t.participants);
+                const firstParticipant = participantsText.split(',')[0].trim();
+                const initials = firstParticipant.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'TR';
+                return `
+                  <div class="training-card" data-id="${t.id}">
+                    <div>
+                      <!-- Card Header: Batch & Nilai/Tanggal -->
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <span class="training-batch-badge">
+                          <span>🎓</span>
+                          <span>${t.batch || 'Reguler'}</span>
+                        </span>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          ${t.score != null ? `
+                            <span class="training-score-badge">
+                              <span>⭐</span>
+                              <span>${t.score}</span>
+                            </span>
+                          ` : ''}
+                          <span style="font-size:0.8rem; font-weight:600; color:#64748B;">
+                            🗓️ ${formatDateIndo(t.training_date)}
+                          </span>
+                        </div>
+                      </div>
 
-      // Trainer Filter
-      if (selectedTrainer !== 'all' && t.trainer !== selectedTrainer) {
-        return false;
-      }
+                      <!-- Subject / Materi Title -->
+                      <h4 style="margin:0 0 10px 0; font-size:1.05rem; font-weight:700; color:#0F172A; line-height:1.4;">
+                        ${t.subject || 'Materi Pelatihan'}
+                      </h4>
 
-      return true;
+                      <!-- Participant & Branch Info -->
+                      <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                        <div class="training-avatar-box">
+                          ${initials}
+                        </div>
+                        <div style="min-width:0;">
+                          <div style="font-size:0.72rem; text-transform:uppercase; font-weight:700; color:#94A3B8; margin-bottom:1px;">Peserta Training</div>
+                          <div style="font-size:0.95rem; font-weight:700; color:#1E293B; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${participantsText}">
+                            ${participantsText}
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Detail Box: Cabang & Trainer -->
+                      <div class="training-info-box">
+                        <div style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:#334155;">
+                          <span>📍</span>
+                          <span style="font-weight:600;">${t.branch_name || 'Cabang Belum Ditentukan'}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:#64748B;">
+                          <span>👨‍🏫</span>
+                          <span>Trainer: <strong style="color:#0F172A;">${t.trainer || '-'}</strong></span>
+                        </div>
+                      </div>
+
+                      ${t.notes ? `
+                        <div style="font-size:0.78rem; color:#64748B; font-style:italic; line-height:1.4; margin-bottom:8px;">
+                          📝 ${t.notes}
+                        </div>
+                      ` : ''}
+                    </div>
+
+                    <!-- Card Footer: Dokumen & Aksi -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #F1F5F9; margin-top:8px;">
+                      <div>
+                        ${t.document_link ? `
+                          <a href="${t.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.78rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                            <span>📄 Materi / Sertifikat</span>
+                          </a>
+                        ` : `
+                          <span style="font-size:0.75rem; color:#94A3B8;">(Tanpa Dokumen)</span>
+                        `}
+                      </div>
+
+                      ${canEdit || canDelete ? `
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          ${canEdit ? `
+                            <button class="training-icon-btn training-edit-btn" title="Edit Data Training" data-id="${t.id}">
+                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                          ` : ''}
+                          ${canDelete ? `
+                            <button class="training-icon-btn delete training-delete-btn" title="Hapus Training" data-id="${t.id}">
+                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                          ` : ''}
+                        </div>
+                      ` : ''}
+                    </div>
+
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+    `;
+  }
+
+  function bindListEvents() {
+    // Reset Filter Button inside list
+    const btnReset = container.querySelector('#tr-btn-reset-filter');
+    if (btnReset) {
+      btnReset.onclick = () => {
+        searchQuery = '';
+        selectedBranch = 'all';
+        selectedBatch = 'all';
+        selectedTrainer = 'all';
+        currentPage = 1;
+        clearTimeout(searchDebounce);
+        const searchInput = container.querySelector('#tr-search-input');
+        if (searchInput) searchInput.value = '';
+        const branchFilter = container.querySelector('#tr-filter-branch');
+        if (branchFilter) branchFilter.value = 'all';
+        const trainerFilter = container.querySelector('#tr-filter-trainer');
+        if (trainerFilter) trainerFilter.value = 'all';
+        container.querySelectorAll('.training-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-batch') === 'all');
+        });
+        loadData({ refreshStats: false });
+      };
+    }
+
+    // Edit Buttons
+    container.querySelectorAll('.training-edit-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = Number(btn.getAttribute('data-id'));
+        const item = trainingList.find(t => t.id === id);
+        if (item) openTrainingModal(item);
+      };
     });
+
+    // Delete Buttons
+    container.querySelectorAll('.training-delete-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = Number(btn.getAttribute('data-id'));
+        deleteTraining(id);
+      };
+    });
+  }
+
+  function renderPagination() {
+    const pgContainer = container.querySelector('#training-pagination-container');
+    if (!pgContainer) return;
+    pgContainer.innerHTML = '';
+    const pgEl = createPagination({
+      page: currentPage,
+      pages: totalPages,
+      total: totalItems,
+      limit: PAGE_LIMIT,
+      onPage: (newPage) => {
+        currentPage = newPage;
+        loadData({ refreshStats: false });
+      }
+    });
+    if (pgEl) pgContainer.appendChild(pgEl);
+  }
+
+  function renderListContent() {
+    const listContainer = container.querySelector('#training-list-container');
+    if (!listContainer) return;
+    const filtered = getFilteredList();
+    listContainer.innerHTML = buildTrainingListHTML(filtered);
+    renderPagination();
+    bindListEvents();
   }
 
   // Main UI Renderer
   function renderUI() {
     const filtered = getFilteredList();
 
-    // KPI Metrics calculation
-    const totalSessions = trainingList.length;
-
-    // Unique participants
-    const participantSet = new Set();
-    trainingList.forEach(t => {
-      const p = formatParticipants(t.participants);
-      p.split(',').forEach(name => {
-        const trimmed = name.trim();
-        if (trimmed && trimmed !== '-') participantSet.add(trimmed);
-      });
-    });
-    const totalParticipants = participantSet.size;
-
-    // Unique Batches
-    const batchSet = new Set(trainingList.map(t => t.batch).filter(Boolean));
-    const totalBatches = batchSet.size;
-
-    // Sesi Bulan Berjalan
-    const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
-    const bulanIniCount = trainingList.filter(t => {
-      if (!t.training_date) return false;
-      const d = new Date(t.training_date);
-      return !isNaN(d.getTime()) && d.getFullYear() === curYear && d.getMonth() === curMonth;
-    }).length;
+    // Global KPI Metrics from server stats
+    const totalSessions = Number(serverStats.totalSessions ?? 0);
+    const totalParticipants = Number(serverStats.totalParticipants ?? 0);
+    const totalBatches = Number(serverStats.totalBatches ?? 0);
+    const bulanIniCount = Number(serverStats.currentMonth ?? 0);
 
     container.innerHTML = `
       <style>
@@ -711,8 +921,8 @@ export async function renderTraining(container) {
             display: flex !important;
             align-items: center !important;
             gap: 6px !important;
-            flex-wrap: nowrap !important;
-            overflow-x: auto !important;
+            flex-wrap: wrap !important;
+            overflow-x: visible !important;
             scrollbar-width: none !important;
             padding-bottom: 2px !important;
           }
@@ -809,7 +1019,7 @@ export async function renderTraining(container) {
                 🎓
               </div>
               <div>
-                <div class="training-stat-val">${totalSessions}</div>
+                <div class="training-stat-val" id="tr-stat-sessions">${totalSessions}</div>
                 <div class="training-stat-lbl">Sesi Training</div>
               </div>
             </div>
@@ -819,7 +1029,7 @@ export async function renderTraining(container) {
                 👥
               </div>
               <div>
-                <div class="training-stat-val">${totalParticipants}</div>
+                <div class="training-stat-val" id="tr-stat-participants">${totalParticipants}</div>
                 <div class="training-stat-lbl">Peserta Terlatih</div>
               </div>
             </div>
@@ -829,7 +1039,7 @@ export async function renderTraining(container) {
                 📚
               </div>
               <div>
-                <div class="training-stat-val">${totalBatches} Batch</div>
+                <div class="training-stat-val"><span id="tr-stat-batches">${totalBatches}</span> Batch</div>
                 <div class="training-stat-lbl">Total Angkatan</div>
               </div>
             </div>
@@ -839,7 +1049,7 @@ export async function renderTraining(container) {
                 🗓️
               </div>
               <div>
-                <div class="training-stat-val">${bulanIniCount}</div>
+                <div class="training-stat-val" id="tr-stat-month">${bulanIniCount}</div>
                 <div class="training-stat-lbl">Bulan Berjalan</div>
               </div>
             </div>
@@ -853,7 +1063,7 @@ export async function renderTraining(container) {
               <span class="training-search-icon">
                 <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               </span>
-              <input type="text" id="tr-search-input" class="training-search-input" placeholder="Cari materi, trainer, peserta, atau cabang..." value="${searchQuery}" />
+              <input type="text" id="tr-search-input" class="training-search-input" placeholder="Cari materi, trainer, peserta, atau cabang..." value="${searchQuery ? String(searchQuery).replace(/"/g, '&quot;') : ''}" />
             </div>
 
             <select id="tr-filter-branch" class="training-select">
@@ -871,131 +1081,29 @@ export async function renderTraining(container) {
           <div class="training-filter-pills">
             <div class="training-pill ${selectedBatch === 'all' ? 'active' : ''}" data-batch="all">
               <span>Semua Batch</span>
-              <span class="badge" style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:10px; font-size:0.75rem;">${totalSessions}</span>
+              <span class="badge" id="tr-pill-count-all" style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:10px; font-size:0.75rem;">${totalSessions}</span>
             </div>
-            ${BATCH_LIST.map(b => {
-              const count = trainingList.filter(t => t.batch === b).length;
-              return `
-                <div class="training-pill ${selectedBatch === b ? 'active' : ''}" data-batch="${b}">
-                  <span>🎓</span>
-                  <span>${b}</span>
-                  ${count > 0 ? `<span class="badge" style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:10px; font-size:0.75rem;">${count}</span>` : ''}
-                </div>
-              `;
-            }).join('')}
+            ${BATCH_LIST.map(b => `
+              <div class="training-pill ${selectedBatch === b ? 'active' : ''}" data-batch="${b}">
+                <span>🎓</span>
+                <span>${b}</span>
+              </div>
+            `).join('')}
           </div>
         </div>
 
         <!-- Content Area: Murni Grid Kartu -->
         <div id="training-list-container">
-          ${filtered.length === 0 ? `
-            <div class="training-empty-state">
-              <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
-              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Data Training Ditemukan</h3>
-              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
-              <button id="tr-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
-                Reset Filter
-              </button>
-            </div>
-          ` : `
-            <div class="training-cards-grid">
-              ${filtered.map(t => {
-                const participantsText = formatParticipants(t.participants);
-                const firstParticipant = participantsText.split(',')[0].trim();
-                const initials = firstParticipant.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'TR';
-                return `
-                  <div class="training-card" data-id="${t.id}">
-                    <div>
-                      <!-- Card Header: Batch & Nilai/Tanggal -->
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <span class="training-batch-badge">
-                          <span>🎓</span>
-                          <span>${t.batch || 'Reguler'}</span>
-                        </span>
-                        <div style="display:flex; align-items:center; gap:6px;">
-                          ${t.score != null ? `
-                            <span class="training-score-badge">
-                              <span>⭐</span>
-                              <span>${t.score}</span>
-                            </span>
-                          ` : ''}
-                          <span style="font-size:0.8rem; font-weight:600; color:#64748B;">
-                            🗓️ ${formatDateIndo(t.training_date)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <!-- Subject / Materi Title -->
-                      <h4 style="margin:0 0 10px 0; font-size:1.05rem; font-weight:700; color:#0F172A; line-height:1.4;">
-                        ${t.subject || 'Materi Pelatihan'}
-                      </h4>
-
-                      <!-- Participant & Branch Info -->
-                      <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                        <div class="training-avatar-box">
-                          ${initials}
-                        </div>
-                        <div style="min-width:0;">
-                          <div style="font-size:0.72rem; text-transform:uppercase; font-weight:700; color:#94A3B8; margin-bottom:1px;">Peserta Training</div>
-                          <div style="font-size:0.95rem; font-weight:700; color:#1E293B; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${participantsText}">
-                            ${participantsText}
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Detail Box: Cabang & Trainer -->
-                      <div class="training-info-box">
-                        <div style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:#334155;">
-                          <span>📍</span>
-                          <span style="font-weight:600;">${t.branch_name || 'Cabang Belum Ditentukan'}</span>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:#64748B;">
-                          <span>👨‍🏫</span>
-                          <span>Trainer: <strong style="color:#0F172A;">${t.trainer || '-'}</strong></span>
-                        </div>
-                      </div>
-
-                      ${t.notes ? `
-                        <div style="font-size:0.78rem; color:#64748B; font-style:italic; line-height:1.4; margin-bottom:8px;">
-                          📝 ${t.notes}
-                        </div>
-                      ` : ''}
-                    </div>
-
-                    <!-- Card Footer: Dokumen & Aksi -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #F1F5F9; margin-top:8px;">
-                      <div>
-                        ${t.document_link ? `
-                          <a href="${t.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.78rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-                            <span>📄 Materi / Sertifikat</span>
-                          </a>
-                        ` : `
-                          <span style="font-size:0.75rem; color:#94A3B8;">(Tanpa Dokumen)</span>
-                        `}
-                      </div>
-
-                      ${canEdit ? `
-                        <div style="display:flex; align-items:center; gap:6px;">
-                          <button class="training-icon-btn training-edit-btn" title="Edit Data Training" data-id="${t.id}">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          </button>
-                          <button class="training-icon-btn delete training-delete-btn" title="Hapus Training" data-id="${t.id}">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                          </button>
-                        </div>
-                      ` : ''}
-                    </div>
-
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          `}
+          ${buildTrainingListHTML(filtered)}
         </div>
+
+        <!-- Pagination Container -->
+        <div id="training-pagination-container"></div>
 
       </div>
     `;
 
+    renderPagination();
     bindEvents();
   }
 
@@ -1011,31 +1119,18 @@ export async function renderTraining(container) {
 
     // Refresh button
     const btnRefresh = container.querySelector('#tr-btn-refresh');
-    if (btnRefresh) btnRefresh.onclick = () => loadData();
+    if (btnRefresh) btnRefresh.onclick = () => loadData({ refreshStats: true });
 
-    // Reset filter
-    const btnReset = container.querySelector('#tr-btn-reset-filter');
-    if (btnReset) {
-      btnReset.onclick = () => {
-        searchQuery = '';
-        selectedBranch = 'all';
-        selectedBatch = 'all';
-        selectedTrainer = 'all';
-        renderUI();
-      };
-    }
-
-    // Search input
+    // Search input (debounced)
     const searchInput = container.querySelector('#tr-search-input');
     if (searchInput) {
       searchInput.oninput = (e) => {
         searchQuery = e.target.value;
-        renderUI();
-        const newSearch = container.querySelector('#tr-search-input');
-        if (newSearch) {
-          newSearch.focus();
-          newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
-        }
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadData({ refreshStats: false });
+        }, 350);
       };
     }
 
@@ -1044,7 +1139,8 @@ export async function renderTraining(container) {
     if (branchFilter) {
       branchFilter.onchange = (e) => {
         selectedBranch = e.target.value;
-        renderUI();
+        currentPage = 1;
+        loadData({ refreshStats: false });
       };
     }
 
@@ -1053,7 +1149,8 @@ export async function renderTraining(container) {
     if (trainerFilter) {
       trainerFilter.onchange = (e) => {
         selectedTrainer = e.target.value;
-        renderUI();
+        currentPage = 1;
+        loadData({ refreshStats: false });
       };
     }
 
@@ -1061,30 +1158,18 @@ export async function renderTraining(container) {
     container.querySelectorAll('.training-pill').forEach(pill => {
       pill.onclick = () => {
         selectedBatch = pill.getAttribute('data-batch') || 'all';
-        renderUI();
+        container.querySelectorAll('.training-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-batch') === selectedBatch);
+        });
+        currentPage = 1;
+        loadData({ refreshStats: false });
       };
     });
 
-    // Edit Buttons
-    container.querySelectorAll('.training-edit-btn').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const id = Number(btn.getAttribute('data-id'));
-        const item = trainingList.find(t => t.id === id);
-        if (item) openTrainingModal(item);
-      };
-    });
-
-    // Delete Buttons
-    container.querySelectorAll('.training-delete-btn').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const id = Number(btn.getAttribute('data-id'));
-        deleteTraining(id);
-      };
-    });
+    // Initial bind of list events
+    bindListEvents();
   }
 
   // Initial load
-  await loadData();
+  await loadData({ refreshStats: true });
 }

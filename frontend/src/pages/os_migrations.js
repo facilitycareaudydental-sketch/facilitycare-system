@@ -1,7 +1,9 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
+import { escapeHtml } from '../utils/sanitize.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
+import { fetchExportRows } from '../utils/dataCache.js';
 
 const MONTH_NAMES = {
   '2026-09': 'September 2026',
@@ -18,7 +20,8 @@ const STATUS_CONFIG = {
 
 export async function renderOSMigrations(container) {
   const user = getUser();
-  const canEdit = user && (user.role === 'superadmin' || user.role === 'admin');
+  const canEdit = hasPermission(user, 'os_migrations', 'write');
+  const canDelete = hasPermission(user, 'os_migrations', 'delete');
   const canExport = hasPermission(user, 'export');
 
   container.innerHTML = `
@@ -114,13 +117,15 @@ export async function renderOSMigrations(container) {
       renderKPIs(summaryData);
       renderView();
     } catch (err) {
-      document.getElementById('migration-view-container').innerHTML = `
+      const mvc = document.getElementById('migration-view-container');
+      mvc.innerHTML = `
         <div class="empty-state" style="padding:40px; text-align:center;">
           <div style="font-size:2rem; margin-bottom:8px;">⚠️</div>
-          <p style="color:var(--danger); font-weight:600;">Gagal memuat data: ${err.message}</p>
-          <button class="btn btn-outline btn-sm" onclick="window.location.reload()">Muat Ulang</button>
+          <p style="color:var(--danger); font-weight:600;">Gagal memuat data: ${escapeHtml(err.message)}</p>
+          <button type="button" id="os-mig-reload-btn" class="btn btn-outline btn-sm">Muat Ulang</button>
         </div>
       `;
+      mvc.querySelector('#os-mig-reload-btn')?.addEventListener('click', () => window.location.reload());
     }
   }
 
@@ -280,10 +285,10 @@ export async function renderOSMigrations(container) {
                             <div style="font-weight:700; font-size:0.9rem; color:var(--text-1); line-height:1.3;">
                               <span style="color:#2563EB; font-family:monospace; margin-right:4px;">${r.branch_code}.</span>${r.branch_name}
                             </div>
-                            ${canEdit ? `
+                            ${canEdit || canDelete ? `
                               <div style="display:flex; gap:2px;">
-                                <button class="btn-icon-mini edit-card-btn" data-id="${r.id}" title="Edit" style="background:none; border:none; cursor:pointer; padding:2px 4px; font-size:0.8rem; color:var(--text-3);">✏️</button>
-                                <button class="btn-icon-mini delete-card-btn" data-id="${r.id}" data-name="${r.branch_name}" title="Hapus" style="background:none; border:none; cursor:pointer; padding:2px 4px; font-size:0.8rem; color:var(--danger);">🗑️</button>
+                                ${canEdit ? `<button class="btn-icon-mini edit-card-btn" data-id="${r.id}" title="Edit" style="background:none; border:none; cursor:pointer; padding:2px 4px; font-size:0.8rem; color:var(--text-3);">✏️</button>` : ''}
+                                ${canDelete ? `<button class="btn-icon-mini delete-card-btn" data-id="${r.id}" data-name="${r.branch_name}" title="Hapus" style="background:none; border:none; cursor:pointer; padding:2px 4px; font-size:0.8rem; color:var(--danger);">🗑️</button>` : ''}
                               </div>
                             ` : ''}
                           </div>
@@ -291,8 +296,8 @@ export async function renderOSMigrations(container) {
                           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px;">
                             <!-- Status Selector Dropdown -->
                             <div style="position:relative;">
-                              <button class="status-toggle-btn" data-id="${r.id}" data-status="${r.status}" style="background:${st.bg}; color:${st.color}; border:1px solid ${st.border}; padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="Klik untuk ubah status">
-                                ${st.icon} ${st.label} ▾
+                              <button class="status-toggle-btn" data-id="${r.id}" data-status="${r.status}" style="background:${st.bg}; color:${st.color}; border:1px solid ${st.border}; padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; cursor:${canEdit ? 'pointer' : 'default'};" title="${canEdit ? 'Klik untuk ubah status' : 'Status'}">
+                                ${st.icon} ${st.label}${canEdit ? ' ▾' : ''}
                               </button>
                             </div>
 
@@ -349,7 +354,7 @@ export async function renderOSMigrations(container) {
                 <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">REALISASI</th>
                 <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">SDM FC</th>
                 <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">CATATAN</th>
-                ${canEdit ? `<th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3); text-align:right;">AKSI</th>` : ''}
+                ${canEdit || canDelete ? `<th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3); text-align:right;">AKSI</th>` : ''}
               </tr>
             </thead>
             <tbody>
@@ -370,8 +375,8 @@ export async function renderOSMigrations(container) {
                       ${MONTH_NAMES[r.target_month] || r.target_month}
                     </td>
                     <td style="padding:12px 16px;">
-                      <button class="status-toggle-btn" data-id="${r.id}" data-status="${r.status}" style="background:${st.bg}; color:${st.color}; border:1px solid ${st.border}; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;" title="Klik untuk ubah status">
-                        ${st.icon} ${st.label} ▾
+                      <button class="status-toggle-btn" data-id="${r.id}" data-status="${r.status}" style="background:${st.bg}; color:${st.color}; border:1px solid ${st.border}; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:${canEdit ? 'pointer' : 'default'};" title="${canEdit ? 'Klik untuk ubah status' : 'Status'}">
+                        ${st.icon} ${st.label}${canEdit ? ' ▾' : ''}
                       </button>
                     </td>
                     <td style="padding:12px 16px; font-size:0.85rem; color:var(--text-2);">
@@ -383,10 +388,10 @@ export async function renderOSMigrations(container) {
                     <td style="padding:12px 16px; font-size:0.85rem; color:var(--text-3); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                       ${r.notes || '-'}
                     </td>
-                    ${canEdit ? `
+                    ${canEdit || canDelete ? `
                       <td style="padding:12px 16px; text-align:right;">
-                        <button class="btn btn-outline btn-sm edit-card-btn" data-id="${r.id}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px; margin-right:4px;">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-card-btn" data-id="${r.id}" data-name="${r.branch_name}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px;">Hapus</button>
+                        ${canEdit ? `<button class="btn btn-outline btn-sm edit-card-btn" data-id="${r.id}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px; margin-right:4px;">Edit</button>` : ''}
+                        ${canDelete ? `<button class="btn btn-danger btn-sm delete-card-btn" data-id="${r.id}" data-name="${r.branch_name}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px;">Hapus</button>` : ''}
                       </td>
                     ` : ''}
                   </tr>
@@ -401,10 +406,11 @@ export async function renderOSMigrations(container) {
   }
 
   function bindBoardEvents(targetEl) {
-    // Status quick changer popup / modal
+    // Status quick changer popup / modal (only for users with write access)
     targetEl.querySelectorAll('.status-toggle-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!canEdit) return;
         const id = btn.dataset.id;
         const currentSt = btn.dataset.status;
         showStatusMenu(btn, id, currentSt);
@@ -423,6 +429,10 @@ export async function renderOSMigrations(container) {
     // Delete button
     targetEl.querySelectorAll('.delete-card-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (!canDelete) {
+          toastError('Hanya Superadmin yang dapat menghapus jadwal migrasi.');
+          return;
+        }
         const id = btn.dataset.id;
         const name = btn.dataset.name || 'Cabang';
         confirmDialog(`Apakah Anda yakin ingin menghapus jadwal migrasi untuk <strong>${name}</strong>?`, async () => {
@@ -440,6 +450,7 @@ export async function renderOSMigrations(container) {
   }
 
   function showStatusMenu(anchorBtn, id, currentSt) {
+    if (!canEdit) return;
     // Remove any open popup
     document.querySelectorAll('.status-popup-menu').forEach(el => el.remove());
 
@@ -541,7 +552,7 @@ export async function renderOSMigrations(container) {
           </select>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="form-group">
             <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Vendor Outsourcing *</label>
             <select name="vendor" class="form-control" required style="width:100%; height:38px; border-radius:8px;">
@@ -562,7 +573,7 @@ export async function renderOSMigrations(container) {
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="form-group">
             <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Status Pelaksanaan</label>
             <select name="status" class="form-control" style="width:100%; height:38px; border-radius:8px;">
@@ -669,27 +680,42 @@ export async function renderOSMigrations(container) {
   });
 
   // Export Excel button
-  document.getElementById('btn-export-migrations')?.addEventListener('click', () => {
-    const rows = getFilteredRows();
-    if (!rows.length) {
-      toastError('Tidak ada data untuk diexport');
-      return;
+  document.getElementById('btn-export-migrations')?.addEventListener('click', async () => {
+    try {
+      const search = (document.getElementById('migration-search')?.value || '').trim();
+      const vendor = document.getElementById('filter-vendor')?.value || '';
+      const month = document.getElementById('filter-month')?.value || '';
+      const status = document.getElementById('filter-status')?.value || '';
+
+      const params = {};
+      if (vendor) params.vendor = vendor;
+      if (month) params.month = month;
+      if (status) params.status = status;
+      if (search) params.search = search;
+
+      const rows = await fetchExportRows('/api/os-migrations/export', params);
+      if (!rows.length) {
+        toastError('Tidak ada data untuk diexport');
+        return;
+      }
+      const exportData = rows.map((r, idx) => ({
+        'No': idx + 1,
+        'Kode Cabang': r.branch_code,
+        'Nama Cabang': r.branch_name,
+        'Cabang Lengkap': r.branch_full_name,
+        'Vendor OS': r.vendor,
+        'Target Bulan': MONTH_NAMES[r.target_month] || r.target_month,
+        'Status': STATUS_CONFIG[r.status]?.label || r.status,
+        'Tanggal Realisasi': r.actual_date || '',
+        'Jml Personil FC': r.employee_count || 0,
+        'PIC Vendor': r.pic_vendor || '',
+        'Catatan': r.notes || ''
+      }));
+      downloadExcel(exportData, `Timeline_Migrasi_OS_${new Date().toISOString().slice(0, 10)}`);
+      toastSuccess('File Excel berhasil diunduh');
+    } catch (err) {
+      toastError('Gagal mengekspor data migrasi: ' + err.message);
     }
-    const exportData = rows.map((r, idx) => ({
-      'No': idx + 1,
-      'Kode Cabang': r.branch_code,
-      'Nama Cabang': r.branch_name,
-      'Cabang Lengkap': r.branch_full_name,
-      'Vendor OS': r.vendor,
-      'Target Bulan': MONTH_NAMES[r.target_month] || r.target_month,
-      'Status': STATUS_CONFIG[r.status]?.label || r.status,
-      'Tanggal Realisasi': r.actual_date || '',
-      'Jml Personil FC': r.employee_count || 0,
-      'PIC Vendor': r.pic_vendor || '',
-      'Catatan': r.notes || ''
-    }));
-    downloadExcel(exportData, `Timeline_Migrasi_OS_${new Date().toISOString().slice(0, 10)}`);
-    toastSuccess('File Excel berhasil diunduh');
   });
 
   // Initial load

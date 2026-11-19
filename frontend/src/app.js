@@ -1,7 +1,8 @@
-import { getToken, getUser, clearToken, apiFetch, setUser, setToken } from './config.js';
+import { getToken, getUser, clearToken, apiFetch, setUser, setToken, hasPermission } from './config.js';
 import { initRouter, registerRoute, navigate } from './router.js';
 import { toastError } from './components/toast.js';
 import { createModal } from './components/modal.js';
+import { escapeHtml } from './utils/sanitize.js';
 
 window.parseFlexibleDate = (d) => {
   if (!d || d === '-') return '';
@@ -75,10 +76,11 @@ import { renderOvertime } from './pages/overtime.js';
 import { renderAuditLogs } from './pages/audit_logs.js';
 import { renderOSMigrations } from './pages/os_migrations.js';
 import { renderDAC } from './pages/dac.js';
+import { renderSyncDashboard } from './pages/sync_dashboard.js';
 
 function requireAuth(handler) {
   return async (ctx) => {
-    if (!getToken()) { navigate('/login'); return; }
+    if (!getToken() && !getUser()) { navigate('/login'); return; }
     return handler(ctx);
   };
 }
@@ -151,10 +153,10 @@ function showNotificationsModal() {
     <div class="notif-list" style="max-height: 400px; overflow-y: auto;">
       ${_notifications.map(n => `
         <div class="notif-item notif-severity-${n.severity || 'info'}" style="padding: 12px; border-bottom: 1px solid var(--border); border-left: 4px solid var(--${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'primary'}); margin-bottom: 8px; border-radius: 4px; background: #fff;">
-          <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-1);">${n.title}</div>
+          <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-1);">${escapeHtml(n.title)}</div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.75rem; color: var(--text-3);">
-            <span>📅 ${n.date}</span>
-            <span class="badge badge-${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'info'}">${n.type.toUpperCase()}</span>
+            <span>📅 ${escapeHtml(n.date)}</span>
+            <span class="badge badge-${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'info'}">${escapeHtml(String(n.type || "").toUpperCase())}</span>
           </div>
         </div>
       `).join('')}
@@ -337,7 +339,7 @@ function renderLayout() {
           </div>
 
           <!-- Admin -->
-          ${user && (user.role === 'superadmin' || user.role === 'admin') ? `
+          ${user && user.role === 'superadmin' ? `
           <div class="nav-section">
             <span class="nav-section-label">ADMIN</span>
             <a href="#/users" class="nav-item" data-route="/users">
@@ -365,6 +367,16 @@ function renderLayout() {
               <span class="nav-label">Import Data Awal</span>
             </a>
           </div>` : ''}
+          ${user && user.role !== 'superadmin' && hasPermission(user, 'branches', 'read') ? `
+          <div class="nav-section">
+            <span class="nav-section-label">MASTER DATA</span>
+            <a href="#/branches" class="nav-item" data-route="/branches">
+              <span class="nav-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              </span>
+              <span class="nav-label">Cabang</span>
+            </a>
+          </div>` : ''}
         </nav>
 
         <div class="sidebar-footer">
@@ -372,7 +384,7 @@ function renderLayout() {
             <div class="sidebar-avatar">${(user?.full_name || user?.username || 'U')[0].toUpperCase()}</div>
             <div class="sidebar-user-info">
               <div class="sidebar-user-name">${user?.full_name || user?.username || 'Guest'}</div>
-              <div class="sidebar-user-role">${user?.role || 'Viewer'}</div>
+              <div class="sidebar-user-role">${escapeHtml(user?.role || '-')}</div>
             </div>
           </div>
           <button class="sidebar-logout" id="logout-btn">
@@ -401,7 +413,7 @@ function renderLayout() {
                   if (h >= 11 && h < 15) return 'Selamat Siang';
                   if (h >= 15 && h < 18) return 'Selamat Sore';
                   return 'Selamat Malam';
-                })()}, </span><span class="topbar-greeting-name">${user?.full_name || user?.username || 'Guest'}</span> 👋
+                })()}, </span><span class="topbar-greeting-name">${escapeHtml(user?.full_name || user?.username || 'Guest')}</span> 👋
               </div>
               <div class="topbar-subtitle">
                 Ringkasan Operasional FCMS Hari Ini
@@ -425,10 +437,10 @@ function renderLayout() {
               <span class="notif-dot" id="notif-dot" style="display:none"></span>
             </button>
             <a href="#/profile" class="topbar-user-btn" title="Profil">
-              <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.username || 'Guest')}&background=2563EB&color=fff&bold=true" class="topbar-avatar" alt="Avatar" />
+              <div class="topbar-avatar" style="display:flex;align-items:center;justify-content:center;background:#2563EB;color:#fff;font-weight:700;font-size:0.85rem;border-radius:50%;">${escapeHtml(String(user?.full_name || user?.username || 'G').trim().charAt(0).toUpperCase())}</div>
               <div class="topbar-user-text">
-                <span class="topbar-user-name">${user?.full_name || user?.username || 'Guest'}</span>
-                <span class="topbar-user-role-mini">${user?.role || 'Viewer'}</span>
+                <span class="topbar-user-name">${escapeHtml(user?.full_name || user?.username || 'Guest')}</span>
+                <span class="topbar-user-role-mini">${escapeHtml(user?.role || '-')}</span>
               </div>
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:4px;color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
             </a>
@@ -452,17 +464,20 @@ function renderLayout() {
   overlay?.addEventListener('click', closeSidebar);
   document.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', closeSidebar));
 
-  if (user && user.role === 'input_lembur') {
-    document.querySelectorAll('.nav-item').forEach(el => {
-      if (el.dataset.route !== '/overtime') {
-        el.style.display = 'none';
-      }
-    });
-    document.querySelectorAll('.nav-section').forEach(el => {
-      const hasVisible = Array.from(el.querySelectorAll('.nav-item')).some(item => item.style.display !== 'none');
-      if (!hasVisible) el.style.display = 'none';
-    });
-  }
+  // Enforce official 2-role menu visibility (superadmin vs fc_specialist_leader)
+  const adminRoutes = new Set(['/users', '/settings/import', '/audit-logs', '/sync']);
+  const userRole = String(user?.role || '').trim().toLowerCase();
+  const isOfficialRole = userRole === 'superadmin' || userRole === 'fc_specialist_leader';
+  document.querySelectorAll('.nav-item').forEach(el => {
+    const route = el.dataset.route;
+    if (!isOfficialRole || (userRole !== 'superadmin' && adminRoutes.has(route))) {
+      el.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('.nav-section').forEach(el => {
+    const hasVisible = Array.from(el.querySelectorAll('.nav-item')).some(item => item.style.display !== 'none');
+    if (!hasVisible) el.style.display = 'none';
+  });
 
   // ── Active nav ───────────────────────────────────────────────────────────
   function updateActiveNav() {
@@ -524,55 +539,135 @@ async function init() {
   registerRoute('/relievers',          requireAuth(({ main, params }) => renderRelievers(main, params)));
   registerRoute('/reports/inspection', requireAuth(({ main }) => renderInspectionReports(main)));
   registerRoute('/reports/cleaning',   requireAuth(({ main }) => renderCleaningReports(main)));
-  registerRoute('/reports/fogging',    requireAuth(({ main }) => renderFoggingReports(main)));
+  registerRoute('/reports/fogging',    requireAuth(({ main, params }) => renderFoggingReports(main, params)));
   registerRoute('/reports/basecamp',   requireAuth(({ main }) => renderBasecampReports(main)));
   registerRoute('/reports/supply',     requireAuth(({ main }) => renderForms(main, 'supply')));
+  registerRoute('/forms',              requireAuth(({ main }) => renderForms(main, 'forms')));
   registerRoute('/sop',                () => { window.location.hash = '#/sop-fc'; });
   registerRoute('/sop-fc',             requireAuth(({ main }) => renderSOPFacilityCare(main)));
   registerRoute('/sop-security',       requireAuth(({ main }) => renderSOPSecurity(main)));
   registerRoute('/checklist',          requireAuth(({ main }) => renderChecklist(main)));
   registerRoute('/hygiene-standards', requireAuth(({ main }) => renderHygieneStandards(main)));
   registerRoute('/dac',                requireAuth(({ main }) => renderDAC(main)));
-  registerRoute('/users',              requireAuth(({ main }) => renderUsers(main)));
+  registerRoute('/users',              requireAuth(({ main }) => {
+    const user = getUser();
+    if (!user || user.role !== 'superadmin') {
+      navigate('/dashboard');
+      return;
+    }
+    renderUsers(main);
+  }));
   registerRoute('/branches',           requireAuth(({ main }) => renderBranches(main)));
   registerRoute('/profile',            requireAuth(({ main }) => renderProfile(main)));
   registerRoute('/settings/import',    requireAuth(({ main }) => {
     const user = getUser();
-    if (!user || (user.role !== 'superadmin' && user.role !== 'admin')) {
+    if (!user || user.role !== 'superadmin') {
       navigate('/dashboard');
       return;
     }
     renderImportPage(main);
   }));
-  registerRoute('/audit-logs',         requireAuth(({ main }) => renderAuditLogs(main)));
+  registerRoute('/audit-logs',         requireAuth(({ main }) => {
+    const user = getUser();
+    if (!user || user.role !== 'superadmin') {
+      navigate('/dashboard');
+      return;
+    }
+    renderAuditLogs(main);
+  }));
+  registerRoute('/sync',               requireAuth(({ main }) => {
+    const user = getUser();
+    if (!user || user.role !== 'superadmin') {
+      navigate('/dashboard');
+      return;
+    }
+    renderSyncDashboard(main);
+  }));
 
   const token = getToken();
-  if (!token && window.location.hash !== '#/login') { navigate('/login'); }
-
-  if (token) {
-    const res = await apiFetch('/api/auth/me');
-    if (res.ok) { 
-      setUser(res.data.data); 
-      renderLayout(); 
-      const user = getUser();
-      const hash = window.location.hash;
-      if (user && user.role === 'input_lembur' && (hash === '#/dashboard' || hash === '' || hash === '#/')) {
-        navigate('/overtime');
+  const existingUser = getUser();
+  if (window.location.hash !== '#/login') {
+    if (token || existingUser) {
+      const res = await apiFetch('/api/auth/me');
+      if (res.ok && res.data?.data) {
+        setUser(res.data.data);
+        renderLayout();
+      } else {
+        clearToken();
+        navigate('/login');
+      }
+    } else {
+      // Probe HttpOnly session cookie once if user navigated to app directly
+      const res = await apiFetch('/api/auth/me');
+      if (res.ok && res.data?.data) {
+        setUser(res.data.data);
+        renderLayout();
+      } else {
+        clearToken();
+        navigate('/login');
       }
     }
-    else { clearToken(); navigate('/login'); }
   }
 
-  window.addEventListener('fm:login', () => { 
-    renderLayout(); 
-    const user = getUser();
-    if (user && user.role === 'input_lembur') {
-      navigate('/overtime');
-    } else {
-      navigate('/dashboard'); 
-    }
+  window.addEventListener('fm:login', () => {
+    renderLayout();
+    navigate('/dashboard');
   });
   initRouter();
 }
 
-init();
+// ── Global Runtime Stability Safety Nets ─────────────────────────────────────
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const reasonMsg = event?.reason?.message || String(event?.reason || 'Unknown promise rejection');
+    console.error('[FCMS Stability] Unhandled promise rejection captured:', reasonMsg);
+    event.preventDefault();
+  });
+  window.addEventListener('error', (event) => {
+    const errMsg = event?.message || event?.error?.message || 'Unknown runtime error';
+    console.error('[FCMS Stability] Runtime error captured:', errMsg);
+  });
+}
+
+init().catch((err) => {
+  console.error('[FCMS Stability] App initialization error:', err?.message || err);
+  toastError('Terjadi kendala saat memulai aplikasi. Silakan muat ulang halaman.');
+});
+
+
+// ── PWA Service Worker & Install Support ─────────────────────────────────────
+if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      console.log('[PWA] Service Worker registered with scope:', reg.scope);
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.log('[PWA] New version available, reloading on user confirmation or refresh.');
+          }
+        });
+      });
+    }).catch((err) => {
+      console.warn('[PWA] Service Worker registration failed:', err);
+    });
+  });
+}
+
+// PWA Install Prompt Listener
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  window.__showInstallPrompt = () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('[PWA] User accepted the install prompt');
+        }
+        deferredInstallPrompt = null;
+      });
+    }
+  };
+});
