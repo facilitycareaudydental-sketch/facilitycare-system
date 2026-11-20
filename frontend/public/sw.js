@@ -5,7 +5,7 @@
  * - Dynamic API Requests (/api/*): Network-Only (No sensitive data persisted offline without credentials)
  */
 
-const CACHE_NAME = 'fcms-shell-v20261120-r1';
+const CACHE_NAME = 'fcms-shell-v20261120-r2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -47,9 +47,7 @@ self.addEventListener('message', (event) => {
 
 function isBypassCacheRequest(request, url) {
   if (request.method !== 'GET') return true;
-  if (url.origin !== self.location.origin) return true;
   if (url.pathname.startsWith('/api')) return true;
-  if (url.hostname.includes('workers.dev')) return true;
   if (request.headers && (request.headers.has('Authorization') || request.headers.has('authorization'))) return true;
   return false;
 }
@@ -57,7 +55,13 @@ function isBypassCacheRequest(request, url) {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. Strictly Network-Only for API, Worker domains, cross-origin, auth-header, and non-GET requests
+  // 0. Bypass cross-origin requests (CDNs, Google Fonts, external Worker API) completely
+  // so browser fetches them natively under document CSP without SW connect-src 503 blocks.
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // 1. Strictly Network-Only for same-origin /api, auth-header, and non-GET requests
   if (isBypassCacheRequest(event.request, url)) {
     event.respondWith(
       fetch(event.request).catch(() => {
