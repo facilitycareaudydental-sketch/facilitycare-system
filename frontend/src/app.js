@@ -1,4 +1,4 @@
-import { getToken, getUser, clearToken, apiFetch, setUser, setToken, hasPermission } from './config.js';
+import { getToken, getUser, clearToken, apiFetch, setUser, setToken, setCsrfToken, hasPermission } from './config.js';
 import { initRouter, registerRoute, navigate } from './router.js';
 import { toastError } from './components/toast.js';
 import { createModal } from './components/modal.js';
@@ -584,28 +584,18 @@ async function init() {
     renderSyncDashboard(main);
   }));
 
-  const token = getToken();
-  const existingUser = getUser();
   if (window.location.hash !== '#/login') {
-    if (token || existingUser) {
-      const res = await apiFetch('/api/auth/me');
-      if (res.ok && res.data?.data) {
-        setUser(res.data.data);
-        renderLayout();
-      } else {
-        clearToken();
-        navigate('/login');
-      }
+    const res = await apiFetch('/api/auth/me');
+    if (res.ok && res.data?.data) {
+      const meData = { ...res.data.data };
+      const recoveredCsrf = typeof meData.csrf_token === 'string' ? meData.csrf_token : null;
+      delete meData.csrf_token;
+      if (recoveredCsrf) setCsrfToken(recoveredCsrf);
+      setUser(meData);
+      renderLayout();
     } else {
-      // Probe HttpOnly session cookie once if user navigated to app directly
-      const res = await apiFetch('/api/auth/me');
-      if (res.ok && res.data?.data) {
-        setUser(res.data.data);
-        renderLayout();
-      } else {
-        clearToken();
-        navigate('/login');
-      }
+      clearToken();
+      navigate('/login');
     }
   }
 

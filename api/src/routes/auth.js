@@ -7,6 +7,9 @@ import {
   buildSessionExpiryIso,
   NORMAL_TOKEN_TTL_MS,
   RESTRICTED_TOKEN_TTL_MS,
+  SESSION_COOKIE_NAME,
+  CSRF_COOKIE_NAME,
+  parseCookies,
   buildRevokeSessionStatement,
   buildRevokeAllUserSessionsStatement,
   createToken,
@@ -15,7 +18,7 @@ import {
   validatePbkdf2Iterations,
   validatePasswordPolicy
 } from '../utils/auth.js';
-import { ok, error, unauthorized } from '../utils/response.js';
+import { ok, error, unauthorized, isAllowedOrigin, LOCAL_ALLOWED_ORIGINS } from '../utils/response.js';
 import { logAudit, buildAuditStatement } from '../utils/audit.js';
 
 // ── Rate Limiting (Best-Effort Per-Isolate Only — NOT Distributed) ──────────
@@ -651,10 +654,71 @@ async function handleLogout(request, env, origin) {
   return res;
 }
 
+async function deriveSessionCsrfToken(jwtSecret, sessionId) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(jwtSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(`fcms-csrf:${sessionId}`));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function handleMe(request, env, origin) {
+  const reqOrigin = request?.headers?.get?.('Origin');
+  if (reqOrigin && !isAllowedOrigin(reqOrigin, env?.CORS_ORIGIN, env?.ENVIRONMENT)) {
+    return error('Origin not allowed by CORS policy', 403, null, env?.ENVIRONMENT);
+  }
+
   const user = await authenticate(request, env);
   if (!user) return unauthorized(origin);
-  return ok(user, 200, origin);
+
+  let isLocalSameOrigin = false;
+  try {
+    const reqHostOrigin = new URL(request.url).origin;
+    isLocalSameOrigin = LOCAL_ALLOWED_ORIGINS.has(reqHostOrigin);
+  } catch {}
+
+  const cookies = parseCookies(request);
+  const hasSessionCookie = Boolean(cookies[SESSION_COOKIE_NAME]);
+  const isOriginPermittedForCsrf = Boolean(
+    (reqOrigin && isAllowedOrigin(reqOrigin, env?.CORS_ORIGIN, env?.ENVIRONMENT)) ||
+    (!reqOrigin && isLocalSameOrigin)
+  );
+
+  let csrfToken = null;
+  let shouldSetCsrfCookie = false;
+
+  if (isOriginPermittedForCsrf && (hasSessionCookie || reqOrigin)) {
+    const existingCsrf = typeof cookies[CSRF_COOKIE_NAME] === 'string' ? cookies[CSRF_COOKIE_NAME].trim() : '';
+    if (existingCsrf.length >= 16) {
+      // Preserve active CSRF cookie so concurrent reloads and multiple tabs stay in sync
+      csrfToken = existingCsrf;
+    } else if (env?.JWT_SECRET && user.sessionId) {
+      csrfToken = await deriveSessionCsrfToken(env.JWT_SECRET, user.sessionId);
+      shouldSetCsrfCookie = hasSessionCookie;
+    }
+  }
+
+  const responseData = csrfToken ? { ...user, csrf_token: csrfToken } : user;
+  const res = ok(responseData, 200, origin, env?.ENVIRONMENT, { 'Cache-Control': 'no-store' });
+
+  if (shouldSetCsrfCookie && csrfToken) {
+    const isHttps = /^https:/i.test(String(request?.url || '')) || /^https:/i.test(String(origin || ''));
+    const sameSiteAttr = isHttps ? 'Secure; SameSite=None' : 'SameSite=Lax';
+    const remainingSec = user?.tokenPayload?.exp
+      ? Math.max(60, Math.floor((user.tokenPayload.exp - Date.now()) / 1000))
+      : Math.floor(NORMAL_TOKEN_TTL_MS / 1000);
+    res.headers.append(
+      'Set-Cookie',
+      `${CSRF_COOKIE_NAME}=${encodeURIComponent(csrfToken)}; Path=/; Max-Age=${remainingSec}; ${sameSiteAttr}`
+    );
+  }
+
+  return res;
 }
 
 async function handleChangePassword(request, env, origin) {

@@ -182,6 +182,7 @@ if (typeof globalThis !== 'undefined' && globalThis.window && globalThis.window.
 
 let _ephemeralMemoryToken = null;
 let _ephemeralCsrfToken = null;
+let _csrfRecoveryPromise = null;
 
 function readBrowserCookie(name) {
   if (typeof document === 'undefined' || !document.cookie) return null;
@@ -361,15 +362,55 @@ export function hasPermission(user, moduleOrAction = 'read', action = null) {
   return false;
 }
 
+async function ensureCsrfTokenReady(options = {}) {
+  if (getToken() || getCsrfToken()) return;
+  if (_csrfRecoveryPromise) return _csrfRecoveryPromise;
+  _csrfRecoveryPromise = (async () => {
+    try {
+      const activeApiBase = resolveApiBaseUrl(options.configOverride || null);
+      const fetchFn = (typeof options.fetchImpl === 'function') ? options.fetchImpl : fetch;
+      const meUrl = buildApiUrl(activeApiBase, `/api/auth/me?cb=${Date.now()}`);
+      const res = await fetchFn(meUrl, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        const json = await res.json().catch(() => null);
+        const csrf = json?.data?.csrf_token;
+        if (typeof csrf === 'string' && csrf.length > 0) {
+          setCsrfToken(csrf);
+        }
+      }
+    } catch {
+      // Fail closed: subsequent mutating request proceeds without header and is rejected with 401
+    } finally {
+      _csrfRecoveryPromise = null;
+    }
+  })();
+  return _csrfRecoveryPromise;
+}
+
 export async function apiFetch(path, options = {}) {
   // Always resolve & validate runtime API base URL fail-closed before dispatching any request
   const activeApiBase = resolveApiBaseUrl(options.configOverride || null);
   API_BASE_URL = activeApiBase;
   API = activeApiBase;
 
+  const methodUpper = String(options.method || 'GET').toUpperCase();
+  if (
+    !options.fetchImpl &&
+    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(methodUpper) &&
+    !path.startsWith('/api/auth/login') &&
+    getUser() &&
+    !getToken() &&
+    !getCsrfToken()
+  ) {
+    await ensureCsrfTokenReady(options);
+  }
+
   const token = getToken();
   const csrfToken = getCsrfToken();
-  const methodUpper = String(options.method || 'GET').toUpperCase();
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
