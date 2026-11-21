@@ -318,3 +318,56 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Catch legacy utility/inline light surfaces left by older modules.
+   Scoped to authenticated shell so the existing login design stays intact. */
+.app-layout .bg-white,
+.app-layout .bg-light,
+.app-layout .surface-light,
+.app-layout .white-card,
+.app-layout .table-responsive,
+.app-layout .table-container,
+.app-layout .search-container,
+.app-layout .filter-container,
+.app-layout .form-container,
+.app-layout .stat-box,
+.app-layout .info-box {
+  color: var(--text-1);
+  background: linear-gradient(145deg, rgba(24,39,64,.94), rgba(16,28,48,.96));
+  border-color: rgba(145,177,222,.17);
+}
+.app-layout [style*="background:#fff"],
+.app-layout [style*="background: #fff"],
+.app-layout [style*="background-color:#fff"],
+.app-layout [style*="background-color: #fff"],
+.app-layout [style*="background: white"],
+.app-layout [style*="background-color: white"],
+.app-layout [style*="background:#ffffff"],
+.app-layout [style*="background: #ffffff"],
+.app-layout [style*="background-color:#ffffff"],
+.app-layout [style*="background-color: #ffffff"] {
+  color: var(--text-1) !important;
+  background-color: #14223A !important;
+  border-color: rgba(145,177,222,.20) !important;
+}
+.app-layout .table-responsive,
+.app-layout .table-container,
+.app-layout .table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-layout .kpi-row { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .app-layout .mini-stats-row { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 767px) {
+  .app-layout .kpi-row,
+  .app-layout .mini-stats-row { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  .app-layout .page-actions { align-items: stretch; }
+  .app-layout .page-actions > button,
+  .app-layout .page-actions > a { min-height: 40px; }
+  .app-layout .modal,
+  .app-layout .modal-content,
+  .app-layout .modal-dialog { max-width: calc(100vw - 24px); }
+}
