@@ -1,18 +1,125 @@
-name: Manual DB Migration (Disabled - Safe No-Op)
+name: Manual Production D1 Migration (Owner Approved Only)
 
+# ZERO automatic triggers: NEVER runs on push, pull_request, or schedule.
 on:
   workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Target Environment (wajib ketik: PRODUCTION_DATABASE)'
+        required: true
+        default: ''
+      expected_account_id:
+        description: 'Cloudflare Account ID FCMS (harus cocok dengan vars.EXPECTED_FCMS_ACCOUNT_ID)'
+        required: true
+        default: ''
+      migration_file:
+        description: 'Path file SQL additive (misal: scripts/phase3_final_optimization_additive.sql)'
+        required: true
+        default: ''
+      backup_confirmed:
+        description: 'Konfirmasi backup D1 Production telah diverifikasi (ketik: YES_BACKUP_VERIFIED)'
+        required: true
+        default: ''
+      execution_mode:
+        description: 'Mode eksekusi (default DRY_RUN_VERIFY_ONLY — aman tanpa menulis ke D1)'
+        required: true
+        type: choice
+        options:
+          - DRY_RUN_VERIFY_ONLY
+          - APPLY_MIGRATION
+        default: 'DRY_RUN_VERIFY_ONLY'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
 
 jobs:
-  run-migration:
-    name: 🗄️ Run SQL Migration (Disabled)
+  # ============================================================
+  # 1. Pre-flight Migration Safety & SQL Validation (Read-Only)
+  # ============================================================
+  preflight-migration-check:
+    name: 🛡️ Pre-flight D1 Migration Safety Check
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     steps:
-      - name: Disabled Legacy Migration Notice
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate Inputs, Path Containment & Destructive SQL Guard
+        env:
+          INPUT_TARGET: ${{ github.event.inputs.target_environment }}
+          INPUT_ACCOUNT_ID: ${{ github.event.inputs.expected_account_id }}
+          BASELINE_ACCOUNT_ID: ${{ vars.EXPECTED_FCMS_ACCOUNT_ID }}
+          SECRET_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INPUT_MIGRATION_FILE: ${{ github.event.inputs.migration_file }}
+          INPUT_BACKUP_CONFIRMED: ${{ github.event.inputs.backup_confirmed }}
         run: |
-          echo "NOTICE: Legacy manual migration workflow is disabled for production safety."
-          echo "Reason: Missing create_tables.js script and absence of FCMS target/account preflight verification."
-          echo "Use controlled D1 migrations with explicit FCMS target verification (fcms-production-db) instead."
-          exit 0
+          if [ "$INPUT_TARGET" != "PRODUCTION_DATABASE" ]; then
+            echo "❌ FATAL: target_environment harus tepat 'PRODUCTION_DATABASE'."
+            exit 1
+          fi
+          if [ "$INPUT_BACKUP_CONFIRMED" != "YES_BACKUP_VERIFIED" ]; then
+            echo "❌ FATAL: backup_confirmed harus 'YES_BACKUP_VERIFIED' sebelum migrasi."
+            exit 1
+          fi
+          if [ -z "$BASELINE_ACCOUNT_ID" ] || [ "$INPUT_ACCOUNT_ID" != "$BASELINE_ACCOUNT_ID" ] || [ "$SECRET_ACCOUNT_ID" != "$BASELINE_ACCOUNT_ID" ]; then
+            echo "❌ FATAL: Verifikasi Account ID FCMS gagal (fail-closed)."
+            exit 1
+          fi
+          if echo "$INPUT_MIGRATION_FILE" | grep -qE '(\.\.|^/|\\)'; then
+            echo "❌ FATAL: Path migration_file tidak valid."
+            exit 1
+          fi
+          if [ ! -f "$INPUT_MIGRATION_FILE" ]; then
+            echo "❌ FATAL: File migrasi tidak ditemukan: $INPUT_MIGRATION_FILE"
+            exit 1
+          fi
+          if grep -iE '\b(DROP\s+TABLE|DROP\s+INDEX|DELETE\s+FROM|TRUNCATE)\b' "$INPUT_MIGRATION_FILE"; then
+            echo "❌ FATAL: Ditemukan statement destruktif (DROP/DELETE/TRUNCATE) dalam file migrasi! Ditolak."
+            exit 1
+          fi
+          node scripts/preflight-guard.mjs --env=production --authorize-production
+          echo "✅ Pre-flight D1 migration safety check lolos."
+
+  # ============================================================
+  # 2. Execute Production D1 Migration
+  # WAJIB: Owner Approval terpisah (environment: production-database)
+  # ============================================================
+  execute-production-migration:
+    name: 🗄️ Execute Production D1 Migration (Owner Approval Required)
+    runs-on: ubuntu-latest
+    needs: preflight-migration-check
+    environment:
+      name: production-database
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run Dry-Run or Controlled Additive D1 Migration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INPUT_MIGRATION_FILE: ${{ github.event.inputs.migration_file }}
+          INPUT_MODE: ${{ github.event.inputs.execution_mode }}
+        run: |
+          if [ "$INPUT_MODE" != "APPLY_MIGRATION" ]; then
+            echo "ℹ️ MODE DRY_RUN_VERIFY_ONLY: Tidak ada perubahan yang ditulis ke fcms-production-db."
+            echo "File terverifikasi: $INPUT_MIGRATION_FILE"
+            exit 0
+          fi
+          npm install -g wrangler@3
+          npx wrangler d1 execute fcms-production-db --remote --config api/wrangler.toml --file="$INPUT_MIGRATION_FILE" --yes
+          echo "✅ Migrasi additive D1 Production selesai dieksekusi dengan approval Owner."

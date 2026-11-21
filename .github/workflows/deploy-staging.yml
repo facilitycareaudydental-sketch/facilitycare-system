@@ -1,0 +1,118 @@
+name: Deploy FCMS Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'Komponen Staging yang di-deploy'
+        required: true
+        type: choice
+        options:
+          - FRONTEND_ONLY
+          - API_ONLY
+          - ALL
+        default: 'FRONTEND_ONLY'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
+  STAGING_API_URL: 'https://fm-operations-api-staging.facilitycare-audydental.workers.dev'
+
+jobs:
+  validate-staging:
+    name: ✅ Validate Staging Build & Isolation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install root deps
+        run: npm install
+
+      - name: Build Staging Frontend & Assert Zero Production Leak
+        env:
+          ENVIRONMENT: staging
+          API_BASE_URL: ${{ env.STAGING_API_URL }}
+        run: |
+          node build-root.js --env=staging
+          grep -F "ENVIRONMENT: 'staging'" dist-staging/index.html || exit 1
+          grep -F "API_BASE_URL: 'https://fm-operations-api-staging.facilitycare-audydental.workers.dev'" dist-staging/index.html || exit 1
+          if grep -F "fm-operations-api.facilitycare-audydental.workers.dev" dist-staging/index.html; then
+            echo "❌ FATAL: URL Production bocor ke bundle Staging!"
+            exit 1
+          fi
+          echo "✅ Staging build & anti-production isolation terverifikasi."
+
+  deploy-staging-api:
+    name: 🧪 Deploy Staging Worker
+    runs-on: ubuntu-latest
+    needs: validate-staging
+    environment:
+      name: staging
+      url: https://fm-operations-api-staging.facilitycare-audydental.workers.dev
+    if: github.event.inputs.deploy_target == 'API_ONLY' || github.event.inputs.deploy_target == 'ALL'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Assert Staging Worker Config (Anti-Production Guard)
+        run: |
+          grep -F 'name = "fm-operations-api-staging"' api/wrangler.toml || exit 1
+          grep -F 'database_id = "7ecb4668-c2b9-48ef-93a6-f59a3672e8df"' api/wrangler.toml || exit 1
+
+      - name: Install API deps
+        run: npm install
+        working-directory: api
+
+      - name: Deploy Staging Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: api
+          command: deploy --env staging
+
+  deploy-staging-pages:
+    name: 🧪 Deploy Staging Pages
+    runs-on: ubuntu-latest
+    needs: validate-staging
+    environment:
+      name: staging
+      url: https://staging.facilitycare-system-staging.pages.dev
+    if: github.event.inputs.deploy_target == 'FRONTEND_ONLY' || github.event.inputs.deploy_target == 'ALL'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install root deps
+        run: npm install
+
+      - name: Build Staging Frontend
+        env:
+          ENVIRONMENT: staging
+          API_BASE_URL: ${{ env.STAGING_API_URL }}
+        run: node build-root.js --env=staging
+
+      - name: Deploy ke Cloudflare Pages Staging
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist-staging --project-name=facilitycare-system-staging --branch=staging --commit-dirty=true

@@ -18,21 +18,24 @@ on:
         required: true
         default: ''
       deploy_target:
-        description: 'Komponen yang di-deploy (pilih salah satu)'
+        description: 'Komponen Production (terpisah — masing-masing butuh approval Owner tersendiri)'
         required: true
         type: choice
         options:
           - FRONTEND_ONLY
           - API_ONLY
-          - ALL
         default: 'FRONTEND_ONLY'
+
+permissions:
+  contents: read
 
 env:
   NODE_VERSION: '24'
 
 jobs:
   # ============================================================
-  # Validate — jalankan di setiap push & PR (tanpa akses Cloudflare)
+  # Validate — jalankan otomatis di setiap push, PR, & dispatch
+  # (Tanpa akses Cloudflare, tanpa deployment Production)
   # ============================================================
   validate:
     name: ✅ Validate & Build Check
@@ -57,11 +60,42 @@ jobs:
           test -f frontend/public/index.html && echo "✅ frontend/public/index.html"
           test -f schema/migrations.sql      && echo "✅ schema/migrations.sql"
           test -f build-root.js              && echo "✅ build-root.js"
+          test -f scripts/preflight-guard.mjs && echo "✅ scripts/preflight-guard.mjs"
 
-      - name: Test frontend build
+      - name: Verify fail-closed build & frontend build checks
         env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://fm-operations-api.placeholder.workers.dev' }}
-        run: node build-root.js
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://fm-operations-api.facilitycare-audydental.workers.dev' }}
+        run: |
+          if grep -q -- '--env' build-root.js; then
+            if node build-root.js; then
+              echo "❌ FATAL: build-root.js harus menolak build tanpa --env/ENVIRONMENT eksplisit!"
+              exit 1
+            fi
+            echo "✅ Build tanpa environment eksplisit ditolak (fail-closed)."
+
+            ENVIRONMENT=staging API_BASE_URL=https://fm-operations-api-staging.facilitycare-audydental.workers.dev node build-root.js --env=staging
+            grep -F "ENVIRONMENT: 'staging'" dist-staging/index.html
+            grep -F "API_BASE_URL: 'https://fm-operations-api-staging.facilitycare-audydental.workers.dev'" dist-staging/index.html
+            if grep -F "fm-operations-api.facilitycare-audydental.workers.dev" dist-staging/index.html; then
+              echo "❌ FATAL: URL Worker Production bocor ke bundle Staging!"
+              exit 1
+            fi
+
+            ENVIRONMENT=production API_BASE_URL="$API_BASE_URL" node build-root.js --env=production
+            grep -F "ENVIRONMENT: 'production'" dist/index.html
+            grep -F "API_BASE_URL: 'https://fm-operations-api.facilitycare-audydental.workers.dev'" dist/index.html
+            if grep -iE "fm-operations-api-staging|fcvm" dist/index.html; then
+              echo "❌ FATAL: URL Worker Staging/FCVM bocor ke bundle Production!"
+              exit 1
+            fi
+          else
+            echo "ℹ️ Legacy build-root.js terdeteksi pada base branch; menjalankan build standar."
+            node build-root.js
+            test -f dist/index.html && echo "✅ dist/index.html terbangun."
+          fi
+
+      - name: Run Deployment Hardening CI Suite
+        run: node scripts/test_deployment_hardening.mjs --ci-only
 
   # ============================================================
   # Pre-flight Target Verification Gate (HANYA Manual Dispatch dari main)
@@ -96,11 +130,11 @@ jobs:
             echo "❌ FATAL: expected_account_id wajib diisi untuk verifikasi target. Dibatalkan."
             exit 1
           fi
-          if [ "$INPUT_DEPLOY_TARGET" != "FRONTEND_ONLY" ] && [ "$INPUT_DEPLOY_TARGET" != "API_ONLY" ] && [ "$INPUT_DEPLOY_TARGET" != "ALL" ]; then
-            echo "❌ FATAL: Target deployment tidak valid ($INPUT_DEPLOY_TARGET). Dibatalkan."
+          if [ "$INPUT_DEPLOY_TARGET" != "FRONTEND_ONLY" ] && [ "$INPUT_DEPLOY_TARGET" != "API_ONLY" ]; then
+            echo "❌ FATAL: Target deployment tidak valid ($INPUT_DEPLOY_TARGET). Harus FRONTEND_ONLY atau API_ONLY agar approval terpisah. Dibatalkan."
             exit 1
           fi
-          echo "✅ Intent manual dispatch terverifikasi."
+          echo "✅ Intent manual dispatch terverifikasi (target: $INPUT_DEPLOY_TARGET)."
 
       - name: Verify Account ID against Independent Baseline (Fail-Closed)
         env:
@@ -110,102 +144,42 @@ jobs:
         run: |
           echo "=== 2. VERIFIKASI AKUN TERHADAP BASELINE INDEPENDEN (FAIL-CLOSED) ==="
 
-          # A. Periksa keberadaan baseline independen
           if [ -z "$BASELINE_ACCOUNT_ID" ]; then
             echo "❌ FATAL: vars.EXPECTED_FCMS_ACCOUNT_ID belum dikonfigurasi di GitHub Repository Variables."
-            echo "❌ KEBIJAKAN FAIL-CLOSED: Deployment ditolak sebelum identitas akun FCMS dibuktikan secara independen."
-            echo "❌ Tindakan yang diperlukan: Daftarkan EXPECTED_FCMS_ACCOUNT_ID resmi di Settings > Secrets and variables > Actions > Variables."
             exit 1
           fi
 
-          # B. Periksa keberadaan secret akun
           if [ -z "$SECRET_ACCOUNT_ID" ]; then
             echo "❌ FATAL: secrets.CLOUDFLARE_ACCOUNT_ID belum dikonfigurasi di GitHub Secrets. Dibatalkan."
             exit 1
           fi
 
-          # C. Validasi bahwa INPUT cocok dengan BASELINE resmi
           if [ "$INPUT_ACCOUNT_ID" != "$BASELINE_ACCOUNT_ID" ]; then
             echo "❌ FATAL: expected_account_id dari input tidak cocok dengan vars.EXPECTED_FCMS_ACCOUNT_ID!"
-            echo "❌ RISIKO TINGGI: Potensi salah input atau percobaan menargetkan akun lain. Dibatalkan."
             exit 1
           fi
 
-          # D. Validasi bahwa SECRET di repo cocok dengan BASELINE resmi
           if [ "$SECRET_ACCOUNT_ID" != "$BASELINE_ACCOUNT_ID" ]; then
             echo "❌ FATAL: secrets.CLOUDFLARE_ACCOUNT_ID di repository tidak cocok dengan vars.EXPECTED_FCMS_ACCOUNT_ID!"
-            echo "❌ RISIKO TINGGI: Secret di GitHub terindikasi mengarah ke akun lain (misal legacy FCVM). Dibatalkan."
             exit 1
           fi
 
-          echo "✅ Tiga faktor verifikasi akun (Input, Secret, dan Baseline Independen) cocok dan terbukti konsisten."
+          echo "✅ Tiga faktor verifikasi akun (Input, Secret, dan Baseline Independen) cocok."
 
       - name: Configuration Assertion Gate (Pemeriksaan Integritas Berkas Statis)
         run: |
-          echo "=== 3. CONFIGURATION ASSERTION GATE (PERIKSA TOML LOKAL) ==="
-          echo "ℹ️ CATATAN: Ini adalah verifikasi integritas kode sumber lokal, bukan bukti identitas cloud runtime."
+          echo "=== 3. CONFIGURATION ASSERTION GATE ==="
+          node scripts/preflight-guard.mjs --env=production --authorize-production
 
-          # A. Verifikasi api/wrangler.toml: Nama Worker harus tepat fm-operations-api dan account_id FCMS
-          grep -E '^[[:space:]]*name[[:space:]]*=[[:space:]]*"fm-operations-api"[[:space:]]*$' api/wrangler.toml || {
-            echo "❌ FATAL: api/wrangler.toml harus memiliki name = \"fm-operations-api\". Dibatalkan."
-            exit 1
-          }
-          grep -E '^[[:space:]]*account_id[[:space:]]*=[[:space:]]*"293440e04e5d0c8073e7e2893750b527"[[:space:]]*$' api/wrangler.toml || {
-            echo "❌ FATAL: api/wrangler.toml harus memiliki account_id = \"293440e04e5d0c8073e7e2893750b527\". Dibatalkan."
-            exit 1
-          }
-          if grep -iE 'facilitycare-fcvm-api' api/wrangler.toml; then
-            echo "❌ FATAL: Ditemukan referensi Worker FCVM di api/wrangler.toml! Dibatalkan."
-            exit 1
-          fi
-
-          # B. Verifikasi api/wrangler.toml: Binding D1, nama database, dan database UUID
-          grep -E '^[[:space:]]*database_name[[:space:]]*=[[:space:]]*"fcms-production-db"[[:space:]]*$' api/wrangler.toml || {
-            echo "❌ FATAL: database_name di api/wrangler.toml harus \"fcms-production-db\". Dibatalkan."
-            exit 1
-          }
-          grep -E '^[[:space:]]*database_id[[:space:]]*=[[:space:]]*"62b4b6e5-a718-40bc-9aab-6a700b82a9c9"[[:space:]]*$' api/wrangler.toml || {
-            echo "❌ FATAL: database_id di api/wrangler.toml harus \"62b4b6e5-a718-40bc-9aab-6a700b82a9c9\". Dibatalkan."
-            exit 1
-          }
-          grep -E '^[[:space:]]*binding[[:space:]]*=[[:space:]]*"DB"[[:space:]]*$' api/wrangler.toml || {
-            echo "❌ FATAL: binding D1 di api/wrangler.toml harus \"DB\". Dibatalkan."
-            exit 1
-          }
-          if grep -iE '1b9822f6' api/wrangler.toml; then
-            echo "❌ FATAL: Ditemukan UUID database FCVM di api/wrangler.toml! Dibatalkan."
-            exit 1
-          fi
-
-          # C. Verifikasi root wrangler.toml
-          grep -E '^[[:space:]]*account_id[[:space:]]*=[[:space:]]*"293440e04e5d0c8073e7e2893750b527"[[:space:]]*$' wrangler.toml || {
-            echo "❌ FATAL: account_id di root wrangler.toml harus \"293440e04e5d0c8073e7e2893750b527\". Dibatalkan."
-            exit 1
-          }
-          grep -E '^[[:space:]]*database_id[[:space:]]*=[[:space:]]*"62b4b6e5-a718-40bc-9aab-6a700b82a9c9"[[:space:]]*$' wrangler.toml || {
-            echo "❌ FATAL: database_id di root wrangler.toml harus \"62b4b6e5-a718-40bc-9aab-6a700b82a9c9\". Dibatalkan."
-            exit 1
-          }
-
-          # D. Verifikasi frontend/wrangler.toml dan target Cloudflare Pages
-          test -f frontend/wrangler.toml || {
-            echo "❌ FATAL: frontend/wrangler.toml tidak ditemukan! Dibatalkan."
-            exit 1
-          }
-          grep -E '^[[:space:]]*account_id[[:space:]]*=[[:space:]]*"293440e04e5d0c8073e7e2893750b527"[[:space:]]*$' frontend/wrangler.toml || {
-            echo "❌ FATAL: frontend/wrangler.toml harus memiliki account_id = \"293440e04e5d0c8073e7e2893750b527\". Dibatalkan."
-            exit 1
-          }
-          if grep -iE 'fcvm|facilitycare-fcvm' frontend/wrangler.toml; then
-            echo "❌ FATAL: Ditemukan referensi FCVM di frontend/wrangler.toml! Dibatalkan."
-            exit 1
-          fi
-          grep -F -- '--project-name=facilitycare-system' .github/workflows/deploy.yml > /dev/null 2>&1 || {
-            echo "❌ FATAL: Target Pages wajib terkonfigurasi ke facilitycare-system di deploy.yml! Dibatalkan."
-            exit 1
-          }
-
-          echo "✅ Configuration Assertion Gate lolos: file TOML lokal valid untuk FCMS."
+          grep -E '^[[:space:]]*name[[:space:]]*=[[:space:]]*"fm-operations-api"[[:space:]]*$' api/wrangler.toml || exit 1
+          grep -E '^[[:space:]]*account_id[[:space:]]*=[[:space:]]*"293440e04e5d0c8073e7e2893750b527"[[:space:]]*$' api/wrangler.toml || exit 1
+          grep -E '^[[:space:]]*database_name[[:space:]]*=[[:space:]]*"fcms-production-db"[[:space:]]*$' api/wrangler.toml || exit 1
+          grep -E '^[[:space:]]*database_id[[:space:]]*=[[:space:]]*"62b4b6e5-a718-40bc-9aab-6a700b82a9c9"[[:space:]]*$' api/wrangler.toml || exit 1
+          grep -E '^[[:space:]]*ENVIRONMENT[[:space:]]*=[[:space:]]*"production"[[:space:]]*$' api/wrangler.toml || exit 1
+          grep -E '^[[:space:]]*SYNC_MODE[[:space:]]*=[[:space:]]*"DRY_RUN"[[:space:]]*$' api/wrangler.toml || exit 1
+          grep -E '^[[:space:]]*account_id[[:space:]]*=[[:space:]]*"293440e04e5d0c8073e7e2893750b527"[[:space:]]*$' frontend/wrangler.toml || exit 1
+          grep -F -- '--project-name=facilitycare-system' .github/workflows/deploy.yml > /dev/null 2>&1 || exit 1
+          echo "✅ Configuration Assertion Gate lolos."
 
       - name: Runtime Account Identity Verification (wrangler whoami)
         env:
@@ -214,40 +188,32 @@ jobs:
           BASELINE_ACCOUNT_ID: ${{ vars.EXPECTED_FCMS_ACCOUNT_ID }}
         run: |
           echo "=== 4. VERIFIKASI IDENTITAS AKUN RUNTIME CLOUDFLARE ==="
-          if [ -z "$BASELINE_ACCOUNT_ID" ]; then
-            echo "❌ FATAL: vars.EXPECTED_FCMS_ACCOUNT_ID (BASELINE_ACCOUNT_ID) kosong atau belum dikonfigurasi!"
-            echo "❌ KEBIJAKAN FAIL-CLOSED: Menolak eksekusi wrangler whoami tanpa baseline independen yang valid."
-            exit 1
-          fi
-
           npm install -g wrangler@3 || npm install -g wrangler
-
           WHOAMI_OUTPUT=$(npx wrangler whoami 2>&1) || {
-            echo "❌ FATAL: Gagal mengeksekusi wrangler whoami atau token Cloudflare tidak valid!"
-            echo "Detail: $WHOAMI_OUTPUT"
+            echo "❌ FATAL: Gagal mengeksekusi wrangler whoami!"
             exit 1
           }
-
-          echo "Pemeriksaan runtime selesai."
           if ! echo "$WHOAMI_OUTPUT" | grep -F "$BASELINE_ACCOUNT_ID" > /dev/null 2>&1; then
-            echo "❌ FATAL: Output 'wrangler whoami' tidak mencocokkan Account ID baseline ($BASELINE_ACCOUNT_ID)!"
-            echo "❌ RISIKO TINGGI: Token autentikasi Cloudflare tidak memiliki akses ke akun FCMS yang ditetapkan."
+            echo "❌ FATAL: Output 'wrangler whoami' tidak mencocokkan Account ID baseline!"
             exit 1
           fi
-
           echo "✅ Identitas runtime Cloudflare terverifikasi cocok dengan baseline FCMS."
 
   # ============================================================
-  # Deploy API ke Cloudflare Workers (HANYA Manual Dispatch dari main)
+  # Deploy API ke Cloudflare Workers
+  # WAJIB: Manual Dispatch dari main + Owner Approval (environment: production-worker)
   # ============================================================
   deploy-api:
-    name: 🚀 Deploy API (Workers)
+    name: 🚀 Deploy Production Worker (Owner Approval Required)
     runs-on: ubuntu-latest
     needs: [validate, preflight-target-check]
+    environment:
+      name: production-worker
+      url: https://fm-operations-api.facilitycare-audydental.workers.dev
     if: |
       github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
-      (github.event.inputs.deploy_target == 'API_ONLY' || github.event.inputs.deploy_target == 'ALL')
+      github.event.inputs.deploy_target == 'API_ONLY'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -256,6 +222,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Verify Preflight Guard (Production Authorized)
+        run: node scripts/preflight-guard.mjs --env=production --authorize-production
 
       - name: Install API deps
         run: npm install
@@ -270,20 +239,20 @@ jobs:
           command: deploy
 
   # ============================================================
-  # Deploy Frontend ke Cloudflare Pages (HANYA Manual Dispatch dari main)
+  # Deploy Frontend ke Cloudflare Pages
+  # WAJIB: Manual Dispatch dari main + Owner Approval terpisah (environment: production-pages)
   # ============================================================
   deploy-pages:
-    name: 🌐 Deploy Frontend (Pages)
+    name: 🌐 Deploy Production Pages (Owner Approval Required)
     runs-on: ubuntu-latest
-    needs: [validate, preflight-target-check, deploy-api]
+    needs: [validate, preflight-target-check]
+    environment:
+      name: production-pages
+      url: https://facilitycare-system.pages.dev
     if: |
-      always() &&
       github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
-      needs.validate.result == 'success' &&
-      needs.preflight-target-check.result == 'success' &&
-      (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped') &&
-      (github.event.inputs.deploy_target == 'FRONTEND_ONLY' || github.event.inputs.deploy_target == 'ALL')
+      github.event.inputs.deploy_target == 'FRONTEND_ONLY'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -293,13 +262,24 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Verify Preflight Guard (Production Authorized)
+        run: node scripts/preflight-guard.mjs --env=production --authorize-production
+
       - name: Install root deps
         run: npm install
 
-      - name: Build Frontend
+      - name: Build Frontend (Explicit Production)
         env:
+          ENVIRONMENT: production
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: node build-root.js
+        run: |
+          node build-root.js --env=production
+          grep -F "ENVIRONMENT: 'production'" dist/index.html || exit 1
+          grep -F "API_BASE_URL: 'https://fm-operations-api.facilitycare-audydental.workers.dev'" dist/index.html || exit 1
+          if grep -iE "fm-operations-api-staging|fcvm" dist/index.html; then
+            echo "❌ FATAL: Terdeteksi referensi Staging/FCVM di dist/index.html Production!"
+            exit 1
+          fi
 
       - name: Deploy ke Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
