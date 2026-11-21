@@ -1,0 +1,320 @@
+/* ============================================================
+   FCMS PREMIUM BLUE GLASS — APP THEME
+   Scoped to authenticated application; login screen is preserved.
+   ============================================================ */
+
+.app-layout {
+  --primary: #2F72F6;
+  --primary-dark: #1D5FE0;
+  --primary-light: rgba(47,114,246,.16);
+  --sky: #21B8F3;
+  --sky-light: rgba(33,184,243,.14);
+  --success: #20C997;
+  --success-light: rgba(32,201,151,.14);
+  --warning: #F5B942;
+  --warning-light: rgba(245,185,66,.14);
+  --danger: #F16B78;
+  --danger-light: rgba(241,107,120,.14);
+  --purple: #9B8AFB;
+  --purple-light: rgba(155,138,251,.14);
+  --teal: #36C9C1;
+  --orange: #F59E58;
+  --indigo: #7C8CFF;
+
+  --gray-50: #0B1220;
+  --gray-100: #111B2E;
+  --gray-200: #1C2A40;
+  --gray-300: #2B3C55;
+  --gray-400: #8294AD;
+  --gray-500: #9AAAC0;
+  --gray-600: #B0BED0;
+  --gray-700: #C7D2E2;
+  --gray-800: #DCE5F1;
+  --gray-900: #F3F7FC;
+
+  --bg-page: #0A1020;
+  --bg-card: rgba(20,32,53,.88);
+  --bg-input: rgba(12,22,39,.88);
+  --border: rgba(148,178,220,.16);
+  --text-1: #F2F6FC;
+  --text-2: #B6C4D8;
+  --text-3: #8294AD;
+  --sb-bg: rgba(10,17,31,.97);
+  --sb-border: rgba(148,178,220,.12);
+  --sb-text: #A9B9D0;
+  --sb-text-hover: #FFFFFF;
+  color: var(--text-1);
+  color-scheme: dark;
+  background: var(--bg-page);
+}
+
+.app-layout .main-wrapper,
+.app-layout .main-content {
+  background:
+    radial-gradient(ellipse at 82% 0%, rgba(36,105,220,.10), transparent 42%),
+    var(--bg-page);
+  color: var(--text-1);
+}
+
+.app-layout .sidebar {
+  background: linear-gradient(180deg, rgba(12,21,39,.99), rgba(9,16,30,.99));
+  border-right: 1px solid var(--sb-border);
+  color: var(--sb-text);
+}
+
+.app-layout .sidebar-header,
+.app-layout .sidebar-footer {
+  border-color: var(--sb-border);
+}
+
+.app-layout .topbar {
+  background: rgba(13,22,39,.90);
+  color: var(--text-1);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 28px rgba(0,0,0,.16);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.app-layout .topbar-page-title,
+.app-layout .topbar-menu-btn,
+.app-layout .topbar-icon-btn,
+.app-layout .topbar-user-name,
+.app-layout .header-clock-date {
+  color: var(--text-1);
+}
+
+.app-layout .header-clock-time { color: #72B7FF; }
+
+.app-layout .nav-item {
+  color: var(--sb-text);
+  border: 1px solid transparent;
+  transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.app-layout .nav-item:hover {
+  color: #F7FAFF;
+  background: rgba(64,130,245,.12);
+  border-color: rgba(80,151,255,.16);
+}
+.app-layout .nav-item.active {
+  color: #FFFFFF;
+  background: linear-gradient(110deg, #2563EB, #287FEA);
+  border-color: rgba(133,190,255,.34);
+  box-shadow: 0 7px 22px rgba(37,99,235,.30), inset 0 1px 0 rgba(255,255,255,.16);
+}
+.app-layout .nav-item.active .nav-icon,
+.app-layout .nav-item:hover .nav-icon { color: #FFFFFF; }
+
+.app-layout .card,
+.app-layout .panel,
+.app-layout .chart-card,
+.app-layout .kpi-card,
+.app-layout .stat-card,
+.app-layout .mini-stat,
+.app-layout .dashboard-card,
+.app-layout .table-card,
+.app-layout .content-card,
+.app-layout .section-card,
+.app-layout [class*="-card"]:not(.login-card) {
+  color: var(--text-1);
+  background: linear-gradient(145deg, rgba(24,39,64,.94), rgba(16,28,48,.96));
+  border: 1px solid rgba(145,177,222,.17);
+  box-shadow: 0 12px 32px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.app-layout .page-header,
+.app-layout .section-header,
+.app-layout .card-header,
+.app-layout .table-header {
+  color: var(--text-1);
+  border-color: var(--border);
+}
+
+.app-layout h1,
+.app-layout h2,
+.app-layout h3,
+.app-layout h4,
+.app-layout h5,
+.app-layout .page-title,
+.app-layout .section-title,
+.app-layout .card-title {
+  color: #F4F7FC;
+}
+
+.app-layout p,
+.app-layout .text-muted,
+.app-layout .text-secondary,
+.app-layout .form-hint,
+.app-layout .helper-text {
+  color: var(--text-2);
+}
+
+.app-layout input:not([type="checkbox"]):not([type="radio"]),
+.app-layout select,
+.app-layout textarea,
+.app-layout .form-control,
+.app-layout .filter-search,
+.app-layout .filter-select {
+  color: #F2F6FC;
+  background: rgba(10,19,35,.86);
+  border-color: rgba(143,174,218,.24);
+}
+.app-layout input::placeholder,
+.app-layout textarea::placeholder { color: #8193AD; opacity: 1; }
+.app-layout input:focus,
+.app-layout select:focus,
+.app-layout textarea:focus,
+.app-layout .form-control:focus {
+  border-color: rgba(74,145,255,.78);
+  box-shadow: 0 0 0 3px rgba(47,114,246,.17);
+  outline: none;
+}
+.app-layout select option {
+  color: #F2F6FC;
+  background: #111D32;
+}
+
+.app-layout .btn-primary,
+.app-layout button.btn-primary,
+.app-layout .page-actions .btn-primary {
+  color: #FFFFFF;
+  background: linear-gradient(115deg, #2563EB, #1687EA);
+  border: 1px solid rgba(137,190,255,.25);
+  box-shadow: 0 7px 20px rgba(37,99,235,.22);
+}
+.app-layout .btn-primary:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 9px 25px rgba(37,99,235,.30);
+}
+.app-layout .btn-secondary,
+.app-layout .btn-outline,
+.app-layout .btn-light {
+  color: #DCE8F8;
+  background: rgba(106,137,180,.12);
+  border: 1px solid rgba(148,178,220,.22);
+}
+.app-layout .btn-secondary:hover,
+.app-layout .btn-outline:hover,
+.app-layout .btn-light:hover {
+  background: rgba(64,130,245,.18);
+  border-color: rgba(90,157,255,.42);
+}
+
+.app-layout table,
+.app-layout .data-table,
+.app-layout .dash-table {
+  color: var(--text-1);
+  background: transparent;
+  border-color: var(--border);
+}
+.app-layout table thead,
+.app-layout .data-table thead,
+.app-layout .dash-table thead {
+  color: #EAF2FF;
+  background: rgba(43,73,116,.38);
+}
+.app-layout table th,
+.app-layout table td,
+.app-layout .data-table th,
+.app-layout .data-table td,
+.app-layout .dash-table th,
+.app-layout .dash-table td {
+  border-color: rgba(148,178,220,.13);
+}
+.app-layout table tbody tr,
+.app-layout .data-table tbody tr,
+.app-layout .dash-table tbody tr {
+  background: rgba(15,27,47,.38);
+}
+.app-layout table tbody tr:nth-child(even),
+.app-layout .data-table tbody tr:nth-child(even),
+.app-layout .dash-table tbody tr:nth-child(even) {
+  background: rgba(27,43,68,.34);
+}
+.app-layout table tbody tr:hover,
+.app-layout .data-table tbody tr:hover,
+.app-layout .dash-table tbody tr:hover {
+  background: rgba(48,111,205,.13);
+}
+
+.app-layout .modal,
+.app-layout .modal-content,
+.app-layout .modal-dialog,
+.app-layout .dropdown-menu,
+.app-layout .popover,
+.app-layout .calendar-popover {
+  color: var(--text-1);
+  background: #14223A;
+  border: 1px solid rgba(148,178,220,.22);
+  box-shadow: 0 24px 70px rgba(0,0,0,.42);
+}
+.app-layout .modal-header,
+.app-layout .modal-footer {
+  border-color: var(--border);
+}
+.app-layout .modal-backdrop { background: rgba(2,8,18,.72); }
+
+.app-layout .filter-bar,
+.app-layout .filter-bar-inner,
+.app-layout .toolbar,
+.app-layout .search-toolbar {
+  color: var(--text-1);
+  background: rgba(20,32,53,.82);
+  border-color: var(--border);
+}
+
+.app-layout .nav-section-label { color: #7187A5; }
+.app-layout .sidebar-user-name { color: #F1F6FF; }
+.app-layout .sidebar-user-role { color: #8FA3BF; }
+.app-layout .sidebar-logout {
+  color: #B5C5DA;
+  background: rgba(255,255,255,.055);
+}
+.app-layout .sidebar-logout:hover {
+  color: #FFFFFF;
+  background: rgba(241,107,120,.16);
+}
+
+.app-layout .badge,
+.app-layout .status-badge {
+  border-color: rgba(148,178,220,.18);
+}
+.app-layout hr,
+.app-layout .divider { border-color: var(--border); }
+
+.app-layout .pagination button,
+.app-layout .pagination a {
+  color: #DCE8F8;
+  background: rgba(106,137,180,.10);
+  border-color: var(--border);
+}
+.app-layout .pagination .active,
+.app-layout .pagination button.active {
+  color: #FFFFFF;
+  background: var(--primary);
+}
+
+.app-layout :focus-visible {
+  outline: 2px solid #69AEFF;
+  outline-offset: 2px;
+}
+
+@media (max-width: 1023px) {
+  .app-layout .main-content { padding: 16px !important; }
+}
+@media (max-width: 767px) {
+  .app-layout .main-content { padding: 12px !important; }
+  .app-layout .topbar { min-height: 56px; }
+  .app-layout .page-actions { flex-wrap: wrap !important; }
+  .app-layout .page-actions > * { max-width: 100%; }
+  .app-layout .kpi-card,
+  .app-layout .chart-card { min-width: 0; }
+  .app-layout .table-scroll,
+  .app-layout .table-wrapper,
+  .app-layout .data-table-wrapper,
+  .app-layout .dash-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
