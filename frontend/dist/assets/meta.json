@@ -109,7 +109,7 @@
       "format": "esm"
     },
     "frontend/src/pages/schedule.js": {
-      "bytes": 11088,
+      "bytes": 11454,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -1151,7 +1151,7 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-I62D5TOC.js": {
+    "frontend/dist/assets/app-R4J2DA7S.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
@@ -1193,7 +1193,7 @@
           "bytesInOutput": 769
         },
         "frontend/src/pages/schedule.js": {
-          "bytesInOutput": 5925
+          "bytesInOutput": 6162
         },
         "frontend/src/utils/sorting.js": {
           "bytesInOutput": 1588
@@ -1289,7 +1289,7 @@
           "bytesInOutput": 29010
         }
       },
-      "bytes": 802547
+      "bytes": 802784
     }
   }
 }

@@ -88,8 +88,12 @@ export async function renderSchedule(container, params) {
     paginationMode: 'client',
     enableMobileFilterSheet: true,
     defaultFilters: defFilters,
-    defaultSort: 'opening_date_desc',
+    defaultSort: (params && params.get('sort')) || new URLSearchParams(window.location.search).get('sort') || 'opening_date_desc',
     onDataLoaded: (items) => {
+      const requestedSort = (params && params.get('sort')) || new URLSearchParams(window.location.search).get('sort') || 'opening_date_desc';
+      if (requestedSort !== 'opening_date_desc' && requestedSort !== 'date_desc') {
+        return [...(items || [])];
+      }
       // Chronological DESC by opening_date (YYYY-MM-DD & DD-MM-YYYY), empty/invalid last,
       // tie-breaker: updated_at DESC, created_at DESC, id DESC
       return [...(items || [])].sort((a, b) => compareRowsByDateDesc(a, b, 'opening_date'));

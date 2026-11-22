@@ -163,12 +163,13 @@ function seedAllData(db) {
     VALUES (?, ?, ?, 'Q3', 'Berlin Ariansyah', ?, ?, ?, ?, ?, ?)
   `);
   insSch.run(1, 1, 'Inspeksi Hygiene', '2026-05-01', '2099-12-31', '2099-12-31', 'Pending', '2026-05-01 08:00:00', '2026-05-01 08:00:00');
-  insSch.run(2, 2, 'General Cleaning', '15-08-2026', '2025-01-01', null, 'Pending', '2026-08-01 08:00:00', '2026-08-01 08:00:00'); // DD-MM-YYYY
-  insSch.run(3, 1, 'Deep Cleaning', '2026-08-15', '2025-02-01', null, 'Done', '2026-08-01 09:00:00', '2026-08-05 12:00:00'); // tie on 2026-08-15, higher updated_at
+  insSch.run(2, 2, 'General Cleaning', '15-08-2026', '2099-01-01', '2099-01-02', 'Pending', '2026-08-01 08:00:00', '2026-08-01 08:00:00'); // DD-MM-YYYY, later target/completion than id 3
+  insSch.run(3, 1, 'Deep Cleaning', '2026-08-15', '2025-02-01', null, 'Done', '2026-08-01 09:00:00', '2026-08-05 12:00:00'); // tie on 2026-08-15, higher updated_at wins over id 2's target_date!
   insSch.run(4, 1, 'Fogging', '2026-10-02', datePlusDays(3), null, 'Pending', '2026-10-01 08:00:00', '2026-10-01 08:00:00'); // newest opening
   insSch.run(5, 1, 'Inspeksi Hygiene', null, datePlusDays(1), null, 'Pending', '2026-11-01 08:00:00', '2026-11-01 08:00:00'); // null opening -> bottom!
   insSch.run(6, 1, 'General Cleaning', '-', datePlusDays(2), null, 'Pending', '2026-11-02 08:00:00', '2026-11-02 08:00:00'); // dash opening -> bottom!
   insSch.run(7, 1, 'Fogging', '30-02-2026', '2026-12-31', null, 'Pending', '2026-11-03 08:00:00', '2026-11-03 08:00:00'); // invalid opening -> bottom!
+  insSch.run(8, 1, 'Deep Cleaning', '15/08/2026', '2024-01-01', null, 'Done', '2026-08-01 10:00:00', '2026-08-05 12:00:00'); // same opening 2026-08-15 & same updated_at as id 3 -> created_at DESC beats id 3!
 
   // OS Migrations: default target_month DESC
   const insOs = db.prepare(`
@@ -307,22 +308,30 @@ async function runTests() {
   const env = { DB: createD1Adapter(db), JWT_SECRET: SECRET };
   const token = await createToken({ sub: 1, username: 'owner', role: 'superadmin' }, SECRET);
 
-  // Time Line (/api/schedule) - Default opening_date DESC
+  // Time Line (/api/schedule) - Default opening_date DESC & tie-breakers (updated_at -> created_at -> id DESC)
   let r = await callRoute(handleSchedule, env, token, '/api/schedule?limit=20');
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body.data.map(x => x.id), [4, 3, 2, 1, 7, 6, 5], 'Schedule default must sort opening_date DESC, invalid/empty last, tie-breaker updated_at->created_at->id DESC');
+  assert.deepEqual(r.body.data.map(x => x.id), [4, 8, 3, 2, 1, 7, 6, 5], 'Schedule default must sort opening_date DESC, invalid/empty last, tie-breaker updated_at->created_at->id DESC');
+
+  // Verify generic sort=date_desc also follows opening_date DESC (never overridden by target_date/completion_date)
+  const schDateDesc = await callRoute(handleSchedule, env, token, '/api/schedule?sort=date_desc&limit=20');
+  assert.deepEqual(schDateDesc.body.data.map(x => x.id), [4, 8, 3, 2, 1, 7, 6, 5]);
 
   // Time Line Pagination check (page 1 & page 2, limit 2)
   const schP1 = await callRoute(handleSchedule, env, token, '/api/schedule?page=1&limit=2');
   const schP2 = await callRoute(handleSchedule, env, token, '/api/schedule?page=2&limit=2');
-  assert.deepEqual(schP1.body.data.map(x => x.id), [4, 3]);
-  assert.deepEqual(schP2.body.data.map(x => x.id), [2, 1]);
+  assert.deepEqual(schP1.body.data.map(x => x.id), [4, 8]);
+  assert.deepEqual(schP2.body.data.map(x => x.id), [3, 2]);
 
-  // Time Line Filter check (?branch_id=1) + Manual Sort (?sort=target_date_asc)
+  // Time Line Filter check (?branch_id=1) + Manual Sorts (opening_date_asc, target_date_asc, target_date_desc)
   const schBranch1 = await callRoute(handleSchedule, env, token, '/api/schedule?branch_id=1');
-  assert.deepEqual(schBranch1.body.data.map(x => x.id), [4, 3, 1, 7, 6, 5]);
+  assert.deepEqual(schBranch1.body.data.map(x => x.id), [4, 8, 3, 1, 7, 6, 5]);
+  const schOpenAsc = await callRoute(handleSchedule, env, token, '/api/schedule?sort=opening_date_asc');
+  assert.deepEqual(schOpenAsc.body.data.slice(0, 2).map(x => x.id), [1, 8]);
   const schManual = await callRoute(handleSchedule, env, token, '/api/schedule?sort=target_date_asc');
-  assert.equal(schManual.body.data[0].id, 2, 'Manual sort target_date_asc must still function');
+  assert.equal(schManual.body.data[0].id, 8, 'Manual sort target_date_asc must still function');
+  const schManualDesc = await callRoute(handleSchedule, env, token, '/api/schedule?sort=target_date_desc');
+  assert.equal(schManualDesc.body.data[0].id, 1, 'Manual sort target_date_desc must still function');
 
   // Master Karyawan (/api/employees) - join_date DESC across Excel serial + DMY + ISO + empty/invalid
   r = await callRoute(handleEmployees, env, token, '/api/employees?limit=20');
