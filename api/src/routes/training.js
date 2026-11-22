@@ -1,6 +1,12 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
+
+const TRAINING_SORT_MAP = Object.freeze({
+  date_desc: buildDateOrderBy('t.training_date', { direction: 'DESC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_asc: buildDateOrderBy('t.training_date', { direction: 'ASC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  score_desc: `COALESCE(t.score, -1) DESC, ${buildDateOrderBy('t.training_date', { direction: 'DESC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })}`,
+});
 
 export async function handleTraining(request, env, origin) {
   const user = await authenticate(request, env);
@@ -98,6 +104,7 @@ async function list(request, env, origin) {
   const batch = url.searchParams.get('batch') || '';
   const branch_id = url.searchParams.get('branch_id') || '';
   const trainer = url.searchParams.get('trainer') || '';
+  const sort = url.searchParams.get('sort') || 'date_desc';
 
   let conditions = [];
   let values = [];
@@ -111,13 +118,14 @@ async function list(request, env, origin) {
   if (trainer) { conditions.push("t.trainer = ?"); values.push(trainer); }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+  const orderBy = resolveSortOrder(sort, TRAINING_SORT_MAP, 'date_desc');
 
   const [countResult, rows] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as total FROM training t LEFT JOIN branches b ON t.branch_id = b.id ${where}`).bind(...values).first(),
     env.DB.prepare(
       `SELECT t.*, b.full_name as branch_name FROM training t
        LEFT JOIN branches b ON t.branch_id = b.id
-       ${where} ORDER BY t.training_date DESC, t.id ASC LIMIT ? OFFSET ?`
+       ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 

@@ -1,6 +1,17 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, hasTableColumn, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
+
+async function getSpOrderBy(db, rawSort) {
+  const includeUpdatedAt = await hasTableColumn(db, 'sp_data', 'updated_at');
+  const sortMap = {
+    date_desc: buildDateOrderBy('s.tanggal', { direction: 'DESC', alias: 's', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+    date_asc: buildDateOrderBy('s.tanggal', { direction: 'ASC', alias: 's', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+    name_asc: 's.employee_name ASC, s.id ASC',
+    expiry_asc: buildDateOrderBy('s.akhir_sp', { direction: 'ASC', alias: 's', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+  };
+  return resolveSortOrder(rawSort, sortMap, 'date_desc');
+}
 
 export async function handleSP(request, env, origin) {
   const user = await authenticate(request, env);
@@ -17,12 +28,14 @@ export async function handleSP(request, env, origin) {
       const { page, limit, offset } = getPagination(request.url);
       const search = url.searchParams.get('search') || '';
       const branch_id = url.searchParams.get('branch_id') || '';
+      const sort = url.searchParams.get('sort') || 'date_desc';
 
       let conditions = ['1=1'];
       let values = [];
       if (search) { conditions.push('(s.employee_name LIKE ?)'); values.push(`%${search}%`); }
       if (branch_id) { conditions.push('s.branch_id = ?'); values.push(branch_id); }
       const where = 'WHERE ' + conditions.join(' AND ');
+      const orderBy = await getSpOrderBy(env.DB, sort);
 
       const countRow = await env.DB.prepare(
         `SELECT COUNT(*) as total FROM sp_data s ${where}`
@@ -33,7 +46,7 @@ export async function handleSP(request, env, origin) {
         FROM sp_data s
         LEFT JOIN branches b ON s.branch_id = b.id
         ${where}
-        ORDER BY s.tanggal DESC, s.id DESC
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `).bind(...values, limit, offset).all();
 

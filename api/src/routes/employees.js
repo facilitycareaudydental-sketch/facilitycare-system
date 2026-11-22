@@ -1,6 +1,14 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, getSearchParam } from '../utils/pagination.js';
+import { getPagination, getSearchParam, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const EMPLOYEE_SORT_MAP = Object.freeze({
+  join_date_desc: buildDateOrderBy('e.join_date', { direction: 'DESC', alias: 'e', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC', allowExcelSerial: true }),
+  join_date_asc: buildDateOrderBy('e.join_date', { direction: 'ASC', alias: 'e', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC', allowExcelSerial: true }),
+  name_asc: 'e.full_name ASC, e.id ASC',
+  name_desc: 'e.full_name DESC, e.id DESC',
+  newest: buildTimestampOrderBy('e.created_at', { direction: 'DESC', alias: 'e', idDir: 'DESC' }),
+});
 
 export async function handleEmployees(request, env, origin) {
   const user = await authenticate(request, env);
@@ -46,6 +54,7 @@ async function listEmployees(request, env, origin) {
   const branch_id = url.searchParams.get('branch_id') || '';
   const division = url.searchParams.get('division') || '';
   const status = url.searchParams.get('status') || '';
+  const sort = url.searchParams.get('sort') || 'join_date_desc';
 
   let conditions = [];
   let values = [];
@@ -55,6 +64,7 @@ async function listEmployees(request, env, origin) {
   if (status) { conditions.push('e.status = ?'); values.push(status); }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+  const orderBy = resolveSortOrder(sort, EMPLOYEE_SORT_MAP, 'join_date_desc');
 
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total FROM employees e ${where}`
@@ -64,7 +74,7 @@ async function listEmployees(request, env, origin) {
     `SELECT e.*, b.full_name as branch_name 
      FROM employees e 
      LEFT JOIN branches b ON e.branch_id = b.id 
-     ${where} ORDER BY e.full_name LIMIT ? OFFSET ?`
+     ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
   ).bind(...values, limit, offset).all();
 
   return paginated(rows.results, countResult.total, page, limit, origin);
@@ -79,7 +89,7 @@ async function getEmployee(id, env, origin) {
 
   // Get contracts
   const contracts = await env.DB.prepare(
-    'SELECT * FROM contracts WHERE employee_id = ? ORDER BY start_date DESC'
+    `SELECT * FROM contracts WHERE employee_id = ? ORDER BY ${buildDateOrderBy('start_date', { direction: 'DESC', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })}`
   ).bind(id).all();
 
   return ok({ ...row, contracts: contracts.results }, 200, origin);

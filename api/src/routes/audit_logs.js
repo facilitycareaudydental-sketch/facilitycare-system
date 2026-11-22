@@ -1,5 +1,8 @@
 import { error, ok, paginated, notFound, forbidden } from '../utils/response.js';
 import { authenticate, hasPermission } from '../utils/auth.js';
+import { buildTimestampOrderBy } from '../utils/pagination.js';
+
+const AUDIT_ORDER_BY = buildTimestampOrderBy('created_at', { direction: 'DESC', idDir: 'DESC' });
 
 export async function handleAuditLogs(request, env, origin) {
   const user = await authenticate(request, env);
@@ -37,7 +40,7 @@ export async function handleAuditLogs(request, env, origin) {
 
     try {
       const countResult = await env.DB.prepare(`SELECT COUNT(*) as total FROM audit_logs ${where}`).bind(...values).first();
-      const rows = await env.DB.prepare(`SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+      const rows = await env.DB.prepare(`SELECT * FROM audit_logs ${where} ORDER BY ${AUDIT_ORDER_BY} LIMIT ? OFFSET ?`)
         .bind(...values, limit, offset).all();
 
       return paginated(rows.results, countResult.total, page, limit, origin);

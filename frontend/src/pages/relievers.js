@@ -3,6 +3,7 @@ import { apiFetch } from '../config.js';
 import { getCachedBranches, getCachedEmployeeNames, getCachedEmployees } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
+import { compareRowsByDateDesc } from '../utils/sorting.js';
 
 export async function renderRelievers(container, params) {
   window.__RELIEVER_BUILD__ = "V3";
@@ -58,12 +59,7 @@ export async function renderRelievers(container, params) {
     enableMobileFilterSheet: true,
     defaultFilters: defFilters,
     onDataLoaded: (items) => {
-      // Sort descending by backup_date
-      return items.sort((a, b) => {
-        const da = a.backup_date ? new Date(a.backup_date).getTime() : 0;
-        const db = b.backup_date ? new Date(b.backup_date).getTime() : 0;
-        return db - da;
-      });
+      return [...(items || [])].sort((a, b) => compareRowsByDateDesc(a, b, 'backup_date'));
     },
     columns: [
       { key: 'branch_name', label: 'Cabang' },

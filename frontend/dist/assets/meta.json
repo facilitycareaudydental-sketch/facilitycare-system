@@ -1,7 +1,7 @@
 {
   "inputs": {
     "frontend/src/config.js": {
-      "bytes": 2974,
+      "bytes": 3082,
       "imports": [],
       "format": "esm"
     },
@@ -16,7 +16,7 @@
       "format": "esm"
     },
     "frontend/src/components/modal.js": {
-      "bytes": 2842,
+      "bytes": 2912,
       "imports": [],
       "format": "esm"
     },
@@ -32,7 +32,7 @@
       "format": "esm"
     },
     "frontend/src/components/form.js": {
-      "bytes": 6114,
+      "bytes": 6230,
       "imports": [],
       "format": "esm"
     },
@@ -47,7 +47,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js": {
-      "bytes": 26428,
+      "bytes": 27254,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -103,8 +103,13 @@
       "imports": [],
       "format": "esm"
     },
+    "frontend/src/utils/sorting.js": {
+      "bytes": 3755,
+      "imports": [],
+      "format": "esm"
+    },
     "frontend/src/pages/schedule.js": {
-      "bytes": 10864,
+      "bytes": 11088,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -135,12 +140,17 @@
           "path": "frontend/src/utils/excel.js",
           "kind": "import-statement",
           "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/sorting.js",
+          "kind": "import-statement",
+          "original": "../utils/sorting.js"
         }
       ],
       "format": "esm"
     },
     "frontend/src/pages/employees.js": {
-      "bytes": 60878,
+      "bytes": 62366,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -171,7 +181,7 @@
       "format": "esm"
     },
     "frontend/src/pages/contracts.js": {
-      "bytes": 85803,
+      "bytes": 85816,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -202,7 +212,7 @@
       "format": "esm"
     },
     "frontend/src/pages/issues.js": {
-      "bytes": 54595,
+      "bytes": 56077,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -233,7 +243,7 @@
       "format": "esm"
     },
     "frontend/src/pages/one_on_one.js": {
-      "bytes": 8084,
+      "bytes": 8019,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -269,7 +279,7 @@
       "format": "esm"
     },
     "frontend/src/pages/dashboard.js": {
-      "bytes": 59139,
+      "bytes": 60322,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -321,7 +331,7 @@
       "format": "esm"
     },
     "frontend/src/pages/training.js": {
-      "bytes": 43572,
+      "bytes": 44662,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -352,7 +362,7 @@
       "format": "esm"
     },
     "frontend/src/pages/_crud.js?v=v3": {
-      "bytes": 26428,
+      "bytes": 27254,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -393,7 +403,7 @@
       "format": "esm"
     },
     "frontend/src/pages/relievers.js": {
-      "bytes": 8584,
+      "bytes": 8410,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js?v=v3",
@@ -419,6 +429,11 @@
           "path": "frontend/src/utils/excel.js",
           "kind": "import-statement",
           "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/sorting.js",
+          "kind": "import-statement",
+          "original": "../utils/sorting.js"
         }
       ],
       "format": "esm"
@@ -548,7 +563,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sop_facility_care.js": {
-      "bytes": 87229,
+      "bytes": 88789,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -574,7 +589,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sop_security.js": {
-      "bytes": 71581,
+      "bytes": 72784,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -626,7 +641,7 @@
       "format": "esm"
     },
     "frontend/src/pages/hygiene_standards.js": {
-      "bytes": 41297,
+      "bytes": 42140,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -688,7 +703,7 @@
       "format": "esm"
     },
     "frontend/src/pages/users.js": {
-      "bytes": 5282,
+      "bytes": 5397,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -714,7 +729,7 @@
       "format": "esm"
     },
     "frontend/src/pages/branches.js": {
-      "bytes": 3026,
+      "bytes": 2961,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -735,7 +750,7 @@
       "format": "esm"
     },
     "frontend/src/pages/calendar.js": {
-      "bytes": 11650,
+      "bytes": 11914,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -793,7 +808,7 @@
       "format": "esm"
     },
     "frontend/src/pages/sp.js": {
-      "bytes": 62180,
+      "bytes": 63737,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -824,7 +839,7 @@
       "format": "esm"
     },
     "frontend/src/pages/mutasi.js": {
-      "bytes": 50528,
+      "bytes": 51795,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -855,7 +870,7 @@
       "format": "esm"
     },
     "frontend/src/pages/overtime.js": {
-      "bytes": 51964,
+      "bytes": 53249,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -886,7 +901,7 @@
       "format": "esm"
     },
     "frontend/src/pages/audit_logs.js": {
-      "bytes": 4495,
+      "bytes": 4578,
       "imports": [
         {
           "path": "frontend/src/pages/_crud.js",
@@ -907,7 +922,7 @@
       "format": "esm"
     },
     "frontend/src/pages/os_migrations.js": {
-      "bytes": 36004,
+      "bytes": 36828,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -928,12 +943,17 @@
           "path": "frontend/src/utils/excel.js",
           "kind": "import-statement",
           "original": "../utils/excel.js"
+        },
+        {
+          "path": "frontend/src/utils/sorting.js",
+          "kind": "import-statement",
+          "original": "../utils/sorting.js"
         }
       ],
       "format": "esm"
     },
     "frontend/src/pages/dac.js": {
-      "bytes": 34453,
+      "bytes": 35109,
       "imports": [
         {
           "path": "frontend/src/config.js",
@@ -1131,13 +1151,13 @@
     }
   },
   "outputs": {
-    "frontend/dist/assets/app-FEYGJXIL.js": {
+    "frontend/dist/assets/app-I62D5TOC.js": {
       "imports": [],
       "exports": [],
       "entryPoint": "frontend/src/app.js",
       "inputs": {
         "frontend/src/components/modal.js": {
-          "bytesInOutput": 1889
+          "bytesInOutput": 1893
         },
         "frontend/src/utils/excel.js": {
           "bytesInOutput": 3314
@@ -1152,13 +1172,13 @@
           "bytesInOutput": 612
         },
         "frontend/src/app.js": {
-          "bytesInOutput": 23008
+          "bytesInOutput": 23010
         },
         "frontend/src/components/table.js": {
           "bytesInOutput": 3435
         },
         "frontend/src/pages/_crud.js": {
-          "bytesInOutput": 15767
+          "bytesInOutput": 15844
         },
         "frontend/src/components/form.js": {
           "bytesInOutput": 3689
@@ -1173,16 +1193,19 @@
           "bytesInOutput": 769
         },
         "frontend/src/pages/schedule.js": {
-          "bytesInOutput": 5983
+          "bytesInOutput": 5925
+        },
+        "frontend/src/utils/sorting.js": {
+          "bytesInOutput": 1588
         },
         "frontend/src/pages/employees.js": {
-          "bytesInOutput": 52168
+          "bytesInOutput": 52169
         },
         "frontend/src/pages/contracts.js": {
-          "bytesInOutput": 64996
+          "bytesInOutput": 64973
         },
         "frontend/src/pages/issues.js": {
-          "bytesInOutput": 44990
+          "bytesInOutput": 44991
         },
         "frontend/src/pages/one_on_one.js": {
           "bytesInOutput": 4847
@@ -1194,13 +1217,13 @@
           "bytesInOutput": 5187
         },
         "frontend/src/pages/training.js": {
-          "bytesInOutput": 35744
+          "bytesInOutput": 35745
         },
         "frontend/src/pages/_crud.js?v=v3": {
-          "bytesInOutput": 15767
+          "bytesInOutput": 15844
         },
         "frontend/src/pages/relievers.js": {
-          "bytesInOutput": 4972
+          "bytesInOutput": 4885
         },
         "frontend/src/pages/inspection_reports.js": {
           "bytesInOutput": 4667
@@ -1215,19 +1238,19 @@
           "bytesInOutput": 4334
         },
         "frontend/src/pages/sop_facility_care.js": {
-          "bytesInOutput": 71809
+          "bytesInOutput": 71813
         },
         "frontend/src/pages/sop_security.js": {
-          "bytesInOutput": 58934
+          "bytesInOutput": 58937
         },
         "frontend/src/pages/checklist.js": {
-          "bytesInOutput": 34394
+          "bytesInOutput": 34395
         },
         "frontend/src/pages/hygiene_standards.js": {
-          "bytesInOutput": 34268
+          "bytesInOutput": 34269
         },
         "frontend/src/pages/forms.js": {
-          "bytesInOutput": 5994
+          "bytesInOutput": 5995
         },
         "frontend/src/pages/users.js": {
           "bytesInOutput": 3330
@@ -1248,25 +1271,25 @@
           "bytesInOutput": 20254
         },
         "frontend/src/pages/sp.js": {
-          "bytesInOutput": 52263
+          "bytesInOutput": 52265
         },
         "frontend/src/pages/mutasi.js": {
-          "bytesInOutput": 42955
+          "bytesInOutput": 42956
         },
         "frontend/src/pages/overtime.js": {
-          "bytesInOutput": 43118
+          "bytesInOutput": 43119
         },
         "frontend/src/pages/audit_logs.js": {
-          "bytesInOutput": 2802
+          "bytesInOutput": 2880
         },
         "frontend/src/pages/os_migrations.js": {
-          "bytesInOutput": 30222
+          "bytesInOutput": 30247
         },
         "frontend/src/pages/dac.js": {
-          "bytesInOutput": 29009
+          "bytesInOutput": 29010
         }
       },
-      "bytes": 800846
+      "bytes": 802547
     }
   }
 }

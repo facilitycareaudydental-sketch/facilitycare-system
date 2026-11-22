@@ -1,6 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, buildDateOrderBy } from '../utils/pagination.js';
 import { buildOutboxQuery } from '../utils/sync_engine.js';
 import { mapDBToPayload } from '../utils/sync_mapper.js';
 
@@ -96,7 +96,7 @@ async function list(request, env, origin) {
     env.DB.prepare(
       `SELECT o.*, b.full_name as branch_name FROM one_on_one o
        LEFT JOIN branches b ON o.branch_id = b.id
-       ${where} ORDER BY o.meeting_date DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY ${buildDateOrderBy('o.meeting_date', { direction: 'DESC', alias: 'o', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })} LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 

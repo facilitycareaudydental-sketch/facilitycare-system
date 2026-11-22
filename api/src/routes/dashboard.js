@@ -198,7 +198,7 @@ async function getStats(env, origin) {
     `SELECT i.id, i.report_date, i.category, i.complaint, i.status,
      b.full_name as branch_name
      FROM issues i LEFT JOIN branches b ON i.branch_id = b.id
-     ORDER BY i.created_at DESC LIMIT 5`
+     ORDER BY i.created_at DESC, i.id DESC LIMIT 5`
   ).all();
 
   const expiringList = await env.DB.prepare(
@@ -208,7 +208,7 @@ async function getStats(env, origin) {
      FROM contracts c LEFT JOIN branches b ON c.branch_id = b.id
      LEFT JOIN employees e ON c.employee_id = e.id
      WHERE c.status='Aktif' AND c.end_date BETWEEN date('now') AND date('now','+30 days')
-     ORDER BY c.end_date ASC LIMIT 10`
+     ORDER BY c.end_date ASC, c.id ASC LIMIT 10`
   ).all();
 
   const upcomingSchedule = await env.DB.prepare(
@@ -216,7 +216,7 @@ async function getStats(env, origin) {
      b.full_name as branch_name
      FROM activity_schedule s LEFT JOIN branches b ON s.branch_id = b.id
      WHERE s.status != 'Done' AND s.target_date >= date('now')
-     ORDER BY s.target_date ASC LIMIT 7`
+     ORDER BY s.target_date ASC, s.id ASC LIMIT 7`
   ).all();
 
   return ok({
@@ -375,7 +375,7 @@ async function getContractsExpiring(env, origin) {
      LEFT JOIN employees e ON c.employee_id=e.id
      LEFT JOIN branches b ON c.branch_id=b.id
      WHERE c.status='Aktif' AND c.end_date >= date('now')
-     ORDER BY c.end_date ASC LIMIT 50`
+     ORDER BY c.end_date ASC, c.id ASC LIMIT 50`
   ).all();
   return ok(rows.results || [], 200, origin);
 }
@@ -386,46 +386,46 @@ async function getActivityLog(env, origin) {
   const [issues, contracts, employees, oo1, training, supply, relievers, inspection] =
     await Promise.all([
       env.DB.prepare(
-        `SELECT 'issue' type, COALESCE(complaint,'—') label, created_at,
+        `SELECT id, 'issue' type, COALESCE(complaint,'—') label, created_at,
          branch_id, category info
-         FROM issues ORDER BY created_at DESC LIMIT 5`
+         FROM issues ORDER BY created_at DESC, id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'contract' type, COALESCE((SELECT full_name FROM employees WHERE id=contracts.employee_id),'Karyawan') label, created_at,
+        `SELECT id, 'contract' type, COALESCE((SELECT full_name FROM employees WHERE id=contracts.employee_id),'Karyawan') label, created_at,
          branch_id, contract_type info
-         FROM contracts ORDER BY created_at DESC LIMIT 5`
+         FROM contracts ORDER BY created_at DESC, id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'employee' type, full_name label, created_at,
+        `SELECT id, 'employee' type, full_name label, created_at,
          branch_id, status info
-         FROM employees ORDER BY created_at DESC LIMIT 5`
+         FROM employees ORDER BY created_at DESC, id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'one_on_one' type, COALESCE(employee_name,'—') label, created_at,
+        `SELECT id, 'one_on_one' type, COALESCE(employee_name,'—') label, created_at,
          branch_id, status info
-         FROM one_on_one ORDER BY created_at DESC LIMIT 4`
+         FROM one_on_one ORDER BY created_at DESC, id DESC LIMIT 4`
       ).all(),
       env.DB.prepare(
-        `SELECT 'training' type, COALESCE(subject,'Training') label, created_at,
+        `SELECT id, 'training' type, COALESCE(subject,'Training') label, created_at,
          NULL branch_id, trainer info
-         FROM training ORDER BY created_at DESC LIMIT 4`
+         FROM training ORDER BY created_at DESC, id DESC LIMIT 4`
       ).all(),
       env.DB.prepare(
-        `SELECT 'supply' type, COALESCE(submitter_name,'Pemohon') label,
+        `SELECT id, 'supply' type, COALESCE(submitter_name,'Pemohon') label,
          submitted_at created_at, NULL branch_id, status info
-         FROM supply_requests ORDER BY submitted_at DESC LIMIT 4`
+         FROM supply_requests ORDER BY submitted_at DESC, id DESC LIMIT 4`
       ).all(),
       env.DB.prepare(
-        `SELECT 'reliever' type, COALESCE(reliever_name,'Reliefer') label, created_at,
+        `SELECT id, 'reliever' type, COALESCE(reliever_name,'Reliefer') label, created_at,
          branch_id, reason info
          FROM relievers 
          WHERE LOWER(TRIM(status)) = 'done'
-         ORDER BY created_at DESC LIMIT 3`
+         ORDER BY created_at DESC, id DESC LIMIT 3`
       ).all(),
       env.DB.prepare(
-        `SELECT 'inspection' type, period label, created_at,
+        `SELECT id, 'inspection' type, period label, created_at,
          branch_id, status info
-         FROM inspection_reports ORDER BY created_at DESC LIMIT 3`
+         FROM inspection_reports ORDER BY created_at DESC, id DESC LIMIT 3`
       ).all(),
     ]);
 
@@ -448,7 +448,14 @@ async function getActivityLog(env, origin) {
     branch: r.branch_id ? (branchMap[r.branch_id] || null) : null,
     label:  (r.label && r.label !== '[object Object]') ? String(r.label).slice(0, 80) : '—',
   }))
-  .sort((a,b) => (b.created_at||'').localeCompare(a.created_at||''))
+  .sort((a,b) => {
+    const ta = a.created_at ? new Date(String(a.created_at).replace(' ', 'T')).getTime() : 0;
+    const tb = b.created_at ? new Date(String(b.created_at).replace(' ', 'T')).getTime() : 0;
+    const va = Number.isFinite(ta) ? ta : 0;
+    const vb = Number.isFinite(tb) ? tb : 0;
+    if (vb !== va) return vb - va;
+    return Number(b.id || 0) - Number(a.id || 0);
+  })
   .slice(0, 20);
 
   return ok(all, 200, origin);
@@ -791,8 +798,15 @@ async function getNotifications(request, env, origin) {
     });
   });
 
-  // Sort by date descending
-  list.sort((a, b) => b.date.localeCompare(a.date));
+  // Sort by date descending, placing empty/invalid dates last
+  list.sort((a, b) => {
+    const da = parseFlexibleDate(a.date);
+    const db = parseFlexibleDate(b.date);
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return db.localeCompare(da);
+  });
 
   return ok(list, 200, origin);
 }

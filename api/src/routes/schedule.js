@@ -1,6 +1,15 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const SCHEDULE_SORT_MAP = Object.freeze({
+  opening_date_desc: buildDateOrderBy('s.opening_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  opening_date_asc: buildDateOrderBy('s.opening_date', { direction: 'ASC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  target_date_desc: buildDateOrderBy('s.target_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_desc: buildDateOrderBy('s.target_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  target_date_asc: buildDateOrderBy('s.target_date', { direction: 'ASC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  newest: buildTimestampOrderBy('s.created_at', { direction: 'DESC', alias: 's', idDir: 'DESC' }),
+});
 import { runSync } from '../utils/calendar.js';
 import { buildOutboxQuery } from '../utils/sync_engine.js';
 import { mapDBToPayload } from '../utils/sync_mapper.js';
@@ -47,6 +56,7 @@ async function listSchedule(request, env, origin) {
   const status = url.searchParams.get('status') || '';
   const pic = url.searchParams.get('pic') || '';
   const month = url.searchParams.get('month') || '';
+  const sort = url.searchParams.get('sort') || 'opening_date_desc';
 
   let conditions = ['s.deleted_at IS NULL'];
   let values = [];
@@ -72,13 +82,14 @@ async function listSchedule(request, env, origin) {
   }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+  const orderBy = resolveSortOrder(sort, SCHEDULE_SORT_MAP, 'opening_date_desc');
 
   const [countResult, rows] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as total FROM activity_schedule s ${where}`).bind(...values).first(),
     env.DB.prepare(
       `SELECT s.*, b.full_name as branch_name FROM activity_schedule s
        LEFT JOIN branches b ON s.branch_id = b.id
-       ${where} ORDER BY s.target_date ASC, s.id DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 

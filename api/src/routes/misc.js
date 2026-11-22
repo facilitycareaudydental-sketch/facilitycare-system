@@ -1,7 +1,12 @@
 // SOP, Master Checklist, Master Forms, PIC list
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const MISC_TABLE_SORT_MAP = Object.freeze({
+  created_desc: buildTimestampOrderBy('created_at', { direction: 'DESC', idDir: 'DESC' }),
+  name_asc: 'name ASC, id ASC',
+});
 
 export async function handleMisc(request, env, origin) {
   const url = new URL(request.url);
@@ -23,8 +28,10 @@ async function handleTable(request, env, origin, table, path) {
     const url = new URL(request.url);
     const search = url.searchParams.get('search') || '';
     const all = url.searchParams.get('all');
+    const sort = url.searchParams.get('sort') || 'created_desc';
+    const orderBy = resolveSortOrder(sort, MISC_TABLE_SORT_MAP, 'created_desc');
     if (all === '1') {
-      const rows = await env.DB.prepare(`SELECT * FROM ${table} ORDER BY name`).all();
+      const rows = await env.DB.prepare(`SELECT * FROM ${table} ORDER BY ${orderBy}`).all();
       return ok(rows.results, 200, origin);
     }
     let conditions = []; let values = [];
@@ -32,7 +39,7 @@ async function handleTable(request, env, origin, table, path) {
     const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
     const [countResult, rows] = await Promise.all([
       env.DB.prepare(`SELECT COUNT(*) as total FROM ${table} ${where}`).bind(...values).first(),
-      env.DB.prepare(`SELECT * FROM ${table} ${where} ORDER BY name LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
+      env.DB.prepare(`SELECT * FROM ${table} ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
     ]);
     return paginated(rows.results, countResult.total, page, limit, origin);
   }

@@ -1,6 +1,16 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, hasTableColumn, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
+
+async function getMutasiOrderBy(db, rawSort) {
+  const includeUpdatedAt = await hasTableColumn(db, 'mutasi_data', 'updated_at');
+  const sortMap = {
+    date_desc: buildDateOrderBy('m.tanggal', { direction: 'DESC', alias: 'm', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+    date_asc: buildDateOrderBy('m.tanggal', { direction: 'ASC', alias: 'm', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+    name_asc: 'm.employee_name ASC, m.id ASC',
+  };
+  return resolveSortOrder(rawSort, sortMap, 'date_desc');
+}
 
 export async function handleMutasi(request, env, origin) {
   const user = await authenticate(request, env);
@@ -18,6 +28,7 @@ export async function handleMutasi(request, env, origin) {
       const search = url.searchParams.get('search') || '';
       const from_branch_id = url.searchParams.get('from_branch_id') || '';
       const to_branch_id = url.searchParams.get('to_branch_id') || '';
+      const sort = url.searchParams.get('sort') || 'date_desc';
 
       let conditions = ['1=1'];
       let values = [];
@@ -25,6 +36,7 @@ export async function handleMutasi(request, env, origin) {
       if (from_branch_id) { conditions.push('m.from_branch_id = ?'); values.push(from_branch_id); }
       if (to_branch_id) { conditions.push('m.to_branch_id = ?'); values.push(to_branch_id); }
       const where = 'WHERE ' + conditions.join(' AND ');
+      const orderBy = await getMutasiOrderBy(env.DB, sort);
 
       const countRow = await env.DB.prepare(
         `SELECT COUNT(*) as total FROM mutasi_data m ${where}`
@@ -36,7 +48,7 @@ export async function handleMutasi(request, env, origin) {
         LEFT JOIN branches b1 ON m.from_branch_id = b1.id
         LEFT JOIN branches b2 ON m.to_branch_id = b2.id
         ${where}
-        ORDER BY m.tanggal DESC, m.id DESC
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `).bind(...values, limit, offset).all();
 

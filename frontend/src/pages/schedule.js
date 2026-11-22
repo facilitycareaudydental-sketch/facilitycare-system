@@ -4,6 +4,7 @@ import { notifyCalendar } from '../utils/calendarBus.js';
 import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
 import { statusBadge, activityTypeBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
+import { compareRowsByDateDesc } from '../utils/sorting.js';
 
 let branchOptions = [];
 let picOptions = [];
@@ -87,13 +88,11 @@ export async function renderSchedule(container, params) {
     paginationMode: 'client',
     enableMobileFilterSheet: true,
     defaultFilters: defFilters,
+    defaultSort: 'opening_date_desc',
     onDataLoaded: (items) => {
-      // Sort descending by opening_date, so newest year/date is first
-      return items.sort((a, b) => {
-        const da = a.opening_date ? new Date(a.opening_date).getTime() : 0;
-        const db = b.opening_date ? new Date(b.opening_date).getTime() : 0;
-        return db - da;
-      });
+      // Chronological DESC by opening_date (YYYY-MM-DD & DD-MM-YYYY), empty/invalid last,
+      // tie-breaker: updated_at DESC, created_at DESC, id DESC
+      return [...(items || [])].sort((a, b) => compareRowsByDateDesc(a, b, 'opening_date'));
     },
     columns: [
       { key: 'branch_name', label: 'Cabang' },

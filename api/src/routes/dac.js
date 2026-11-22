@@ -189,7 +189,7 @@ async function listDAC(request, env, origin) {
   }
 
   const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
-  const baseSelect = `SELECT * FROM master_dac_standards ${whereClause} ORDER BY shift ASC, item_no ASC`;
+  const baseSelect = `SELECT * FROM master_dac_standards ${whereClause} ORDER BY shift ASC, item_no ASC, id ASC`;
 
   if (all === '1') {
     const rows = await env.DB.prepare(baseSelect).bind(...values).all();
@@ -207,7 +207,7 @@ async function listDAC(request, env, origin) {
 }
 
 async function getDACSummary(request, env, origin) {
-  const rows = (await env.DB.prepare('SELECT * FROM master_dac_standards ORDER BY shift ASC, item_no ASC').all()).results || [];
+  const rows = (await env.DB.prepare('SELECT * FROM master_dac_standards ORDER BY shift ASC, item_no ASC, id ASC').all()).results || [];
   
   const pagi = rows.filter(r => r.shift === 'pagi');
   const siang = rows.filter(r => r.shift === 'siang');

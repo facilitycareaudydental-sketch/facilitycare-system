@@ -1,6 +1,15 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const CONTRACT_SORT_MAP = Object.freeze({
+  start_date_desc: buildDateOrderBy('c.start_date', { direction: 'DESC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  start_date_asc: buildDateOrderBy('c.start_date', { direction: 'ASC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  end_date_desc: buildDateOrderBy('c.end_date', { direction: 'DESC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  end_date_asc: buildDateOrderBy('c.end_date', { direction: 'ASC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  name_asc: 'e.full_name ASC, c.id ASC',
+  newest: buildTimestampOrderBy('c.created_at', { direction: 'DESC', alias: 'c', idDir: 'DESC' }),
+});
 import { runSync } from '../utils/calendar.js';
 
 export async function handleContracts(request, env, origin) {
@@ -43,6 +52,7 @@ async function listContracts(request, env, origin) {
   const branch_id = url.searchParams.get('branch_id') || '';
   const status = url.searchParams.get('status') || '';
   const expiring_days = url.searchParams.get('expiring_days') || '';
+  const sort = url.searchParams.get('sort') || 'start_date_desc';
 
   let conditions = ['1=1'];
   let values = [];
@@ -56,6 +66,7 @@ async function listContracts(request, env, origin) {
   }
 
   const where = 'WHERE ' + conditions.join(' AND ');
+  const orderBy = resolveSortOrder(sort, CONTRACT_SORT_MAP, 'start_date_desc');
 
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total FROM contracts c LEFT JOIN employees e ON c.employee_id = e.id ${where}`
@@ -72,7 +83,7 @@ async function listContracts(request, env, origin) {
      LEFT JOIN employees e ON c.employee_id = e.id
      LEFT JOIN branches b ON c.branch_id = b.id
      ${where} 
-     ORDER BY CASE WHEN c.end_date IS NULL OR c.end_date = '' THEN 1 ELSE 0 END, c.end_date ASC 
+     ORDER BY ${orderBy} 
      LIMIT ? OFFSET ?`
   ).bind(...values, limit, offset).all();
 

@@ -1,6 +1,12 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const ISSUE_SORT_MAP = Object.freeze({
+  date_desc: buildDateOrderBy('i.report_date', { direction: 'DESC', alias: 'i', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_asc: buildDateOrderBy('i.report_date', { direction: 'ASC', alias: 'i', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  newest: buildTimestampOrderBy('i.created_at', { direction: 'DESC', alias: 'i', idDir: 'DESC' }),
+});
 import { buildOutboxQuery } from '../utils/sync_engine.js';
 import { mapDBToPayload } from '../utils/sync_mapper.js';
 
@@ -46,6 +52,7 @@ async function listIssues(request, env, origin) {
   const search = url.searchParams.get('search') || '';
   const year = url.searchParams.get('year') || '';
   const month = url.searchParams.get('month') || '';
+  const sort = url.searchParams.get('sort') || 'date_desc';
 
   let conditions = ['i.deleted_at IS NULL'];
   let values = [];
@@ -57,13 +64,14 @@ async function listIssues(request, env, origin) {
   if (month) { conditions.push("strftime('%Y-%m', i.report_date) = ?"); values.push(month); }
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+  const orderBy = resolveSortOrder(sort, ISSUE_SORT_MAP, 'date_desc');
 
   const [countResult, rows] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as total FROM issues i ${where}`).bind(...values).first(),
     env.DB.prepare(
       `SELECT i.*, b.full_name as branch_name FROM issues i
        LEFT JOIN branches b ON i.branch_id = b.id
-       ${where} ORDER BY i.report_date DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 

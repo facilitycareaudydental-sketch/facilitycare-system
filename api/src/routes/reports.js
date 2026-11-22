@@ -1,6 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
 
 // Handles: /api/reports/inspection, /api/reports/cleaning, /api/reports/fogging, /api/reports/basecamp
 export async function handleReports(request, env, origin) {
@@ -35,9 +35,15 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
   const month = url.searchParams.get('month') || '';
   const pic = url.searchParams.get('pic') || '';
   const activity_type = url.searchParams.get('activity_type') || '';
+  const sort = url.searchParams.get('sort') || 'date_desc';
 
   const dateField = table === 'basecamp_reports' ? 'info_date' : 
                     table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
+  const sortMap = {
+    date_desc: buildDateOrderBy(`t.${dateField}`, { direction: 'DESC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+    date_asc: buildDateOrderBy(`t.${dateField}`, { direction: 'ASC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  };
+  const orderBy = resolveSortOrder(sort, sortMap, 'date_desc');
 
   let conditions = [...extraConditions];
   let values = [];
@@ -71,7 +77,7 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
     env.DB.prepare(
       `SELECT t.*, b.full_name as branch_name FROM ${table} t
        LEFT JOIN branches b ON t.branch_id = b.id
-       ${where} ORDER BY t.${dateField} DESC, t.id DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 
@@ -438,14 +444,20 @@ async function handleBasecamp(request, env, user, origin, path) {
     const branch_id = url.searchParams.get('branch_id') || '';
     const status = url.searchParams.get('status') || '';
     const search = url.searchParams.get('search') || '';
+    const sort = url.searchParams.get('sort') || 'date_desc';
     let conditions = []; let values = [];
     if (branch_id) { conditions.push('t.branch_id = ?'); values.push(branch_id); }
     if (status) { conditions.push('t.status = ?'); values.push(status); }
     if (search) { conditions.push('(t.problem LIKE ? OR t.pic LIKE ?)'); values.push(`%${search}%`, `%${search}%`); }
     const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    const basecampSortMap = {
+      date_desc: buildDateOrderBy('t.info_date', { direction: 'DESC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+      date_asc: buildDateOrderBy('t.info_date', { direction: 'ASC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+    };
+    const orderBy = resolveSortOrder(sort, basecampSortMap, 'date_desc');
     const [countResult, rows] = await Promise.all([
       env.DB.prepare(`SELECT COUNT(*) as total FROM basecamp_reports t ${where}`).bind(...values).first(),
-      env.DB.prepare(`SELECT t.*, b.full_name as branch_name FROM basecamp_reports t LEFT JOIN branches b ON t.branch_id = b.id ${where} ORDER BY t.info_date DESC LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
+      env.DB.prepare(`SELECT t.*, b.full_name as branch_name FROM basecamp_reports t LEFT JOIN branches b ON t.branch_id = b.id ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
     ]);
     return paginated(rows.results, countResult.total, page, limit, origin);
   }
@@ -767,7 +779,7 @@ async function handleSupply(request, env, origin, path) {
     const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
     const [countResult, rows] = await Promise.all([
       env.DB.prepare(`SELECT COUNT(*) as total FROM supply_requests r ${where}`).bind(...values).first(),
-      env.DB.prepare(`SELECT r.*, b.full_name as branch_name_ref FROM supply_requests r LEFT JOIN branches b ON r.branch_id = b.id ${where} ORDER BY r.submitted_at DESC LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
+      env.DB.prepare(`SELECT r.*, b.full_name as branch_name_ref FROM supply_requests r LEFT JOIN branches b ON r.branch_id = b.id ${where} ORDER BY ${buildTimestampOrderBy('r.submitted_at', { direction: 'DESC', alias: 'r', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })} LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
     ]);
     return paginated(rows.results, countResult.total, page, limit, origin);
   }

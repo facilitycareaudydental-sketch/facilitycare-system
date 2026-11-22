@@ -1,6 +1,11 @@
 import { authenticate, hashPassword, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, getSearchParam } from '../utils/pagination.js';
+import { getPagination, getSearchParam, resolveSortOrder, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const USER_SORT_MAP = Object.freeze({
+  created_desc: buildTimestampOrderBy('created_at', { direction: 'DESC', idDir: 'DESC' }),
+  name_asc: 'full_name ASC, id ASC',
+});
 
 export async function handleUsers(request, env, origin) {
   const user = await authenticate(request, env);
@@ -33,12 +38,14 @@ export async function handleUsers(request, env, origin) {
 async function listUsers(request, env, origin) {
   const { page, limit, offset } = getPagination(request.url);
   const search = getSearchParam(request.url, 'search');
+  const sort = new URL(request.url).searchParams.get('sort') || 'created_desc';
+  const orderBy = resolveSortOrder(sort, USER_SORT_MAP, 'created_desc');
 
   let query, countQuery;
   if (search) {
     query = `SELECT id, username, email, full_name, role, is_active, created_at FROM users 
              WHERE full_name LIKE ? OR username LIKE ? OR email LIKE ? 
-             ORDER BY full_name LIMIT ? OFFSET ?`;
+             ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
     countQuery = `SELECT COUNT(*) as total FROM users WHERE full_name LIKE ? OR username LIKE ? OR email LIKE ?`;
     const s = `%${search}%`;
     const [rows, count] = await Promise.all([
@@ -48,7 +55,7 @@ async function listUsers(request, env, origin) {
     return paginated(rows.results, count.total, page, limit, origin);
   }
 
-  query = `SELECT id, username, email, full_name, role, is_active, created_at FROM users ORDER BY full_name LIMIT ? OFFSET ?`;
+  query = `SELECT id, username, email, full_name, role, is_active, created_at FROM users ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
   countQuery = `SELECT COUNT(*) as total FROM users`;
   const [rows, count] = await Promise.all([
     env.DB.prepare(query).bind(limit, offset).all(),

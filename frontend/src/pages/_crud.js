@@ -16,6 +16,7 @@ export function buildCrudPage({
   formFields,
   filterFields,
   defaultFilters = {},
+  defaultSort = '',
   itemLabel = 'Data',
   canCreate = true,
   canEdit = true,
@@ -410,7 +411,11 @@ export function buildCrudPage({
     const apiPage = isClientSide ? 1 : page;
     const apiLimit = isClientSide ? CLIENT_SIDE_MAX_ROWS : 20;
     
-    const params = new URLSearchParams({ page: apiPage, limit: apiLimit, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
+    const activeQueryFilters = {
+      ...(defaultSort ? { sort: defaultSort } : {}),
+      ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)),
+    };
+    const params = new URLSearchParams({ page: apiPage, limit: apiLimit, ...activeQueryFilters });
     const res = await apiFetch(`${apiPath}?${params}`);
 
     if (!res.ok) {
@@ -423,8 +428,10 @@ export function buildCrudPage({
     const originalTotal = items.length;
     
     if (isClientSide) {
-       // 1. Terapkan filter khusus (Client-Side)
-       items = onDataLoaded(items);
+       // 1. Terapkan transformasi/filter khusus (Client-Side)
+       if (typeof onDataLoaded === 'function') {
+         items = onDataLoaded(items);
+       }
        
        // 2. Hitung jumlah total data setelah difilter
        const filteredTotal = items.length;

@@ -44,14 +44,14 @@ async function listBranches(request, env, origin) {
   const all = new URL(request.url).searchParams.get('all');
 
   if (all === '1') {
-    const rows = await env.DB.prepare('SELECT * FROM branches WHERE is_active = 1 AND deleted_at IS NULL ORDER BY code').all();
+    const rows = await env.DB.prepare('SELECT * FROM branches WHERE is_active = 1 AND deleted_at IS NULL ORDER BY code ASC, id ASC').all();
     return ok(rows.results, 200, origin);
   }
 
   let query, countQuery, rows, count;
   if (search) {
     const s = `%${search}%`;
-    query = 'SELECT * FROM branches WHERE (name LIKE ? OR code LIKE ? OR full_name LIKE ?) AND deleted_at IS NULL ORDER BY code LIMIT ? OFFSET ?';
+    query = 'SELECT * FROM branches WHERE (name LIKE ? OR code LIKE ? OR full_name LIKE ?) AND deleted_at IS NULL ORDER BY code ASC, id ASC LIMIT ? OFFSET ?';
     countQuery = 'SELECT COUNT(*) as total FROM branches WHERE (name LIKE ? OR code LIKE ? OR full_name LIKE ?) AND deleted_at IS NULL';
     [rows, count] = await Promise.all([
       env.DB.prepare(query).bind(s, s, s, limit, offset).all(),
@@ -59,7 +59,7 @@ async function listBranches(request, env, origin) {
     ]);
   } else {
     [rows, count] = await Promise.all([
-      env.DB.prepare('SELECT * FROM branches WHERE deleted_at IS NULL ORDER BY code LIMIT ? OFFSET ?').bind(limit, offset).all(),
+      env.DB.prepare('SELECT * FROM branches WHERE deleted_at IS NULL ORDER BY code ASC, id ASC LIMIT ? OFFSET ?').bind(limit, offset).all(),
       env.DB.prepare('SELECT COUNT(*) as total FROM branches WHERE deleted_at IS NULL').first()
     ]);
   }

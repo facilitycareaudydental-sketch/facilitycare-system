@@ -1,6 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, buildDateOrderBy } from '../utils/pagination.js';
 import { runSync } from '../utils/calendar.js';
 import { buildOutboxQuery } from '../utils/sync_engine.js';
 import { mapDBToPayload } from '../utils/sync_mapper.js';
@@ -66,7 +66,7 @@ async function list(request, env, origin) {
        COALESCE(r.status, 'Pending') as status
        FROM relievers r
        LEFT JOIN branches b ON r.branch_id = b.id
-       ${where} ORDER BY r.period ASC, r.backup_date DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY ${buildDateOrderBy('r.backup_date', { direction: 'DESC', alias: 'r', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })} LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 

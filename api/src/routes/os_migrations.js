@@ -1,7 +1,14 @@
 // OS Migrations - Timeline & Module API
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const OS_MIGRATION_SORT_MAP = Object.freeze({
+  target_month_desc: buildDateOrderBy('m.target_month', { direction: 'DESC', alias: 'm', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC', allowYearMonth: true, allowExcelSerial: false }),
+  target_month_asc: buildDateOrderBy('m.target_month', { direction: 'ASC', alias: 'm', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC', allowYearMonth: true, allowExcelSerial: false }),
+  actual_date_desc: buildDateOrderBy('m.actual_date', { direction: 'DESC', alias: 'm', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  newest: buildTimestampOrderBy('m.created_at', { direction: 'DESC', alias: 'm', idDir: 'DESC' }),
+});
 
 const SEED_BRANCHES = [
   // AEON September (9 branches)
@@ -184,6 +191,8 @@ async function listOSMigrations(request, env, origin) {
   const month = url.searchParams.get('month') || '';
   const status = url.searchParams.get('status') || '';
   const all = url.searchParams.get('all');
+  const sort = url.searchParams.get('sort') || 'target_month_desc';
+  const orderBy = resolveSortOrder(sort, OS_MIGRATION_SORT_MAP, 'target_month_desc');
 
   let conditions = [];
   let values = [];
@@ -217,7 +226,7 @@ async function listOSMigrations(request, env, origin) {
     FROM os_migrations m
     JOIN branches b ON m.branch_id = b.id
     ${whereClause}
-    ORDER BY m.target_month ASC, m.vendor ASC, b.code ASC
+    ORDER BY ${orderBy}
   `;
 
   if (all === '1') {
@@ -250,7 +259,7 @@ async function getMigrationSummary(request, env, origin) {
       (SELECT COUNT(*) FROM employees e WHERE e.branch_id = m.branch_id AND e.status = 'Aktif' AND e.deleted_at IS NULL) as employee_count
     FROM os_migrations m
     JOIN branches b ON m.branch_id = b.id
-    ORDER BY m.target_month ASC, m.vendor ASC, b.code ASC
+    ORDER BY ${OS_MIGRATION_SORT_MAP.target_month_desc}
   `;
 
   const rows = (await env.DB.prepare(query).all()).results || [];

@@ -2,6 +2,7 @@ import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
+import { sortYearMonthDesc } from '../utils/sorting.js';
 
 const MONTH_NAMES = {
   '2026-09': 'September 2026',
@@ -218,9 +219,9 @@ export async function renderOSMigrations(container) {
       return;
     }
 
-    // Group rows by Vendor, then by Target Month
+    // Group rows by Vendor, then by Target Month (newest target_month first)
     const vendors = ['AEON', 'Triple S'];
-    const months = ['2026-09', '2026-10', '2026-11', '2026-12'];
+    const months = sortYearMonthDesc(Array.from(new Set(rows.map(r => r.target_month).filter(Boolean))));
 
     let html = '';
 

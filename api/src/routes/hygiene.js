@@ -1,7 +1,12 @@
 // Master Hygiene Standards - Reference Data API
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const HYGIENE_SORT_MAP = Object.freeze({
+  created_desc: buildTimestampOrderBy('created_at', { direction: 'DESC', idDir: 'DESC' }),
+  id_asc: 'id ASC',
+});
 import { SEED_HYGIENE_STANDARDS } from './hygiene_seeds.js';
 
 let _initialized = false;
@@ -95,6 +100,8 @@ async function listHygieneStandards(request, env, origin) {
   const search = url.searchParams.get('search') || '';
   const roomName = url.searchParams.get('room_name') || '';
   const all = url.searchParams.get('all');
+  const sort = url.searchParams.get('sort') || 'created_desc';
+  const orderBy = resolveSortOrder(sort, HYGIENE_SORT_MAP, 'created_desc');
 
   let conditions = [];
   let values = [];
@@ -113,14 +120,14 @@ async function listHygieneStandards(request, env, origin) {
 
   if (all === '1') {
     const rows = await env.DB.prepare(
-      `SELECT * FROM master_hygiene_standards ${where} ORDER BY id ASC`
+      `SELECT * FROM master_hygiene_standards ${where} ORDER BY ${orderBy}`
     ).bind(...values).all();
     return ok(rows.results, 200, origin);
   }
 
   const [countResult, rows] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as total FROM master_hygiene_standards ${where}`).bind(...values).first(),
-    env.DB.prepare(`SELECT * FROM master_hygiene_standards ${where} ORDER BY id ASC LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
+    env.DB.prepare(`SELECT * FROM master_hygiene_standards ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
   ]);
 
   return paginated(rows.results || [], countResult?.total || 0, page, limit, origin);

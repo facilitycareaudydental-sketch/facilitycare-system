@@ -1,6 +1,12 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
+
+const OVERTIME_SORT_MAP = Object.freeze({
+  date_desc: buildDateOrderBy('o.date', { direction: 'DESC', alias: 'o', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_asc: buildDateOrderBy('o.date', { direction: 'ASC', alias: 'o', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  hours_desc: `COALESCE(o.total_hours, 0) DESC, ${buildDateOrderBy('o.date', { direction: 'DESC', alias: 'o', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })}`,
+});
 
 export async function handleOvertime(request, env, origin) {
   const user = await authenticate(request, env);
@@ -19,6 +25,7 @@ export async function handleOvertime(request, env, origin) {
       const search = url.searchParams.get('search') || '';
       const branch_id = url.searchParams.get('branch_id') || '';
       const employee_id = url.searchParams.get('employee_id') || '';
+      const sort = url.searchParams.get('sort') || 'date_desc';
 
       let conditions = ['1=1'];
       let values = [];
@@ -30,6 +37,7 @@ export async function handleOvertime(request, env, origin) {
       if (employee_id) { conditions.push('o.employee_id = ?'); values.push(employee_id); }
       
       const where = 'WHERE ' + conditions.join(' AND ');
+      const orderBy = resolveSortOrder(sort, OVERTIME_SORT_MAP, 'date_desc');
 
       const countRow = await env.DB.prepare(
         `SELECT COUNT(*) as total FROM overtime_records o 
@@ -44,7 +52,7 @@ export async function handleOvertime(request, env, origin) {
         LEFT JOIN branches b ON o.branch_id = b.id
         LEFT JOIN employees e ON o.employee_id = e.id
         ${where}
-        ORDER BY o.date DESC, o.id DESC
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `).bind(...values, limit, offset).all();
 
