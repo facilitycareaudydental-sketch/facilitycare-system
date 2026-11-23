@@ -62,7 +62,7 @@ export async function renderDAC(container) {
     </div>
 
     <!-- Shift Switcher Tabs -->
-    <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #223456; padding-bottom:8px; overflow-x:auto;">
+    <div class="fc-nav-tabs-strip" data-fc-scroll-tabs style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #223456; padding-bottom:8px; overflow-x:auto; flex-wrap:nowrap; scrollbar-width:none;">
       <button class="shift-tab-btn active" data-shift="pagi" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap;">
         🌅 Shift Pagi (08:00 - 17:00) <span class="badge" style="background:rgba(15,23,42,0.55); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-pagi">31</span>
       </button>

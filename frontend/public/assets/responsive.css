@@ -894,3 +894,66 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     font-size: 0.8rem !important;
   }
 }
+
+/* ── Desktop & Tablet Collapsible Sidebar (Icon-Only Mode) ─────── */
+@media (min-width: 768px) {
+  .app-layout.sidebar-collapsed .sidebar {
+    width: 72px !important;
+  }
+  .app-layout.sidebar-collapsed .sidebar-header {
+    padding: 10px 0;
+    height: auto;
+    min-height: var(--topbar-h);
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+  }
+  .app-layout.sidebar-collapsed .sidebar-logo {
+    gap: 0;
+    justify-content: center;
+  }
+  .app-layout.sidebar-collapsed .logo-text-group,
+  .app-layout.sidebar-collapsed .nav-section-label,
+  .app-layout.sidebar-collapsed .nav-label,
+  .app-layout.sidebar-collapsed .sidebar-user-info,
+  .app-layout.sidebar-collapsed .sidebar-btn-label {
+    display: none !important;
+  }
+  .app-layout.sidebar-collapsed .sidebar-collapse-btn svg {
+    transform: rotate(180deg);
+  }
+  .app-layout.sidebar-collapsed .nav-section + .nav-section {
+    border-top: 1px solid rgba(30, 46, 74, 0.85);
+    padding-top: 8px;
+    margin-top: 6px;
+  }
+  .app-layout.sidebar-collapsed .nav-item {
+    justify-content: center;
+    padding: 10px;
+    margin: 2px 10px;
+    gap: 0;
+  }
+  .app-layout.sidebar-collapsed .sidebar-footer {
+    padding: 12px 10px;
+  }
+  .app-layout.sidebar-collapsed .sidebar-user {
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+  .app-layout.sidebar-collapsed .sidebar-footer-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .app-layout.sidebar-collapsed .sidebar-logout {
+    padding: 9px;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar-collapse-btn {
+    display: none !important;
+  }
+  .fc-sidebar-tooltip {
+    display: none !important;
+  }
+}

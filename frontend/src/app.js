@@ -2,6 +2,7 @@ import { getToken, getUser, clearToken, apiFetch, setUser, setToken, setCsrfToke
 import { initRouter, registerRoute, navigate } from './router.js';
 import { toastError } from './components/toast.js';
 import { createModal } from './components/modal.js';
+import { initGlobalScrollTabsObserver } from './components/scrollTabs.js';
 import { escapeHtml } from './utils/sanitize.js';
 
 window.parseFlexibleDate = (d) => {
@@ -99,25 +100,6 @@ function startClock() {
   clockInterval = setInterval(updateClock, 1000);
 }
 
-// ── Sidebar nav badges (load from API) ───────────────────────────────────────
-async function loadSidebarBadges() {
-  try {
-    const res = await apiFetch('/api/dashboard/kpi');
-    if (!res.ok) return;
-    const d = res.data?.data || res.data || {};
-    const setBadge = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.textContent = val > 0 ? val : '';
-        el.style.display = val > 0 ? 'inline-flex' : 'none';
-      }
-    };
-    setBadge('badge-issues',      d.issues?.current      || 0);
-    setBadge('badge-contracts',   d.expiring30?.current  || 0);
-    setBadge('badge-schedule',    d.schedule?.current    || 0);
-  } catch { /* silent */ }
-}
-
 // ── Notifications System (load from API) ─────────────────────────────────────
 let _notifications = [];
 async function loadNotifications() {
@@ -148,7 +130,7 @@ function showNotificationsModal() {
   const contentHtml = `
     <div class="notif-list" style="max-height: 400px; overflow-y: auto;">
       ${_notifications.map(n => `
-        <div class="notif-item notif-severity-${n.severity || 'info'}" style="padding: 12px; border-bottom: 1px solid var(--border); border-left: 4px solid var(--${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'primary'}); margin-bottom: 8px; border-radius: 8px; background: #172033; color: #F8FAFC;">
+        <div class="notif-item notif-severity-${n.severity || 'info'}" style="padding: 12px; border: 1px solid #223456; border-left: 4px solid var(--${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'primary'}); margin-bottom: 8px; border-radius: 8px; background: #0E182B; color: #F8FAFC;">
           <div style="font-weight: 600; font-size: 0.9rem; color: #F8FAFC;">${escapeHtml(n.title)}</div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.75rem; color: var(--text-3);">
             <span>📅 ${escapeHtml(n.date)}</span>
@@ -172,13 +154,17 @@ function renderLayout() {
   const user = getUser();
   const initial = (user?.full_name || 'U')[0].toUpperCase();
 
+  const isCollapsedSaved = (() => {
+    try { return localStorage.getItem('fcms_sidebar_collapsed') === '1'; } catch { return false; }
+  })();
+
   document.getElementById('app').innerHTML = `
-    <div class="app-layout">
+    <div class="app-layout${isCollapsedSaved ? ' sidebar-collapsed' : ''}" id="app-layout">
       <!-- Sidebar dark -->
-      <aside class="sidebar" id="sidebar">
+      <aside class="sidebar" id="sidebar" aria-label="Navigasi Utama">
         <div class="sidebar-header">
           <div class="sidebar-logo">
-            <div class="logo-icon-wrap" style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#2563EB,#0EA5E9);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,0.4);color:#fff;flex-shrink:0;">
+            <div class="logo-icon-wrap" style="width:34px;height:34px;border-radius:10px;background:#2563EB;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
             </div>
             <div class="logo-text-group">
@@ -186,7 +172,10 @@ function renderLayout() {
               <span class="logo-subtext">Facilitycare Management System</span>
             </div>
           </div>
-          <button class="sidebar-close" id="sidebar-close" aria-label="Close">✕</button>
+          <button type="button" class="sidebar-collapse-btn" id="sidebar-collapse-btn" aria-label="${isCollapsedSaved ? 'Perluas Sidebar' : 'Perkecil Sidebar'}" title="${isCollapsedSaved ? 'Perluas Sidebar' : 'Perkecil Sidebar'}" aria-expanded="${isCollapsedSaved ? 'false' : 'true'}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Tutup Menu">✕</button>
         </div>
 
         <nav class="sidebar-nav" id="sidebar-nav">
@@ -194,13 +183,13 @@ function renderLayout() {
           <!-- Utama -->
           <div class="nav-section">
             <span class="nav-section-label">UTAMA</span>
-            <a href="#/dashboard" class="nav-item" data-route="/dashboard">
+            <a href="#/dashboard" class="nav-item" data-route="/dashboard" data-tooltip="Dashboard" title="Dashboard" aria-label="Dashboard">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
               </span>
               <span class="nav-label">Dashboard</span>
             </a>
-            <a href="#/calendar" class="nav-item" data-route="/calendar">
+            <a href="#/calendar" class="nav-item" data-route="/calendar" data-tooltip="Kalender" title="Kalender" aria-label="Kalender">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               </span>
@@ -211,32 +200,31 @@ function renderLayout() {
           <!-- SDM -->
           <div class="nav-section">
             <span class="nav-section-label">SDM</span>
-            <a href="#/employees" class="nav-item" data-route="/employees">
+            <a href="#/employees" class="nav-item" data-route="/employees" data-tooltip="Master Karyawan" title="Master Karyawan" aria-label="Master Karyawan">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><circle cx="19" cy="7" r="2"/><path d="M23 21v-1a3 3 0 00-3-3"/></svg>
               </span>
               <span class="nav-label">Master Karyawan</span>
             </a>
-            <a href="#/contracts" class="nav-item" data-route="/contracts">
+            <a href="#/contracts" class="nav-item" data-route="/contracts" data-tooltip="Data Kontrak" title="Data Kontrak" aria-label="Data Kontrak">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               </span>
               <span class="nav-label">Data Kontrak</span>
-              <span class="nav-badge" id="badge-contracts"></span>
             </a>
-            <a href="#/sp" class="nav-item" data-route="/sp">
+            <a href="#/sp" class="nav-item" data-route="/sp" data-tooltip="Data SP" title="Data SP" aria-label="Data SP">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               </span>
               <span class="nav-label">Data Sp</span>
             </a>
-            <a href="#/mutasi" class="nav-item" data-route="/mutasi">
+            <a href="#/mutasi" class="nav-item" data-route="/mutasi" data-tooltip="Data Mutasi" title="Data Mutasi" aria-label="Data Mutasi">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
               </span>
               <span class="nav-label">Data Mutasi</span>
             </a>
-            <a href="#/overtime" class="nav-item" data-route="/overtime">
+            <a href="#/overtime" class="nav-item" data-route="/overtime" data-tooltip="Data Lembur" title="Data Lembur" aria-label="Data Lembur">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </span>
@@ -247,27 +235,25 @@ function renderLayout() {
           <!-- Operasional -->
           <div class="nav-section">
             <span class="nav-section-label">OPERASIONAL</span>
-            <a href="#/timeline" class="nav-item" data-route="/timeline">
+            <a href="#/timeline" class="nav-item" data-route="/timeline" data-tooltip="Time Line" title="Time Line" aria-label="Time Line">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </span>
               <span class="nav-label">Time Line</span>
-              <span class="nav-badge" id="badge-schedule"></span>
             </a>
-            <a href="#/os-migrations" class="nav-item" data-route="/os-migrations">
+            <a href="#/os-migrations" class="nav-item" data-route="/os-migrations" data-tooltip="Migrasi OS" title="Migrasi OS" aria-label="Migrasi OS">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
               </span>
               <span class="nav-label">Migrasi OS</span>
             </a>
-            <a href="#/issues" class="nav-item" data-route="/issues">
+            <a href="#/issues" class="nav-item" data-route="/issues" data-tooltip="Permasalahan" title="Permasalahan" aria-label="Permasalahan">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </span>
               <span class="nav-label">Permasalahan</span>
-              <span class="nav-badge badge-danger" id="badge-issues"></span>
             </a>
-            <a href="#/training" class="nav-item" data-route="/training">
+            <a href="#/training" class="nav-item" data-route="/training" data-tooltip="Training" title="Training" aria-label="Training">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
               </span>
@@ -278,25 +264,25 @@ function renderLayout() {
           <!-- Laporan -->
           <div class="nav-section">
             <span class="nav-section-label">LAPORAN</span>
-            <a href="#/reports/inspection" class="nav-item" data-route="/reports/inspection">
+            <a href="#/reports/inspection" class="nav-item" data-route="/reports/inspection" data-tooltip="Report Inspeksi Hygiene 2026" title="Report Inspeksi Hygiene 2026" aria-label="Report Inspeksi Hygiene 2026">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </span>
               <span class="nav-label">Report Inspeksi Hygiene 2026</span>
             </a>
-            <a href="#/reports/cleaning" class="nav-item" data-route="/reports/cleaning">
+            <a href="#/reports/cleaning" class="nav-item" data-route="/reports/cleaning" data-tooltip="Report GCDC 2026" title="Report GCDC 2026" aria-label="Report GCDC 2026">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
               </span>
               <span class="nav-label">Report GCDC 2026</span>
             </a>
-            <a href="#/reports/fogging" class="nav-item" data-route="/reports/fogging">
+            <a href="#/reports/fogging" class="nav-item" data-route="/reports/fogging" data-tooltip="Report Fogging 2026" title="Report Fogging 2026" aria-label="Report Fogging 2026">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
               </span>
               <span class="nav-label">Report Fogging 2026</span>
             </a>
-            <a href="#/reports/basecamp" class="nav-item" data-route="/reports/basecamp">
+            <a href="#/reports/basecamp" class="nav-item" data-route="/reports/basecamp" data-tooltip="Rekap Laporan Basecamp" title="Rekap Laporan Basecamp" aria-label="Rekap Laporan Basecamp">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
               </span>
@@ -307,31 +293,31 @@ function renderLayout() {
           <!-- Referensi -->
           <div class="nav-section">
             <span class="nav-section-label">REFERENSI</span>
-            <a href="#/sop-fc" class="nav-item" data-route="/sop-fc">
+            <a href="#/sop-fc" class="nav-item" data-route="/sop-fc" data-tooltip="SOP Facility Care" title="SOP Facility Care" aria-label="SOP Facility Care">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               </span>
               <span class="nav-label">SOP Facility Care</span>
             </a>
-            <a href="#/sop-security" class="nav-item" data-route="/sop-security">
+            <a href="#/sop-security" class="nav-item" data-route="/sop-security" data-tooltip="SOP Security" title="SOP Security" aria-label="SOP Security">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </span>
               <span class="nav-label">SOP Security</span>
             </a>
-            <a href="#/checklist" class="nav-item" data-route="/checklist">
+            <a href="#/checklist" class="nav-item" data-route="/checklist" data-tooltip="Master Document" title="Master Document" aria-label="Master Document">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
               </span>
               <span class="nav-label">Master Document</span>
             </a>
-            <a href="#/hygiene-standards" class="nav-item" data-route="/hygiene-standards">
+            <a href="#/hygiene-standards" class="nav-item" data-route="/hygiene-standards" data-tooltip="Master Hygiene" title="Master Hygiene" aria-label="Master Hygiene">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
               </span>
               <span class="nav-label">Master Hygiene</span>
             </a>
-            <a href="#/dac" class="nav-item" data-route="/dac">
+            <a href="#/dac" class="nav-item" data-route="/dac" data-tooltip="Master DAC" title="Master DAC" aria-label="Master DAC">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </span>
@@ -343,25 +329,25 @@ function renderLayout() {
           ${user && user.role === 'superadmin' ? `
           <div class="nav-section">
             <span class="nav-section-label">ADMIN</span>
-            <a href="#/users" class="nav-item" data-route="/users">
+            <a href="#/users" class="nav-item" data-route="/users" data-tooltip="Manajemen User" title="Manajemen User" aria-label="Manajemen User">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </span>
               <span class="nav-label">Manajemen User</span>
             </a>
-            <a href="#/branches" class="nav-item" data-route="/branches">
+            <a href="#/branches" class="nav-item" data-route="/branches" data-tooltip="Cabang" title="Cabang" aria-label="Cabang">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               </span>
               <span class="nav-label">Cabang</span>
             </a>
-            <a href="#/audit-logs" class="nav-item" data-route="/audit-logs">
+            <a href="#/audit-logs" class="nav-item" data-route="/audit-logs" data-tooltip="Audit Log" title="Audit Log" aria-label="Audit Log">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               </span>
               <span class="nav-label">Audit Log</span>
             </a>
-            <a href="#/settings/import" class="nav-item" data-route="/settings/import">
+            <a href="#/settings/import" class="nav-item" data-route="/settings/import" data-tooltip="Import Data Awal" title="Import Data Awal" aria-label="Import Data Awal">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </span>
@@ -371,7 +357,7 @@ function renderLayout() {
           ${user && user.role !== 'superadmin' && hasPermission(user, 'branches', 'read') ? `
           <div class="nav-section">
             <span class="nav-section-label">MASTER DATA</span>
-            <a href="#/branches" class="nav-item" data-route="/branches">
+            <a href="#/branches" class="nav-item" data-route="/branches" data-tooltip="Cabang" title="Cabang" aria-label="Cabang">
               <span class="nav-icon">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               </span>
@@ -388,18 +374,19 @@ function renderLayout() {
               <div class="sidebar-user-role">${escapeHtml(user?.role || '-')}</div>
             </div>
           </div>
-          <div style="display:flex; gap:6px; margin-top:8px;">
-            <a href="#/profile" class="sidebar-logout nav-item-profile" data-route="/profile" style="flex:1; text-decoration:none;" title="Pengaturan">
+          <div class="sidebar-footer-actions">
+            <a href="#/profile" class="sidebar-logout nav-item-profile" data-route="/profile" data-tooltip="Pengaturan" title="Pengaturan" aria-label="Pengaturan" style="flex:1; text-decoration:none;">
               <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-              Pengaturan
+              <span class="sidebar-btn-label">Pengaturan</span>
             </a>
-            <button class="sidebar-logout" id="logout-btn" style="flex:1;" title="Keluar">
+            <button type="button" class="sidebar-logout" id="logout-btn" data-tooltip="Keluar" title="Keluar" aria-label="Keluar" style="flex:1;">
               <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Keluar
+              <span class="sidebar-btn-label">Keluar</span>
             </button>
           </div>
         </div>
       </aside>
+      <div class="fc-sidebar-tooltip" id="fc-sidebar-tooltip" role="tooltip" aria-hidden="true"></div>
 
       <!-- Mobile overlay -->
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -462,17 +449,71 @@ function renderLayout() {
     </div>
   `;
 
-  // ── Sidebar toggle ────────────────────────────────────────────────────────
-  const sidebar  = document.getElementById('sidebar');
-  const overlay  = document.getElementById('sidebar-overlay');
-  const menuBtn  = document.getElementById('topbar-menu-btn');
-  const closeBtn = document.getElementById('sidebar-close');
+  // ── Sidebar toggle (mobile drawer + desktop/tablet collapse) ──────────────
+  const appLayout = document.getElementById('app-layout');
+  const sidebar   = document.getElementById('sidebar');
+  const overlay   = document.getElementById('sidebar-overlay');
+  const menuBtn   = document.getElementById('topbar-menu-btn');
+  const closeBtn  = document.getElementById('sidebar-close');
+  const collapseBtn = document.getElementById('sidebar-collapse-btn');
+  const tooltipEl = document.getElementById('fc-sidebar-tooltip');
+
   const openSidebar  = () => { sidebar.classList.add('open'); overlay.classList.add('show'); };
   const closeSidebar = () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); };
+  const hideTooltip  = () => {
+    if (!tooltipEl) return;
+    tooltipEl.classList.remove('visible');
+    tooltipEl.setAttribute('aria-hidden', 'true');
+  };
+
+  const setSidebarCollapsed = (collapsed) => {
+    if (!appLayout) return;
+    appLayout.classList.toggle('sidebar-collapsed', collapsed);
+    if (collapseBtn) {
+      const label = collapsed ? 'Perluas Sidebar' : 'Perkecil Sidebar';
+      collapseBtn.setAttribute('aria-label', label);
+      collapseBtn.setAttribute('title', label);
+      collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+    hideTooltip();
+    try { localStorage.setItem('fcms_sidebar_collapsed', collapsed ? '1' : '0'); } catch {}
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 230);
+  };
+
+  collapseBtn?.addEventListener('click', () => {
+    const next = !appLayout?.classList.contains('sidebar-collapsed');
+    setSidebarCollapsed(next);
+  });
+
   menuBtn?.addEventListener('click', openSidebar);
   closeBtn?.addEventListener('click', closeSidebar);
   overlay?.addEventListener('click', closeSidebar);
   document.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', closeSidebar));
+
+  // Floating tooltip for collapsed desktop/tablet sidebar items
+  const bindTooltipTarget = (el) => {
+    const show = () => {
+      if (!tooltipEl || !appLayout?.classList.contains('sidebar-collapsed') || window.innerWidth < 768) return;
+      const text = el.getAttribute('data-tooltip');
+      if (!text) return;
+      const rect = el.getBoundingClientRect();
+      tooltipEl.textContent = text;
+      tooltipEl.style.top = `${Math.round(rect.top + rect.height / 2)}px`;
+      tooltipEl.style.left = `${Math.round(rect.right + 10)}px`;
+      tooltipEl.classList.add('visible');
+      tooltipEl.setAttribute('aria-hidden', 'false');
+    };
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('focus', show);
+    el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('blur', hideTooltip);
+  };
+  document.querySelectorAll('#sidebar [data-tooltip]').forEach(bindTooltipTarget);
+  sidebar?.addEventListener('scroll', hideTooltip, { passive: true });
+  window.addEventListener('resize', hideTooltip, { passive: true });
+
+  // Global horizontal scrollable tabs & pills observer across all pages
+  initGlobalScrollTabsObserver(document.getElementById('main-content'));
 
   // Enforce menu visibility for canonical and legacy operational roles
   const adminRoutes = new Set(['/users', '/settings/import', '/audit-logs', '/sync']);
@@ -526,8 +567,7 @@ function renderLayout() {
     navigate('/login');
   });
 
-  // ── Sidebar badges ───────────────────────────────────────────────────────
-  loadSidebarBadges();
+  // ── Notifications ────────────────────────────────────────────────────────
   loadNotifications();
 
   // ── Click notif button ───────────────────────────────────────────────────

@@ -295,7 +295,7 @@ export async function renderDashboard(container) {
             <div class="chart-card-title">Aktivitas Terbaru</div>
             ${isSuperadmin ? '<a href="#/audit-logs" class="chart-link">Lihat Semua &rarr;</a>' : ''}
           </div>
-          <div id="table-recent-activity" class="dash-table-wrap" style="height:230px;overflow-y:auto">
+          <div id="table-recent-activity" class="dash-table-wrap dash-panel-scroll">
             ${skelTable(4)}
           </div>
         </div>
@@ -306,7 +306,7 @@ export async function renderDashboard(container) {
             <div class="chart-card-title">Jadwal Kegiatan Mendatang</div>
             <a href="#/calendar" class="chart-link">Lihat Kalender &rarr;</a>
           </div>
-          <div id="list-upcoming-schedule" style="height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
+          <div id="list-upcoming-schedule" class="dash-panel-scroll" style="display:flex;flex-direction:column;gap:4px">
             ${skelTable(4)}
           </div>
         </div>
@@ -384,76 +384,52 @@ async function fetchAll(container, isAlive = () => container && container.isConn
   } catch(e) { console.warn('UpcomingSchedule render:', e); }
 }
 
-// ── KPI Cards (5 Cards Matching Visual Reference) ──────────────────────────
+// ── KPI Cards (5 Uniform Clean Navy Cards) ─────────────────────────────────
 function renderKPI(kpi) {
   const row = document.getElementById('kpi-row');
   if (!row) return;
   kpi = kpi || {};
 
-  const formatDelta = (cur, prev, fb = '&ndash; 0 (0%)') => {
-    cur = safeNum(cur);
-    prev = safeNum(prev);
-    if (!prev || prev <= 0) return `<span class="kpi-trend neutral">${fb}</span>`;
-    const diff = cur - prev;
-    const pct = Math.abs(Math.round((diff / prev) * 1000) / 10).toLocaleString('id-ID');
-    if (diff > 0) return `<span class="kpi-trend up">&uarr; +${diff} (${pct}%)</span>`;
-    if (diff < 0) return `<span class="kpi-trend down">&darr; ${diff} (-${pct}%)</span>`;
-    return `<span class="kpi-trend neutral">&ndash; 0 (0%)</span>`;
-  };
-
   const cards = [
     {
-      iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      iconSvg: '<svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
       label: 'Karyawan Aktif',
       val: kpi.employees?.current ?? 0,
-      delta: formatDelta(kpi.employees?.current, kpi.employees?.prev),
-      color: 'kpi-purple',
       href: '#/employees?dash_filter=active',
     },
     {
-      iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+      iconSvg: '<svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
       label: 'Kontrak Aktif',
       val: kpi.contracts?.current ?? 0,
-      delta: formatDelta(kpi.contracts?.current, kpi.contracts?.prev),
-      color: 'kpi-teal',
       href: '#/contracts?dash_filter=active',
     },
     {
-      iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 9h20L19 3H5L2 9z"/><path d="M4 9v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="M10 22V12h4v10"/></svg>',
+      iconSvg: '<svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 9h20L19 3H5L2 9z"/><path d="M4 9v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="M10 22V12h4v10"/></svg>',
       label: 'Cabang Operasional',
       val: kpi.branches?.current ?? 0,
-      delta: '<span class="kpi-trend neutral">&ndash; Area aktif</span>',
-      color: 'kpi-amber',
       href: '#/branches',
     },
     {
-      iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+      iconSvg: '<svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
       label: 'Jadwal Kegiatan',
       val: kpi.schedule?.current ?? 0,
-      delta: '<span class="kpi-trend neutral">&ndash; Total jadwal</span>',
-      color: 'kpi-blue',
       href: '#/timeline',
     },
     {
-      iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-      label: 'Permasalahan Open',
+      iconSvg: '<svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+      label: 'Permasalahan',
       val: kpi.issues?.current ?? 0,
-      delta: formatDelta(kpi.issues?.current, kpi.issues?.prev),
-      color: 'kpi-red',
       href: '#/issues?dash_filter=open',
     },
   ];
 
   row.innerHTML = cards.map(c => `
-    <a href="${c.href}" class="kpi-card ${c.color}">
+    <a href="${c.href}" class="kpi-card">
       <div class="kpi-icon-wrap">
         ${c.iconSvg}
       </div>
       <div class="kpi-body">
-        <div class="kpi-val-row">
-          <div class="kpi-value" data-target="${c.val}">${c.val}</div>
-          ${c.delta}
-        </div>
+        <div class="kpi-value" data-target="${c.val}">${c.val}</div>
         <div class="kpi-label">${c.label}</div>
       </div>
     </a>

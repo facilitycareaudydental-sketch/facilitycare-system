@@ -553,7 +553,7 @@ export async function renderSOPFacilityCare(container) {
       </div>
 
       <!-- Navigation Tabs -->
-      <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #223456; padding-bottom:10px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
+      <div class="fc-nav-tabs-strip" data-fc-scroll-tabs style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #223456; padding-bottom:10px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
         <button class="sop-tab-btn ${activeTab === 'ik' ? 'active' : ''}" data-tab="ik" style="${getTabStyle(activeTab === 'ik')}">
           📋 Instruksi Kerja (IK) <span class="badge" style="${getBadgeStyle(activeTab === 'ik')}">${listIK.length}</span>
         </button>
