@@ -839,8 +839,14 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     padding-right: calc(12px + var(--sar)) !important;
   }
   .sidebar {
-    padding-top: calc(10px + var(--sat)) !important;
-    padding-bottom: calc(16px + var(--sab)) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .sidebar-header {
+    padding-top: var(--sat);
+  }
+  .sidebar-footer {
+    padding-bottom: calc(14px + var(--sab));
   }
 
   /* Bottom sheet modal styling with touch friendly spacing */
