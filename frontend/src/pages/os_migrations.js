@@ -14,10 +14,38 @@ const MONTH_NAMES = {
 };
 
 const STATUS_CONFIG = {
-  scheduled: { label: 'Terjadwal', badgeClass: 'badge-warning', icon: '🟡', bg: '#FEF9C3', color: '#854D0E', border: '#FDE047' },
-  in_progress: { label: 'Sedang Proses', badgeClass: 'badge-info', icon: '🔵', bg: '#DBEAFE', color: '#1E40AF', border: '#93C5FD' },
-  completed: { label: 'Selesai', badgeClass: 'badge-success', icon: '🟢', bg: '#DCFCE7', color: '#166534', border: '#86EFAC' }
+  scheduled:   { label: 'Terjadwal',     badgeClass: 'badge-warning', icon: '●', dot: '#FBBF24', bg: 'rgba(245, 158, 11, 0.14)', color: '#FCD34D', border: 'rgba(251, 191, 36, 0.36)' },
+  in_progress: { label: 'Sedang Proses', badgeClass: 'badge-info',    icon: '●', dot: '#60A5FA', bg: 'rgba(37, 99, 235, 0.18)',  color: '#93C5FD', border: 'rgba(59, 130, 246, 0.42)' },
+  completed:   { label: 'Selesai',       badgeClass: 'badge-success', icon: '●', dot: '#34D399', bg: 'rgba(16, 185, 129, 0.16)', color: '#6EE7B7', border: 'rgba(52, 211, 153, 0.38)' }
 };
+
+function renderMigrationActionButtons(r, canEdit, canDelete) {
+  if (!canEdit && !canDelete) return '';
+  const id = escapeHtml(String(r.id ?? ''));
+  const name = escapeHtml(r.branch_name || 'Cabang');
+  return `
+    <div class="os-mig-actions" style="display:inline-flex; gap:5px; align-items:center;">
+      ${canEdit ? `
+        <button type="button" class="os-mig-icon-btn edit-card-btn" data-id="${id}" title="Edit ${name}" aria-label="Edit jadwal migrasi ${name}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </button>
+      ` : ''}
+      ${canDelete ? `
+        <button type="button" class="os-mig-icon-btn os-mig-icon-del delete-card-btn" data-id="${id}" data-name="${name}" title="Hapus ${name}" aria-label="Hapus jadwal migrasi ${name}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        </button>
+      ` : ''}
+    </div>
+  `;
+}
 
 export async function renderOSMigrations(container) {
   const user = getUser();
@@ -33,21 +61,21 @@ export async function renderOSMigrations(container) {
         </h1>
       </div>
       <div class="os-header-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <div class="btn-group" style="background:#111827; padding:3px; border-radius:10px; display:inline-flex; align-items:center; border:1px solid var(--border); height:38px; box-sizing:border-box;">
-          <button id="view-board-btn" class="btn btn-sm" style="background:#2563EB; color:#fff; font-weight:600; border-radius:7px; box-shadow:0 1px 2px rgba(0,0,0,0.05); padding:0 12px; height:100%; display:inline-flex; align-items:center; cursor:pointer;">
-            🗂️ Matrix Board
+        <div class="btn-group" style="background:#0E182B; padding:3px; border-radius:10px; display:inline-flex; align-items:center; border:1px solid #223456; height:38px; box-sizing:border-box;">
+          <button id="view-board-btn" class="btn btn-sm" style="background:#2563EB; color:#fff; font-weight:600; border-radius:7px; padding:0 12px; height:100%; display:inline-flex; align-items:center; cursor:pointer;">
+            📋 Daftar per Bulan
           </button>
-          <button id="view-table-btn" class="btn btn-sm btn-ghost" style="font-weight:600; border-radius:7px; padding:0 12px; height:100%; display:inline-flex; align-items:center; cursor:pointer;">
-            📋 Tabel Data
+          <button id="view-table-btn" class="btn btn-sm btn-ghost" style="font-weight:600; border-radius:7px; padding:0 12px; height:100%; display:inline-flex; align-items:center; cursor:pointer; color:#CBD5E1;">
+            📊 Tabel Data
           </button>
         </div>
         ${canExport ? `
-        <button id="btn-export-migrations" class="btn btn-outline" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; height:38px; padding:0 14px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-sizing:border-box;">
+        <button id="btn-export-migrations" class="btn btn-outline" style="background:#131F36; border:1px solid #223456; color:#F8FAFC; font-weight:600; height:38px; padding:0 14px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-sizing:border-box;">
           📥 Export Excel
         </button>
         ` : ''}
         ${canEdit ? `
-        <button id="btn-add-migration" class="btn btn-primary" style="font-weight:700; height:38px; padding:0 16px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-sizing:border-box; background:#2563EB; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
+        <button id="btn-add-migration" class="btn btn-primary" style="font-weight:700; height:38px; padding:0 16px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-sizing:border-box; background:#2563EB;">
           + Tambah Cabang
         </button>
         ` : ''}
@@ -55,7 +83,7 @@ export async function renderOSMigrations(container) {
     </div>
 
     <!-- Summary KPI Cards -->
-    <div id="migration-summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
+    <div id="migration-summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
       <div class="kpi-card skeleton" style="height:100px; border-radius:12px;"></div>
       <div class="kpi-card skeleton" style="height:100px; border-radius:12px;"></div>
       <div class="kpi-card skeleton" style="height:100px; border-radius:12px;"></div>
@@ -63,37 +91,140 @@ export async function renderOSMigrations(container) {
     </div>
 
     <!-- Filter Toolbar -->
-    <div class="card" style="padding:16px 20px; margin-bottom:24px; background:#172033; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
-      <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;">
-        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
+    <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#131F36; border:1px solid #223456; border-radius:12px;">
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; flex:1; min-width:260px;">
           <div style="position:relative; flex:1; min-width:200px; max-width:320px;">
-            <input type="text" id="migration-search" class="form-control" placeholder="Cari cabang, vendor, catatan..." style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%;">
-            <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:0.9rem;">🔍</span>
+            <input type="text" id="migration-search" class="form-control" placeholder="Cari cabang, vendor, catatan..." style="padding-left:34px; height:38px; border-radius:8px; font-size:0.88rem; width:100%; background:#0E182B; border-color:#223456;">
+            <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#94A3B8; font-size:0.9rem;">🔍</span>
           </div>
-          <select id="filter-vendor" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:140px;">
+          <select id="filter-vendor" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:136px; background:#0F1A2E; border-color:#223456;">
             <option value="">Semua Vendor</option>
             <option value="AEON">AEON</option>
             <option value="Triple S">Triple S</option>
           </select>
-          <select id="filter-month" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:150px;">
+          <select id="filter-month" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:146px; background:#0F1A2E; border-color:#223456;">
             <option value="">Semua Bulan</option>
             <option value="2026-09">September 2026</option>
             <option value="2026-10">Oktober 2026</option>
             <option value="2026-11">November 2026</option>
             <option value="2026-12">Desember 2026</option>
           </select>
-          <select id="filter-status" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:140px;">
+          <select id="filter-status" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:138px; background:#0F1A2E; border-color:#223456;">
             <option value="">Semua Status</option>
-            <option value="scheduled">🟡 Terjadwal</option>
-            <option value="in_progress">🔵 Sedang Proses</option>
-            <option value="completed">🟢 Selesai</option>
+            <option value="scheduled">Terjadwal</option>
+            <option value="in_progress">Sedang Proses</option>
+            <option value="completed">Selesai</option>
           </select>
         </div>
-        <div id="filter-stats-text" style="font-size:0.85rem; color:var(--text-3); font-weight:500;">
+        <div id="filter-stats-text" style="font-size:0.85rem; color:#CBD5E1; font-weight:600;">
           Memuat data...
         </div>
       </div>
     </div>
+
+    <style>
+      .os-mig-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 18px;
+        border-bottom: 1px solid #1E2E4A;
+        transition: background-color 0.14s ease;
+      }
+      .os-mig-row:last-child { border-bottom: none; }
+      .os-mig-row:hover { background: #172642; }
+      .os-mig-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        flex: 1 1 260px;
+      }
+      .os-mig-code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #93C5FD;
+        background: rgba(37, 99, 235, 0.14);
+        border: 1px solid rgba(59, 130, 246, 0.28);
+        padding: 3px 8px;
+        border-radius: 6px;
+        flex-shrink: 0;
+      }
+      .os-mig-name {
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        line-height: 1.35;
+      }
+      .os-mig-sub {
+        font-size: 0.78rem;
+        color: #A5B4C8;
+        margin-top: 2px;
+      }
+      .os-mig-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .os-mig-fc-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #0E182B;
+        border: 1px solid #223456;
+        color: #E2E8F0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 7px;
+        white-space: nowrap;
+      }
+      .os-mig-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border-radius: 6px;
+        background: transparent;
+        border: 1px solid rgba(51, 65, 85, 0.75);
+        color: #94A3B8;
+        cursor: pointer;
+        transition: all 0.14s ease;
+      }
+      .os-mig-icon-btn:hover {
+        background: rgba(37, 99, 235, 0.18);
+        border-color: rgba(96, 165, 250, 0.5);
+        color: #93C5FD;
+      }
+      .os-mig-icon-del:hover {
+        background: rgba(239, 68, 68, 0.16);
+        border-color: rgba(248, 113, 113, 0.5);
+        color: #FCA5A5;
+      }
+      .os-mig-icon-btn:focus-visible {
+        outline: 2px solid #60A5FA;
+        outline-offset: 2px;
+      }
+      @media (max-width: 768px) {
+        .os-mig-row {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+          padding: 12px 14px;
+        }
+        .os-mig-left { flex: none; }
+        .os-mig-right {
+          justify-content: space-between;
+        }
+      }
+    </style>
 
     <!-- Main Content Container -->
     <div id="migration-view-container"></div>
@@ -143,36 +274,36 @@ export async function renderOSMigrations(container) {
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     kpiEl.innerHTML = `
-      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
-        <div style="font-size:0.8rem; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Total Cabang Migrasi</div>
-        <div style="font-size:1.8rem; font-weight:800; color:var(--text-1); line-height:1.2;">${total} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
-        <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Timeline Periode Sep - Des 2026</div>
+      <div class="card" style="padding:16px 20px; background:#131F36; border:1px solid #223456; border-radius:12px;">
+        <div style="font-size:0.8rem; font-weight:600; color:#A5B4C8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Total Cabang Migrasi</div>
+        <div style="font-size:1.75rem; font-weight:800; color:#FFFFFF; line-height:1.2;">${total} <span style="font-size:0.9rem; font-weight:500; color:#A5B4C8;">Cabang</span></div>
+        <div style="font-size:0.76rem; color:#CBD5E1; margin-top:4px;">Timeline Periode Sep - Des 2026</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #3B82F6; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+      <div class="card" style="padding:16px 20px; background:#131F36; border:1px solid #223456; border-left:4px solid #2563EB; border-radius:12px;">
         <div style="font-size:0.8rem; font-weight:600; color:#93C5FD; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor AEON</div>
-        <div style="font-size:1.8rem; font-weight:800; color:#60A5FA; line-height:1.2;">${aeonTotal} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
-        <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Sep: 9 • Nov: 3 • Des: 8</div>
+        <div style="font-size:1.75rem; font-weight:800; color:#60A5FA; line-height:1.2;">${aeonTotal} <span style="font-size:0.9rem; font-weight:500; color:#A5B4C8;">Cabang</span></div>
+        <div style="font-size:0.76rem; color:#CBD5E1; margin-top:4px;">Sep: 9 • Nov: 3 • Des: 8</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #14B8A6; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
-        <div style="font-size:0.8rem; font-weight:600; color:#5EEAD4; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor Triple S</div>
-        <div style="font-size:1.8rem; font-weight:800; color:#2DD4BF; line-height:1.2;">${tripleSTotal} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
-        <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Sep: 5 • Okt: 5 • Nov: 5 • Des: 27</div>
+      <div class="card" style="padding:16px 20px; background:#131F36; border:1px solid #223456; border-left:4px solid #38BDF8; border-radius:12px;">
+        <div style="font-size:0.8rem; font-weight:600; color:#7DD3FC; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor Triple S</div>
+        <div style="font-size:1.75rem; font-weight:800; color:#38BDF8; line-height:1.2;">${tripleSTotal} <span style="font-size:0.9rem; font-weight:500; color:#A5B4C8;">Cabang</span></div>
+        <div style="font-size:0.76rem; color:#CBD5E1; margin-top:4px;">Sep: 5 • Okt: 5 • Nov: 5 • Des: 27</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #10B981; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+      <div class="card" style="padding:16px 20px; background:#131F36; border:1px solid #223456; border-left:4px solid #34D399; border-radius:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <span style="font-size:0.8rem; font-weight:600; color:#6EE7B7; text-transform:uppercase; letter-spacing:0.5px;">Progres Realisasi</span>
-          <span style="font-size:0.85rem; font-weight:700; color:#4ADE80;">${pct}%</span>
+          <span style="font-size:0.88rem; font-weight:800; color:#34D399;">${pct}%</span>
         </div>
-        <div style="width:100%; height:8px; background:#1B2940; border-radius:4px; overflow:hidden; margin-bottom:8px;">
-          <div style="width:${pct}%; height:100%; background:#16A34A; border-radius:4px;"></div>
+        <div style="width:100%; height:8px; background:#0E182B; border-radius:4px; overflow:hidden; margin-bottom:8px;">
+          <div style="width:${pct}%; height:100%; background:#34D399; border-radius:4px;"></div>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-2); font-weight:500;">
-          <span>🟢 Selesai: <strong>${completed}</strong></span>
-          <span>🔵 Proses: <strong>${inProgress}</strong></span>
-          <span>🟡 Terjadwal: <strong>${scheduled}</strong></span>
+        <div style="display:flex; justify-content:space-between; font-size:0.76rem; color:#CBD5E1; font-weight:600;">
+          <span>Selesai: <strong style="color:#6EE7B7;">${completed}</strong></span>
+          <span>Proses: <strong style="color:#93C5FD;">${inProgress}</strong></span>
+          <span>Terjadwal: <strong style="color:#FCD34D;">${scheduled}</strong></span>
         </div>
       </div>
     `;
@@ -236,84 +367,72 @@ export async function renderOSMigrations(container) {
       if (vRows.length === 0) return;
 
       const vTotal = vRows.length;
-      const vThemeColor = v === 'AEON' ? '#93C5FD' : '#5EEAD4';
-      const vBgColor = v === 'AEON' ? 'rgba(59, 130, 246, 0.14)' : 'rgba(20, 184, 166, 0.14)';
-      const vBorderColor = v === 'AEON' ? 'rgba(147, 197, 253, 0.3)' : 'rgba(94, 234, 212, 0.3)';
+      const vThemeColor = v === 'AEON' ? '#93C5FD' : '#7DD3FC';
+      const vBadgeBorder = v === 'AEON' ? 'rgba(59, 130, 246, 0.35)' : 'rgba(56, 189, 248, 0.35)';
 
       const activeMonths = months.filter(m => vRows.some(r => r.target_month === m));
 
       html += `
-        <div class="vendor-board-section" style="margin-bottom:32px; background:#111827; border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+        <div class="vendor-board-section" style="margin-bottom:24px; background:#131F36; border:1px solid #223456; border-radius:14px; overflow:hidden;">
           <!-- Vendor Section Header -->
-          <div style="padding:14px 20px; background:${vBgColor}; border-bottom:1px solid ${vBorderColor}; display:flex; justify-content:space-between; align-items:center;">
+          <div style="padding:14px 18px; background:#0E182B; border-bottom:1px solid #223456; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div style="display:flex; align-items:center; gap:10px;">
-              <span style="font-size:1.1rem; font-weight:800; color:${vThemeColor};">${v === 'AEON' ? '🏢 AEON' : '🛡️ Triple S'}</span>
-              <span class="badge" style="background:#172033; color:${vThemeColor}; border:1px solid ${vBorderColor}; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:6px;">
+              <span style="font-size:1.05rem; font-weight:800; color:${vThemeColor};">Vendor ${escapeHtml(v)}</span>
+              <span class="badge" style="background:rgba(37,99,235,0.16); color:${vThemeColor}; border:1px solid ${vBadgeBorder}; font-weight:700; font-size:0.76rem; padding:3px 9px; border-radius:6px;">
                 ${vTotal} Cabang
               </span>
             </div>
-            <div style="font-size:0.8rem; color:var(--text-3); font-weight:500;">
-              Format Timeline Berdasarkan Dokumen Migrasi
+            <div style="font-size:0.8rem; color:#A5B4C8; font-weight:500;">
+              Dikelompokkan per Bulan Target
             </div>
           </div>
 
-          <!-- Months Grid (Hanya menampilkan bulan yang memiliki jadwal) -->
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; padding:18px;">
+          <!-- Single Unified Grouped List Container (Zero nested boxes or inner scrollbars) -->
+          <div>
             ${activeMonths.map(m => {
               const mRows = vRows.filter(r => r.target_month === m);
               const mName = MONTH_NAMES[m] || m;
-              const shortMonth = mName.split(' ')[0];
 
               return `
-                <div class="month-column" style="background:#172033; border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; min-height:220px;">
-                  <!-- Month Header -->
-                  <div style="padding:12px 14px; background:#111827; border-bottom:1px solid var(--border); border-radius:9px 9px 0 0; display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-weight:700; font-size:0.9rem; color:var(--text-1);">
-                      📅 ${shortMonth}
-                    </div>
-                    <span class="badge" style="background:#1B2940; color:var(--text-2); font-weight:700; font-size:0.75rem; padding:2px 7px; border-radius:4px;">
-                      ${mRows.length}
+                <div class="os-mig-month-group">
+                  <div style="padding:9px 18px; background:#101A2F; border-top:1px solid #1E2E4A; border-bottom:1px solid #1E2E4A; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:700; font-size:0.88rem; color:#E2E8F0; letter-spacing:0.01em;">
+                      📅 ${escapeHtml(mName)}
+                    </span>
+                    <span style="font-size:0.76rem; font-weight:700; color:#93C5FD; background:rgba(37,99,235,0.14); border:1px solid rgba(59,130,246,0.28); padding:2px 8px; border-radius:10px;">
+                      ${mRows.length} Cabang
                     </span>
                   </div>
 
-                  <!-- Branch Cards Container -->
-                  <div style="padding:10px; display:flex; flex-direction:column; gap:8px; flex:1; max-height:480px; overflow-y:auto;">
+                  <div>
                     ${mRows.map(r => {
                       const st = STATUS_CONFIG[r.status] || STATUS_CONFIG.scheduled;
                       return `
-                        <div class="branch-card" style="background:#172033; border:1px solid var(--border); border-radius:8px; padding:10px 12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); transition:transform 0.15s, box-shadow 0.15s;">
-                          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px; margin-bottom:6px;">
-                            <div style="font-weight:700; font-size:0.9rem; color:var(--text-1); line-height:1.3;">
-                              <span style="color:#60A5FA; font-family:monospace; margin-right:4px;">${r.branch_code}.</span>${r.branch_name}
+                        <div class="os-mig-row">
+                          <div class="os-mig-left">
+                            <span class="os-mig-code">${escapeHtml(r.branch_code || '-')}</span>
+                            <div style="min-width:0;">
+                              <div class="os-mig-name">${escapeHtml(r.branch_name || '-')}</div>
+                              ${(r.actual_date || r.notes) ? `
+                                <div class="os-mig-sub">
+                                  ${r.actual_date ? `Realisasi: <strong style="color:#CBD5E1;">${escapeHtml(r.actual_date)}</strong>` : ''}
+                                  ${(r.actual_date && r.notes) ? ' • ' : ''}
+                                  ${r.notes ? `${escapeHtml(r.notes)}` : ''}
+                                </div>
+                              ` : ''}
                             </div>
-                            ${canEdit || canDelete ? `
-                              <div style="display:flex; gap:2px;">
-                                ${canEdit ? `<button class="btn-icon-mini edit-card-btn" data-id="${r.id}" title="Edit" style="background:none; border:none; cursor:pointer; padding:2px 4px; font-size:0.8rem; color:var(--text-3);">✏️</button>` : ''}
-                                ${canDelete ? `<button class="btn-icon-mini delete-card-btn" data-id="${r.id}" data-name="${r.branch_name}" title="Hapus" style="background:none; border:none; cursor:pointer; padding:2px 4px; font-size:0.8rem; color:var(--danger);">🗑️</button>` : ''}
-                              </div>
-                            ` : ''}
                           </div>
 
-                          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                            <!-- Status Selector Dropdown -->
-                            <div style="position:relative;">
-                              <button class="status-toggle-btn" data-id="${r.id}" data-status="${r.status}" style="background:${st.bg}; color:${st.color}; border:1px solid ${st.border}; padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; cursor:${canEdit ? 'pointer' : 'default'};" title="${canEdit ? 'Klik untuk ubah status' : 'Status'}">
-                                ${st.icon} ${st.label}${canEdit ? ' ▾' : ''}
-                              </button>
-                            </div>
-
-                            ${r.employee_count > 0 ? `
-                              <span style="font-size:0.75rem; color:var(--text-3); font-weight:600; display:inline-flex; align-items:center; gap:3px;" title="${r.employee_count} personil Facility Care aktif di cabang ini">
-                                👤 ${r.employee_count} FC
-                              </span>
-                            ` : ''}
+                          <div class="os-mig-right">
+                            <span class="os-mig-fc-pill" title="${r.employee_count || 0} personil Facility Care aktif di cabang ini">
+                              👤 ${r.employee_count || 0} FC
+                            </span>
+                            <button type="button" class="status-toggle-btn" data-id="${escapeHtml(String(r.id))}" data-status="${escapeHtml(r.status)}" style="background:${st.bg}; color:${st.color}; border:1px solid ${st.border}; padding:4px 10px; border-radius:7px; font-size:0.78rem; font-weight:700; display:inline-flex; align-items:center; gap:6px; cursor:${canEdit ? 'pointer' : 'default'}; white-space:nowrap;" title="${canEdit ? 'Klik untuk ubah status' : 'Status'}">
+                              <span style="width:7px; height:7px; border-radius:50%; background:${st.dot}; display:inline-block;"></span>
+                              <span>${st.label}${canEdit ? ' ▾' : ''}</span>
+                            </button>
+                            ${renderMigrationActionButtons(r, canEdit, canDelete)}
                           </div>
-
-                          ${r.actual_date ? `
-                            <div style="font-size:0.7rem; color:var(--text-3); margin-top:6px;">
-                              Realisasi: <strong>${r.actual_date}</strong>
-                            </div>
-                          ` : ''}
                         </div>
                       `;
                     }).join('')}
@@ -342,57 +461,56 @@ export async function renderOSMigrations(container) {
     }
 
     targetEl.innerHTML = `
-      <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="background:#131F36; border:1px solid #223456; border-radius:12px; overflow:hidden;">
         <div class="table-responsive">
           <table class="table" style="width:100%; border-collapse:collapse;">
             <thead>
-              <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
-                <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:50px;">NO</th>
-                <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">KODE & CABANG</th>
-                <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">VENDOR</th>
-                <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">TARGET BULAN</th>
-                <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">STATUS</th>
-                <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">REALISASI</th>
-                <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">SDM FC</th>
-                <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">CATATAN</th>
-                ${canEdit || canDelete ? `<th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3); text-align:right;">AKSI</th>` : ''}
+              <tr style="background:#0E182B; border-bottom:1px solid #223456; text-align:left;">
+                <th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8; width:50px;">NO</th>
+                <th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8;">KODE & CABANG</th>
+                <th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8;">VENDOR</th>
+                <th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8;">TARGET BULAN</th>
+                <th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8;">STATUS</th>
+                <th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8;">REALISASI</th>
+                <th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8;">SDM FC</th>
+                <th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8;">CATATAN</th>
+                ${canEdit || canDelete ? `<th style="padding:12px 16px; font-size:0.78rem; font-weight:700; color:#A5B4C8; text-align:right;">AKSI</th>` : ''}
               </tr>
             </thead>
             <tbody>
               ${rows.map((r, idx) => {
                 const st = STATUS_CONFIG[r.status] || STATUS_CONFIG.scheduled;
                 return `
-                  <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:12px 16px; font-size:0.85rem; color:var(--text-3);">${idx + 1}</td>
+                  <tr style="border-bottom:1px solid #1E2E4A;">
+                    <td style="padding:12px 16px; font-size:0.85rem; color:#A5B4C8;">${idx + 1}</td>
                     <td style="padding:12px 16px;">
-                      <div style="font-weight:700; font-size:0.9rem; color:var(--text-1);">${r.branch_full_name}</div>
+                      <div style="font-weight:700; font-size:0.9rem; color:#FFFFFF;">${escapeHtml(r.branch_full_name)}</div>
                     </td>
                     <td style="padding:12px 16px;">
-                      <span class="badge" style="background:${r.vendor === 'AEON' ? '#DBEAFE' : '#CCFBF1'}; color:${r.vendor === 'AEON' ? '#1E40AF' : '#0F766E'}; font-weight:700; border-radius:6px; padding:4px 8px; font-size:0.75rem;">
-                        ${r.vendor}
+                      <span class="badge" style="background:${r.vendor === 'AEON' ? 'rgba(37,99,235,0.16)' : 'rgba(56,189,248,0.16)'}; color:${r.vendor === 'AEON' ? '#93C5FD' : '#7DD3FC'}; border:1px solid ${r.vendor === 'AEON' ? 'rgba(59,130,246,0.35)' : 'rgba(56,189,248,0.35)'}; font-weight:700; border-radius:6px; padding:4px 8px; font-size:0.75rem;">
+                        ${escapeHtml(r.vendor)}
                       </span>
                     </td>
-                    <td style="padding:12px 16px; font-size:0.875rem; font-weight:600; color:var(--text-2);">
-                      ${MONTH_NAMES[r.target_month] || r.target_month}
+                    <td style="padding:12px 16px; font-size:0.875rem; font-weight:600; color:#CBD5E1;">
+                      ${escapeHtml(MONTH_NAMES[r.target_month] || r.target_month)}
                     </td>
                     <td style="padding:12px 16px;">
-                      <button class="status-toggle-btn" data-id="${r.id}" data-status="${r.status}" style="background:${st.bg}; color:${st.color}; border:1px solid ${st.border}; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:${canEdit ? 'pointer' : 'default'};" title="${canEdit ? 'Klik untuk ubah status' : 'Status'}">
-                        ${st.icon} ${st.label}${canEdit ? ' ▾' : ''}
+                      <button type="button" class="status-toggle-btn" data-id="${escapeHtml(String(r.id))}" data-status="${escapeHtml(r.status)}" style="background:${st.bg}; color:${st.color}; border:1px solid ${st.border}; padding:4px 9px; border-radius:6px; font-size:0.76rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; cursor:${canEdit ? 'pointer' : 'default'};" title="${canEdit ? 'Klik untuk ubah status' : 'Status'}">
+                        <span style="width:6px; height:6px; border-radius:50%; background:${st.dot}; display:inline-block;"></span> ${st.label}${canEdit ? ' ▾' : ''}
                       </button>
                     </td>
-                    <td style="padding:12px 16px; font-size:0.85rem; color:var(--text-2);">
-                      ${r.actual_date || '-'}
+                    <td style="padding:12px 16px; font-size:0.85rem; color:#CBD5E1;">
+                      ${escapeHtml(r.actual_date || '-')}
                     </td>
-                    <td style="padding:12px 16px; font-size:0.85rem; font-weight:600; color:var(--text-2);">
-                      ${r.employee_count > 0 ? `👤 ${r.employee_count}` : '-'}
+                    <td style="padding:12px 16px; font-size:0.85rem; font-weight:700; color:#E2E8F0;">
+                      ${r.employee_count > 0 ? `👤 ${r.employee_count} FC` : '-'}
                     </td>
-                    <td style="padding:12px 16px; font-size:0.85rem; color:var(--text-3); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                      ${r.notes || '-'}
+                    <td style="padding:12px 16px; font-size:0.85rem; color:#A5B4C8; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      ${escapeHtml(r.notes || '-')}
                     </td>
                     ${canEdit || canDelete ? `
                       <td style="padding:12px 16px; text-align:right;">
-                        ${canEdit ? `<button class="btn btn-outline btn-sm edit-card-btn" data-id="${r.id}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px; margin-right:4px;">Edit</button>` : ''}
-                        ${canDelete ? `<button class="btn btn-danger btn-sm delete-card-btn" data-id="${r.id}" data-name="${r.branch_name}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px;">Hapus</button>` : ''}
+                        ${renderMigrationActionButtons(r, canEdit, canDelete)}
                       </td>
                     ` : ''}
                   </tr>

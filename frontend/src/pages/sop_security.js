@@ -173,12 +173,45 @@ export async function renderSOPSecurity(container) {
   let listAssets = getStoredAssets();
 
   const SEC_CATEGORY_THEMES = {
-    'Pengamanan Fisik & Patroli': { text: '#93C5FD', bg: 'rgba(59, 130, 246, 0.16)', border: 'rgba(96, 165, 250, 0.38)', accent: '#60A5FA' },
-    'Operasional Parkir & Luar': { text: '#FCD34D', bg: 'rgba(245, 158, 11, 0.16)', border: 'rgba(251, 191, 36, 0.38)', accent: '#FBBF24' },
-    'Layanan & Hospitalitas': { text: '#6EE7B7', bg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(52, 211, 153, 0.38)', accent: '#34D399' },
+    'Pengamanan Fisik & Patroli': { dot: '#60A5FA', text: '#93C5FD', accent: '#3B82F6' },
+    'Operasional Parkir & Luar': { dot: '#FBBF24', text: '#FDE68A', accent: '#F59E0B' },
+    'Layanan & Hospitalitas': { dot: '#34D399', text: '#A7F3D0', accent: '#10B981' },
   };
   function getSecIKTheme(ik) {
     return SEC_CATEGORY_THEMES[ik?.category] || SEC_CATEGORY_THEMES['Pengamanan Fisik & Patroli'];
+  }
+  function renderSecHandbookIcon() {
+    return `
+      <span style="width:40px; height:40px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; background:#0E182B; border:1px solid #223456; border-radius:9px; color:#93C5FD;" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+      </span>
+    `;
+  }
+  function renderSecHandbookActions(ik) {
+    if (!canEdit && !canDelete) return '';
+    const titleSafe = escapeHtml(ik.title || 'Instruksi Kerja');
+    return `
+      <div style="display:flex; gap:5px; flex-shrink:0;">
+        ${canEdit ? `
+        <button type="button" class="sec-icon-btn btn-edit-sec-ik" data-id="${ik.id}" title="Edit ${titleSafe}" aria-label="Edit SOP ${titleSafe}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </button>
+        ` : ''}
+        ${canDelete ? `
+        <button type="button" class="sec-icon-btn sec-icon-del btn-delete-sec-ik" data-id="${ik.id}" title="Hapus ${titleSafe}" aria-label="Hapus SOP ${titleSafe}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+        ` : ''}
+      </div>
+    `;
   }
 
   const SEC_ZONE_THEMES = {
@@ -200,11 +233,11 @@ export async function renderSOPSecurity(container) {
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           ${canDelete ? `
-          <button id="btn-reset-sec-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#172033; border:1px solid #334155; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
+          <button id="btn-reset-sec-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#131F36; border:1px solid #223456; color:#E2E8F0; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
             🔄 Reset ke Standar
           </button>
           ` : ''}
-          <button id="btn-print-sec" class="btn btn-outline" style="background:#172033; border:1px solid #334155; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
+          <button id="btn-print-sec" class="btn btn-outline" style="background:#131F36; border:1px solid #223456; color:#E2E8F0; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
           ${hasPermission(currentUser, "export") ? `<button id="btn-export-sec" class="btn btn-primary" style="font-weight:700; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem; background:#2563EB; color:#FFFFFF;">
@@ -214,7 +247,7 @@ export async function renderSOPSecurity(container) {
       </div>
 
       <!-- Navigation Tabs -->
-      <div style="display:flex; gap:8px; margin-bottom:22px; border-bottom:1px solid #29364B; padding-bottom:10px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
+      <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #223456; padding-bottom:10px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
         <button class="sec-tab-btn ${activeTab === 'ik' ? 'active' : ''}" data-tab="ik" style="${getTabStyle(activeTab === 'ik')}">
           🛡️ Instruksi Kerja (IK) <span class="badge" style="${getBadgeStyle(activeTab === 'ik')}">${listIK.length}</span>
         </button>
@@ -312,12 +345,12 @@ export async function renderSOPSecurity(container) {
   function renderIKTab(parent) {
     parent.innerHTML = `
       <!-- Toolbar Filter & Search -->
-      <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#172033; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+      <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#131F36; border:1px solid #223456; border-radius:12px;">
         <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
-          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
-            <div style="position:relative; flex:1; min-width:220px; max-width:340px;">
-              <input type="text" id="sec-ik-search" class="form-control" placeholder="Cari instruksi kerja security..." value="${currentSearch}" style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%;">
-              <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:0.9rem;">🔍</span>
+          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:260px;">
+            <div style="position:relative; flex:1; min-width:200px; max-width:340px;">
+              <input type="text" id="sec-ik-search" class="form-control" placeholder="Cari instruksi kerja security..." value="${currentSearch}" style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%; background:#0E182B; border-color:#223456;">
+              <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#94A3B8; font-size:0.9rem;">🔍</span>
             </div>
             
             <div style="display:flex; gap:6px; flex-wrap:wrap;" id="sec-cat-pills-wrap">
@@ -348,9 +381,9 @@ export async function renderSOPSecurity(container) {
     const styleTag = document.createElement('style');
     styleTag.innerHTML = `
       .sec-cat-pill {
-        border: 1px solid #334155;
-        background: #111827;
-        color: #E2E8F0;
+        border: 1px solid #223456;
+        background: #0E182B;
+        color: #CBD5E1;
         font-size: 0.82rem;
         font-weight: 600;
         padding: 6px 13px;
@@ -360,23 +393,24 @@ export async function renderSOPSecurity(container) {
         flex-shrink: 0;
         white-space: nowrap;
       }
-      .sec-cat-pill:hover { background: #22314A; color:#FFFFFF; border-color:#475569; }
+      .sec-cat-pill:hover { background: #1A2A48; color:#FFFFFF; border-color:#3B82F6; }
       .sec-cat-pill.active {
         background: #2563EB;
         color: #FFFFFF;
         border-color: #3B82F6;
       }
       .sec-ik-card:hover {
-        box-shadow: 0 10px 24px rgba(0,0,0,0.35) !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.28) !important;
         border-color: #3B82F6 !important;
-        transform: translateY(-2px);
       }
       .sec-icon-btn {
-        background: #1B2940;
-        border: 1px solid #334155;
+        background: transparent;
+        border: 1px solid rgba(51, 65, 85, 0.7);
         border-radius: 7px;
-        padding: 5px 8px;
-        font-size: 0.9rem;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        color: #94A3B8;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -384,8 +418,18 @@ export async function renderSOPSecurity(container) {
         transition: all 0.15s;
       }
       .sec-icon-btn:hover {
-        background: #22314A;
-        border-color: #60A5FA;
+        background: rgba(37, 99, 235, 0.18);
+        border-color: rgba(96, 165, 250, 0.55);
+        color: #93C5FD;
+      }
+      .sec-icon-del:hover {
+        background: rgba(239, 68, 68, 0.16);
+        border-color: rgba(248, 113, 113, 0.55);
+        color: #FCA5A5;
+      }
+      .sec-icon-btn:focus-visible {
+        outline: 2px solid #60A5FA;
+        outline-offset: 2px;
       }
       @media (max-width: 768px) {
         #sec-cat-pills-wrap {
@@ -443,55 +487,50 @@ export async function renderSOPSecurity(container) {
           ${filteredIK.map(ik => {
             const theme = getSecIKTheme(ik);
             return `
-            <div class="card sec-ik-card" style="background:#172033; border:1px solid #29364B; border-radius:14px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.22); transition:all 0.2s;">
+            <div class="card sec-ik-card" style="background:#131F36; border:1px solid #223456; border-radius:14px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; transition:border-color 0.18s ease, box-shadow 0.18s ease;">
               <div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:14px;">
-                  <div style="display:flex; align-items:center; gap:12px;">
-                    <span style="font-size:1.55rem; width:46px; height:46px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; background:${theme.bg}; border:1px solid ${theme.border}; border-radius:11px;">${ik.icon || '🛡️'}</span>
-                    <div>
-                      <h3 style="margin:0 0 5px 0; font-size:1.08rem; font-weight:700; color:#FFFFFF; line-height:1.35;">
+                  <div style="display:flex; align-items:flex-start; gap:12px; min-width:0;">
+                    ${renderSecHandbookIcon()}
+                    <div style="min-width:0;">
+                      <h3 style="margin:0 0 6px 0; font-size:1.06rem; font-weight:700; color:#FFFFFF; line-height:1.35;">
                         IK-${String(ik.id).padStart(2, '0')}. ${ik.title}
                       </h3>
-                      <span class="badge" style="background:${theme.bg}; color:${theme.text}; border:1px solid ${theme.border}; font-size:0.78rem; font-weight:700; border-radius:6px; padding:3px 9px; display:inline-block;">
+                      <span class="badge" style="background:#0E182B; color:${theme.text}; border:1px solid #24385A; font-size:0.74rem; font-weight:600; border-radius:5px; padding:2px 8px; display:inline-flex; align-items:center; gap:6px;">
+                        <span style="width:6px; height:6px; border-radius:50%; background:${theme.dot}; display:inline-block;"></span>
                         ${ik.category}
                       </span>
                     </div>
                   </div>
 
-                  <!-- Quick Action Buttons: Edit & Hapus -->
-                  <div style="display:flex; gap:6px; flex-shrink:0;">
-                    ${canEdit ? `
-                    <button class="sec-icon-btn btn-edit-sec-ik" data-id="${ik.id}" title="Edit Instruksi Kerja" style="color:#93C5FD;">
-                      ✏️
-                    </button>
-                    ` : ''}
-                    ${canDelete ? `
-                    <button class="sec-icon-btn btn-delete-sec-ik" data-id="${ik.id}" title="Hapus Instruksi Kerja" style="color:#FCA5A5;">
-                      🗑️
-                    </button>
-                    ` : ''}
-                  </div>
+                  <!-- Quick Action Buttons: Edit & Hapus (non-dominant SVG) -->
+                  ${renderSecHandbookActions(ik)}
                 </div>
 
-                <div style="font-size:0.88rem; color:#F8FAFC; line-height:1.55; margin-bottom:14px; background:#0F172A; padding:10px 13px; border-radius:9px; border:1px solid #29364B; border-left:3.5px solid ${theme.accent};">
+                <div style="font-size:0.88rem; color:#F1F5F9; line-height:1.55; margin-bottom:14px; background:#0E182B; padding:10px 13px; border-radius:8px; border:1px solid #1E3050; border-left:3px solid ${theme.accent};">
                   <strong style="color:#FFFFFF;">Area Sasaran:</strong> ${ik.target}
                 </div>
 
                 <div style="margin-bottom:14px;">
-                  <div style="font-size:0.8rem; font-weight:700; color:#CBD5E1; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:7px;">🧰 Alat & Perlengkapan:</div>
-                  <ul style="margin:0 0 0 18px; padding:0; font-size:0.87rem; color:#F8FAFC; line-height:1.6;">
-                    ${ik.tools.slice(0, 3).map(t => `<li style="margin-bottom:3px; word-break:break-word;">${escapeHtml(t)}</li>`).join('')}
-                    ${ik.tools.length > 3 ? `<li style="color:#93C5FD; font-style:italic; font-weight:600; margin-top:2px;">+ ${ik.tools.length - 3} perlengkapan lainnya...</li>` : ''}
+                  <div style="font-size:0.75rem; font-weight:700; color:#93C5FD; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:7px;">Alat &amp; Perlengkapan</div>
+                  <ul style="margin:0; padding:0; list-style:none; font-size:0.86rem; color:#E2E8F0; line-height:1.5;">
+                    ${ik.tools.slice(0, 3).map(t => `
+                      <li style="display:flex; align-items:flex-start; gap:8px; padding:4px 0; border-bottom:1px solid rgba(34, 52, 86, 0.45); word-break:break-word;">
+                        <span style="color:#60A5FA; font-weight:700; line-height:1.4;">•</span>
+                        <span>${escapeHtml(t)}</span>
+                      </li>
+                    `).join('')}
+                    ${ik.tools.length > 3 ? `<li style="color:#93C5FD; font-size:0.82rem; font-weight:600; padding-top:5px;">+ ${ik.tools.length - 3} perlengkapan lainnya dalam panduan</li>` : ''}
                   </ul>
                 </div>
               </div>
 
-              <div style="border-top:1px solid #29364B; padding-top:13px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.86rem; color:#CBD5E1; font-weight:600;">
+              <div style="border-top:1px solid #1E2E4A; padding-top:13px; margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.84rem; color:#CBD5E1; font-weight:600;">
                   ${ik.steps.length} Langkah Prosedur
                 </span>
-                <button class="btn btn-sm btn-primary btn-view-sec-ik" data-id="${ik.id}" style="padding:7px 15px; font-weight:700; font-size:0.85rem; border-radius:8px; background:#2563EB; border:1px solid #3B82F6; color:#FFFFFF;">
-                  Lihat Panduan Lengkap ➔
+                <button type="button" class="btn btn-sm btn-primary btn-view-sec-ik" data-id="${ik.id}" style="padding:7px 15px; font-weight:700; font-size:0.85rem; border-radius:8px; background:#2563EB; border:1px solid #3B82F6; color:#FFFFFF;">
+                  Lihat Panduan Lengkap →
                 </button>
               </div>
             </div>

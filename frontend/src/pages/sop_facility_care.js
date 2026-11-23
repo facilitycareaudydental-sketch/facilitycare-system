@@ -1,6 +1,7 @@
 import { getUser, hasPermission, apiFetch } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 // ── DEFAULT DATA SETS DARI DOKUMEN SOP - FC & HOUSEKEEPING ───────────────────────
 export const DEFAULT_INSTRUKSI_KERJA = [
@@ -479,22 +480,50 @@ export async function renderSOPFacilityCare(container) {
   let listChem = getStoredChem();
 
   const FC_CATEGORY_THEMES = {
-    'Pembersihan Rutin': { text: '#93C5FD', bg: 'rgba(59, 130, 246, 0.16)', border: 'rgba(96, 165, 250, 0.38)', accent: '#60A5FA' },
-    'Sanitasi Toilet': { text: '#FCA5A5', bg: 'rgba(239, 68, 68, 0.16)', border: 'rgba(248, 113, 113, 0.38)', accent: '#F87171' },
-    'Klinis & Medis': { text: '#FDA4AF', bg: 'rgba(244, 63, 94, 0.16)', border: 'rgba(251, 113, 133, 0.38)', accent: '#FB7185' },
-    'Elektronik & Utility': { text: '#5EEAD4', bg: 'rgba(20, 184, 166, 0.16)', border: 'rgba(45, 212, 191, 0.38)', accent: '#2DD4BF' },
-    'Pembersihan Khusus': { text: '#DDD6FE', bg: 'rgba(139, 92, 246, 0.16)', border: 'rgba(167, 139, 250, 0.38)', accent: '#A78BFA' },
-  };
-  const FC_HEX_THEMES = {
-    '#D97706': { text: '#FCD34D', bg: 'rgba(245, 158, 11, 0.16)', border: 'rgba(251, 191, 36, 0.38)', accent: '#FBBF24' },
-    '#059669': { text: '#6EE7B7', bg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(52, 211, 153, 0.38)', accent: '#34D399' },
-    '#0891B2': { text: '#67E8F9', bg: 'rgba(6, 182, 212, 0.16)', border: 'rgba(34, 211, 238, 0.38)', accent: '#22D3EE' },
-    '#4F46E5': { text: '#C7D2FE', bg: 'rgba(99, 102, 241, 0.18)', border: 'rgba(129, 140, 248, 0.40)', accent: '#818CF8' },
+    'Pembersihan Rutin': { dot: '#60A5FA', text: '#93C5FD', accent: '#3B82F6' },
+    'Sanitasi Toilet': { dot: '#38BDF8', text: '#7DD3FC', accent: '#38BDF8' },
+    'Klinis & Medis': { dot: '#60A5FA', text: '#93C5FD', accent: '#2563EB' },
+    'Elektronik & Utility': { dot: '#94A3B8', text: '#CBD5E1', accent: '#64748B' },
+    'Pembersihan Khusus': { dot: '#93C5FD', text: '#BFDBFE', accent: '#3B82F6' },
   };
   function getIKTheme(ik) {
-    return FC_HEX_THEMES[String(ik?.color || '').toUpperCase()] ||
-      FC_CATEGORY_THEMES[ik?.category] ||
-      FC_CATEGORY_THEMES['Pembersihan Rutin'];
+    return FC_CATEGORY_THEMES[ik?.category] || FC_CATEGORY_THEMES['Pembersihan Rutin'];
+  }
+  function renderHandbookBadgeIcon() {
+    return `
+      <span style="width:40px; height:40px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; background:#0E182B; border:1px solid #223456; border-radius:9px; color:#93C5FD;" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="8" y1="13" x2="16" y2="13"></line>
+          <line x1="8" y1="17" x2="13" y2="17"></line>
+        </svg>
+      </span>
+    `;
+  }
+  function renderHandbookActionButtons(ik) {
+    if (!canEdit && !canDelete) return '';
+    const titleSafe = escapeHtml(ik.title || 'Instruksi Kerja');
+    return `
+      <div style="display:flex; gap:5px; flex-shrink:0;">
+        ${canEdit ? `
+        <button type="button" class="sop-icon-btn btn-edit-ik" data-id="${ik.id}" title="Edit ${titleSafe}" aria-label="Edit SOP ${titleSafe}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </button>
+        ` : ''}
+        ${canDelete ? `
+        <button type="button" class="sop-icon-btn sop-icon-del btn-delete-ik" data-id="${ik.id}" title="Hapus ${titleSafe}" aria-label="Hapus SOP ${titleSafe}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+        ` : ''}
+      </div>
+    `;
   }
 
   function renderPage() {
@@ -510,11 +539,11 @@ export async function renderSOPFacilityCare(container) {
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           ${canDelete ? `
-          <button id="btn-reset-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#172033; border:1px solid #334155; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
+          <button id="btn-reset-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#131F36; border:1px solid #223456; color:#E2E8F0; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
             🔄 Reset ke Standar
           </button>
           ` : ''}
-          <button id="btn-print-sop" class="btn btn-outline" style="background:#172033; border:1px solid #334155; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
+          <button id="btn-print-sop" class="btn btn-outline" style="background:#131F36; border:1px solid #223456; color:#E2E8F0; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
           ${hasPermission(currentUser, "export") ? `<button id="btn-export-tools" class="btn btn-primary" style="font-weight:700; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem; background:#2563EB; color:#FFFFFF;">
@@ -524,7 +553,7 @@ export async function renderSOPFacilityCare(container) {
       </div>
 
       <!-- Navigation Tabs -->
-      <div style="display:flex; gap:8px; margin-bottom:22px; border-bottom:1px solid #29364B; padding-bottom:10px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
+      <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #223456; padding-bottom:10px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
         <button class="sop-tab-btn ${activeTab === 'ik' ? 'active' : ''}" data-tab="ik" style="${getTabStyle(activeTab === 'ik')}">
           📋 Instruksi Kerja (IK) <span class="badge" style="${getBadgeStyle(activeTab === 'ik')}">${listIK.length}</span>
         </button>
@@ -626,12 +655,12 @@ export async function renderSOPFacilityCare(container) {
   function renderIKTab(parent) {
     parent.innerHTML = `
       <!-- Toolbar Filter & Search -->
-      <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#172033; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+      <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#131F36; border:1px solid #223456; border-radius:12px;">
         <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
-          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
-            <div style="position:relative; flex:1; min-width:220px; max-width:340px;">
-              <input type="text" id="ik-search" class="form-control" placeholder="Cari pekerjaan, alat, atau chemical..." value="${currentSearch}" style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%;">
-              <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:0.9rem;">🔍</span>
+          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:260px;">
+            <div style="position:relative; flex:1; min-width:200px; max-width:340px;">
+              <input type="text" id="ik-search" class="form-control" placeholder="Cari pekerjaan, alat, atau chemical..." value="${currentSearch}" style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%; background:#0E182B; border-color:#223456;">
+              <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#94A3B8; font-size:0.9rem;">🔍</span>
             </div>
             
             <div style="display:flex; gap:6px; flex-wrap:wrap;" id="cat-pills-wrap">
@@ -664,9 +693,9 @@ export async function renderSOPFacilityCare(container) {
     const styleTag = document.createElement('style');
     styleTag.innerHTML = `
       .cat-pill {
-        border: 1px solid #334155;
-        background: #111827;
-        color: #E2E8F0;
+        border: 1px solid #223456;
+        background: #0E182B;
+        color: #CBD5E1;
         font-size: 0.82rem;
         font-weight: 600;
         padding: 6px 13px;
@@ -677,9 +706,9 @@ export async function renderSOPFacilityCare(container) {
         white-space: nowrap;
       }
       .cat-pill:hover {
-        background: #22314A;
+        background: #1A2A48;
         color: #FFFFFF;
-        border-color: #475569;
+        border-color: #3B82F6;
       }
       .cat-pill.active {
         background: #2563EB;
@@ -687,16 +716,17 @@ export async function renderSOPFacilityCare(container) {
         border-color: #3B82F6;
       }
       .ik-card:hover {
-        box-shadow: 0 10px 24px rgba(0,0,0,0.35) !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.28) !important;
         border-color: #3B82F6 !important;
-        transform: translateY(-2px);
       }
       .sop-icon-btn {
-        background: #1B2940;
-        border: 1px solid #334155;
+        background: transparent;
+        border: 1px solid rgba(51, 65, 85, 0.7);
         border-radius: 7px;
-        padding: 5px 8px;
-        font-size: 0.9rem;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        color: #94A3B8;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -704,8 +734,18 @@ export async function renderSOPFacilityCare(container) {
         transition: all 0.15s;
       }
       .sop-icon-btn:hover {
-        background: #22314A;
-        border-color: #60A5FA;
+        background: rgba(37, 99, 235, 0.18);
+        border-color: rgba(96, 165, 250, 0.55);
+        color: #93C5FD;
+      }
+      .sop-icon-del:hover {
+        background: rgba(239, 68, 68, 0.16);
+        border-color: rgba(248, 113, 113, 0.55);
+        color: #FCA5A5;
+      }
+      .sop-icon-btn:focus-visible {
+        outline: 2px solid #60A5FA;
+        outline-offset: 2px;
       }
       @media (max-width: 768px) {
         #cat-pills-wrap {
@@ -763,62 +803,57 @@ export async function renderSOPFacilityCare(container) {
           ${filteredIK.map(ik => {
             const theme = getIKTheme(ik);
             return `
-            <div class="card ik-card" style="background:#172033; border:1px solid #29364B; border-radius:14px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.22); transition:all 0.2s;">
+            <div class="card ik-card" style="background:#131F36; border:1px solid #223456; border-radius:14px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; transition:border-color 0.18s ease, box-shadow 0.18s ease;">
               <div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:14px;">
-                  <div style="display:flex; align-items:center; gap:12px;">
-                    <span style="font-size:1.55rem; width:46px; height:46px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; background:${theme.bg}; border:1px solid ${theme.border}; border-radius:11px;">${ik.icon || '📋'}</span>
-                    <div>
-                      <h3 style="margin:0 0 5px 0; font-size:1.08rem; font-weight:700; color:#FFFFFF; line-height:1.35;">
+                  <div style="display:flex; align-items:flex-start; gap:12px; min-width:0;">
+                    ${renderHandbookBadgeIcon()}
+                    <div style="min-width:0;">
+                      <h3 style="margin:0 0 6px 0; font-size:1.06rem; font-weight:700; color:#FFFFFF; line-height:1.35;">
                         ${ik.id}. ${ik.title}
                       </h3>
-                      <span class="badge" style="background:${theme.bg}; color:${theme.text}; border:1px solid ${theme.border}; font-size:0.78rem; font-weight:700; border-radius:6px; padding:3px 9px; display:inline-block;">
+                      <span class="badge" style="background:#0E182B; color:${theme.text}; border:1px solid #24385A; font-size:0.74rem; font-weight:600; border-radius:5px; padding:2px 8px; display:inline-flex; align-items:center; gap:6px;">
+                        <span style="width:6px; height:6px; border-radius:50%; background:${theme.dot}; display:inline-block;"></span>
                         ${ik.category}
                       </span>
                     </div>
                   </div>
 
-                  <!-- Quick Action Buttons: Edit & Hapus -->
-                  <div style="display:flex; gap:6px; flex-shrink:0;">
-                    ${canEdit ? `
-                    <button class="sop-icon-btn btn-edit-ik" data-id="${ik.id}" title="Edit Instruksi Kerja" style="color:#93C5FD;">
-                      ✏️
-                    </button>
-                    ` : ''}
-                    ${canDelete ? `
-                    <button class="sop-icon-btn btn-delete-ik" data-id="${ik.id}" title="Hapus Instruksi Kerja" style="color:#FCA5A5;">
-                      🗑️
-                    </button>
-                    ` : ''}
-                  </div>
+                  <!-- Quick Action Buttons: Edit & Hapus (non-dominant SVG) -->
+                  ${renderHandbookActionButtons(ik)}
                 </div>
 
-                <div style="font-size:0.88rem; color:#F8FAFC; line-height:1.55; margin-bottom:14px; background:#0F172A; padding:10px 13px; border-radius:9px; border:1px solid #29364B; border-left:3.5px solid ${theme.accent};">
-                  <strong style="color:#FFFFFF;">Area:</strong> ${ik.target}
+                <div style="font-size:0.88rem; color:#F1F5F9; line-height:1.55; margin-bottom:14px; background:#0E182B; padding:10px 13px; border-radius:8px; border:1px solid #1E3050; border-left:3px solid ${theme.accent};">
+                  <strong style="color:#FFFFFF;">Area Kerja:</strong> ${ik.target}
                 </div>
 
                 <div style="margin-bottom:14px;">
-                  <div style="font-size:0.8rem; font-weight:700; color:#CBD5E1; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:7px;">🧰 Alat & Bahan Utama:</div>
-                  <ul style="margin:0 0 0 18px; padding:0; font-size:0.87rem; color:#F8FAFC; line-height:1.6;">
-                    ${ik.tools.slice(0, 3).map(t => `<li style="margin-bottom:3px;">${t}</li>`).join('')}
-                    ${ik.tools.length > 3 ? `<li style="color:#93C5FD; font-style:italic; font-weight:600; margin-top:2px;">+ ${ik.tools.length - 3} alat lainnya...</li>` : ''}
+                  <div style="font-size:0.75rem; font-weight:700; color:#93C5FD; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:7px;">Alat &amp; Bahan Utama</div>
+                  <ul style="margin:0; padding:0; list-style:none; font-size:0.86rem; color:#E2E8F0; line-height:1.5;">
+                    ${ik.tools.slice(0, 3).map(t => `
+                      <li style="display:flex; align-items:flex-start; gap:8px; padding:4px 0; border-bottom:1px solid rgba(34, 52, 86, 0.45);">
+                        <span style="color:#60A5FA; font-weight:700; line-height:1.4;">•</span>
+                        <span>${t}</span>
+                      </li>
+                    `).join('')}
+                    ${ik.tools.length > 3 ? `<li style="color:#93C5FD; font-size:0.82rem; font-weight:600; padding-top:5px;">+ ${ik.tools.length - 3} alat lainnya dalam panduan</li>` : ''}
                   </ul>
                 </div>
 
                 ${ik.chemical_ratio && ik.chemical_ratio !== '-' ? `
-                  <div style="font-size:0.85rem; background:rgba(245, 158, 11, 0.14); border:1px solid rgba(251, 191, 36, 0.36); color:#FDE68A; padding:8px 12px; border-radius:8px; margin-bottom:14px; font-weight:600; line-height:1.45;">
-                    🧪 <strong style="color:#FCD34D;">Takaran:</strong> ${ik.chemical_ratio}
+                  <div style="font-size:0.85rem; background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.28); border-left:3px solid #38BDF8; color:#E0F2FE; padding:8px 12px; border-radius:7px; margin-bottom:14px; font-weight:600; line-height:1.45;">
+                    <strong style="color:#7DD3FC;">Takaran Chemical:</strong> ${ik.chemical_ratio}
                   </div>
                 ` : ''}
               </div>
 
-              <div style="border-top:1px solid #29364B; padding-top:13px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.86rem; color:#CBD5E1; font-weight:600;">
+              <div style="border-top:1px solid #1E2E4A; padding-top:13px; margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.84rem; color:#CBD5E1; font-weight:600;">
                   ${ik.steps.length} Langkah Kerja
                 </span>
                 <div style="display:flex; gap:6px;">
-                  <button class="btn btn-sm btn-primary btn-view-ik" data-id="${ik.id}" style="padding:7px 15px; font-weight:700; font-size:0.85rem; border-radius:8px; background:#2563EB; color:#FFFFFF; border:1px solid #3B82F6;">
-                    Lihat Panduan ➔
+                  <button type="button" class="btn btn-sm btn-primary btn-view-ik" data-id="${ik.id}" style="padding:7px 15px; font-weight:700; font-size:0.85rem; border-radius:8px; background:#2563EB; color:#FFFFFF; border:1px solid #3B82F6;">
+                    Lihat Panduan →
                   </button>
                 </div>
               </div>

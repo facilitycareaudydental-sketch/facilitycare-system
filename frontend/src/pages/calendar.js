@@ -11,9 +11,11 @@ export async function renderCalendar(container) {
     </div>
     <div class="card">
       <div class="card-header calendar-nav">
-        <button class="btn btn-ghost btn-sm" id="cal-prev">‹ Prev</button>
-        <span class="calendar-month-label" id="cal-month-label"></span>
-        <button class="btn btn-ghost btn-sm" id="cal-next">Next ›</button>
+        <div class="cal-nav-controls">
+          <button type="button" class="btn btn-sm cal-nav-btn" id="cal-prev" aria-label="Bulan sebelumnya">‹ Prev</button>
+          <span class="calendar-month-label" id="cal-month-label"></span>
+          <button type="button" class="btn btn-sm cal-nav-btn" id="cal-next" aria-label="Bulan berikutnya">Next ›</button>
+        </div>
         <div class="calendar-filters">
           <label class="filter-check"><input type="checkbox" value="schedule"        checked class="cal-filter"> Jadwal</label>
           <label class="filter-check"><input type="checkbox" value="reports"         checked class="cal-filter"> Laporan</label>
@@ -69,8 +71,8 @@ export async function renderCalendar(container) {
     if (!gridEl) return;
 
     // Show mini skeleton while loading
-    gridEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);">
-      ${Array(35).fill('<div style="background:#111827;min-height:70px;"></div>').join('')}
+    gridEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#1E2E4A;">
+      ${Array(35).fill('<div style="background:#131F36;min-height:112px;"></div>').join('')}
     </div>`;
 
     await loadEvents();
@@ -103,7 +105,8 @@ export async function renderCalendar(container) {
       const firstDay    = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const dayNames    = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-      const todayStr    = new Date().toISOString().slice(0, 10);
+      const nowLocal    = new Date();
+      const todayStr    = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
 
       let html = `<div class="calendar-grid">`;
 
@@ -125,15 +128,18 @@ export async function renderCalendar(container) {
 
         html += `
           <div class="cal-cell ${isToday ? 'cal-today' : ''} ${dayEvts.length ? 'cal-has-events' : ''}"
-               data-date="${dateStr}" tabindex="0" role="button" aria-label="${dateStr}">
+               data-date="${dateStr}" tabindex="0" role="button" aria-label="${dateStr}${dayEvts.length ? `, ${dayEvts.length} kegiatan` : ''}">
             <div class="cal-day-num ${isToday ? 'today-num' : ''}">${d}</div>
             <div class="cal-events-preview">
-              ${dayEvts.slice(0, 3).map(e => `
-                <div class="cal-event-dot cal-color-${e.color || 'gray'}" title="${escHtml(e.title || e.type)}">
-                  <span class="cal-event-dot-label">${truncate(e.title || e.branch_name || e.type, 18)}</span>
+              ${dayEvts.slice(0, 3).map(e => {
+                const labelText = e.title || e.branch_name || e.type;
+                return `
+                <div class="cal-event-dot cal-color-${e.color || 'gray'}" title="${escHtml(labelText)}${e.branch_name ? ' — ' + escHtml(e.branch_name) : ''}">
+                  <span class="cal-event-dot-label">${escHtml(labelText)}</span>
                 </div>
-              `).join('')}
-              ${dayEvts.length > 3 ? `<div class="cal-more">+${dayEvts.length - 3} lagi</div>` : ''}
+              `;
+              }).join('')}
+              ${dayEvts.length > 3 ? `<div class="cal-more">+${dayEvts.length - 3} kegiatan lainnya</div>` : ''}
             </div>
           </div>`;
       }
@@ -150,43 +156,51 @@ export async function renderCalendar(container) {
       html += `</div>`;
       gridEl.innerHTML = html;
 
-      // Click handler for event detail
-      gridEl.querySelectorAll('.cal-cell[data-date]').forEach(cell => {
-        cell.addEventListener('click', () => {
-          const date    = cell.dataset.date;
-          const dayEvts = byDate[date] || [];
-          if (!dayEvts.length) return;
+      // Click & keyboard handler for event detail
+      const openDayEvents = (cell) => {
+        const date    = cell.dataset.date;
+        const dayEvts = byDate[date] || [];
+        if (!dayEvts.length) return;
 
-          const sidebar   = document.getElementById('cal-event-list');
-          const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('id-ID', {
-            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-          });
-          document.getElementById('cal-event-date').textContent = dateLabel;
-          document.getElementById('cal-event-items').innerHTML = dayEvts.map(e => `
-            <div class="cal-event-item cal-color-border-${e.color || 'gray'}">
-              <div class="cal-event-type">
-                ${typeLabel(e.type)}
-                ${e.date_type ? ` <span class="badge" style="font-size:0.75rem;padding:2px 6px;background:rgba(0,0,0,0.06);margin-left:4px;">${escHtml(e.date_type)}</span>` : ''}
-              </div>
-              <div class="cal-event-title" style="font-weight:600;font-size:0.95rem;margin-top:2px;">${escHtml(e.title || '-')}</div>
-              ${e.branch_name ? `<div class="cal-event-branch" style="color:var(--text-2);font-size:0.85rem;margin-top:2px;">📍 ${escHtml(e.branch_name)}</div>` : ''}
-              ${(e.pic || e.period || e.opening_date || e.target_date || e.completion_date || e.notes) ? `
-                <div class="cal-event-meta" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:0.8rem;color:var(--text-2);display:flex;flex-direction:column;gap:3px;">
-                  ${e.pic ? `<div>👤 <b>PIC:</b> ${escHtml(e.pic)}</div>` : ''}
-                  ${e.period ? `<div>📅 <b>Periode:</b> ${escHtml(e.period)}</div>` : ''}
-                  ${e.opening_date ? `<div>🚪 <b>Tgl Opening:</b> ${escHtml(formatDate(e.opening_date))}</div>` : ''}
-                  ${e.target_date ? `<div>🎯 <b>Tgl Target:</b> ${escHtml(formatDate(e.target_date))}</div>` : ''}
-                  ${e.completion_date ? `<div>✅ <b>Tgl Selesai:</b> ${escHtml(formatDate(e.completion_date))}</div>` : ''}
-                  ${e.notes ? `<div>📝 <b>Catatan:</b> ${escHtml(e.notes)}</div>` : ''}
-                </div>
-              ` : ''}
-              ${e.status ? `<div class="cal-event-status" style="margin-top:6px;"><span class="badge ${e.status === 'Done' ? 'badge-success' : 'badge-warning'}">${escHtml(e.status)}</span></div>` : ''}
-              ${e.days_remaining !== undefined
-                ? `<div class="cal-event-extra">Sisa: ${e.days_remaining} hari</div>`
-                : ''}
+        const sidebar   = document.getElementById('cal-event-list');
+        const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('id-ID', {
+          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+        document.getElementById('cal-event-date').textContent = `${dateLabel} (${dayEvts.length})`;
+        document.getElementById('cal-event-items').innerHTML = dayEvts.map(e => `
+          <div class="cal-event-item cal-color-border-${e.color || 'gray'}">
+            <div class="cal-event-type">
+              ${typeLabel(e.type)}
+              ${e.date_type ? ` <span class="badge" style="font-size:0.74rem;padding:2px 7px;background:rgba(37,99,235,0.18);color:#93C5FD;border:1px solid rgba(96,165,250,0.3);margin-left:4px;">${escHtml(e.date_type)}</span>` : ''}
             </div>
-          `).join('');
-          sidebar.style.display = 'block';
+            <div class="cal-event-title">${escHtml(e.title || '-')}</div>
+            ${e.branch_name ? `<div class="cal-event-branch">📍 ${escHtml(e.branch_name)}</div>` : ''}
+            ${(e.pic || e.period || e.opening_date || e.target_date || e.completion_date || e.notes) ? `
+              <div class="cal-event-meta" style="margin-top:7px;padding-top:7px;border-top:1px dashed #223456;font-size:0.8rem;color:#CBD5E1;display:flex;flex-direction:column;gap:3px;">
+                ${e.pic ? `<div>👤 <b>PIC:</b> ${escHtml(e.pic)}</div>` : ''}
+                ${e.period ? `<div>📅 <b>Periode:</b> ${escHtml(e.period)}</div>` : ''}
+                ${e.opening_date ? `<div>🚪 <b>Tgl Opening:</b> ${escHtml(formatDate(e.opening_date))}</div>` : ''}
+                ${e.target_date ? `<div>🎯 <b>Tgl Target:</b> ${escHtml(formatDate(e.target_date))}</div>` : ''}
+                ${e.completion_date ? `<div>✅ <b>Tgl Selesai:</b> ${escHtml(formatDate(e.completion_date))}</div>` : ''}
+                ${e.notes ? `<div>📝 <b>Catatan:</b> ${escHtml(e.notes)}</div>` : ''}
+              </div>
+            ` : ''}
+            ${e.status ? `<div class="cal-event-status" style="margin-top:6px;"><span class="badge ${e.status === 'Done' ? 'badge-success' : 'badge-warning'}">${escHtml(e.status)}</span></div>` : ''}
+            ${e.days_remaining !== undefined
+              ? `<div class="cal-event-extra">Sisa: ${e.days_remaining} hari</div>`
+              : ''}
+          </div>
+        `).join('');
+        sidebar.style.display = 'block';
+      };
+
+      gridEl.querySelectorAll('.cal-cell[data-date]').forEach(cell => {
+        cell.addEventListener('click', () => openDayEvents(cell));
+        cell.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openDayEvents(cell);
+          }
         });
       });
 
