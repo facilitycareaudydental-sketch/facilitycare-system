@@ -1456,61 +1456,6 @@ export async function renderEmployees(container, params) {
             </div>
           </div>
         </div>
-          <div class="emp-search-row">
-            <div class="emp-search-wrap">
-              <svg class="emp-search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="emp-search-input" class="emp-search-input" 
-                placeholder="Cari nama karyawan, no HP, cabang..." value="${searchQuery ? String(searchQuery).replace(/"/g, '&quot;') : ''}" />
-            </div>
-
-            <select id="emp-branch-filter" class="emp-select">
-              <option value="all">Semua Cabang (${branchOptions.length})</option>
-              ${branchOptions.map(b => `
-                <option value="${b.value}" ${String(selectedBranch) === String(b.value) ? 'selected' : ''}>
-                  ${b.label}
-                </option>
-              `).join('')}
-            </select>
-
-            <select id="emp-division-filter" class="emp-select">
-              <option value="all">Semua Divisi</option>
-              ${DIVISION_LIST.map(div => `
-                <option value="${div}" ${selectedDivision === div ? 'selected' : ''}>
-                  ${div}
-                </option>
-              `).join('')}
-            </select>
-
-            <div class="emp-view-toggle" title="Pilih Tampilan">
-              <button type="button" class="emp-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                <span>Kartu</span>
-              </button>
-              <button type="button" class="emp-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                <span>Tabel</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Status Horizontal Swipeable Pills -->
-          <div class="emp-filter-pills">
-            <div class="emp-pill ${selectedStatus === 'all' && selectedDivision === 'all' ? 'active' : ''}" data-status="all" data-div="all">
-              <span>Semua Karyawan</span>
-              <span class="emp-pill-count" id="emp-pill-count-all">${countAll}</span>
-            </div>
-            <div class="emp-pill ${selectedStatus === 'Aktif' ? 'active' : ''}" data-status="Aktif" data-div="all">
-              <span class="emp-pill-dot" style="background:#10B981;"></span>
-              <span>Aktif</span>
-              <span class="emp-pill-count" id="emp-pill-count-active">${countActive}</span>
-            </div>
-            <div class="emp-pill ${selectedStatus === 'Nonaktif' ? 'active' : ''}" data-status="Nonaktif" data-div="all">
-              <span class="emp-pill-dot" style="background:#EF4444;"></span>
-              <span>Nonaktif / Resign</span>
-              <span class="emp-pill-count" id="emp-pill-count-nonactive">${countNonactive}</span>
-            </div>
-          </div>
-        </div>
 
         <!-- Exclusive List Container (Card / Table) -->
         <div id="emp-list-container">

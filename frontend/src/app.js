@@ -539,6 +539,7 @@ function renderLayout() {
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 async function init() {
+  registerRoute('/',                   () => navigate('/dashboard'));
   registerRoute('/login',              ({ main }) => renderLogin(main));
   registerRoute('/dashboard',          requireAuth(({ main }) => renderDashboard(main)));
   registerRoute('/calendar',           requireAuth(({ main }) => renderCalendar(main)));
