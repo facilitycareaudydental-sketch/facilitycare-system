@@ -64,7 +64,7 @@ export async function renderProfile(container) {
           <div class="form-group">
             <label class="form-label">Password Lama <span class="required">*</span></label>
             <input type="password" name="current_password" class="form-control"
-              required placeholder="Masukkan password saat ini" autocomplete="current-password">
+              required autocomplete="current-password">
           </div>
           <div class="form-group">
             <label class="form-label">Password Baru <span class="required">*</span></label>
@@ -74,7 +74,7 @@ export async function renderProfile(container) {
           <div class="form-group">
             <label class="form-label">Konfirmasi Password Baru <span class="required">*</span></label>
             <input type="password" name="confirm_password" class="form-control"
-              required placeholder="Ulangi password baru" autocomplete="new-password">
+              required autocomplete="new-password">
           </div>
 
           <div id="pwd-error" class="alert alert-danger" style="display:none"></div>

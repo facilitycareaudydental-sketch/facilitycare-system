@@ -60,13 +60,13 @@ export async function renderUsers(container) {
       return [
         {
           type: 'row', fields: [
-            { name: 'full_name', label: 'Nama Lengkap', required: true, placeholder: 'Nama lengkap', value: data?.full_name },
-            { name: 'username', label: 'Username', required: true, placeholder: 'username', value: data?.username, autocomplete: 'off' },
+            { name: 'full_name', label: 'Nama Lengkap', required: true, value: data?.full_name },
+            { name: 'username', label: 'Username', required: true, value: data?.username, autocomplete: 'off' },
           ]
         },
         {
           type: 'row', fields: [
-            { name: 'email', label: 'Email', type: 'email', required: true, placeholder: 'email@contoh.com', value: data?.email, autocomplete: 'off' },
+            { name: 'email', label: 'Email', type: 'email', required: true, value: data?.email, autocomplete: 'off' },
             { name: 'role', label: 'Role Resmi', type: 'select', required: true, options: roleOptions, value: defaultRoleValue },
           ]
         },

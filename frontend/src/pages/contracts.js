@@ -501,8 +501,7 @@ export async function renderContracts(container, params) {
           <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Catatan Tambahan
           </label>
-          <textarea id="con-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; resize:vertical;" 
-            placeholder="Keterangan perpanjangan, klausul khusus, atau nomor SK...">${defaultNotes}</textarea>
+          <textarea id="con-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; resize:vertical;">${defaultNotes}</textarea>
         </div>
       </div>
     `;
@@ -514,7 +513,7 @@ export async function renderContracts(container, params) {
       mode: 'single',
       inputId: 'con-modal-employee',
       inputName: 'employee_name',
-      placeholder: 'Cari nama karyawan...',
+      placeholder: '',
       required: true,
       allowManual: true,
       hasEmployeeIdSchema: true,

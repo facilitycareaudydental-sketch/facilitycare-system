@@ -672,11 +672,11 @@ export async function renderSOPSecurity(container) {
         <div class="form-row" style="display:grid; grid-template-columns:1fr 140px; gap:12px;">
           <div>
             <label style="display:block; font-weight:600; margin-bottom:4px;">Judul Instruksi Kerja *</label>
-            <input type="text" id="form-sec-ik-title" class="form-control" required value="${existingIK ? escapeHtml(existingIK.title) : ''}" placeholder="Contoh: Pengamanan Area & Aset Perusahaan" style="width:100%; border-radius:6px; height:36px;">
+            <input type="text" id="form-sec-ik-title" class="form-control" required value="${existingIK ? escapeHtml(existingIK.title) : ''}" style="width:100%; border-radius:6px; height:36px;">
           </div>
           <div>
             <label style="display:block; font-weight:600; margin-bottom:4px;">Ikon Emoji</label>
-            <input type="text" id="form-sec-ik-icon" class="form-control" value="${existingIK ? existingIK.icon : '🛡️'}" placeholder="🛡️" style="width:100%; border-radius:6px; height:36px; text-align:center; font-size:1.2rem;">
+            <input type="text" id="form-sec-ik-icon" class="form-control" value="${existingIK ? existingIK.icon : '🛡️'}" style="width:100%; border-radius:6px; height:36px; text-align:center; font-size:1.2rem;">
           </div>
         </div>
 
@@ -691,22 +691,22 @@ export async function renderSOPSecurity(container) {
 
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Area & Sasaran Target *</label>
-          <input type="text" id="form-sec-ik-target" class="form-control" required value="${existingIK ? escapeHtml(existingIK.target) : ''}" placeholder="Contoh: Seluruh area luar klinik dan akses parkir" style="width:100%; border-radius:6px; height:36px;">
+          <input type="text" id="form-sec-ik-target" class="form-control" required value="${existingIK ? escapeHtml(existingIK.target) : ''}" style="width:100%; border-radius:6px; height:36px;">
         </div>
 
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Alat & Perlengkapan (1 per baris) *</label>
-          <textarea id="form-sec-ik-tools" class="form-control" rows="3" placeholder="Senter Patroli&#10;Lampu Lalin&#10;Peluit" style="width:100%; border-radius:6px; font-size:0.85rem; line-height:1.5;">${escapeHtml(initialTools)}</textarea>
+          <textarea id="form-sec-ik-tools" class="form-control" rows="3" style="width:100%; border-radius:6px; font-size:0.85rem; line-height:1.5;">${escapeHtml(initialTools)}</textarea>
         </div>
 
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Langkah & Prosedur Pelaksanaan (1 langkah per baris) *</label>
-          <textarea id="form-sec-ik-steps" class="form-control" rows="5" placeholder="1. Lakukan Safety Patrol sesuai jadwal.&#10;2. Arahkan kendaraan pasien dengan ramah..." style="width:100%; border-radius:6px; font-size:0.85rem; line-height:1.6;">${escapeHtml(initialSteps)}</textarea>
+          <textarea id="form-sec-ik-steps" class="form-control" rows="5" style="width:100%; border-radius:6px; font-size:0.85rem; line-height:1.6;">${escapeHtml(initialSteps)}</textarea>
         </div>
 
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Catatan Khusus / Ketentuan Penting</label>
-          <textarea id="form-sec-ik-notes" class="form-control" rows="2" placeholder="Peringatan keselamatan atau pedoman khusus..." style="width:100%; border-radius:6px; font-size:0.85rem;">${existingIK ? escapeHtml(existingIK.notes || '') : ''}</textarea>
+          <textarea id="form-sec-ik-notes" class="form-control" rows="2" style="width:100%; border-radius:6px; font-size:0.85rem;">${existingIK ? escapeHtml(existingIK.notes || '') : ''}</textarea>
         </div>
       </form>
     `;
@@ -1056,15 +1056,15 @@ export async function renderSOPSecurity(container) {
         </div>
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Nama Aset / Kelompok *</label>
-          <input type="text" id="form-asset-item" class="form-control" required value="${existingAsset ? escapeHtml(existingAsset.item) : ''}" placeholder="Contoh: Genset & Elevator" style="width:100%; border-radius:6px; height:36px;">
+          <input type="text" id="form-asset-item" class="form-control" required value="${existingAsset ? escapeHtml(existingAsset.item) : ''}" style="width:100%; border-radius:6px; height:36px;">
         </div>
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Deskripsi / Contoh Item *</label>
-          <textarea id="form-asset-desc" class="form-control" rows="3" required placeholder="Contoh: Generator daya darurat dan panel listrik utama" style="width:100%; border-radius:6px; font-size:0.85rem;">${existingAsset ? escapeHtml(existingAsset.description) : ''}</textarea>
+          <textarea id="form-asset-desc" class="form-control" rows="3" required style="width:100%; border-radius:6px; font-size:0.85rem;">${existingAsset ? escapeHtml(existingAsset.description) : ''}</textarea>
         </div>
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">PIC Pengawas / Penanggung Jawab *</label>
-          <input type="text" id="form-asset-pic" class="form-control" required value="${existingAsset ? escapeHtml(existingAsset.pic) : ''}" placeholder="Contoh: Teknisi & Security" style="width:100%; border-radius:6px; height:36px;">
+          <input type="text" id="form-asset-pic" class="form-control" required value="${existingAsset ? escapeHtml(existingAsset.pic) : ''}" style="width:100%; border-radius:6px; height:36px;">
         </div>
       </form>
     `;

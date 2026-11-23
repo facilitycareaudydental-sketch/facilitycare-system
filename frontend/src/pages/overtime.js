@@ -339,7 +339,7 @@ export async function renderOvertime(container) {
       mode: 'single',
       inputId: 'ot-modal-emp',
       inputName: 'employee_name',
-      placeholder: 'Cari nama karyawan...',
+      placeholder: '',
       required: true,
       allowManual: true,
       hasEmployeeIdSchema: true,

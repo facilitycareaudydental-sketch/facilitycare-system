@@ -784,7 +784,7 @@ export async function renderChecklist(container) {
             Nama Dokumen / Checklist <span style="color:#DC2626;">*</span>
           </label>
           <input type="text" id="doc-modal-name" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Contoh: Checklist Pembersihan Wastafel & Toilet" value="${item?.name ? String(item.name).replace(/"/g, '&quot;') : ''}" required />
+            value="${item?.name ? String(item.name).replace(/"/g, '&quot;') : ''}" required />
         </div>
 
         <div>
@@ -792,7 +792,7 @@ export async function renderChecklist(container) {
             Kategori Dokumen <span style="color:#DC2626;">*</span>
           </label>
           <input type="text" id="doc-modal-category" list="doc-categories-list" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Pilih atau ketik kategori baru..." value="${item?.category ? String(item.category).replace(/"/g, '&quot;') : ''}" required />
+            value="${item?.category ? String(item.category).replace(/"/g, '&quot;') : ''}" required />
           <datalist id="doc-categories-list">
             ${existingCats.map(c => `<option value="${c}">${c}</option>`).join('')}
             <option value="Berita Acara">Berita Acara</option>
@@ -809,7 +809,7 @@ export async function renderChecklist(container) {
             Tautan / Link Dokumen (Google Drive, Docs, Sheets, atau Forms)
           </label>
           <input type="url" id="doc-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="https://docs.google.com/..." value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
+            value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
           <span style="font-size:0.75rem; color:var(--text-3); margin-top:4px; display:block;">
             Bisa berupa tautan Google Forms untuk inspeksi harian, atau link Google Sheets / Docs sebagai acuan.
           </span>
@@ -819,8 +819,7 @@ export async function renderChecklist(container) {
           <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Deskripsi / Petunjuk Penggunaan
           </label>
-          <textarea id="doc-modal-desc" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Tuliskan keterangan singkat mengenai tujuan dan instruksi pengisian dokumen ini...">${item?.description || ''}</textarea>
+          <textarea id="doc-modal-desc" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">${item?.description || ''}</textarea>
         </div>
       </div>
     `;

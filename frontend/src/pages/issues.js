@@ -308,7 +308,7 @@ export async function renderIssues(container, params) {
             Detail Keluhan / Permasalahan <span style="color:#DC2626;">*</span>
           </label>
           <textarea id="iss-modal-complaint" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Jelaskan kendala, kronologi, atau komplain..." required>${item?.complaint || ''}</textarea>
+            required>${item?.complaint || ''}</textarea>
         </div>
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -324,7 +324,7 @@ export async function renderIssues(container, params) {
               FC Spesialis / Penanggung Jawab
             </label>
             <input list="iss-spec-options" id="iss-modal-spec" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="Contoh: Mizwar, Ade, Berlin..." value="${item?.fc_specialist ? String(item.fc_specialist).replace(/"/g, '&quot;') : ''}" />
+              value="${item?.fc_specialist ? String(item.fc_specialist).replace(/"/g, '&quot;') : ''}" />
             <datalist id="iss-spec-options">
               ${employeeOptions.map(e => `<option value="${e.full_name || e.label || ''}">`).join('')}
             </datalist>
@@ -335,8 +335,7 @@ export async function renderIssues(container, params) {
           <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Solusi / Tindak Lanjut Penanganan
           </label>
-          <textarea id="iss-modal-solution" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Tindakan yang telah atau akan diambil untuk menyelesaikan masalah...">${item?.solution || ''}</textarea>
+          <textarea id="iss-modal-solution" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">${item?.solution || ''}</textarea>
         </div>
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
@@ -403,7 +402,7 @@ export async function renderIssues(container, params) {
       mode: 'single',
       inputId: 'iss-modal-employee',
       inputName: 'employee_name',
-      placeholder: 'Cari nama karyawan...',
+      placeholder: '',
       allowManual: true,
       hasEmployeeIdSchema: false,
       employees: employeeOptions,

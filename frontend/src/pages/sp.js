@@ -881,15 +881,14 @@ export async function renderSP(container) {
             Link Berkas / Foto BAP / Scan Surat SP
           </label>
           <input type="url" id="sp-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="https://drive.google.com/..." value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
+            value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
         </div>
 
         <div>
           <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Kronologi Pelanggaran / Catatan Pembinaan
           </label>
-          <textarea id="sp-modal-notes" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Tuliskan ringkasan pelanggaran disiplin kerja yang terjadi...">${item?.notes || item?.description || ''}</textarea>
+          <textarea id="sp-modal-notes" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">${item?.notes || item?.description || ''}</textarea>
         </div>
       </div>
     `;
@@ -909,7 +908,7 @@ export async function renderSP(container) {
       mode: 'single',
       inputId: 'sp-modal-emp',
       inputName: 'employee_name',
-      placeholder: 'Cari nama karyawan...',
+      placeholder: '',
       required: true,
       allowManual: true,
       hasEmployeeIdSchema: true,

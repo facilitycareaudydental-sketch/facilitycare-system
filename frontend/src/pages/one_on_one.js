@@ -165,7 +165,7 @@ export async function renderOneOnOne(container, params) {
           { name: 'completion_date', label: 'Tanggal Selesai', type: 'date', value: data?.completion_date },
         ]
       },
-      { name: 'document_link', label: 'Link Dokumen', type: 'url', placeholder: 'https://drive.google.com/...', value: data?.document_link },
+      { name: 'document_link', label: 'Link Dokumen', type: 'url', value: data?.document_link },
     ],
   });
 }

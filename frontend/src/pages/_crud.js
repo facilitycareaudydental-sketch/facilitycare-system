@@ -39,6 +39,7 @@ export function buildCrudPage({
   initialSearch = '',
   exportOptions = null, // { moduleName, onExport, onImport, onTemplate }
   bulkDelete = false,   // true => enable checkbox bulk-delete using DELETE apiPath/bulk
+  mobileCardRenderer = null, // optional (row, handlers) => HTMLElement for mobile card layout
 }) {
   const user = getUser();
   const moduleName = (apiPath || '').replace('/api/', '').split('/')[0].replace(/-/g, '_');
@@ -640,6 +641,7 @@ export function buildCrudPage({
         onLimitExceeded: (reason) => toastError(reason),
         onToggle: updateBulkToolbar
       } : null,
+      mobileCardRenderer,
     });
 
     tableContainer.innerHTML = '';
@@ -695,7 +697,7 @@ export function buildCrudPage({
             mode: f.mode || 'single',
             inputId: f.id || `crud-${f.name}`,
             inputName: f.name,
-            placeholder: f.placeholder || 'Cari nama karyawan...',
+            placeholder: f.placeholder || '',
             required: !!f.required,
             allowManual: f.allowManual !== false,
             hasEmployeeIdSchema: f.hasEmployeeIdSchema !== false,

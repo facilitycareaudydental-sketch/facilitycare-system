@@ -43,7 +43,7 @@ export function buildFormHTML(fields) {
             }
         }
         input = `
-          <input type="text" name="${escapeHtml(field.name)}" list="${dlId}" class="form-control" value="${escapeHtml(displayVal)}" placeholder="Pilih atau ketik baru..." ${required} autocomplete="off">
+          <input type="text" name="${escapeHtml(field.name)}" list="${dlId}" class="form-control" value="${escapeHtml(displayVal)}" ${required} autocomplete="off">
           <datalist id="${dlId}">${cbOpts}</datalist>
         `;
         break;
@@ -73,7 +73,7 @@ export function buildFormHTML(fields) {
         input = `<input type="password" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || '')}" ${required} autocomplete="${escapeHtml(field.autocomplete || 'new-password')}">`;
         break;
       case 'url':
-        input = `<input type="url" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || 'https://...')}" ${required}>`;
+        input = `<input type="url" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || '')}" ${required}>`;
         break;
       default:
         input = `<input type="${escapeHtml(field.type || 'text')}" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || '')}" ${required} autocomplete="${escapeHtml(field.autocomplete || 'off')}">`;

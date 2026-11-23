@@ -1,4 +1,5 @@
 import { buildCrudPage } from './_crud.js';
+import { buildMobileDataCard } from '../components/table.js';
 import { apiFetch } from '../config.js';
 import { getCachedBranches, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
@@ -26,6 +27,28 @@ export async function renderInspectionReports(container) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
+    mobileCardRenderer: (row, handlers) => buildMobileDataCard({
+      title: row.branch_name || '-',
+      headerRight: statusBadge(row.status),
+      badges: [row.period ? periodBadge(row.period) : ''],
+      meta: [
+        { label: 'Tanggal', value: window.formatDate(row.inspection_date) || '-' },
+        {
+          label: 'Point FC',
+          html: row.fc_score !== null && row.fc_score !== undefined
+            ? `<strong class="${row.fc_score >= 80 ? 'text-success' : row.fc_score >= 60 ? 'text-warning' : 'text-danger'}">${row.fc_score}</strong>`
+            : '-',
+        },
+        {
+          label: 'Point SPV',
+          html: row.spv_score !== null && row.spv_score !== undefined ? `<strong>${row.spv_score}</strong>` : '-',
+        },
+      ],
+      notes: row.notes,
+      docLink: row.document_link,
+      row,
+      handlers,
+    }),
     filterFields: [
       { type: 'search', placeholder: 'Cari cabang...' },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
@@ -66,7 +89,7 @@ export async function renderInspectionReports(container) {
           { name: 'spv_score', label: 'Point SPV', type: 'number', step: '0.1', min: '0', max: '100', value: data?.spv_score },
         ]
       },
-      { name: 'document_link', label: 'Link Dokumen', type: 'url', placeholder: 'https://drive.google.com/...', value: data?.document_link },
+      { name: 'document_link', label: 'Link Dokumen', type: 'url', value: data?.document_link },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],
     exportOptions: {

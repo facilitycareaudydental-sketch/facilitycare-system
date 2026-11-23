@@ -1,4 +1,5 @@
 import { buildCrudPage } from './_crud.js';
+import { buildMobileDataCard } from '../components/table.js';
 import { apiFetch } from '../config.js';
 import { getCachedBranches, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge, periodBadge } from '../components/badges.js';
@@ -25,6 +26,21 @@ export async function renderCleaningReports(container) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
       { key: 'document_link', label: 'Dokumen', render: v => v ? `<a href="${v}" target="_blank" rel="noopener" class="btn btn-xs btn-ghost">📄 Buka</a>` : '-' },
     ],
+    mobileCardRenderer: (row, handlers) => buildMobileDataCard({
+      title: row.branch_name || '-',
+      headerRight: statusBadge(row.status),
+      badges: [
+        row.activity_type ? `<span class="badge ${row.activity_type === 'Deep Cleaning' ? 'badge-purple' : 'badge-success'}">${row.activity_type}</span>` : '',
+        row.period ? periodBadge(row.period) : '',
+      ],
+      meta: [
+        { label: 'Tanggal', value: window.formatDate(row.activity_date) || '-', full: true },
+      ],
+      notes: row.notes,
+      docLink: row.document_link,
+      row,
+      handlers,
+    }),
     filterFields: [
       { type: 'search', placeholder: 'Cari nama cabang/lokasi...' },
       { type: 'combobox', name: 'branch_id', label: 'Cabang', options: branchOptions },
@@ -61,7 +77,7 @@ export async function renderCleaningReports(container) {
         ]
       },
       { name: 'status', label: 'Status', type: 'select', required: true, options: ['Pending', 'Done'], value: data?.status || '' },
-      { name: 'document_link', label: 'Link Dokumen', type: 'url', placeholder: 'https://drive.google.com/...', value: data?.document_link },
+      { name: 'document_link', label: 'Link Dokumen', type: 'url', value: data?.document_link },
       { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2, value: data?.notes },
     ],
     exportOptions: {

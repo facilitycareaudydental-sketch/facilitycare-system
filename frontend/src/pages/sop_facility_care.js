@@ -997,11 +997,11 @@ export async function renderSOPFacilityCare(container) {
         <div class="form-row" style="display:grid; grid-template-columns:1fr 140px; gap:12px;">
           <div>
             <label style="display:block; font-weight:600; margin-bottom:4px;">Judul Instruksi Kerja *</label>
-            <input type="text" id="form-ik-title" class="form-control" required value="${existingIK ? escapeHtml(existingIK.title) : ''}" placeholder="Contoh: Membersihkan Dental Unit" style="width:100%; border-radius:6px; height:36px;">
+            <input type="text" id="form-ik-title" class="form-control" required value="${existingIK ? escapeHtml(existingIK.title) : ''}" style="width:100%; border-radius:6px; height:36px;">
           </div>
           <div>
             <label style="display:block; font-weight:600; margin-bottom:4px;">Ikon Emoji</label>
-            <input type="text" id="form-ik-icon" class="form-control" value="${existingIK ? existingIK.icon : '📋'}" placeholder="🧹" style="width:100%; border-radius:6px; height:36px; text-align:center; font-size:1.2rem;">
+            <input type="text" id="form-ik-icon" class="form-control" value="${existingIK ? existingIK.icon : '📋'}" style="width:100%; border-radius:6px; height:36px; text-align:center; font-size:1.2rem;">
           </div>
         </div>
 
@@ -1018,28 +1018,28 @@ export async function renderSOPFacilityCare(container) {
           </div>
           <div>
             <label style="display:block; font-weight:600; margin-bottom:4px;">Takaran / Rasio Chemical</label>
-            <input type="text" id="form-ik-ratio" class="form-control" value="${existingIK ? escapeHtml(existingIK.chemical_ratio || '') : ''}" placeholder="Contoh: 25 ml : 1 Liter Air" style="width:100%; border-radius:6px; height:36px;">
+            <input type="text" id="form-ik-ratio" class="form-control" value="${existingIK ? escapeHtml(existingIK.chemical_ratio || '') : ''}" style="width:100%; border-radius:6px; height:36px;">
           </div>
         </div>
 
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Area & Sasaran Target *</label>
-          <input type="text" id="form-ik-target" class="form-control" required value="${existingIK ? escapeHtml(existingIK.target) : ''}" placeholder="Contoh: Kursi pasien, meja instrumen, mangkuk spittoon" style="width:100%; border-radius:6px; height:36px;">
+          <input type="text" id="form-ik-target" class="form-control" required value="${existingIK ? escapeHtml(existingIK.target) : ''}" style="width:100%; border-radius:6px; height:36px;">
         </div>
 
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Alat & Bahan yang Digunakan (1 item per baris) *</label>
-          <textarea id="form-ik-tools" class="form-control" rows="4" placeholder="Kain Microfiber Biru&#10;Sarung Tangan Karet&#10;Botol Spray Glass Cleaner" style="width:100%; border-radius:6px; font-size:0.85rem; line-height:1.5;">${escapeHtml(initialTools)}</textarea>
+          <textarea id="form-ik-tools" class="form-control" rows="4" style="width:100%; border-radius:6px; font-size:0.85rem; line-height:1.5;">${escapeHtml(initialTools)}</textarea>
         </div>
 
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Langkah-Langkah Pelaksanaan (1 langkah per baris) *</label>
-          <textarea id="form-ik-steps" class="form-control" rows="6" placeholder="1. Pastikan posisi saklar OFF.&#10;2. Lap jok dental unit dengan kain microfiber biru.&#10;3. Sikat mangkuk spittoon..." style="width:100%; border-radius:6px; font-size:0.85rem; line-height:1.6;">${escapeHtml(initialSteps)}</textarea>
+          <textarea id="form-ik-steps" class="form-control" rows="6" style="width:100%; border-radius:6px; font-size:0.85rem; line-height:1.6;">${escapeHtml(initialSteps)}</textarea>
         </div>
 
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Catatan Penting / Hal yang Perlu Diperhatikan (Safety)</label>
-          <textarea id="form-ik-notes" class="form-control" rows="2" placeholder="Catatan larangan atau peringatan keselamatan..." style="width:100%; border-radius:6px; font-size:0.85rem;">${existingIK ? escapeHtml(existingIK.notes || '') : ''}</textarea>
+          <textarea id="form-ik-notes" class="form-control" rows="2" style="width:100%; border-radius:6px; font-size:0.85rem;">${existingIK ? escapeHtml(existingIK.notes || '') : ''}</textarea>
         </div>
       </form>
     `;
@@ -1325,15 +1325,15 @@ export async function renderSOPFacilityCare(container) {
       <form id="tool-edit-form" style="display:flex; flex-direction:column; gap:14px; font-size:0.88rem;">
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Nama Alat / Item *</label>
-          <input type="text" id="form-tool-name" class="form-control" required value="${existingTool ? escapeHtml(existingTool.name) : ''}" placeholder="Contoh: Lobby Duster Set 60 cm" style="width:100%; border-radius:6px; height:36px;">
+          <input type="text" id="form-tool-name" class="form-control" required value="${existingTool ? escapeHtml(existingTool.name) : ''}" style="width:100%; border-radius:6px; height:36px;">
         </div>
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Kuantitas Standar *</label>
-          <input type="text" id="form-tool-qty" class="form-control" required value="${existingTool ? escapeHtml(existingTool.qty) : '1 unit'}" placeholder="Contoh: 1 set, 2 pcs, 1 paket" style="width:100%; border-radius:6px; height:36px;">
+          <input type="text" id="form-tool-qty" class="form-control" required value="${existingTool ? escapeHtml(existingTool.qty) : '1 unit'}" style="width:100%; border-radius:6px; height:36px;">
         </div>
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Peruntukan Area & Kegunaan *</label>
-          <textarea id="form-tool-area" class="form-control" rows="3" required placeholder="Contoh: Lobby utama dan koridor/lorong klinik" style="width:100%; border-radius:6px; font-size:0.85rem;">${existingTool ? escapeHtml(existingTool.area) : ''}</textarea>
+          <textarea id="form-tool-area" class="form-control" rows="3" required style="width:100%; border-radius:6px; font-size:0.85rem;">${existingTool ? escapeHtml(existingTool.area) : ''}</textarea>
         </div>
       </form>
     `;
@@ -1379,21 +1379,21 @@ export async function renderSOPFacilityCare(container) {
       <form id="chem-edit-form" style="display:flex; flex-direction:column; gap:14px; font-size:0.88rem;">
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Nama Produk Chemical *</label>
-          <input type="text" id="form-chem-name" class="form-control" required value="${existingChem ? escapeHtml(existingChem.name) : ''}" placeholder="Contoh: Floor Cleaner Prokleen Lavender" style="width:100%; border-radius:6px; height:36px;">
+          <input type="text" id="form-chem-name" class="form-control" required value="${existingChem ? escapeHtml(existingChem.name) : ''}" style="width:100%; border-radius:6px; height:36px;">
         </div>
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
             <label style="display:block; font-weight:600; margin-bottom:4px;">Kemasan Standar *</label>
-            <input type="text" id="form-chem-size" class="form-control" required value="${existingChem ? escapeHtml(existingChem.size) : '5 Liter'}" placeholder="Contoh: 5 Liter, 500 gram" style="width:100%; border-radius:6px; height:36px;">
+            <input type="text" id="form-chem-size" class="form-control" required value="${existingChem ? escapeHtml(existingChem.size) : '5 Liter'}" style="width:100%; border-radius:6px; height:36px;">
           </div>
           <div>
             <label style="display:block; font-weight:600; margin-bottom:4px;">Rasio & Takaran Standar *</label>
-            <input type="text" id="form-chem-ratio" class="form-control" required value="${existingChem ? escapeHtml(existingChem.ratio) : ''}" placeholder="Contoh: 25 ml : 1 Liter Air" style="width:100%; border-radius:6px; height:36px;">
+            <input type="text" id="form-chem-ratio" class="form-control" required value="${existingChem ? escapeHtml(existingChem.ratio) : ''}" style="width:100%; border-radius:6px; height:36px;">
           </div>
         </div>
         <div>
           <label style="display:block; font-weight:600; margin-bottom:4px;">Fungsi & Cara Penggunaan *</label>
-          <textarea id="form-chem-function" class="form-control" rows="3" required placeholder="Contoh: Pembersihan dan pengepelan rutin seluruh lantai ruangan" style="width:100%; border-radius:6px; font-size:0.85rem;">${existingChem ? escapeHtml(existingChem.function) : ''}</textarea>
+          <textarea id="form-chem-function" class="form-control" rows="3" required style="width:100%; border-radius:6px; font-size:0.85rem;">${existingChem ? escapeHtml(existingChem.function) : ''}</textarea>
         </div>
       </form>
     `;

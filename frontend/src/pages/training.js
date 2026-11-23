@@ -230,7 +230,7 @@ export async function renderTraining(container) {
             Materi / Topik Pelatihan <span style="color:#DC2626;">*</span>
           </label>
           <input type="text" id="tr-modal-subject" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Contoh: Basic Knowledge & Practical Skills" value="${item?.subject ? String(item.subject).replace(/"/g, '&quot;') : ''}" required />
+            value="${item?.subject ? String(item.subject).replace(/"/g, '&quot;') : ''}" required />
         </div>
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -253,7 +253,7 @@ export async function renderTraining(container) {
               Trainer / Instruktur <span style="color:#DC2626;">*</span>
             </label>
             <input list="tr-trainer-options" id="tr-modal-trainer" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="Pilih trainer..." value="${defaultTrainer}" required />
+              value="${defaultTrainer}" required />
             <datalist id="tr-trainer-options">
               ${TRAINER_LIST.map(t => `<option value="${t}">`).join('')}
             </datalist>
@@ -273,7 +273,7 @@ export async function renderTraining(container) {
               Nilai / Score Evaluasi (0 - 100)
             </label>
             <input type="number" min="0" max="100" step="1" id="tr-modal-score" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="Contoh: 90" value="${item?.score != null ? item.score : ''}" />
+              value="${item?.score != null ? item.score : ''}" />
           </div>
 
           <div>
@@ -281,7 +281,7 @@ export async function renderTraining(container) {
               Link Dokumen / Sertifikat (Opsional)
             </label>
             <input type="url" id="tr-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="https://drive.google.com/..." value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
+              value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
           </div>
         </div>
 
@@ -289,8 +289,7 @@ export async function renderTraining(container) {
           <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Catatan Pelatihan
           </label>
-          <textarea id="tr-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Catatan hasil pelatihan, rekomendasi materi lanjutan...">${item?.notes || ''}</textarea>
+          <textarea id="tr-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">${item?.notes || ''}</textarea>
         </div>
       </div>
     `;
@@ -299,7 +298,7 @@ export async function renderTraining(container) {
       mode: 'multi',
       inputId: 'tr-modal-participants',
       inputName: 'participants',
-      placeholder: 'Cari nama karyawan peserta (klik / Enter untuk tambah)...',
+      placeholder: '',
       allowManual: true,
       hasEmployeeIdSchema: false,
       employees: employeeOptions,

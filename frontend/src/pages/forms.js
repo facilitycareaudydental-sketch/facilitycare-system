@@ -34,9 +34,9 @@ export function renderMasterForms(container) {
       { type: 'search', placeholder: 'Cari form...' },
     ],
     formFields: (data) => [
-      { name: 'name', label: 'Nama Form', required: true, placeholder: 'Nama form', value: data?.name },
-      { name: 'category', label: 'Kategori', placeholder: 'Permintaan Barang, Penilaian, dll.', value: data?.category },
-      { name: 'document_link', label: 'Link Dokumen', type: 'url', placeholder: 'https://...', value: data?.document_link },
+      { name: 'name', label: 'Nama Form', required: true, value: data?.name },
+      { name: 'category', label: 'Kategori', value: data?.category },
+      { name: 'document_link', label: 'Link Dokumen', type: 'url', value: data?.document_link },
       { name: 'description', label: 'Deskripsi', type: 'textarea', rows: 2, value: data?.description },
       { name: 'is_public', label: 'Akses Publik', type: 'checkbox', checkLabel: 'Form dapat diakses tanpa login', value: data?.is_public },
     ],
@@ -105,13 +105,13 @@ export async function renderSupplyRequests(container) {
         },
         {
           type: 'row', fields: [
-            { name: 'tools_items', label: 'Alat / Barang', placeholder: 'Pisahkan dengan koma (Sapu, Mop)', value: tools },
+            { name: 'tools_items', label: 'Alat / Barang', value: tools },
             { name: 'tools_quantity', label: 'Jumlah Alat', type: 'number', value: data?.tools_quantity },
           ]
         },
         {
           type: 'row', fields: [
-            { name: 'chemical_items', label: 'Chemical', placeholder: 'Pisahkan dengan koma', value: chems },
+            { name: 'chemical_items', label: 'Chemical', value: chems },
             { name: 'chemical_quantity', label: 'Jumlah Chemical', type: 'number', value: data?.chemical_quantity },
           ]
         },
@@ -221,7 +221,7 @@ export async function renderSupplyRequests(container) {
               </div>
               <div class="form-group">
                 <label class="form-label">Diproses Oleh</label>
-                <input type="text" class="form-control" id="supply-processed-by" value="${row.processed_by || ''}" placeholder="Nama">
+                <input type="text" class="form-control" id="supply-processed-by" value="${row.processed_by || ''}">
               </div>
             `,
             onConfirm: async (overlay, close) => {

@@ -710,12 +710,12 @@ export async function renderOSMigrations(container) {
 
         <div class="form-group">
           <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">PIC / Koordinator Vendor (Opsional)</label>
-          <input type="text" name="pic_vendor" class="form-control" placeholder="Nama PIC vendor / no HP" value="${item?.pic_vendor || ''}" style="width:100%; height:38px; border-radius:8px;">
+          <input type="text" name="pic_vendor" class="form-control" value="${item?.pic_vendor || ''}" style="width:100%; height:38px; border-radius:8px;">
         </div>
 
         <div class="form-group">
           <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Catatan / Keterangan</label>
-          <textarea name="notes" class="form-control" rows="2" placeholder="Catatan serah terima / info tambahan..." style="width:100%; border-radius:8px;">${item?.notes || ''}</textarea>
+          <textarea name="notes" class="form-control" rows="2" style="width:100%; border-radius:8px;">${item?.notes || ''}</textarea>
         </div>
       </form>
     `;

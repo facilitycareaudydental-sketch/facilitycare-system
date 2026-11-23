@@ -266,7 +266,7 @@ export async function renderMutasi(container) {
             Link Berkas SK Mutasi / Dokumen (Opsional)
           </label>
           <input type="url" id="mutasi-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="https://drive.google.com/file/d/..." value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
+            value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
         </div>
       </div>
     `;
@@ -275,7 +275,7 @@ export async function renderMutasi(container) {
       mode: 'single',
       inputId: 'mutasi-modal-emp',
       inputName: 'employee_name',
-      placeholder: 'Cari nama karyawan...',
+      placeholder: '',
       required: true,
       allowManual: true,
       hasEmployeeIdSchema: true,

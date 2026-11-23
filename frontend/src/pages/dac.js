@@ -436,7 +436,7 @@ export async function renderDAC(container) {
 
           <div class="form-group">
             <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Nomor Urut <span class="required">*</span></label>
-            <input type="number" name="item_no" class="form-control" value="${item?.item_no || ''}" placeholder="Otomatis jika kosong" style="width:100%; height:38px; border-radius:8px;">
+            <input type="number" name="item_no" class="form-control" value="${item?.item_no || ''}" style="width:100%; height:38px; border-radius:8px;">
           </div>
         </div>
 
@@ -454,7 +454,7 @@ export async function renderDAC(container) {
 
         <div class="form-group">
           <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Kategori <span class="required">*</span></label>
-          <input list="cat-suggestions" name="category" class="form-control" value="${item?.category || ''}" required placeholder="Pilih atau ketik kategori..." style="width:100%; height:38px; border-radius:8px;">
+          <input list="cat-suggestions" name="category" class="form-control" value="${item?.category || ''}" required style="width:100%; height:38px; border-radius:8px;">
           <datalist id="cat-suggestions">
             ${defaultCategories.map(c => `<option value="${c}">`).join('')}
           </datalist>
@@ -462,12 +462,12 @@ export async function renderDAC(container) {
 
         <div class="form-group">
           <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Lokasi / Area <span class="required">*</span></label>
-          <input type="text" name="location" class="form-control" value="${item?.location || ''}" required placeholder="Contoh: Ruang tindakan Du 101, Lobby, Toilet GF" style="width:100%; height:38px; border-radius:8px;">
+          <input type="text" name="location" class="form-control" value="${item?.location || ''}" required style="width:100%; height:38px; border-radius:8px;">
         </div>
 
         <div class="form-group">
           <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Aktivitas Detail <span class="required">*</span></label>
-          <textarea name="activity" class="form-control" rows="3" required placeholder="Deskripsi aktivitas pembersihan..." style="width:100%; border-radius:8px;">${item?.activity || ''}</textarea>
+          <textarea name="activity" class="form-control" rows="3" required style="width:100%; border-radius:8px;">${item?.activity || ''}</textarea>
         </div>
       </form>
     `;

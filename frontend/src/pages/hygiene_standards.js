@@ -5,20 +5,24 @@ import { downloadExcel } from '../utils/excel.js';
 import { fetchExportRows } from '../utils/dataCache.js';
 import { escapeHtml } from '../utils/sanitize.js';
 
-function renderHygieneActionButtons(item, canEdit, canDelete, compact = false) {
+function renderHygieneActionButtons(item, canEdit, canDelete, compact = false, mobileCard = false) {
   if (!canEdit && !canDelete) return '';
   const id = escapeHtml(String(item.id ?? ''));
   const name = escapeHtml(item.item_name || 'Parameter Standar');
   const size = compact ? 14 : 15;
-  const clsSuffix = compact ? ' hygiene-action-btn--compact' : '';
+  const clsSuffix = mobileCard
+    ? ' hyg-mobile-action-btn'
+    : (compact ? ' hygiene-action-btn--compact' : '');
+  const btnWrapClass = mobileCard ? 'hyg-mobile-actions' : '';
   return `
-    <div style="display:inline-flex; gap:${compact ? 4 : 6}px; align-items:center;">
+    <div class="${btnWrapClass}" style="${mobileCard ? '' : `display:inline-flex; gap:${compact ? 4 : 6}px; align-items:center;`}">
       ${canEdit ? `
         <button type="button" class="hygiene-action-btn hygiene-action-edit${clsSuffix} btn-edit-item" data-id="${id}" title="Edit ${name}" aria-label="Edit parameter ${name}">
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
+          ${mobileCard ? '<span>Edit</span>' : ''}
         </button>
       ` : ''}
       ${canDelete ? `
@@ -29,8 +33,39 @@ function renderHygieneActionButtons(item, canEdit, canDelete, compact = false) {
             <line x1="10" y1="11" x2="10" y2="17"></line>
             <line x1="14" y1="11" x2="14" y2="17"></line>
           </svg>
+          ${mobileCard ? '<span>Hapus</span>' : ''}
         </button>
       ` : ''}
+    </div>
+  `;
+}
+
+function renderHygieneMobileCards(items, { includeRoom = true, canEdit = false, canDelete = false } = {}) {
+  return `
+    <div class="hyg-mobile-cards${includeRoom ? '' : ' hyg-mobile-cards--compact'}">
+      ${items.map((item, idx) => {
+        const zInfo = getZoneForRoom(item.room_name);
+        const actionsHtml = renderHygieneActionButtons(item, canEdit, canDelete, false, true);
+        return `
+          <article class="hyg-mobile-card">
+            <div class="hyg-mobile-card-head">
+              <span class="hyg-mobile-num">#${idx + 1}</span>
+              ${includeRoom ? `
+                <div class="hyg-mobile-room-group">
+                  <span class="hyg-room-badge">${escapeHtml(item.room_name)}</span>
+                  <span class="hyg-zone-meta">${escapeHtml(zInfo.zoneName)}</span>
+                </div>
+              ` : ''}
+            </div>
+            <div class="hyg-mobile-item-title">${escapeHtml(item.item_name)}</div>
+            <div class="hyg-std-box hyg-mobile-std-box">
+              <span class="hyg-std-check" aria-hidden="true">✓</span>
+              <span class="hyg-std-text">${escapeHtml(item.cleanliness_standard)}</span>
+            </div>
+            ${actionsHtml ? `<div class="hyg-mobile-card-foot">${actionsHtml}</div>` : ''}
+          </article>
+        `;
+      }).join('')}
     </div>
   `;
 }
@@ -375,7 +410,7 @@ export async function renderHygieneStandards(container) {
 
   function renderTableView(viewContainer, items) {
     viewContainer.innerHTML = `
-      <div class="hyg-table-card">
+      <div class="hyg-table-card hyg-table-card--desktop">
         <div class="table-wrapper">
           <table class="hyg-table">
             <thead>
@@ -418,6 +453,7 @@ export async function renderHygieneStandards(container) {
           </table>
         </div>
       </div>
+      ${renderHygieneMobileCards(items, { includeRoom: true, canEdit, canDelete })}
     `;
 
     attachActionButtons(viewContainer);
@@ -461,7 +497,7 @@ export async function renderHygieneStandards(container) {
                       <span class="badge badge-secondary">${rItems.length} item</span>
                     </div>
 
-                    <div class="hyg-zone-table-wrap">
+                    <div class="hyg-zone-table-wrap hyg-zone-table-wrap--desktop">
                       <table class="hyg-table hyg-table--compact">
                         <thead>
                           <tr>
@@ -494,6 +530,7 @@ export async function renderHygieneStandards(container) {
                         </tbody>
                       </table>
                     </div>
+                    ${renderHygieneMobileCards(rItems, { includeRoom: false, canEdit, canDelete })}
                   </div>
                 `).join('')}
               </div>
@@ -554,7 +591,7 @@ export async function renderHygieneStandards(container) {
           <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-1); margin-bottom:6px;">
             Ruangan / Lokasi <span class="required">*</span>
           </label>
-          <input type="text" id="modal-room-name" list="room-suggestions" class="form-control" placeholder="Contoh: Ruang Tindakan, Lobby 1, Toilet 1..." value="${item?.room_name || ''}" required style="width:100%; height:40px; border-radius:8px;">
+          <input type="text" id="modal-room-name" list="room-suggestions" class="form-control" value="${item?.room_name || ''}" required style="width:100%; height:40px; border-radius:8px;">
           <datalist id="room-suggestions">
             ${allRooms.map(r => `<option value="${r}">`).join('')}
           </datalist>
@@ -564,13 +601,13 @@ export async function renderHygieneStandards(container) {
           <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-1); margin-bottom:6px;">
             Item / Objek Inspeksi <span class="required">*</span>
           </label>
-          <input type="text" id="modal-item-name" class="form-control" placeholder="Contoh: Eksterior Dental Unit & Kursi, Lantai & Sudut..." value="${item?.item_name || ''}" required style="width:100%; height:40px; border-radius:8px;">
+          <input type="text" id="modal-item-name" class="form-control" value="${item?.item_name || ''}" required style="width:100%; height:40px; border-radius:8px;">
         </div>
         <div>
           <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-1); margin-bottom:6px;">
             Standar Kebersihan Fisik <span class="required">*</span>
           </label>
-          <textarea id="modal-standard" class="form-control" rows="4" placeholder="Deskripsi kondisi fisik kebersihan yang dipersyaratkan..." required style="width:100%; border-radius:8px; line-height:1.5;">${item?.cleanliness_standard || ''}</textarea>
+          <textarea id="modal-standard" class="form-control" rows="4" required style="width:100%; border-radius:8px; line-height:1.5;">${item?.cleanliness_standard || ''}</textarea>
           <span style="font-size:0.75rem; color:var(--text-3); margin-top:4px; display:block;">Jelaskan kriteria fisik: bebas debu kasat mata, steril, tidak licin, tidak berbau, dll.</span>
         </div>
       </form>

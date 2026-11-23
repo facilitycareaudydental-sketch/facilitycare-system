@@ -1,4 +1,5 @@
 import { buildCrudPage } from './_crud.js';
+import { buildMobileDataCard } from '../components/table.js';
 import { apiFetch } from '../config.js';
 import { notifyCalendar } from '../utils/calendarBus.js';
 import { getCachedBranches, getCachedEmployeeNames, fetchExportRows } from '../utils/dataCache.js';
@@ -93,6 +94,23 @@ export async function renderSchedule(container, params) {
       { key: 'completion_date', label: 'Tgl Selesai', nowrap: true, render: v => formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
+    mobileCardRenderer: (row, handlers) => buildMobileDataCard({
+      title: row.branch_name || '-',
+      headerRight: statusBadge(row.status),
+      badges: [
+        row.activity_type ? activityTypeBadge(row.activity_type) : '',
+        row.period ? periodBadge(row.period) : '',
+      ],
+      meta: [
+        { label: 'Tgl Opening', value: formatDate(row.opening_date) || '-' },
+        { label: 'Tgl Target', value: formatDate(row.target_date) || '-' },
+        { label: 'Tgl Selesai', value: formatDate(row.completion_date) || '-' },
+        ...(row.pic ? [{ label: 'PIC', value: row.pic }] : []),
+      ],
+      notes: row.notes,
+      row,
+      handlers,
+    }),
     filterFields: [
       { type: 'search', placeholder: 'Cari cabang, kegiatan, PIC, catatan...' },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },

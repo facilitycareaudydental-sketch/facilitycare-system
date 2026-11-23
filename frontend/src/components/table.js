@@ -1,5 +1,5 @@
 import { confirmDialog } from './modal.js';
-import { sanitizeHtmlFragment } from '../utils/sanitize.js';
+import { escapeHtml, sanitizeHtmlFragment } from '../utils/sanitize.js';
 
 export const MAX_BULK_IDS = 100;
 
@@ -50,12 +50,134 @@ export function toggleBulkSelectionPage(selectedIds, pageRows, checked, maxLimit
   return { accepted: true, count: selectedIds.size };
 }
 
+/**
+ * Build a Clean Navy mobile vertical data card for responsive viewports (<= 767px).
+ */
+export function buildMobileDataCard({
+  title,
+  headerRight = '',
+  badges = [],
+  meta = [],
+  notes = '',
+  notesLabel = 'Catatan',
+  docLink = '',
+  row,
+  handlers = {},
+}) {
+  const card = document.createElement('article');
+  card.className = 'fc-mobile-card';
+
+  const headHtml = `
+    <div class="fc-mobile-card-head">
+      <div class="fc-mobile-card-title">${escapeHtml(title || '-')}</div>
+      ${headerRight ? `<div class="fc-mobile-card-right">${sanitizeHtmlFragment(headerRight)}</div>` : ''}
+    </div>
+  `;
+
+  const validBadges = (badges || []).filter(Boolean);
+  const badgesHtml = validBadges.length > 0
+    ? `<div class="fc-mobile-card-badges">${validBadges.map(b => sanitizeHtmlFragment(b)).join('')}</div>`
+    : '';
+
+  const validMeta = (meta || []).filter(m => m && (m.html || (m.value !== undefined && m.value !== null && String(m.value).trim() !== '' && String(m.value).trim() !== '-')));
+  const metaHtml = validMeta.length > 0
+    ? `
+      <div class="fc-mobile-card-meta">
+        ${validMeta.map(m => `
+          <div class="fc-mobile-meta-item${m.full ? ' fc-mobile-meta-item--full' : ''}">
+            <span class="fc-mobile-meta-label">${escapeHtml(m.label)}</span>
+            <span class="fc-mobile-meta-value">${m.html ? sanitizeHtmlFragment(m.html) : escapeHtml(String(m.value))}</span>
+          </div>
+        `).join('')}
+      </div>
+    `
+    : '';
+
+  const notesStr = notes !== undefined && notes !== null ? String(notes).trim() : '';
+  const notesHtml = notesStr && notesStr !== '-'
+    ? `
+      <div class="fc-mobile-card-notes">
+        <span class="fc-mobile-meta-label">${escapeHtml(notesLabel)}</span>
+        <div class="fc-mobile-notes-text">${escapeHtml(notesStr)}</div>
+      </div>
+    `
+    : '';
+
+  const safeDocHref = (typeof docLink === 'string' && /^(https?:\/\/|\/)/i.test(docLink.trim())) ? docLink.trim() : '';
+  card.innerHTML = headHtml + badgesHtml + metaHtml + notesHtml;
+
+  const { onView, onEdit, onDelete, actions = [] } = handlers || {};
+  const hasActions = !!(safeDocHref || onView || onEdit || onDelete || actions.length > 0);
+  if (hasActions) {
+    const footer = document.createElement('div');
+    footer.className = 'fc-mobile-card-footer';
+
+    if (safeDocHref) {
+      const docA = document.createElement('a');
+      docA.href = safeDocHref;
+      docA.target = '_blank';
+      docA.rel = 'noopener';
+      docA.className = 'fc-mobile-doc-btn';
+      docA.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Buka Dokumen</span>`;
+      footer.appendChild(docA);
+    }
+
+    const actionsWrap = document.createElement('div');
+    actionsWrap.className = 'fc-mobile-card-actions';
+
+    if (onView) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fc-mobile-action-btn fc-action-view';
+      btn.setAttribute('aria-label', 'Lihat detail');
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>Detail</span>`;
+      btn.addEventListener('click', () => onView(row));
+      actionsWrap.appendChild(btn);
+    }
+    if (onEdit) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fc-mobile-action-btn fc-action-edit';
+      btn.setAttribute('aria-label', 'Edit data');
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg><span>Edit</span>`;
+      btn.addEventListener('click', () => onEdit(row));
+      actionsWrap.appendChild(btn);
+    }
+    actions.forEach(action => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `fc-mobile-action-btn ${action.class || ''}`;
+      btn.setAttribute('aria-label', action.label || 'Aksi');
+      btn.innerHTML = sanitizeHtmlFragment(action.icon ? `${action.icon}<span>${escapeHtml(action.label || '')}</span>` : escapeHtml(action.label || 'Aksi'));
+      btn.addEventListener('click', () => action.handler(row));
+      actionsWrap.appendChild(btn);
+    });
+    if (onDelete) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fc-mobile-action-btn fc-action-del';
+      btn.setAttribute('aria-label', 'Hapus data');
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span>Hapus</span>`;
+      btn.addEventListener('click', () => onDelete(row));
+      actionsWrap.appendChild(btn);
+    }
+
+    if (actionsWrap.childElementCount > 0) {
+      footer.appendChild(actionsWrap);
+    }
+    card.appendChild(footer);
+  }
+
+  return card;
+}
+
 // Reusable data table with pagination
-export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data', bulkSelect = null }) {
+export function createTable({ columns, data, onEdit, onDelete, onView, actions = [], emptyText = 'Tidak ada data', bulkSelect = null, mobileCardRenderer = null }) {
   const wrapper = document.createElement('div');
-  wrapper.className = 'table-wrapper';
+  wrapper.className = mobileCardRenderer ? 'table-wrapper fc-desktop-only-table' : 'table-wrapper';
 
   if (!data || data.length === 0) {
+    wrapper.className = 'table-wrapper';
     wrapper.innerHTML = `<div class="empty-state"><p>${emptyText}</p></div>`;
     return wrapper;
   }
@@ -223,6 +345,25 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
   });
   table.appendChild(tbody);
   wrapper.appendChild(table);
+
+  if (typeof mobileCardRenderer === 'function') {
+    const host = document.createElement('div');
+    host.className = 'fc-table-responsive-host';
+    host.appendChild(wrapper);
+
+    const cardsList = document.createElement('div');
+    cardsList.className = 'fc-mobile-cards-list';
+    const handlers = { onEdit, onDelete, onView, actions };
+    data.forEach(row => {
+      const cardEl = mobileCardRenderer(row, handlers);
+      if (cardEl instanceof HTMLElement) {
+        cardsList.appendChild(cardEl);
+      }
+    });
+    host.appendChild(cardsList);
+    return host;
+  }
+
   return wrapper;
 }
 

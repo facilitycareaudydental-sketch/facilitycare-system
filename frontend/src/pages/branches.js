@@ -36,14 +36,14 @@ export async function renderBranches(container) {
     formFields: (data) => [
       {
         type: 'row', fields: [
-          { name: 'code', label: 'Kode Cabang', required: true, placeholder: '001, A01, ...', value: data?.code },
-          { name: 'name', label: 'Nama Pendek', required: true, placeholder: 'Pondok Bambu', value: data?.name },
+          { name: 'code', label: 'Kode Cabang', required: true, value: data?.code },
+          { name: 'name', label: 'Nama Pendek', required: true, value: data?.name },
         ]
       },
-      { name: 'full_name', label: 'Nama Lengkap', required: true, placeholder: '001. Pondok Bambu', value: data?.full_name },
+      { name: 'full_name', label: 'Nama Lengkap', required: true, value: data?.full_name },
       {
         type: 'row', fields: [
-          { name: 'city', label: 'Kota', placeholder: 'Jakarta', value: data?.city },
+          { name: 'city', label: 'Kota', value: data?.city },
           { name: 'is_active', label: 'Status', type: 'checkbox', checkLabel: 'Cabang aktif', value: data?.is_active !== undefined ? data.is_active : 1 },
         ]
       },

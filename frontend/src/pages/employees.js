@@ -209,7 +209,7 @@ export async function renderEmployees(container, params) {
               Nama Lengkap Karyawan <span style="color:#EF4444;">*</span>
             </label>
             <input type="text" id="emp-modal-name" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#0E182B; color:#F8FAFC;" 
-              placeholder="Contoh: Achmad Nuryaini" value="${item?.full_name ? String(item.full_name).replace(/"/g, '&quot;') : ''}" required />
+              value="${item?.full_name ? String(item.full_name).replace(/"/g, '&quot;') : ''}" required />
           </div>
 
           <div>
@@ -217,7 +217,7 @@ export async function renderEmployees(container, params) {
               No. Handphone / WhatsApp
             </label>
             <input type="tel" id="emp-modal-phone" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#0E182B; color:#F8FAFC;" 
-              placeholder="08xx-xxxx-xxxx" value="${item?.phone ? String(item.phone).replace(/"/g, '&quot;') : ''}" />
+              value="${item?.phone ? String(item.phone).replace(/"/g, '&quot;') : ''}" />
           </div>
         </div>
 
@@ -273,8 +273,7 @@ export async function renderEmployees(container, params) {
           <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
             Catatan / Keterangan Karyawan
           </label>
-          <textarea id="emp-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#0E182B; color:#F8FAFC;" 
-            placeholder="Catatan keahlian, tugas khusus, riwayat cover...">${item?.notes || ''}</textarea>
+          <textarea id="emp-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#0E182B; color:#F8FAFC;">${item?.notes || ''}</textarea>
         </div>
       </div>
     `;

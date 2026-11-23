@@ -1,4 +1,5 @@
 import { buildCrudPage } from './_crud.js';
+import { buildMobileDataCard } from '../components/table.js';
 import { apiFetch } from '../config.js';
 import { getCachedBranches, getCachedEmployeeNames, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge } from '../components/badges.js';
@@ -42,6 +43,20 @@ export async function renderBasecampReports(container) {
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
       { key: 'notes', label: 'Keterangan', render: v => v?.length > 40 ? v.slice(0, 40) + '…' : (v || '-') },
     ],
+    mobileCardRenderer: (row, handlers) => buildMobileDataCard({
+      title: row.branch_name || '-',
+      headerRight: statusBadge(row.status),
+      meta: [
+        { label: 'Tgl Info', value: window.formatDate(row.info_date) || '-' },
+        { label: 'Tgl Done', value: window.formatDate(row.done_date) || '-' },
+        ...(row.pic ? [{ label: 'PIC', value: row.pic, full: true }] : []),
+        ...(row.problem ? [{ label: 'Permasalahan', value: row.problem, full: true }] : []),
+      ],
+      notes: row.notes,
+      notesLabel: 'Keterangan',
+      row,
+      handlers,
+    }),
     filterFields: [
       { type: 'search', placeholder: 'Cari permasalahan, PIC, cabang...' },
       { type: 'select', name: 'pic', label: 'PIC', options: ['Berlin', 'Ade'] },
