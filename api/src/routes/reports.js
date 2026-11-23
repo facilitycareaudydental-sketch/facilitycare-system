@@ -49,9 +49,6 @@ export async function handleReports(request, env, origin) {
   const url = new URL(request.url);
   const path = url.pathname.replace('/api/reports', '');
 
-  // Public supply requests
-  if (path.startsWith('/supply')) return handleSupply(request, env, origin, path.replace('/supply', ''));
-
   const user = await authenticate(request, env);
   if (!user) return unauthorized(origin);
   if (!hasPermission(user, 'reports', 'read')) return forbidden(origin);

@@ -16,9 +16,10 @@ import { packStatementGroups } from '../utils/import_journal.js';
 const MAX_BULK_USER_IDS = 100;
 export const MAX_ACTIVE_SUPERADMINS = 2;
 export const MAX_ACTIVE_FC_SPECIALISTS = 2;
+export const MAX_ACTIVE_VIEWERS = 5;
 
-export const OFFICIAL_ROLES = ['superadmin', 'fc_specialist_leader'];
-export const CREATABLE_USER_ROLES = ['superadmin', 'fc_specialist_leader'];
+export const OFFICIAL_ROLES = ['superadmin', 'fc_specialist_leader', 'viewer'];
+export const CREATABLE_USER_ROLES = ['superadmin', 'fc_specialist_leader', 'viewer'];
 export const LEGACY_COMPAT_ROLES = [];
 export const VALID_ROLES = [...OFFICIAL_ROLES];
 
@@ -37,8 +38,6 @@ export const ASSIGNABLE_MODULES = [
   'checklist',
   'hygiene_standards',
   'dac',
-  'one_on_one',
-  'relievers',
   'branches'
 ];
 
@@ -339,6 +338,19 @@ async function createUser(request, env, currentUser, origin) {
       );
     }
   }
+  if (targetIsActive === 1 && targetRole === 'viewer') {
+    const activeViewers = await getActiveRoleCount(env, 'viewer', []);
+    if (activeViewers < 0) {
+      return error('Gagal memverifikasi jumlah Viewer aktif', 503, origin);
+    }
+    if (activeViewers >= MAX_ACTIVE_VIEWERS) {
+      return error(
+        `Konflik Kuota Role: Sistem hanya mengizinkan maksimal ${MAX_ACTIVE_VIEWERS} Viewer aktif. Pembuatan akun keenam ditolak.`,
+        409,
+        origin
+      );
+    }
+  }
 
   const moduleValidation = validateAndNormalizeAssignedModules(assigned_modules, targetRole);
   if (!moduleValidation.valid) {
@@ -400,6 +412,8 @@ async function createUser(request, env, currentUser, origin) {
              (LOWER(?) = 'superadmin' AND (SELECT COUNT(*) FROM users WHERE LOWER(TRIM(COALESCE(role, ''))) = 'superadmin' AND COALESCE(is_active, 1) = 1) < ?)
              OR
              (LOWER(?) = 'fc_specialist_leader' AND (SELECT COUNT(*) FROM users WHERE LOWER(TRIM(COALESCE(role, ''))) = 'fc_specialist_leader' AND COALESCE(is_active, 1) = 1) < ?)
+             OR
+             (LOWER(?) = 'viewer' AND (SELECT COUNT(*) FROM users WHERE LOWER(TRIM(COALESCE(role, ''))) = 'viewer' AND COALESCE(is_active, 1) = 1) < ?)
            )`
         ).bind(
           cleanUsername,
@@ -411,7 +425,9 @@ async function createUser(request, env, currentUser, origin) {
           targetRole,
           MAX_ACTIVE_SUPERADMINS,
           targetRole,
-          MAX_ACTIVE_FC_SPECIALISTS
+          MAX_ACTIVE_FC_SPECIALISTS,
+          targetRole,
+          MAX_ACTIVE_VIEWERS
         );
     const batchRes = await env.DB.batch([insertStmt, createAuditStmt]);
     if (!batchRes?.[0]?.meta || Number(batchRes[0].meta.changes) < 1) {
@@ -537,6 +553,8 @@ async function updateUser(id, request, env, currentUser, origin) {
   const isExistingActiveSuperadmin = isExistingSuperadminRole && Number(existing.is_active ?? 1) === 1;
   const isExistingFcSpecialistRole = String(existing.role || '').trim().toLowerCase() === 'fc_specialist_leader';
   const isExistingActiveFcSpecialist = isExistingFcSpecialistRole && Number(existing.is_active ?? 1) === 1;
+  const isExistingViewerRole = String(existing.role || '').trim().toLowerCase() === 'viewer';
+  const isExistingActiveViewer = isExistingViewerRole && Number(existing.is_active ?? 1) === 1;
   let requiresRemainingSuperadminGuard = false;
   let requiresSuperadminCeilingGuard = false;
   let requiresFcSpecialistCeilingGuard = false;
@@ -754,6 +772,19 @@ async function updateUser(id, request, env, currentUser, origin) {
       );
     }
     requiresFcSpecialistCeilingGuard = true;
+  }
+  if (finalRole === 'viewer' && finalActive === 1 && !isExistingActiveViewer) {
+    const otherActiveViewers = await getActiveRoleCount(env, 'viewer', [id]);
+    if (otherActiveViewers < 0) {
+      return error('Gagal memverifikasi jumlah Viewer aktif', 503, origin);
+    }
+    if (otherActiveViewers >= MAX_ACTIVE_VIEWERS) {
+      return error(
+        `Konflik Kuota Role: Tidak dapat mengaktifkan Viewer baru karena maksimal ${MAX_ACTIVE_VIEWERS} akun aktif telah tercapai.`,
+        409,
+        origin
+      );
+    }
   }
 
   // 6. Password update (admin password reset): Enforce centralized password policy before hashing

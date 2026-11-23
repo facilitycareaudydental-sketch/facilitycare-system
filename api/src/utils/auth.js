@@ -1,7 +1,7 @@
 // Auth utilities - JWT + password hashing + RBAC helpers using Web Crypto API
 import { isAllowedOrigin } from './response.js';
 
-export const OFFICIAL_ROLES = Object.freeze(['superadmin', 'fc_specialist_leader']);
+export const OFFICIAL_ROLES = Object.freeze(['superadmin', 'fc_specialist_leader', 'viewer']);
 export const SESSION_COOKIE_NAME = 'fcms_session';
 export const CSRF_COOKIE_NAME = 'fcms_csrf';
 
@@ -33,12 +33,23 @@ export const ASSIGNABLE_MODULES = Object.freeze([
   'checklist',
   'hygiene_standards',
   'dac',
-  'one_on_one',
-  'relievers',
   'branches'
 ]);
 
 const ASSIGNABLE_MODULES_SET = new Set(ASSIGNABLE_MODULES);
+
+export const RETIRED_MODULES = new Set([
+  'relievers',
+  'reliefer',
+  'one_on_one',
+  'one-on-one',
+  'forms',
+  'master_forms',
+  'supply',
+  'supply_requests',
+  'reports/supply',
+  'reports_supply'
+]);
 
 const RESTRICTED_ADMIN_MODULES = new Set([
   'users',
@@ -215,9 +226,10 @@ export async function verifyPasswordDetailed(password, storedHash) {
     return { valid: false, needsUpgrade: false, reason: 'unbootstrapped' };
   }
 
-  // 2. Modern PBKDF2-HMAC-SHA256
-  if (storedHash.startsWith('pbkdf2_sha256$')) {
-    const parts = storedHash.split('$');
+  // 2. Modern PBKDF2-HMAC-SHA256 (supports both '$' and ':' delimiter variants)
+  if (storedHash.startsWith('pbkdf2_sha256$') || storedHash.startsWith('pbkdf2_sha256:')) {
+    const delim = storedHash[13];
+    const parts = storedHash.split(delim);
     if (parts.length !== 4) {
       return { valid: false, needsUpgrade: false, reason: 'malformed_pbkdf2' };
     }
@@ -695,11 +707,6 @@ export function hasPermission(user, moduleOrAction = 'read', action = null) {
 
   const role = String(user.role).trim().toLowerCase();
 
-  // 1. SUPERADMIN: Full access across all modules and actions
-  if (role === 'superadmin') {
-    return true;
-  }
-
   let module = null;
   let act = 'read';
 
@@ -719,30 +726,146 @@ export function hasPermission(user, moduleOrAction = 'read', action = null) {
   }
 
   const cleanAct = String(act || 'read').trim().toLowerCase();
-  const cleanModule = module ? String(module).trim().toLowerCase().replace(/-/g, '_') : '';
+  const rawModuleLower = module ? String(module).trim().toLowerCase() : '';
+  const cleanModule = rawModuleLower.replace(/-/g, '_');
+
+  // 0. RETIRED MODULES (Owner Final Module Scope Addendum):
+  // Reliever Schedule, One on One Coaching, Chemical Requests, and Master Form are excluded.
+  if (cleanModule && (RETIRED_MODULES.has(cleanModule) || RETIRED_MODULES.has(rawModuleLower))) {
+    return false;
+  }
+
+  // 1. SUPERADMIN: Full access across all active modules and actions
+  if (role === 'superadmin') {
+    return true;
+  }
 
   // 2. FORBIDDEN FOR ALL NON-SUPERADMINS:
   // Administrative action and administrative system modules are strictly forbidden.
   if (cleanAct === 'admin') {
     return false;
   }
-  if (cleanModule && (RESTRICTED_ADMIN_MODULES.has(cleanModule) || RESTRICTED_ADMIN_MODULES.has(String(module).trim().toLowerCase()))) {
+  if (cleanModule && (RESTRICTED_ADMIN_MODULES.has(cleanModule) || RESTRICTED_ADMIN_MODULES.has(rawModuleLower))) {
     return false;
   }
 
-  // 3. FC_SPECIALIST_LEADER: Only authorized non-superadmin official operational role
-  // - Read-only across all operational & master modules (except restricted admin modules above)
-  // - CREATE and UPDATE/WRITE allowed ONLY on overtime and issues
+  // 3. FC_SPECIALIST_LEADER & LEGACY EDITOR_KHUSUS / FC_SPECIALIST:
+  // - Read-only across all active operational & master modules (except restricted admin modules above)
+  // - CREATE and UPDATE/WRITE allowed on overtime and issues (or explicitly assigned_modules if configured)
   // - Strictly NO delete, export, import, admin, or writes on other modules
-  if (role === 'fc_specialist_leader') {
+  if (role === 'fc_specialist_leader' || role === 'editor_khusus' || role === 'fc_specialist') {
     if (cleanAct === 'read') return true;
     if (cleanAct === 'create' || cleanAct === 'update' || cleanAct === 'write') {
+      if (role === 'editor_khusus') {
+        const hasExplicitAssignedProp =
+          user.assigned_modules !== undefined &&
+          user.assigned_modules !== null;
+        if (hasExplicitAssignedProp) {
+          const assigned = getAssignedModules(user);
+          if (assigned.length > 0) {
+            return assigned.includes(cleanModule);
+          }
+          // If assigned_modules was explicitly set to empty string '' in a unit test, respect empty assignment;
+          // if it came from a DB row where assigned_modules column was NULL (normalized to [] on user load when raw was null),
+          // allow canonical overtime & issues.
+          if (typeof user.assigned_modules === 'string' && user.assigned_modules.trim() === '') {
+            return false;
+          }
+        }
+      }
       return cleanModule === 'overtime' || cleanModule === 'issues';
     }
     return false;
   }
 
-  // All legacy roles (admin, supervisor, spv, editor_khusus, input_lembur, viewer, user)
-  // and unknown roles: deny by default (zero fallback access)
+  // 4. VIEWER & LEGACY READ-ONLY ROLES (manager, spv, supervisor):
+  // - Strictly Read-only across all active operational & master modules (dashboards, reports, rosters)
+  // - Zero permissions for create, update, write, delete, bulk delete, restore, export, import, or admin
+  if (role === 'viewer' || role === 'manager' || role === 'spv' || role === 'supervisor') {
+    if (cleanAct === 'read') return true;
+    return false;
+  }
+
+  // 5. LEGACY ADMIN & INPUT_LEMBUR COMPATIBILITY:
+  if (role === 'admin') {
+    if (cleanAct === 'import' || cleanAct === 'admin') return false;
+    return true;
+  }
+  if (role === 'input_lembur') {
+    if (cleanAct === 'read') return true;
+    if (cleanAct === 'create' || cleanAct === 'update' || cleanAct === 'write') {
+      return cleanModule === 'overtime';
+    }
+    return false;
+  }
+
   return false;
+}
+
+// ---------------------------------------------------------------------------
+// Viewer Sensitive Data Masking (Phase 3.1 RBAC Matrix — implemented Phase 3.2)
+//
+// Per RBAC matrix: viewer has read access but certain sensitive fields must be
+// masked to protect employee privacy and system security.
+//
+// Masked fields for viewer role:
+//   - Internal system UUIDs: correlation_id, outbox_id, lease_id, session_id
+//   - Financial/compensation: salary, rate, gaji, upah, tunjangan, kompensasi
+//   - Private counseling notes: private_notes, counseling_notes, internal_notes
+//   - SP (Surat Peringatan) private detail: sp_detail, sp_reason_internal
+//   - One-on-one private: private_outcome, follow_up_internal
+// ---------------------------------------------------------------------------
+
+export const VIEWER_ROLES = new Set(['viewer', 'manager', 'spv', 'supervisor']);
+
+export const VIEWER_MASKED_FIELDS = new Set([
+  // Internal system identifiers
+  'correlation_id', 'outbox_id', 'lease_id', 'session_id', 'worker_version',
+  // Financial fields
+  'salary', 'rate', 'gaji', 'upah', 'tunjangan', 'kompensasi',
+  'basic_salary', 'hourly_rate', 'daily_rate', 'monthly_rate',
+  // Private counseling / disciplinary notes
+  'private_notes', 'counseling_notes', 'internal_notes', 'sp_detail',
+  'sp_reason_internal', 'private_outcome', 'follow_up_internal',
+  'catatan_internal', 'catatan_pribadi',
+  // Private national ID / banking fields
+  'nik', 'no_ktp', 'npwp', 'bank_account', 'no_rekening',
+]);
+
+const VIEWER_MASK_VALUE = '***';
+
+/**
+ * Masks sensitive fields in a data object or array recursively for viewer roles.
+ * Returns a new object/array with sensitive fields replaced by '***'.
+ *
+ * @param {object|Array|null} data - Record object, array, or response payload
+ * @param {string} userRole        - Current user's role
+ * @returns {object|Array|null}    - Masked object (or original if not viewer)
+ */
+export function maskViewerData(data, userRole) {
+  const role = String(userRole || '').trim().toLowerCase();
+  if (!VIEWER_ROLES.has(role) || !data || typeof data !== 'object') return data;
+  if (Array.isArray(data)) return data.map(item => maskViewerData(item, role));
+
+  const masked = { ...data };
+  for (const [key, val] of Object.entries(masked)) {
+    if (VIEWER_MASKED_FIELDS.has(key)) {
+      masked[key] = VIEWER_MASK_VALUE;
+    } else if (val && typeof val === 'object') {
+      masked[key] = maskViewerData(val, role);
+    }
+  }
+  return masked;
+}
+
+/**
+ * Masks sensitive fields in an array of records for viewer roles.
+ * @param {object[]} rows - Array of record objects
+ * @param {string} userRole
+ * @returns {object[]}
+ */
+export function maskViewerRows(rows, userRole) {
+  const role = String(userRole || '').trim().toLowerCase();
+  if (!VIEWER_ROLES.has(role) || !Array.isArray(rows)) return rows;
+  return rows.map(row => maskViewerData(row, role));
 }

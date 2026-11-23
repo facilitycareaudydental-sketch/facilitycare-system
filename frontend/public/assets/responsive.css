@@ -119,6 +119,7 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .kpi-row        { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
   .mini-stats-row { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
   .charts-row,
+  .bottom-row,
   .tables-row     { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .chart-card     { min-width: 0; }
   .topbar-center  { display: none; }
@@ -181,7 +182,10 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .main-content   { padding: 12px !important; }
   .topbar         { padding: 0 12px !important; }
   .topbar-center  { display: none !important; }
+  .topbar-welcome { display: none !important; }
+  .topbar-mobile-logo { display: inline-flex !important; }
   .topbar-user-name { display: none !important; }
+  .topbar-user-text { display: none !important; }
   .topbar-page-title { font-size: 0.9rem; }
 
   /* 4.3 Dashboard grid */
@@ -197,6 +201,7 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     gap: 8px !important;
   }
   .charts-row,
+  .bottom-row,
   .tables-row {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
@@ -410,7 +415,7 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   cursor: pointer; transition: background var(--transition); overflow: hidden;
 }
 .cal-cell:hover  { background: var(--gray-50); }
-.cal-today       { background: #EFF6FF !important; }
+.cal-today       { background: rgba(37, 99, 235, 0.15) !important; border: 1.5px solid #2563EB !important; }
 .cal-cell-empty  { background: var(--gray-50); opacity: .5; pointer-events: none; }
 .cal-day-num {
   font-size: 0.8rem; font-weight: 700; color: var(--text-2);
@@ -428,14 +433,14 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
 }
 .cal-more { font-size: 0.6rem; color: var(--text-3); font-weight: 600; }
-.cal-color-blue   { background: #DBEAFE; color: #1D4ED8; }
-.cal-color-green  { background: #D1FAE5; color: #065F46; }
-.cal-color-red    { background: #FEE2E2; color: #991B1B; }
-.cal-color-orange { background: #FED7AA; color: #C2410C; }
-.cal-color-purple { background: #EDE9FE; color: #5B21B6; }
-.cal-color-teal   { background: #CCFBF1; color: #0F766E; }
-.cal-color-yellow { background: #FEF3C7; color: #92400E; }
-.cal-color-gray   { background: var(--gray-100); color: var(--gray-600); }
+.cal-color-blue   { background: rgba(37, 99, 235, 0.2); color: #60A5FA; }
+.cal-color-green  { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+.cal-color-red    { background: rgba(239, 68, 68, 0.2); color: #F87171; }
+.cal-color-orange { background: rgba(249, 115, 22, 0.2); color: #FB923C; }
+.cal-color-purple { background: rgba(139, 92, 246, 0.2); color: #C084FC; }
+.cal-color-teal   { background: rgba(20, 184, 166, 0.2); color: #2DD4BF; }
+.cal-color-yellow { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+.cal-color-gray   { background: rgba(255, 255, 255, 0.08); color: #94A3B8; }
 .cal-event-sidebar {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
@@ -506,10 +511,10 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     display: inline-flex !important;
     align-items: center;
     gap: 6px;
-    background: #F1F5F9;
-    border: 1px solid #E2E8F0;
+    background: #172033;
+    border: 1px solid #29364B;
     border-radius: 8px;
-    color: #334155;
+    color: #F8FAFC;
     font-weight: 600;
     font-size: 0.85rem;
     padding: 7px 12px;
@@ -521,11 +526,12 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   .filter-options-wrapper {
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: var(--bg-card, #fff);
+    background: #172033;
+    border-top: 1px solid #29364B;
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
     padding: 20px;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.18);
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
     z-index: 9999;
     display: flex;
     flex-direction: column;

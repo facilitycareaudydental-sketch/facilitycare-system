@@ -401,6 +401,39 @@ async function handleBootstrap(request, env, origin) {
   }, 200, origin);
 }
 
+async function recordD1FailedLogin(env, identifier, ip, acctIdentifier = null) {
+  if (!env?.DB) return;
+  const upsertSql = `
+    INSERT INTO auth_cooldowns (identifier, failed_count, cooldown_until, last_failed_at, ip_address, created_at, updated_at)
+    VALUES (?, 1, NULL, datetime('now'), ?, datetime('now'), datetime('now'))
+    ON CONFLICT(identifier) DO UPDATE SET
+      failed_count = auth_cooldowns.failed_count + 1,
+      cooldown_until = CASE WHEN auth_cooldowns.failed_count + 1 >= 5 THEN datetime('now', '+15 minutes') ELSE NULL END,
+      last_failed_at = datetime('now'),
+      updated_at = datetime('now')
+  `;
+  try {
+    await env.DB.prepare(upsertSql).bind(identifier, ip).run();
+    if (acctIdentifier && acctIdentifier !== identifier) {
+      await env.DB.prepare(upsertSql).bind(acctIdentifier, ip).run();
+    }
+  } catch (e) {
+    console.warn('Non-critical D1 failed login recording skipped:', e?.message || e);
+  }
+}
+
+async function recordD1SuccessfulLogin(env, identifier, acctIdentifier = null) {
+  if (!env?.DB) return;
+  try {
+    await env.DB.prepare('DELETE FROM auth_cooldowns WHERE identifier = ?').bind(identifier).run();
+    if (acctIdentifier && acctIdentifier !== identifier) {
+      await env.DB.prepare('DELETE FROM auth_cooldowns WHERE identifier = ?').bind(acctIdentifier).run();
+    }
+  } catch (e) {
+    console.warn('Non-critical D1 successful login reset skipped:', e?.message || e);
+  }
+}
+
 async function handleLogin(request, env, origin) {
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
@@ -416,11 +449,28 @@ async function handleLogin(request, env, origin) {
   // Consistent normalization for login identity: trim and lowercase
   // Password remains strictly case-sensitive and unnormalized
   const normalizedIdentity = username.trim().toLowerCase();
+  const clientIp = request?.headers?.get?.('cf-connecting-ip') || '127.0.0.1';
+  const d1Identifier = `${normalizedIdentity}:${clientIp}`;
+  const d1AcctIdentifier = `acct:${normalizedIdentity}`;
 
-  // ── Rate Limit Check (Best-Effort Per-Isolate) ────────────────────────────
+  // ── Tier 2: D1 Persistent Lockout Check (Global Persistence across Isolate Restarts & IP Rotation) ──
+  if (env?.DB) {
+    try {
+      const lockout = await env.DB.prepare(
+        "SELECT failed_count, cooldown_until FROM auth_cooldowns WHERE (identifier = ? OR identifier = ?) AND cooldown_until > datetime('now') LIMIT 1"
+      ).bind(d1Identifier, d1AcctIdentifier).first();
+      if (lockout) {
+        return error('Terlalu banyak percobaan login gagal. Akun dikunci sementara selama 15 menit.', 429, origin, env?.ENVIRONMENT, { 'Retry-After': '900' });
+      }
+    } catch (e) {
+      console.warn('Non-critical auth_cooldowns check skipped:', e?.message || e);
+    }
+  }
+
+  // ── Tier 1: In-Isolate Memory Rate Limit Check ────────────────────────────
   const rateLimit = checkRateLimit(normalizedIdentity);
   if (!rateLimit.allowed) {
-    return error(`Too many failed attempts. Please try again in ${rateLimit.retryAfter} seconds.`, 429, origin);
+    return error(`Too many failed attempts. Please try again in ${rateLimit.retryAfter} seconds.`, 429, origin, env?.ENVIRONMENT, { 'Retry-After': String(rateLimit.retryAfter) });
   }
 
   let user;
@@ -435,6 +485,7 @@ async function handleLogin(request, env, origin) {
 
   if (!user) {
     recordFailedLogin(normalizedIdentity);
+    await recordD1FailedLogin(env, d1Identifier, clientIp, d1AcctIdentifier);
     try {
       await logAudit(
         env,
@@ -457,6 +508,7 @@ async function handleLogin(request, env, origin) {
   const verifyDetails = await verifyPasswordDetailed(password, user.password_hash);
   if (!verifyDetails.valid) {
     recordFailedLogin(normalizedIdentity);
+    await recordD1FailedLogin(env, d1Identifier, clientIp, d1AcctIdentifier);
     try {
       await logAudit(
         env,
@@ -491,6 +543,7 @@ async function handleLogin(request, env, origin) {
 
   // ── Successful login - reset rate limit ────────────────────────────────────
   recordSuccessfulLogin(normalizedIdentity);
+  await recordD1SuccessfulLogin(env, d1Identifier, d1AcctIdentifier);
 
   if (!env?.JWT_SECRET || typeof env.JWT_SECRET !== 'string' || env.JWT_SECRET.trim() === '') {
     console.error('AUTH_FATAL: JWT_SECRET environment variable is not configured.');

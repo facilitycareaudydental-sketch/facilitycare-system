@@ -152,10 +152,28 @@ export function paginated(data, total, page, limit, origin, environment, extra =
   });
 }
 
-export function error(message, status = 400, origin, environment) {
+export function error(message, status = 400, origin, environment, extraHeaders = {}) {
+  let extra = extraHeaders;
+  let env = environment;
+  if (environment && typeof environment === 'object' && !Array.isArray(environment)) {
+    extra = environment;
+    env = undefined;
+  }
+  const headers = { 'Content-Type': 'application/json', ...corsHeaders(origin, env), ...(extra || {}) };
+  if (status === 429 && !headers['Retry-After']) {
+    const secMatch = String(message || '').match(/(\d+)\s*(?:seconds?|detik)/i);
+    const minMatch = String(message || '').match(/(\d+)\s*(?:minutes?|menit)/i);
+    if (secMatch) {
+      headers['Retry-After'] = String(Math.max(1, Number(secMatch[1])));
+    } else if (minMatch) {
+      headers['Retry-After'] = String(Math.max(1, Number(minMatch[1]) * 60));
+    } else {
+      headers['Retry-After'] = '60';
+    }
+  }
   return new Response(JSON.stringify({ success: false, error: message }), {
     status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin, environment) },
+    headers,
   });
 }
 

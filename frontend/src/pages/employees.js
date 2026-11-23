@@ -221,28 +221,28 @@ export async function renderEmployees(container, params) {
         ${isEdit ? `<input type="hidden" id="emp-modal-row-version" value="${editRowVersion !== null ? editRowVersion : ''}">` : ''}
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
-              Nama Lengkap Karyawan <span style="color:#DC2626;">*</span>
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
+              Nama Lengkap Karyawan <span style="color:#EF4444;">*</span>
             </label>
-            <input type="text" id="emp-modal-name" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
+            <input type="text" id="emp-modal-name" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#111827; color:#F8FAFC;" 
               placeholder="Contoh: Achmad Nuryaini" value="${item?.full_name ? String(item.full_name).replace(/"/g, '&quot;') : ''}" required />
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
               No. Handphone / WhatsApp
             </label>
-            <input type="tel" id="emp-modal-phone" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
+            <input type="tel" id="emp-modal-phone" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#111827; color:#F8FAFC;" 
               placeholder="08xx-xxxx-xxxx" value="${item?.phone ? String(item.phone).replace(/"/g, '&quot;') : ''}" />
           </div>
         </div>
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
-              Cabang Penempatan <span style="color:#DC2626;">*</span>
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
+              Cabang Penempatan <span style="color:#EF4444;">*</span>
             </label>
-            <select id="emp-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
+            <select id="emp-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#172033; color:#F8FAFC;" required>
               <option value="">-- Pilih Cabang --</option>
               ${branchOptions.map(b => `
                 <option value="${b.value}" ${String(item?.branch_id) === String(b.value) ? 'selected' : ''}>
@@ -253,10 +253,10 @@ export async function renderEmployees(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
-              Divisi / Bagian <span style="color:#DC2626;">*</span>
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
+              Divisi / Bagian <span style="color:#EF4444;">*</span>
             </label>
-            <select id="emp-modal-division" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
+            <select id="emp-modal-division" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#172033; color:#F8FAFC;" required>
               ${DIVISION_LIST.map(div => `
                 <option value="${div}" ${defaultDivision === div ? 'selected' : ''}>${div}</option>
               `).join('')}
@@ -266,18 +266,18 @@ export async function renderEmployees(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
               Tanggal Masuk Kerja
             </label>
-            <input type="date" id="emp-modal-joindate" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
+            <input type="date" id="emp-modal-joindate" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#111827; color:#F8FAFC; color-scheme:dark;" 
               value="${item?.join_date || ''}" />
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
-              Status Karyawan <span style="color:#DC2626;">*</span>
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
+              Status Karyawan <span style="color:#EF4444;">*</span>
             </label>
-            <select id="emp-modal-status" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
+            <select id="emp-modal-status" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#172033; color:#F8FAFC;" required>
               ${STATUS_LIST.map(st => `
                 <option value="${st}" ${defaultStatus === st ? 'selected' : ''}>${st}</option>
               `).join('')}
@@ -286,10 +286,10 @@ export async function renderEmployees(container, params) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
             Catatan / Keterangan Karyawan
           </label>
-          <textarea id="emp-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
+          <textarea id="emp-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#111827; color:#F8FAFC;" 
             placeholder="Catatan keahlian, tugas khusus, riwayat cover...">${item?.notes || ''}</textarea>
         </div>
       </div>
@@ -405,9 +405,9 @@ export async function renderEmployees(container, params) {
       return `
             <div class="emp-empty-state">
               <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
-              <h3 style="font-size:1.15rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak ada karyawan yang cocok</h3>
-              <p style="font-size:0.85rem; color:#64748B; margin:0 0 16px 0;">Coba sesuaikan kata kunci pencarian, filter cabang, atau filter divisi.</p>
-              <button id="emp-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
+              <h3 style="font-size:1.15rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak ada karyawan yang cocok</h3>
+              <p style="font-size:0.85rem; color:#94A3B8; margin:0 0 16px 0;">Coba sesuaikan kata kunci pencarian, filter cabang, atau filter divisi.</p>
+              <button id="emp-reset-filter" class="btn btn-primary" style="font-size:0.82rem; padding:8px 18px; border-radius:8px; background:#2563EB; color:#fff; border:none; font-weight:700;">Reset Semua Filter</button>
             </div>
       `;
     }
@@ -451,13 +451,13 @@ export async function renderEmployees(container, params) {
                                 ${getInitials(item.full_name)}
                               </div>
                               <div style="min-width:0;">
-                                <div style="font-weight:700; color:#1E293B; font-size:0.9rem;">${item.full_name || 'Karyawan'}</div>
-                                <div style="font-size:0.74rem; color:#64748B;">ID #${item.id} ${item.nik ? '• ' + item.nik : ''}</div>
+                                <div style="font-weight:700; color:#F8FAFC; font-size:0.9rem;">${item.full_name || 'Karyawan'}</div>
+                                <div style="font-size:0.74rem; color:#94A3B8;">ID #${item.id} ${item.nik ? '• ' + item.nik : ''}</div>
                               </div>
                             </div>
                           </td>
                           <td>
-                            <span style="font-weight:600; color:#334155;">${item.branch_name || 'Semua Cabang'}</span>
+                            <span style="font-weight:600; color:#E2E8F0;">${item.branch_name || 'Semua Cabang'}</span>
                           </td>
                           <td>
                             <span class="emp-div-badge ${divClass}">
@@ -466,15 +466,15 @@ export async function renderEmployees(container, params) {
                           </td>
                           <td>
                             ${phone ? `
-                              <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" style="color:#16A34A; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+                              <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" style="color:#34D399; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
                                 <span>📱</span> ${phone}
                               </a>
-                            ` : '<span style="color:#94A3B8;">-</span>'}
+                            ` : '<span style="color:#64748B;">-</span>'}
                           </td>
-                          <td style="font-size:0.84rem; color:#475569;">
+                          <td style="font-size:0.84rem; color:#94A3B8;">
                             ${item.join_date ? formatDateIndo(item.join_date) : '-'}
                           </td>
-                          <td style="font-size:0.84rem; color:#475569;">
+                          <td style="font-size:0.84rem; color:#94A3B8;">
                             ${item.notes || '-'}
                           </td>
                           <td style="text-align:center;">
@@ -561,14 +561,14 @@ export async function renderEmployees(container, params) {
                     </div>
                     <div class="emp-info-card">
                       <div class="emp-info-label">Status Personil</div>
-                      <div class="emp-info-val" style="color:${isAktif ? '#16A34A' : '#DC2626'};">
+                      <div class="emp-info-val" style="color:${isAktif ? '#10B981' : '#EF4444'};">
                         ${isAktif ? '✅ Karyawan Aktif' : '⛔ Nonaktif / Resign'}
                       </div>
                     </div>
                   </div>
 
                   ${item.notes ? `
-                    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:10px 12px; font-size:0.82rem; color:#475569;">
+                    <div class="emp-notes-box">
                       <strong>Catatan:</strong> ${item.notes}
                     </div>
                   ` : ''}
@@ -580,7 +580,7 @@ export async function renderEmployees(container, params) {
 
                     <div class="emp-action-btns">
                       ${phone ? `
-                        <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" class="emp-icon-btn" title="Chat WhatsApp Karyawan" style="color:#16A34A;">
+                        <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" class="emp-icon-btn" title="Chat WhatsApp Karyawan" style="color:#10B981;">
                           <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.185 1.564 5.939l-1.564 5.717 5.864-1.538c1.691.924 3.63 1.458 5.698 1.458 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/></svg>
                         </a>
                       ` : ''}
@@ -688,7 +688,7 @@ export async function renderEmployees(container, params) {
         .emp-page {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 18px;
           width: 100%;
           max-width: 100%;
           min-width: 0;
@@ -696,11 +696,12 @@ export async function renderEmployees(container, params) {
           overflow-x: hidden;
         }
         .emp-hero-card {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+          background: #111827;
           border-radius: 16px;
-          padding: 24px 28px;
-          color: white;
-          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 22px 26px;
+          color: #F8FAFC;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
           position: relative;
           overflow: hidden;
           box-sizing: border-box;
@@ -715,29 +716,30 @@ export async function renderEmployees(container, params) {
           right: -40px;
           width: 220px;
           height: 220px;
-          background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }
         .emp-stats-row {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 14px;
-          margin-top: 20px;
+          margin-top: 18px;
         }
         .emp-stat-box {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: #172033;
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 12px;
           padding: 14px 18px;
           display: flex;
           align-items: center;
           gap: 14px;
-          backdrop-filter: blur(8px);
-          transition: transform 0.15s ease, background 0.15s ease;
+          transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+          min-width: 0;
         }
         .emp-stat-box:hover {
-          background: rgba(255, 255, 255, 0.08);
+          background: #1E293B;
+          border-color: rgba(255, 255, 255, 0.16);
           transform: translateY(-2px);
         }
         .emp-stat-icon {
@@ -749,12 +751,15 @@ export async function renderEmployees(container, params) {
           justify-content: center;
           font-size: 1.3rem;
           flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
         }
         .emp-stat-val {
           font-size: 1.55rem;
           font-weight: 800;
           line-height: 1.1;
           letter-spacing: -0.02em;
+          color: #F8FAFC;
+          font-variant-numeric: tabular-nums;
         }
         .emp-stat-lbl {
           font-size: 0.72rem;
@@ -767,11 +772,11 @@ export async function renderEmployees(container, params) {
 
         /* Controls / Filter Bar */
         .emp-controls-card {
-          background: white;
+          background: #111827;
           border-radius: 14px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid rgba(255, 255, 255, 0.08);
           padding: 16px 20px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;
           gap: 14px;
@@ -788,10 +793,10 @@ export async function renderEmployees(container, params) {
         }
         .emp-view-toggle {
           display: inline-flex;
-          background: #F1F5F9;
+          background: #172033;
           padding: 4px;
           border-radius: 10px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid rgba(255, 255, 255, 0.08);
           gap: 4px;
           flex-shrink: 0;
         }
@@ -803,25 +808,25 @@ export async function renderEmployees(container, params) {
           border-radius: 7px;
           border: none;
           background: transparent;
-          color: #64748B;
+          color: #94A3B8;
           font-size: 0.82rem;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.15s ease;
         }
         .emp-view-btn:hover {
-          color: #0F172A;
+          color: #F8FAFC;
         }
         .emp-view-btn.active {
-          background: white;
-          color: #2563EB;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+          background: #2563EB;
+          color: #FFFFFF;
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
         }
         .emp-table-card {
-          background: white;
+          background: #111827;
           border-radius: 14px;
-          border: 1px solid #E2E8F0;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
           overflow: hidden;
           width: 100%;
           box-sizing: border-box;
@@ -837,27 +842,27 @@ export async function renderEmployees(container, params) {
           font-size: 0.85rem;
         }
         .emp-table th {
-          background: #F8FAFC;
-          color: #475569;
+          background: #172033;
+          color: #94A3B8;
           font-weight: 700;
-          font-size: 0.75rem;
+          font-size: 0.74rem;
           text-transform: uppercase;
           letter-spacing: 0.04em;
           padding: 13px 16px;
-          border-bottom: 1px solid #E2E8F0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           white-space: nowrap;
         }
         .emp-table td {
           padding: 13px 16px;
-          border-bottom: 1px solid #F1F5F9;
-          color: #1E293B;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          color: #F8FAFC;
           vertical-align: middle;
         }
         .emp-table tbody tr {
           transition: background 0.15s ease;
         }
         .emp-table tbody tr:hover {
-          background: #F8FAFC;
+          background: rgba(255, 255, 255, 0.03);
         }
         .emp-table tbody tr:last-child td {
           border-bottom: none;
@@ -872,32 +877,43 @@ export async function renderEmployees(container, params) {
           left: 14px;
           top: 50%;
           transform: translateY(-50%);
-          color: #94A3B8;
+          color: #64748B;
           pointer-events: none;
         }
         .emp-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 10px;
           font-size: 0.9rem;
+          color: #F8FAFC;
+          background: #111827;
           outline: none;
-          transition: border-color 0.15s ease;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          box-sizing: border-box;
         }
         .emp-search-input:focus {
           border-color: #2563EB;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        .emp-search-input::placeholder {
+          color: #64748B;
         }
         .emp-select {
           padding: 10px 14px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 10px;
           font-size: 0.9rem;
-          color: #1E293B;
-          background: white;
+          color: #F8FAFC;
+          background: #172033;
           outline: none;
           min-width: 170px;
           cursor: pointer;
+          transition: border-color 0.15s ease;
+        }
+        .emp-select option {
+          background: #172033;
+          color: #F8FAFC;
         }
         .emp-select:focus {
           border-color: #2563EB;
@@ -922,9 +938,9 @@ export async function renderEmployees(container, params) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #E2E8F0;
-          background: #F8FAFC;
-          color: #64748B;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: #172033;
+          color: #94A3B8;
           transition: all 0.15s ease;
           display: inline-flex;
           align-items: center;
@@ -933,13 +949,15 @@ export async function renderEmployees(container, params) {
           flex-shrink: 0;
         }
         .emp-pill:hover {
-          background: #F1F5F9;
-          color: #1E293B;
+          background: #1E293B;
+          color: #F8FAFC;
+          border-color: rgba(255, 255, 255, 0.16);
         }
         .emp-pill.active {
-          background: #0F172A;
-          color: white;
-          border-color: #0F172A;
+          background: #2563EB;
+          color: #FFFFFF;
+          border-color: #2563EB;
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
         }
         .emp-pill-dot {
           width: 8px;
@@ -947,14 +965,15 @@ export async function renderEmployees(container, params) {
           border-radius: 50%;
         }
         .emp-pill-count {
-          padding: 1px 6px;
+          padding: 1px 7px;
           border-radius: 10px;
           font-size: 0.72rem;
-          background: rgba(0,0,0,0.06);
+          background: rgba(255, 255, 255, 0.08);
+          color: #F8FAFC;
         }
         .emp-pill.active .emp-pill-count {
-          background: rgba(255,255,255,0.2);
-          color: white;
+          background: rgba(255, 255, 255, 0.25);
+          color: #FFFFFF;
         }
 
         /* Cards Grid */
@@ -968,11 +987,11 @@ export async function renderEmployees(container, params) {
           box-sizing: border-box;
         }
         .emp-card {
-          background: white;
+          background: #172033;
           border-radius: 14px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid rgba(255, 255, 255, 0.08);
           padding: 16px 18px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;
           gap: 13px;
@@ -981,12 +1000,12 @@ export async function renderEmployees(container, params) {
           min-width: 0 !important;
           box-sizing: border-box !important;
           overflow: hidden;
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
         }
         .emp-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-          border-color: #CBD5E1;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+          border-color: rgba(255, 255, 255, 0.18);
         }
         .emp-card-top {
           display: flex;
@@ -1011,14 +1030,14 @@ export async function renderEmployees(container, params) {
           white-space: nowrap;
         }
         .emp-div-fc {
-          background: #EFF6FF;
-          color: #2563EB;
-          border: 1px solid #DBEAFE;
+          background: rgba(37, 99, 235, 0.18);
+          color: #60A5FA;
+          border: 1px solid rgba(37, 99, 235, 0.3);
         }
         .emp-div-sec {
-          background: #F1F5F9;
-          color: #334155;
-          border: 1px solid #E2E8F0;
+          background: rgba(148, 163, 184, 0.15);
+          color: #E2E8F0;
+          border: 1px solid rgba(148, 163, 184, 0.25);
         }
 
         .emp-status-badge {
@@ -1033,14 +1052,14 @@ export async function renderEmployees(container, params) {
           white-space: nowrap;
         }
         .emp-status-aktif {
-          background: #DCFCE7;
-          color: #16A34A;
-          border: 1px solid #BBF7D0;
+          background: rgba(16, 185, 129, 0.18);
+          color: #34D399;
+          border: 1px solid rgba(16, 185, 129, 0.3);
         }
         .emp-status-nonaktif {
-          background: #FEE2E2;
-          color: #DC2626;
-          border: 1px solid #FCA5A5;
+          background: rgba(239, 68, 68, 0.18);
+          color: #F87171;
+          border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         /* Profile Box */
@@ -1053,8 +1072,8 @@ export async function renderEmployees(container, params) {
           box-sizing: border-box;
         }
         .emp-avatar {
-          width: 50px;
-          height: 50px;
+          width: 48px;
+          height: 48px;
           border-radius: 12px;
           background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
           color: white;
@@ -1062,74 +1081,66 @@ export async function renderEmployees(container, params) {
           align-items: center;
           justify-content: center;
           font-weight: 800;
-          font-size: 1.1rem;
+          font-size: 1.05rem;
           flex-shrink: 0;
-          box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
         .emp-avatar.sec {
-          background: linear-gradient(135deg, #334155 0%, #0F172A 100%);
-          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+          background: linear-gradient(135deg, #475569 0%, #1E293B 100%);
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
         }
         .emp-name {
           font-size: 1.02rem;
           font-weight: 800;
-          color: #0F172A;
+          color: #F8FAFC;
           line-height: 1.25;
           word-break: break-word;
           overflow-wrap: anywhere;
         }
         .emp-subtitle {
           font-size: 0.76rem;
-          color: #64748B;
+          color: #94A3B8;
           font-weight: 600;
           margin-top: 3px;
         }
 
         /* Info Container */
+        .emp-info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
         .emp-info-card {
-          background: #F8FAFC;
-          border: 1px solid #F1F5F9;
+          background: #111827;
+          border: 1px solid rgba(255, 255, 255, 0.06);
           border-radius: 10px;
-          padding: 11px 12px;
+          padding: 10px 12px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 4px;
           font-size: 0.83rem;
           width: 100%;
           max-width: 100%;
           min-width: 0;
           box-sizing: border-box;
         }
-        .emp-info-row {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 8px;
-          width: 100%;
-          min-width: 0;
-          box-sizing: border-box;
-        }
         .emp-info-label {
-          color: #64748B;
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          flex-shrink: 0;
-          white-space: nowrap;
-          font-size: 0.8rem;
+          color: #94A3B8;
+          font-size: 0.72rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
         }
         .emp-info-val {
-          color: #0F172A;
-          font-weight: 600;
-          text-align: right;
+          color: #F8FAFC;
+          font-weight: 700;
           min-width: 0;
-          flex: 1;
           word-break: break-word;
           overflow-wrap: anywhere;
           font-size: 0.82rem;
         }
         .emp-phone-link {
-          color: #2563EB;
+          color: #34D399;
           text-decoration: none;
           font-weight: 600;
           display: inline-flex;
@@ -1143,9 +1154,9 @@ export async function renderEmployees(container, params) {
         /* Notes box */
         .emp-notes-box {
           font-size: 0.78rem;
-          color: #475569;
-          background: #FFFBEB;
-          border: 1px solid #FEF3C7;
+          color: #FCD34D;
+          background: rgba(245, 158, 11, 0.1);
+          border: 1px solid rgba(245, 158, 11, 0.25);
           border-radius: 8px;
           padding: 8px 10px;
           line-height: 1.4;
@@ -1160,7 +1171,7 @@ export async function renderEmployees(container, params) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
           padding-top: 11px;
           margin-top: auto;
           gap: 8px;
@@ -1180,9 +1191,9 @@ export async function renderEmployees(container, params) {
           width: 34px;
           height: 34px;
           border-radius: 8px;
-          border: 1px solid #E2E8F0;
-          background: white;
-          color: #64748B;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: #111827;
+          color: #94A3B8;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1190,21 +1201,21 @@ export async function renderEmployees(container, params) {
           transition: all 0.15s ease;
         }
         .emp-icon-btn:hover {
-          background: #F1F5F9;
-          color: #0F172A;
-          border-color: #CBD5E1;
+          background: #1E293B;
+          color: #F8FAFC;
+          border-color: rgba(255, 255, 255, 0.18);
         }
         .emp-icon-btn.delete:hover {
-          background: #FEE2E2;
-          color: #DC2626;
-          border-color: #FCA5A5;
+          background: rgba(239, 68, 68, 0.18);
+          color: #F87171;
+          border-color: rgba(239, 68, 68, 0.3);
         }
 
         /* Empty state */
         .emp-empty-state {
           grid-column: 1 / -1;
-          background: white;
-          border: 2px dashed #E2E8F0;
+          background: #172033;
+          border: 2px dashed rgba(255, 255, 255, 0.12);
           border-radius: 16px;
           padding: 48px 24px;
           text-align: center;
@@ -1303,6 +1314,9 @@ export async function renderEmployees(container, params) {
             min-width: 0 !important;
             box-sizing: border-box !important;
           }
+          .emp-info-grid {
+            grid-template-columns: 1fr;
+          }
           .emp-info-card {
             padding: 10px !important;
             width: 100% !important;
@@ -1334,12 +1348,12 @@ export async function renderEmployees(container, params) {
                 </button>
               ` : ''}
               
-              ${hasPermission(currentUser, "export") ? `<button id="emp-btn-excel" class="btn btn-ghost emp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+              ${hasPermission(currentUser, "export") ? `<button id="emp-btn-excel" class="btn btn-ghost emp-btn-excel" style="background:#172033; border:1px solid rgba(255,255,255,0.12); color:#F8FAFC; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
               </button>` : ''}
 
-              <button id="emp-btn-refresh" class="btn btn-ghost emp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+              <button id="emp-btn-refresh" class="btn btn-ghost emp-btn-refresh" style="background:#172033; border:1px solid rgba(255,255,255,0.12); color:#F8FAFC; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" class="${isLoading ? 'spin-icon' : ''}"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
             </div>
@@ -1348,7 +1362,7 @@ export async function renderEmployees(container, params) {
           <!-- 4 KPI Stat Boxes -->
           <div class="emp-stats-row">
             <div class="emp-stat-box" title="Data karyawan terdaftar di sistem">
-              <div class="emp-stat-icon" style="background:rgba(37, 99, 235, 0.2); color:#93C5FD;">👥</div>
+              <div class="emp-stat-icon" style="background:linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color:#FFFFFF;">👥</div>
               <div>
                 <div class="emp-stat-val" id="emp-stat-total">${totalEmployees}</div>
                 <div class="emp-stat-lbl">Karyawan Terdaftar</div>
@@ -1357,29 +1371,29 @@ export async function renderEmployees(container, params) {
             </div>
 
             <div class="emp-stat-box" title="Total Personil Aktif">
-              <div class="emp-stat-icon" style="background:rgba(16, 185, 129, 0.2); color:#6EE7B7;">🟢</div>
+              <div class="emp-stat-icon" style="background:linear-gradient(135deg, #10B981 0%, #059669 100%); color:#FFFFFF;">🟢</div>
               <div>
                 <div class="emp-stat-val" id="emp-stat-active">${activeCount}</div>
                 <div class="emp-stat-lbl">Personil Aktif</div>
-                <div style="font-size:0.68rem; color:#86EFAC; margin-top:2px;">Status Aktif Operasional</div>
+                <div style="font-size:0.68rem; color:#34D399; margin-top:2px;">Status Aktif Operasional</div>
               </div>
             </div>
 
             <div class="emp-stat-box" title="Divisi Resmi Facility Care">
-              <div class="emp-stat-icon" style="background:rgba(14, 165, 233, 0.2); color:#7DD3FC;">🏢</div>
+              <div class="emp-stat-icon" style="background:linear-gradient(135deg, #06B6D4 0%, #0891B2 100%); color:#FFFFFF;">🏢</div>
               <div>
                 <div class="emp-stat-val" id="emp-stat-fc">${fcCount}</div>
                 <div class="emp-stat-lbl">Facility Care</div>
-                <div style="font-size:0.68rem; color:#BAE6FD; margin-top:2px;">Aktif Operasional</div>
+                <div style="font-size:0.68rem; color:#67E8F9; margin-top:2px;">Aktif Operasional</div>
               </div>
             </div>
 
             <div class="emp-stat-box" title="Divisi Resmi Security">
-              <div class="emp-stat-icon" style="background:rgba(124, 58, 237, 0.2); color:#C4B5FD;">🛡️</div>
+              <div class="emp-stat-icon" style="background:linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); color:#FFFFFF;">🛡️</div>
               <div>
                 <div class="emp-stat-val" id="emp-stat-sec">${secCount}</div>
                 <div class="emp-stat-lbl">Security</div>
-                <div style="font-size:0.68rem; color:#DDD6FE; margin-top:2px;">Aktif Operasional</div>
+                <div style="font-size:0.68rem; color:#C4B5FD; margin-top:2px;">Aktif Operasional</div>
               </div>
             </div>
           </div>
@@ -1387,6 +1401,61 @@ export async function renderEmployees(container, params) {
 
         <!-- Filter Controls Card -->
         <div class="emp-controls-card">
+          <div class="emp-search-row">
+            <div class="emp-search-wrap">
+              <svg class="emp-search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="emp-search-input" class="emp-search-input" 
+                placeholder="Cari nama karyawan, no HP, cabang..." value="${searchQuery ? String(searchQuery).replace(/"/g, '&quot;') : ''}" />
+            </div>
+
+            <select id="emp-branch-filter" class="emp-select">
+              <option value="all">Semua Cabang (${branchOptions.length})</option>
+              ${branchOptions.map(b => `
+                <option value="${b.value}" ${String(selectedBranch) === String(b.value) ? 'selected' : ''}>
+                  ${b.label}
+                </option>
+              `).join('')}
+            </select>
+
+            <select id="emp-division-filter" class="emp-select">
+              <option value="all">Semua Divisi</option>
+              ${DIVISION_LIST.map(div => `
+                <option value="${div}" ${selectedDivision === div ? 'selected' : ''}>
+                  ${div}
+                </option>
+              `).join('')}
+            </select>
+
+            <div class="emp-view-toggle" title="Pilih Tampilan">
+              <button type="button" class="emp-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Kartu</span>
+              </button>
+              <button type="button" class="emp-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <span>Tabel</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Status Horizontal Swipeable Pills -->
+          <div class="emp-filter-pills">
+            <div class="emp-pill ${selectedStatus === 'all' && selectedDivision === 'all' ? 'active' : ''}" data-status="all" data-div="all">
+              <span>Semua Karyawan</span>
+              <span class="emp-pill-count" id="emp-pill-count-all">${countAll}</span>
+            </div>
+            <div class="emp-pill ${selectedStatus === 'Aktif' ? 'active' : ''}" data-status="Aktif" data-div="all">
+              <span class="emp-pill-dot" style="background:#10B981;"></span>
+              <span>Aktif</span>
+              <span class="emp-pill-count" id="emp-pill-count-active">${countActive}</span>
+            </div>
+            <div class="emp-pill ${selectedStatus === 'Nonaktif' ? 'active' : ''}" data-status="Nonaktif" data-div="all">
+              <span class="emp-pill-dot" style="background:#EF4444;"></span>
+              <span>Nonaktif / Resign</span>
+              <span class="emp-pill-count" id="emp-pill-count-nonactive">${countNonactive}</span>
+            </div>
+          </div>
+        </div>
           <div class="emp-search-row">
             <div class="emp-search-wrap">
               <svg class="emp-search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

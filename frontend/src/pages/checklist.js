@@ -42,13 +42,6 @@ const INITIAL_DOCUMENTS = [
     description: 'Standar checklist kebersihan harian/mingguan seluruh ruangan, lobby, toilet, dan koridor.'
   },
   {
-    id: 6,
-    name: 'Form Aktivity Reliefer',
-    category: 'Form Operasional',
-    document_link: 'https://forms.gle/1example_reliefer',
-    description: 'Formulir pencatatan absensi dan penugasan harian reliefer Facility Care di cabang pengganti.'
-  },
-  {
     id: 7,
     name: 'Form Aktivity Security HQ',
     category: 'Form Operasional',
@@ -232,8 +225,8 @@ export async function renderChecklist(container) {
         font-weight: 600;
       }
       .doc-controls-panel {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #172033;
+        border: 1px solid #29364B;
         border-radius: 16px;
         padding: 18px 20px;
         margin-bottom: 24px;
@@ -269,13 +262,13 @@ export async function renderChecklist(container) {
         border: 1.5px solid #CBD5E1;
         border-radius: 10px;
         font-size: 0.9rem;
-        background: #F8FAFC;
+        background: #1B2940;
         transition: all 0.2s ease;
       }
       .doc-search-input:focus {
         outline: none;
         border-color: #2563EB;
-        background: #FFFFFF;
+        background: #172033;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
       .doc-filter-pills {
@@ -285,8 +278,8 @@ export async function renderChecklist(container) {
         align-items: center;
       }
       .doc-pill {
-        border: 1px solid #E2E8F0;
-        background: #F8FAFC;
+        border: 1px solid #29364B;
+        background: #1B2940;
         color: #475569;
         font-size: 0.82rem;
         font-weight: 600;
@@ -325,8 +318,8 @@ export async function renderChecklist(container) {
         gap: 20px;
       }
       .doc-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #172033;
+        border: 1px solid #29364B;
         border-radius: 16px;
         padding: 22px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -367,7 +360,7 @@ export async function renderChecklist(container) {
         font-size: 0.74rem;
         font-weight: 600;
         color: #64748B;
-        background: #F1F5F9;
+        background: #111827;
         padding: 3px 8px;
         border-radius: 6px;
       }
@@ -417,7 +410,7 @@ export async function renderChecklist(container) {
         color: #FFFFFF;
       }
       .doc-btn-open.disabled {
-        background: #E2E8F0;
+        background: #22314A;
         color: #94A3B8;
         pointer-events: none;
       }
@@ -427,8 +420,8 @@ export async function renderChecklist(container) {
         gap: 4px;
       }
       .doc-icon-btn {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
+        background: #1B2940;
+        border: 1px solid #29364B;
         color: #64748B;
         width: 34px;
         height: 34px;
@@ -451,8 +444,8 @@ export async function renderChecklist(container) {
       }
       /* Table View */
       .doc-table-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #172033;
+        border: 1px solid #29364B;
         border-radius: 16px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         overflow: hidden;
@@ -463,7 +456,7 @@ export async function renderChecklist(container) {
         text-align: left;
       }
       .doc-table th {
-        background: #F8FAFC;
+        background: #1B2940;
         padding: 14px 18px;
         font-size: 0.78rem;
         font-weight: 700;
@@ -480,14 +473,14 @@ export async function renderChecklist(container) {
         vertical-align: middle;
       }
       .doc-table tr:hover td {
-        background: #F8FAFC;
+        background: #1B2940;
       }
       .doc-empty-state {
         text-align: center;
         padding: 60px 20px;
-        background: #FFFFFF;
+        background: #172033;
         border-radius: 16px;
-        border: 1px dashed #CBD5E1;
+        border: 1px dashed #29364B;
       }
 
       /* ── TAMPILAN RESPONSIVE HP / MOBILE (≤ 768px) ─────────────────── */

@@ -11,6 +11,7 @@ import {
   buildStagedWipeGroups
 } from '../utils/import_journal.js';
 import { isManagementBranch, getManagementBranchSubquery, resolveManagementBranchIds } from '../utils/branchMaster.js';
+import { checkUploadRateLimit } from '../utils/export.js';
 
 const SOFT_DELETE_TABLES = new Set([
   'branches', 'employees', 'contracts', 'issues', 'activity_schedule',
@@ -19,7 +20,13 @@ const SOFT_DELETE_TABLES = new Set([
   'master_checklist', 'supply_requests'
 ]);
 
-const EXCLUDED_MIGRATION_IMPORT_MODULES = new Set(['/relievers', '/supply']);
+const EXCLUDED_MIGRATION_IMPORT_MODULES = new Set([
+  '/relievers',
+  '/supply',
+  '/one_on_one',
+  '/one-on-one',
+  '/forms',
+]);
 
 export async function handleImport(request, env, origin) {
   const user = await authenticate(request, env);
@@ -42,10 +49,10 @@ export async function handleImport(request, env, origin) {
   if (path === '/counts' && request.method === 'GET') {
     const tables = [
       'validation_options', 'branches', 'employees', 'contracts', 'sp_data',
-      'mutasi_data', 'overtime_records', 'os_migrations', 'issues', 'one_on_one',
+      'mutasi_data', 'overtime_records', 'os_migrations', 'issues',
       'training', 'activity_schedule', 'inspection_reports', 'cleaning_reports',
       'fogging_reports', 'basecamp_reports', 'sop', 'master_checklist',
-      'master_forms', 'master_hygiene_standards', 'master_dac_standards'
+      'master_hygiene_standards', 'master_dac_standards'
     ];
     const counts = {};
     for (const t of tables) {
@@ -71,6 +78,11 @@ export async function handleImport(request, env, origin) {
 
   if (EXCLUDED_MIGRATION_IMPORT_MODULES.has(path)) {
     return error('Modul Reliever dan Permintaan Chemical dikecualikan dari migrasi FCMS Baru.', 400, origin);
+  }
+
+  const uploadRl = await checkUploadRateLimit(user, env, origin);
+  if (!uploadRl.allowed) {
+    return uploadRl.response;
   }
 
 
@@ -1607,6 +1619,11 @@ async function exportBackup(env, origin) {
 }
 
 async function triggerCalendarSync(env, user, origin) {
+  const { hasTable } = await import('../utils/schemaCompat.js');
+  if (!(await hasTable(env.DB, 'calendar_events'))) {
+    await buildAuditStatement(env, user, 'UPDATE', 'import', 'sync-calendar', null, null, { synced_events: 0, skipped_no_table: true }, 'SUCCESS', false)?.run?.();
+    return ok({ message: 'Sinkronisasi kalender dinamis aktif (tabel calendar_events tidak digunakan).' }, 200, origin, undefined, { 'X-Audit-Batched': 'true' });
+  }
   const { getSyncStatements } = await import('../utils/calendar.js');
   const allStmts = [];
 

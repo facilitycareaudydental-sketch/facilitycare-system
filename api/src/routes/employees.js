@@ -1,4 +1,4 @@
-import { authenticate, hasPermission } from '../utils/auth.js';
+import { authenticate, hasPermission, maskViewerRows, maskViewerData } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination, resolveSortOrder, HARD_MAX_PAGE_LIMIT } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
@@ -9,6 +9,9 @@ import {
   executeAtomicImportBatch
 } from '../utils/audit.js';
 import { getManagementBranchSubquery, getManagementBranchSqlPredicate, resolveManagementBranchIds } from '../utils/branchMaster.js';
+import { hasTableColumn } from '../utils/schemaCompat.js';
+import { canViewArchivedRecords, handleEntityArchiveRestore } from '../utils/archive.js';
+import { checkUploadRateLimit } from '../utils/export.js';
 
 const OFFICIAL_DIVISIONS = Object.freeze(['FACILITY CARE', 'SECURITY']);
 
@@ -40,7 +43,7 @@ export async function handleEmployees(request, env, origin) {
 
   const idMatch = path.match(/^\/(\d+)$/);
 
-  if (request.method === 'GET' && path === '') return listEmployees(request, env, origin);
+  if (request.method === 'GET' && path === '') return listEmployees(request, env, origin, user);
   if (request.method === 'POST' && path === '/import') {
     if (!hasPermission(user, 'employees', 'import')) return forbidden(origin);
     return importEmployees(request, env, origin, user);
@@ -55,7 +58,7 @@ export async function handleEmployees(request, env, origin) {
   }
   if (idMatch) {
     const id = idMatch[1];
-    if (request.method === 'GET') return getEmployee(id, env, origin);
+    if (request.method === 'GET') return getEmployee(id, env, origin, user);
     if (request.method === 'PUT' || request.method === 'PATCH') {
       if (!hasPermission(user, 'employees', 'write')) return forbidden(origin);
       return updateEmployee(id, request, env, origin, user);
@@ -65,19 +68,36 @@ export async function handleEmployees(request, env, origin) {
       return deleteEmployee(id, env, origin, user);
     }
   }
+
+  const archiveMatch = path.match(/^\/(\d+)\/archive$/);
+  const restoreMatch = path.match(/^\/(\d+)\/restore$/);
+
+  if (archiveMatch && request.method === 'PATCH') {
+    if (user.role !== 'superadmin') return forbidden(origin);
+    return archiveEmployee(archiveMatch[1], env, origin, user);
+  }
+  if (restoreMatch && request.method === 'PATCH') {
+    if (user.role !== 'superadmin') return forbidden(origin);
+    return restoreEmployee(restoreMatch[1], env, origin, user);
+  }
+
   return error('Not found', 404, origin);
 }
 
-function buildEmployeesFilter(url) {
+function buildEmployeesFilter(url, hasArchivedAt = true) {
   const search = (url.searchParams.get('search') || '').trim();
   const branch_id = (url.searchParams.get('branch_id') || '').trim();
   const division = (url.searchParams.get('division') || '').trim();
   const status = (url.searchParams.get('status') || '').trim();
   const sort = url.searchParams.get('sort') || 'name_asc';
+  const showArchived = url.searchParams.get('archived') === 'true';
 
-  // Phase 5.66.10A.1: Management Employee Scope Enforcement
+  // Phase 5.66.10A.1 & Phase 3.1 Single Archive: Scope & Archival Filtering
   const conditions = [
     'e.deleted_at IS NULL',
+    ...(hasArchivedAt
+      ? [showArchived ? 'e.archived_at IS NOT NULL' : 'e.archived_at IS NULL']
+      : (showArchived ? ['1 = 0'] : [])),
     "e.division IN ('FACILITY CARE', 'SECURITY')",
     getManagementBranchSubquery('e.branch_id')
   ];
@@ -111,10 +131,12 @@ async function selectorEmployees(request, env, origin) {
   const branch_id = (url.searchParams.get('branch_id') || '').trim();
   const division = (url.searchParams.get('division') || '').trim();
   const status = (url.searchParams.get('status') || '').trim();
+  const hasArchivedAt = await hasTableColumn(env.DB, 'employees', 'archived_at');
 
-  // Phase 5.66.10A.1: Management Employee Scope Enforcement
+  // Phase 5.66.10A.1 & Single Archive: Management Employee Scope Enforcement & Archived Exclusion
   const conditions = [
     'e.deleted_at IS NULL',
+    ...(hasArchivedAt ? ['e.archived_at IS NULL'] : []),
     "e.division IN ('FACILITY CARE', 'SECURITY')",
     getManagementBranchSubquery('e.branch_id')
   ];
@@ -152,10 +174,14 @@ async function selectorEmployees(request, env, origin) {
   return paginated(rows.results || [], countResult?.total || 0, page, limit, origin, env?.ENVIRONMENT);
 }
 
-async function listEmployees(request, env, origin) {
+async function listEmployees(request, env, origin, user = null) {
   const url = new URL(request.url);
+  if (url.searchParams.get('archived') === 'true' && !canViewArchivedRecords(user)) {
+    return forbidden(origin);
+  }
   const { page, limit, offset } = getPagination(request.url);
-  const { where, values, countJoin, orderBy } = buildEmployeesFilter(url);
+  const hasArchivedAt = await hasTableColumn(env.DB, 'employees', 'archived_at');
+  const { where, values, countJoin, orderBy } = buildEmployeesFilter(url, hasArchivedAt);
   const includeStats = url.searchParams.get('include_stats') === '1';
 
   const queries = [
@@ -169,6 +195,7 @@ async function listEmployees(request, env, origin) {
   ];
 
   if (includeStats) {
+    const archiveClause = hasArchivedAt ? 'AND archived_at IS NULL' : '';
     queries.push(
       env.DB.prepare(
         `SELECT
@@ -179,6 +206,7 @@ async function listEmployees(request, env, origin) {
            SUM(CASE WHEN division = 'SECURITY' AND status = 'Aktif' THEN 1 ELSE 0 END) as sec
          FROM employees
          WHERE deleted_at IS NULL
+           ${archiveClause}
            AND division IN ('FACILITY CARE', 'SECURITY')
            AND ${getManagementBranchSubquery('branch_id')}`
       ).first()
@@ -196,13 +224,17 @@ async function listEmployees(request, env, origin) {
     }
   } : null;
 
-  return paginated(rows.results || [], countResult?.total || 0, page, limit, origin, env?.ENVIRONMENT, extra);
+  const rawResults = rows.results || [];
+  const processedResults = user ? maskViewerRows(rawResults, user.role) : rawResults;
+
+  return paginated(processedResults, countResult?.total || 0, page, limit, origin, env?.ENVIRONMENT, extra);
 }
 
 async function exportEmployees(request, env, origin) {
   const url = new URL(request.url);
   const { page, limit, offset } = getExportPagination(request.url);
-  const { where, values, countJoin, orderBy } = buildEmployeesFilter(url);
+  const hasArchivedAt = await hasTableColumn(env.DB, 'employees', 'archived_at');
+  const { where, values, countJoin, orderBy } = buildEmployeesFilter(url, hasArchivedAt);
 
   const [countResult, rows] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as total FROM employees e ${countJoin} ${where}`).bind(...values).first(),
@@ -217,7 +249,7 @@ async function exportEmployees(request, env, origin) {
   return paginated(rows.results || [], countResult?.total || 0, page, limit, origin, env?.ENVIRONMENT);
 }
 
-async function getEmployee(id, env, origin) {
+async function getEmployee(id, env, origin, user = null) {
   // Phase 5.66.10A.1: Direct API enforcement - only Management area employee is retrievable
   const [row, contracts] = await Promise.all([
     env.DB.prepare(
@@ -239,7 +271,10 @@ async function getEmployee(id, env, origin) {
   ]);
   if (!row) return notFound(origin);
 
-  return ok({ ...row, contracts: contracts.results }, 200, origin);
+  const payload = { ...row, contracts: contracts.results };
+  const sanitizedPayload = user ? maskViewerData(payload, user.role) : payload;
+
+  return ok(sanitizedPayload, 200, origin);
 }
 
 async function createEmployee(request, env, origin, user = null) {
@@ -427,6 +462,8 @@ async function deleteEmployee(id, env, origin, user = null) {
 }
 
 async function importEmployees(request, env, origin, user = null) {
+  const uploadRl = await checkUploadRateLimit(user, env, origin);
+  if (!uploadRl.allowed) return uploadRl.response;
   let body;
   try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
   if (!Array.isArray(body)) return error('Payload must be an array', 400, origin);
@@ -604,4 +641,24 @@ async function bulkDeleteEmployees(request, env, origin, user = null) {
     console.error('bulkDeleteEmployees error:', err);
     return error('Gagal menghapus data karyawan', 500, origin);
   }
+}
+
+async function archiveEmployee(id, env, origin, user) {
+  return handleEntityArchiveRestore(env, origin, user, {
+    table: 'employees',
+    moduleKey: 'employees',
+    label: 'Employee',
+    id,
+    mode: 'archive'
+  });
+}
+
+async function restoreEmployee(id, env, origin, user) {
+  return handleEntityArchiveRestore(env, origin, user, {
+    table: 'employees',
+    moduleKey: 'employees',
+    label: 'Employee',
+    id,
+    mode: 'restore'
+  });
 }

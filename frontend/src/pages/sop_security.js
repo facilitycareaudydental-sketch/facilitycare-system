@@ -185,11 +185,11 @@ export async function renderSOPSecurity(container) {
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           ${canDelete ? `
-          <button id="btn-reset-sec-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          <button id="btn-reset-sec-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🔄 Reset ke Standar
           </button>
           ` : ''}
-          <button id="btn-print-sec" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          <button id="btn-print-sec" class="btn btn-outline" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
           ${hasPermission(currentUser, "export") ? `<button id="btn-export-sec" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
@@ -229,7 +229,7 @@ export async function renderSOPSecurity(container) {
     if (isActive) {
       return 'border:none; background:#1E40AF; color:#fff; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
     }
-    return 'border:none; background:#F1F5F9; color:var(--text-2); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
+    return 'border:none; background:#172033; color:var(--text-2); border:1px solid var(--border); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
   }
 
   function getBadgeStyle(isActive) {
@@ -297,7 +297,7 @@ export async function renderSOPSecurity(container) {
   function renderIKTab(parent) {
     parent.innerHTML = `
       <!-- Toolbar Filter & Search -->
-      <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#172033; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
         <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
           <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
             <div style="position:relative; flex:1; min-width:220px; max-width:340px;">
@@ -334,7 +334,7 @@ export async function renderSOPSecurity(container) {
     styleTag.innerHTML = `
       .sec-cat-pill {
         border: 1px solid var(--border);
-        background: #F8FAFC;
+        background: #172033;
         color: var(--text-2);
         font-size: 0.8rem;
         font-weight: 600;
@@ -345,7 +345,7 @@ export async function renderSOPSecurity(container) {
         flex-shrink: 0;
         white-space: nowrap;
       }
-      .sec-cat-pill:hover { background: #E2E8F0; }
+      .sec-cat-pill:hover { background: #22314A; color:#F8FAFC; }
       .sec-cat-pill.active {
         background: #1E40AF;
         color: #fff;
@@ -397,7 +397,7 @@ export async function renderSOPSecurity(container) {
 
       if (filteredIK.length === 0) {
         gridContainer.innerHTML = `
-          <div style="text-align:center; padding:48px 20px; background:#fff; border-radius:12px; border:1px solid var(--border);">
+          <div style="text-align:center; padding:48px 20px; background:#111827; border-radius:12px; border:1px solid var(--border);">
             <div style="font-size:2.5rem; margin-bottom:8px;">🔍</div>
             <h3 style="margin:0 0 4px; font-size:1.1rem; color:var(--text-1);">Tidak ada Instruksi Kerja yang cocok</h3>
             <p style="margin:0; font-size:0.85rem; color:var(--text-3);">Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
@@ -409,7 +409,7 @@ export async function renderSOPSecurity(container) {
       gridContainer.innerHTML = `
         <div class="sec-ik-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:18px;">
           ${filteredIK.map(ik => `
-            <div class="card sec-ik-card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.04); transition:all 0.2s;">
+            <div class="card sec-ik-card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.04); transition:all 0.2s;">
               <div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
                   <div style="display:flex; align-items:center; gap:10px;">
@@ -439,7 +439,7 @@ export async function renderSOPSecurity(container) {
                   </div>
                 </div>
 
-                <div style="font-size:0.85rem; color:var(--text-2); margin-bottom:14px; background:#F8FAFC; padding:8px 12px; border-radius:8px; border-left:3px solid ${ik.color || '#1E40AF'};">
+                <div style="font-size:0.85rem; color:var(--text-2); margin-bottom:14px; background:#111827; padding:8px 12px; border-radius:8px; border-left:3px solid ${ik.color || '#1E40AF'};">
                   <strong>Area Sasaran:</strong> ${ik.target}
                 </div>
 
@@ -541,14 +541,14 @@ export async function renderSOPSecurity(container) {
             <span>Kode: IK-SEC-${String(ik.id).padStart(2, '0')}</span>
           </div>
 
-          <div style="background:#F8FAFC; padding:12px 14px; border-radius:8px; border-left:4px solid ${ik.color || '#1E40AF'};">
+          <div style="background:#111827; padding:12px 14px; border-radius:8px; border-left:4px solid ${ik.color || '#1E40AF'};">
             <strong style="color:var(--text-1); font-size:0.85rem; display:block; margin-bottom:4px;">📍 Area & Sasaran Target:</strong>
             <span style="font-size:0.88rem; color:var(--text-2);">${ik.target}</span>
           </div>
 
           <div>
             <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:var(--text-1);">🧰 Alat & Perlengkapan yang Disiapkan:</h4>
-            <div style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
+            <div style="background:#111827; border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
               <ul style="margin:0 0 0 16px; padding:0; font-size:0.875rem; color:var(--text-2); line-height:1.7;">
                 ${ik.tools.map(t => {
                   if (t.includes('http')) {
@@ -563,7 +563,7 @@ export async function renderSOPSecurity(container) {
 
           <div>
             <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:var(--text-1);">📝 Langkah & Prosedur Pelaksanaan:</h4>
-            <div style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:12px 16px;">
+            <div style="background:#111827; border:1px solid var(--border); border-radius:8px; padding:12px 16px;">
               <ol style="margin:0 0 0 18px; padding:0; font-size:0.875rem; color:var(--text-2); line-height:1.8;">
                 ${ik.steps.map(s => `<li style="margin-bottom:6px;">${escapeHtml(s)}</li>`).join('')}
               </ol>
@@ -708,7 +708,7 @@ export async function renderSOPSecurity(container) {
   function renderZonasiTab(parent) {
     parent.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
-        <div class="btn-group" style="background:#E2E8F0; padding:3px; border-radius:8px; display:inline-flex;">
+        <div class="btn-group" style="background:#111827; padding:3px; border-radius:8px; display:inline-flex; border:1px solid var(--border);">
           <button id="view-cabang-btn" class="btn btn-sm ${zonasiView === 'cabang' ? 'btn-primary' : 'btn-ghost'}" style="font-weight:700; border-radius:6px; padding:6px 16px; cursor:pointer;">
             🏥 Zonasi Klinik / Cabang
           </button>
@@ -764,7 +764,7 @@ export async function renderSOPSecurity(container) {
       subContent.innerHTML = `
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
           ${ZONASI_SECURITY.cabang.map(z => `
-            <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+            <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #F1F5F9; padding-bottom:8px;">
                 <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:${z.color}; display:flex; align-items:center; gap:8px;">
                   <span style="width:12px; height:12px; border-radius:50%; background:${z.color}; display:inline-block;"></span>
@@ -789,7 +789,7 @@ export async function renderSOPSecurity(container) {
       subContent.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:16px;">
           ${ZONASI_SECURITY.hq.map(fl => `
-            <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+            <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:2px solid #F1F5F9; padding-bottom:8px;">
                 <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1); display:flex; align-items:center; gap:8px;">
                   <span>🏢</span> Head Quarter — ${fl.floor}
@@ -871,15 +871,15 @@ export async function renderSOPSecurity(container) {
       const filtered = listAssets.filter(x => !q || x.item.toLowerCase().includes(q) || x.type.toLowerCase().includes(q) || x.description.toLowerCase().includes(q) || (x.pic && x.pic.toLowerCase().includes(q)));
 
       subContent.innerHTML = `
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="padding:14px 18px; background:#F8FAFC; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="padding:14px 18px; background:#111827; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
             <strong style="color:var(--text-1); font-size:0.95rem;">Rekap Klasifikasi Aset Perusahaan</strong>
             <span class="badge badge-primary">${filtered.length} Aset</span>
           </div>
           <div style="overflow-x:auto;">
             <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.875rem;">
               <thead>
-                <tr style="background:#F1F5F9; border-bottom:2px solid #E2E8F0; text-align:left;">
+                <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
                   <th style="padding:10px 14px; width:60px;">No</th>
                   <th style="padding:10px 14px; width:140px;">Tipe Aset</th>
                   <th style="padding:10px 14px; width:220px;">Nama Aset / Kelompok</th>
@@ -890,7 +890,7 @@ export async function renderSOPSecurity(container) {
               </thead>
               <tbody>
                 ${filtered.map((item, idx) => `
-                  <tr style="border-bottom:1px solid #F1F5F9; background:${idx % 2 === 0 ? '#fff' : '#FAFAFA'};">
+                  <tr style="border-bottom:1px solid var(--border); background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:var(--text-1);">
                     <td style="padding:10px 14px; font-weight:600; color:var(--text-3);">${item.no || idx + 1}</td>
                     <td style="padding:10px 14px;">
                       <span class="badge" style="${getTypeBadgeStyle(item.type)}">${escapeHtml(item.type)}</span>
@@ -1031,7 +1031,7 @@ export async function renderSOPSecurity(container) {
     parent.innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:20px;">
         <!-- Card 1: Shift Kerja -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
             <span style="font-size:1.5rem; background:#EFF6FF; padding:8px; border-radius:8px;">⏰</span>
             <div>
@@ -1040,11 +1040,11 @@ export async function renderSOPSecurity(container) {
             </div>
           </div>
           <div style="font-size:0.88rem; color:var(--text-2); line-height:1.7;">
-            <div style="background:#F8FAFC; border-radius:8px; padding:10px 14px; margin-bottom:10px; border-left:3px solid #2563EB;">
+            <div style="background:#111827; border-radius:8px; padding:10px 14px; margin-bottom:10px; border-left:3px solid #2563EB;">
               <strong style="color:var(--text-1); display:block; margin-bottom:2px;">☀️ Shift 1 (Pagi - Siang):</strong>
               <span>Pukul <strong>07.00 s/d 19.00 WIB</strong></span>
             </div>
-            <div style="background:#F8FAFC; border-radius:8px; padding:10px 14px; margin-bottom:12px; border-left:3px solid #1E293B;">
+            <div style="background:#111827; border-radius:8px; padding:10px 14px; margin-bottom:12px; border-left:3px solid #1E293B;">
               <strong style="color:var(--text-1); display:block; margin-bottom:2px;">🌙 Shift 2 (Malam):</strong>
               <span>Pukul <strong>19.00 s/d 07.00 WIB</strong></span>
             </div>
@@ -1055,7 +1055,7 @@ export async function renderSOPSecurity(container) {
         </div>
 
         <!-- Card 2: Jadwal Safety Patrol -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
             <span style="font-size:1.5rem; background:#FEF3C7; padding:8px; border-radius:8px;">🚶‍♂️</span>
             <div>
@@ -1064,15 +1064,15 @@ export async function renderSOPSecurity(container) {
             </div>
           </div>
           <div style="display:flex; flex-direction:column; gap:8px; font-size:0.86rem;">
-            <div style="background:#F8FAFC; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="background:#111827; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
               <strong>Patroli 1 (Pagi):</strong>
               <span class="badge" style="background:#E0F2FE; color:#0369A1; font-weight:700;">07.30 - 08.30 WIB</span>
             </div>
-            <div style="background:#F8FAFC; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="background:#111827; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
               <strong>Patroli 2 (Malam):</strong>
               <span class="badge" style="background:#FEF3C7; color:#92400E; font-weight:700;">19.30 - 20.30 WIB</span>
             </div>
-            <div style="background:#F8FAFC; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="background:#111827; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
               <strong>Patroli 3 (Dini Hari):</strong>
               <span class="badge" style="background:#F3E8FF; color:#7E22CE; font-weight:700;">04.00 - 05.00 WIB</span>
             </div>
@@ -1083,7 +1083,7 @@ export async function renderSOPSecurity(container) {
         </div>
 
         <!-- Card 3: Penanganan Pelanggaran Disiplin -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
             <span style="font-size:1.5rem; background:#ECFDF5; padding:8px; border-radius:8px;">⚠️</span>
             <div>
@@ -1099,7 +1099,7 @@ export async function renderSOPSecurity(container) {
         </div>
 
         <!-- Card 4: Penanganan Pelanggaran Kriminal -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
             <span style="font-size:1.5rem; background:#FEF2F2; padding:8px; border-radius:8px;">🚨</span>
             <div>
@@ -1127,7 +1127,7 @@ export async function renderSOPSecurity(container) {
     parent.innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
         <!-- Card: Google Form Safety Patrol -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
               <span style="font-size:2rem;">📑</span>
@@ -1146,13 +1146,13 @@ export async function renderSOPSecurity(container) {
         </div>
 
         <!-- Card: Dasar Hukum & Ruang Lingkup Perusahaan -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
               <span style="font-size:2rem;">⚖️</span>
               <div>
                 <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Dasar Hukum & Ruang Lingkup</h3>
-                <span class="badge" style="background:#F1F5F9; color:var(--text-2); font-size:0.75rem; font-weight:700;">Legalitas</span>
+                <span class="badge" style="background:#1B2940; color:var(--text-2); font-size:0.75rem; font-weight:700;">Legalitas</span>
               </div>
             </div>
             <p style="font-size:0.85rem; color:var(--text-2); line-height:1.6; margin-bottom:12px;">
@@ -1168,7 +1168,7 @@ export async function renderSOPSecurity(container) {
       </div>
 
       <!-- Validasi & Pengesahan SOP -->
-      <div class="card" style="margin-top:20px; padding:20px; background:#fff; border:1px solid var(--border); border-radius:12px;">
+      <div class="card" style="margin-top:20px; padding:20px; background:#172033; border:1px solid var(--border); border-radius:12px;">
         <h3 style="margin:0 0 14px 0; font-size:1rem; font-weight:700; color:var(--text-1); display:flex; align-items:center; gap:8px;">
           <span>📜</span> Validasi & Pengesahan Dokumen SOP Security
         </h3>

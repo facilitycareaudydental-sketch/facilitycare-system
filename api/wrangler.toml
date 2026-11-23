@@ -30,3 +30,21 @@ local_protocol = "http"
 
 [triggers]
 crons = ["0 17 * * *", "*/1 * * * *"] # Midnight + Every 1 minute for sync sweeper
+
+# Hardened Staging Environment Guard: prevents accidental binding to fcms-production-db
+# if `wrangler deploy --env staging` is invoked without `--config wrangler.staging.toml`.
+[env.staging]
+name = "fm-operations-api-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "fcms-staging-db"
+database_id = "7ecb4668-c2b9-48ef-93a6-f59a3672e8df"
+migrations_dir = "../schema/migrations_v2"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+CORS_ORIGIN = "https://staging.facilitycare-system-staging.pages.dev,https://facilitycare-system-staging.pages.dev"
+SYNC_MODE = "DRY_RUN"
+GOOGLE_SPREADSHEET_ID = "UNASSIGNED_STAGING_SPREADSHEET_ID"
+

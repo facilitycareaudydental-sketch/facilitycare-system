@@ -3,6 +3,8 @@ import { ok, error, unauthorized, forbidden, notFound, paginated } from '../util
 import { getPagination, resolveSortOrder } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildAuditStatement, buildCreateAuditStatement, executeAtomicImportBatch } from '../utils/audit.js';
+import { hasTableColumn } from '../utils/schemaCompat.js';
+import { checkEntityNotArchived } from '../utils/archive.js';
 
 const MUTASI_SORT_MAP = Object.freeze({
   date_desc: 'm.tanggal DESC, m.id DESC',
@@ -153,6 +155,10 @@ export async function handleMutasi(request, env, origin) {
         }
       }
 
+      if (resolvedEmpId && (await checkEntityNotArchived(env.DB, 'employees', resolvedEmpId)).archived) {
+        return error('Karyawan berstatus arsip dan tidak dapat ditambahkan pada data mutasi baru', 400, origin);
+      }
+
       for (const [label, bId] of [['from_branch_id', from_branch_id], ['to_branch_id', to_branch_id]]) {
         if (bId !== undefined && bId !== null && bId !== '') {
           const parsedBId = Number(bId);
@@ -193,10 +199,17 @@ export async function handleMutasi(request, env, origin) {
         row_version: 1
       };
 
+      const hasEmpIdCol = await hasTableColumn(env.DB, 'mutasi_data', 'employee_id');
+      const insertStmt = hasEmpIdCol
+        ? env.DB.prepare(
+            "INSERT INTO mutasi_data (tanggal, employee_id, employee_name, from_branch_id, to_branch_id, status, document_link, row_version, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))"
+          ).bind(tanggal || null, resolvedEmpId, cleanEmpName, from_branch_id || null, to_branch_id || null, normalizedStatus, document_link || null)
+        : env.DB.prepare(
+            "INSERT INTO mutasi_data (tanggal, employee_name, from_branch_id, to_branch_id, status, document_link, row_version, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))"
+          ).bind(tanggal || null, cleanEmpName, from_branch_id || null, to_branch_id || null, normalizedStatus, document_link || null);
+
       const batchRes = await env.DB.batch([
-        env.DB.prepare(
-          'INSERT INTO mutasi_data (tanggal, employee_id, employee_name, from_branch_id, to_branch_id, status, document_link, row_version, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime(\'now\'))'
-        ).bind(tanggal || null, resolvedEmpId, cleanEmpName, from_branch_id || null, to_branch_id || null, normalizedStatus, document_link || null),
+        insertStmt,
         buildCreateAuditStatement(env, user, 'mutasi', 'new', newSnapshot)
       ]);
       const newId = batchRes?.[0]?.meta?.last_row_id;
@@ -283,7 +296,11 @@ export async function handleMutasi(request, env, origin) {
           }
         }
 
-        for (const [label, bId] of [['from_branch_id', from_branch_id], ['to_branch_id', to_branch_id]]) {
+        if (resolvedEmpId && (await checkEntityNotArchived(env.DB, 'employees', resolvedEmpId)).archived) {
+        return error('Karyawan berstatus arsip dan tidak dapat ditambahkan pada data mutasi baru', 400, origin);
+      }
+
+      for (const [label, bId] of [['from_branch_id', from_branch_id], ['to_branch_id', to_branch_id]]) {
           if (bId !== undefined && bId !== null && bId !== '') {
             const parsedBId = Number(bId);
             if (!Number.isInteger(parsedBId) || parsedBId <= 0) return error(`Invalid ${label}`, 400, origin);

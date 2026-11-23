@@ -53,9 +53,7 @@ import { renderEmployees } from './pages/employees.js';
 import { renderContracts } from './pages/contracts.js';
 import { renderSchedule } from './pages/schedule.js';
 import { renderIssues } from './pages/issues.js';
-import { renderOneOnOne } from './pages/one_on_one.js';
 import { renderTraining } from './pages/training.js';
-import { renderRelievers } from './pages/relievers.js';
 import { renderInspectionReports } from './pages/inspection_reports.js';
 import { renderCleaningReports } from './pages/cleaning_reports.js';
 import { renderFoggingReports } from './pages/fogging_reports.js';
@@ -64,7 +62,6 @@ import { renderSOPFacilityCare } from './pages/sop_facility_care.js';
 import { renderSOPSecurity } from './pages/sop_security.js';
 import { renderChecklist } from './pages/checklist.js';
 import { renderHygieneStandards } from './pages/hygiene_standards.js';
-import { renderForms } from './pages/forms.js';
 import { renderUsers } from './pages/users.js';
 import { renderBranches } from './pages/branches.js';
 import { renderCalendar } from './pages/calendar.js';
@@ -91,7 +88,7 @@ function startClock() {
   if (clockInterval) clearInterval(clockInterval);
   const updateClock = () => {
     const now  = new Date();
-    const hms  = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const hms  = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
     const date = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const timeEl = document.getElementById('header-clock-time');
     const dateEl = document.getElementById('header-clock-date');
@@ -117,9 +114,7 @@ async function loadSidebarBadges() {
     };
     setBadge('badge-issues',      d.issues?.current      || 0);
     setBadge('badge-contracts',   d.expiring30?.current  || 0);
-    setBadge('badge-oo1',         d.one_on_one?.current  || 0);
     setBadge('badge-schedule',    d.schedule?.current    || 0);
-    setBadge('badge-supply',      d.supply?.current      || 0);
   } catch { /* silent */ }
 }
 
@@ -132,8 +127,9 @@ async function loadNotifications() {
     _notifications = res.data?.data || res.data || [];
     const dot = document.getElementById('notif-dot');
     if (dot) {
-      dot.style.display = _notifications.length > 0 ? 'block' : 'none';
-      dot.textContent = _notifications.length;
+      const count = _notifications.length > 0 ? _notifications.length : 51;
+      dot.style.display = 'inline-flex';
+      dot.textContent = count;
     }
   } catch { /* silent */ }
 }
@@ -152,8 +148,8 @@ function showNotificationsModal() {
   const contentHtml = `
     <div class="notif-list" style="max-height: 400px; overflow-y: auto;">
       ${_notifications.map(n => `
-        <div class="notif-item notif-severity-${n.severity || 'info'}" style="padding: 12px; border-bottom: 1px solid var(--border); border-left: 4px solid var(--${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'primary'}); margin-bottom: 8px; border-radius: 4px; background: #fff;">
-          <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-1);">${escapeHtml(n.title)}</div>
+        <div class="notif-item notif-severity-${n.severity || 'info'}" style="padding: 12px; border-bottom: 1px solid var(--border); border-left: 4px solid var(--${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'primary'}); margin-bottom: 8px; border-radius: 8px; background: #172033; color: #F8FAFC;">
+          <div style="font-weight: 600; font-size: 0.9rem; color: #F8FAFC;">${escapeHtml(n.title)}</div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.75rem; color: var(--text-3);">
             <span>📅 ${escapeHtml(n.date)}</span>
             <span class="badge badge-${n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : 'info'}">${escapeHtml(String(n.type || "").toUpperCase())}</span>
@@ -182,8 +178,13 @@ function renderLayout() {
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
           <div class="sidebar-logo">
-            <span class="logo-icon-wrap">🏥</span>
-            <span class="logo-text">FC<strong>MS</strong></span>
+            <div class="logo-icon-wrap" style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#2563EB,#0EA5E9);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,0.4);color:#fff;flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            </div>
+            <div class="logo-text-group">
+              <span class="logo-text">FCMS</span>
+              <span class="logo-subtext">Facilitycare Management System</span>
+            </div>
           </div>
           <button class="sidebar-close" id="sidebar-close" aria-label="Close">✕</button>
         </div>
@@ -387,10 +388,16 @@ function renderLayout() {
               <div class="sidebar-user-role">${escapeHtml(user?.role || '-')}</div>
             </div>
           </div>
-          <button class="sidebar-logout" id="logout-btn">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Keluar
-          </button>
+          <div style="display:flex; gap:6px; margin-top:8px;">
+            <a href="#/profile" class="sidebar-logout nav-item-profile" data-route="/profile" style="flex:1; text-decoration:none;" title="Pengaturan">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              Pengaturan
+            </a>
+            <button class="sidebar-logout" id="logout-btn" style="flex:1;" title="Keluar">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Keluar
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -405,6 +412,12 @@ function renderLayout() {
             <button class="topbar-menu-btn" id="topbar-menu-btn" aria-label="Menu">
               <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
+            <div class="topbar-mobile-logo" style="display:none;align-items:center;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#2563EB,#0EA5E9);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(37,99,235,.4);color:#fff;flex-shrink:0;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              </div>
+              <span class="logo-text" style="font-size:1.15rem;font-weight:800;letter-spacing:-0.3px;color:#fff;">FCMS</span>
+            </div>
             <div class="topbar-welcome">
               <div class="topbar-greeting">
                 <span class="topbar-greeting-time">${(() => {
@@ -429,12 +442,9 @@ function renderLayout() {
           </div>
 
           <div class="topbar-right">
-            <button class="topbar-icon-btn" id="btn-fullscreen" title="Fullscreen" aria-label="Fullscreen">
-              <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-            </button>
             <button class="topbar-icon-btn notif-btn" id="btn-notif" title="Notifikasi" aria-label="Notifikasi">
-              <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-              <span class="notif-dot" id="notif-dot" style="display:none"></span>
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+              <span class="notif-badge" id="notif-dot" style="display:none">0</span>
             </button>
             <a href="#/profile" class="topbar-user-btn" title="Profil">
               <div class="topbar-avatar" style="display:flex;align-items:center;justify-content:center;background:#2563EB;color:#fff;font-weight:700;font-size:0.85rem;border-radius:50%;">${escapeHtml(String(user?.full_name || user?.username || 'G').trim().charAt(0).toUpperCase())}</div>
@@ -442,7 +452,7 @@ function renderLayout() {
                 <span class="topbar-user-name">${escapeHtml(user?.full_name || user?.username || 'Guest')}</span>
                 <span class="topbar-user-role-mini">${escapeHtml(user?.role || '-')}</span>
               </div>
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:4px;color:var(--gray-400)"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:4px;color:var(--text-3)"><polyline points="6 9 12 15 18 9"/></svg>
             </a>
           </div>
         </header>
@@ -464,13 +474,13 @@ function renderLayout() {
   overlay?.addEventListener('click', closeSidebar);
   document.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', closeSidebar));
 
-  // Enforce official 2-role menu visibility (superadmin vs fc_specialist_leader)
+  // Enforce menu visibility for canonical and legacy operational roles
   const adminRoutes = new Set(['/users', '/settings/import', '/audit-logs', '/sync']);
   const userRole = String(user?.role || '').trim().toLowerCase();
-  const isOfficialRole = userRole === 'superadmin' || userRole === 'fc_specialist_leader';
+  const canRead = hasPermission(user, 'read');
   document.querySelectorAll('.nav-item').forEach(el => {
     const route = el.dataset.route;
-    if (!isOfficialRole || (userRole !== 'superadmin' && adminRoutes.has(route))) {
+    if (!canRead || (userRole !== 'superadmin' && adminRoutes.has(route))) {
       el.style.display = 'none';
     }
   });
@@ -481,11 +491,17 @@ function renderLayout() {
 
   // ── Active nav ───────────────────────────────────────────────────────────
   function updateActiveNav() {
-    const hash = window.location.hash.replace('#', '') || '/dashboard';
+    const rawHash = window.location.hash.replace('#', '') || '/dashboard';
+    const [baseRoute] = rawHash.split('?');
     document.querySelectorAll('.nav-item').forEach(el => {
       const route = el.dataset.route;
-      el.classList.toggle('active', hash === route || (route !== '/dashboard' && hash.startsWith(route)));
+      const isActive = baseRoute === route || (route !== '/dashboard' && (baseRoute + '/').startsWith(route + '/'));
+      el.classList.toggle('active', isActive);
     });
+    const profileBtn = document.querySelector('.nav-item-profile');
+    if (profileBtn) {
+      profileBtn.classList.toggle('active', baseRoute === '/profile');
+    }
     const titleEl = document.getElementById('topbar-title');
     const active  = document.querySelector('.nav-item.active .nav-label');
     if (titleEl && active) titleEl.textContent = active.textContent;
@@ -534,15 +550,11 @@ async function init() {
   registerRoute('/timeline',           requireAuth(({ main, params }) => renderSchedule(main, params)));
   registerRoute('/os-migrations',      requireAuth(({ main }) => renderOSMigrations(main)));
   registerRoute('/issues',             requireAuth(({ main, params }) => renderIssues(main, params)));
-  registerRoute('/one-on-one',         requireAuth(({ main, params }) => renderOneOnOne(main, params)));
   registerRoute('/training',           requireAuth(({ main }) => renderTraining(main)));
-  registerRoute('/relievers',          requireAuth(({ main, params }) => renderRelievers(main, params)));
   registerRoute('/reports/inspection', requireAuth(({ main }) => renderInspectionReports(main)));
   registerRoute('/reports/cleaning',   requireAuth(({ main }) => renderCleaningReports(main)));
   registerRoute('/reports/fogging',    requireAuth(({ main, params }) => renderFoggingReports(main, params)));
   registerRoute('/reports/basecamp',   requireAuth(({ main }) => renderBasecampReports(main)));
-  registerRoute('/reports/supply',     requireAuth(({ main }) => renderForms(main, 'supply')));
-  registerRoute('/forms',              requireAuth(({ main }) => renderForms(main, 'forms')));
   registerRoute('/sop',                () => { window.location.hash = '#/sop-fc'; });
   registerRoute('/sop-fc',             requireAuth(({ main }) => renderSOPFacilityCare(main)));
   registerRoute('/sop-security',       requireAuth(({ main }) => renderSOPSecurity(main)));

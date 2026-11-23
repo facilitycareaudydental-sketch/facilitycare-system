@@ -24,7 +24,6 @@ export const SHEET_MAP = {
   'Master Checklist':             { module: 'checklist',  label: 'Checklist' },
   'Data SP':                      { module: 'sp',         label: 'Data SP' },
   'Data Mutasi':                  { module: 'mutasi',     label: 'Data Mutasi' },
-  'Master Form':                  { module: 'forms',      label: 'Master Form' },
 };
 
 // ─── Date Parsing Helper ─────────────────────────────────────────────────────

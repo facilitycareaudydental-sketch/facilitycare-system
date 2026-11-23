@@ -99,20 +99,20 @@ export function buildCrudPage({
         ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${escapeHtml(itemLabel)}</button>` : ''}
         ${exportOptions ? `
           <div class="aksi-dropdown-container" style="position:relative; display:inline-block;">
-            <button class="btn btn-ghost" id="btn-aksi-main" style="background:#fff; border:1px solid #E2E8F0; padding:8px 16px; border-radius:8px; font-weight:600; color:#334155; display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <button class="btn btn-ghost" id="btn-aksi-main" style="background:#172033; border:1px solid #29364B; padding:8px 16px; border-radius:8px; font-weight:600; color:#F8FAFC; display:flex; align-items:center; gap:6px; cursor:pointer;">
               ⋮ Aksi
             </button>
-            <div id="aksi-menu-main" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #E2E8F0; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); flex-direction:column; min-width:200px; z-index:999; padding:8px 0;">
+            <div id="aksi-menu-main" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#172033; border:1px solid #29364B; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.5); flex-direction:column; min-width:200px; z-index:999; padding:8px 0;">
               ${exportOptions.export !== false && typeof exportOptions.onExport === 'function' ? `
-              <button type="button" class="dropdown-item" id="btn-export-${exportOptions.moduleName || 'default'}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+              <button type="button" class="dropdown-item" id="btn-export-${exportOptions.moduleName || 'default'}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#F8FAFC; display:flex; gap:8px; align-items:center;">
                 📥 Export Excel
               </button>` : ''}
               ${exportOptions.template !== false && typeof exportOptions.onTemplate === 'function' ? `
-              <button type="button" class="dropdown-item" id="btn-template-${exportOptions.moduleName || 'default'}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+              <button type="button" class="dropdown-item" id="btn-template-${exportOptions.moduleName || 'default'}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#F8FAFC; display:flex; gap:8px; align-items:center;">
                 📄 Download Template
               </button>` : ''}
               ${exportOptions.import !== false && typeof exportOptions.onImport === 'function' ? `
-              <label class="dropdown-item" style="display:flex; width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; margin:0; gap:8px; align-items:center;" id="label-import-${exportOptions.moduleName || 'default'}">
+              <label class="dropdown-item" style="display:flex; width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#F8FAFC; margin:0; gap:8px; align-items:center;" id="label-import-${exportOptions.moduleName || 'default'}">
                 <span class="import-text">📤 Import Excel</span>
                 <input type="file" id="input-import-${exportOptions.moduleName || 'default'}" accept=".xlsx, .xls, .csv" style="display:none;">
               </label>` : ''}
@@ -120,7 +120,7 @@ export function buildCrudPage({
           </div>
           <style>
             .show-aksi-menu { display: flex !important; }
-            .dropdown-item:hover { background-color: #F8FAFC !important; color: #2563EB !important; }
+            .dropdown-item:hover { background-color: #22314A !important; color: #38BDF8 !important; }
           </style>
         ` : ''}
       </div>
@@ -128,37 +128,37 @@ export function buildCrudPage({
     
 
     ${filterFields && filterFields.length > 0 ? `
-    <div class="filter-bar" style="background: var(--bg-card, #fff); border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; border: 1px solid var(--border, #E2E8F0); box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+    <div class="filter-bar" style="background: #111827; border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; border: 1px solid #29364B; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
         ${filterFields.filter(f => f.type === 'search').map(f => {
-          return `<div class="filter-search-wrap" style="flex:1; min-width:0;"><input type="search" class="filter-search" placeholder="${escapeHtml(f.placeholder || 'Cari...')}" id="filter-search" value="${escapeHtml(filters.search || '')}" style="width:100%; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; outline:none;"></div>`;
+          return `<div class="filter-search-wrap" style="flex:1; min-width:0;"><input type="search" class="filter-search" placeholder="${escapeHtml(f.placeholder || 'Cari...')}" id="filter-search" value="${escapeHtml(filters.search || '')}" style="width:100%; background: #1B2940; border: 1px solid #29364B; color: #F8FAFC; border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; outline:none;"></div>`;
         }).join('')}
         
         <div class="filter-dropdowns-desktop">
           ${filterFields.filter(f => f.type !== 'search').map(f => {
             if (f.type === 'select' || f.type === 'combobox') {
               const placeholder = (f.label || '').startsWith('Pilih') ? f.label : `Pilih ${f.label || ''}`;
-              return `<select class="filter-select" name="${escapeHtml(f.name)}" id="filter-${escapeHtml(f.name)}" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 7px 10px; font-size: 0.85rem; color: #475569; cursor: pointer; outline:none;"><option value="">${escapeHtml(placeholder)}</option>${(f.options || []).map(o => `<option value="${escapeHtml(typeof o === 'object' ? o.value : o)}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${escapeHtml(typeof o === 'object' ? o.label : o)}</option>`).join('')}</select>`;
+              return `<select class="filter-select" name="${escapeHtml(f.name)}" id="filter-${escapeHtml(f.name)}" style="background: #172033; border: 1px solid #29364B; border-radius: 8px; padding: 7px 10px; font-size: 0.85rem; color: #F8FAFC; cursor: pointer; outline:none;"><option value="">${escapeHtml(placeholder)}</option>${(f.options || []).map(o => `<option value="${escapeHtml(typeof o === 'object' ? o.value : o)}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${escapeHtml(typeof o === 'object' ? o.label : o)}</option>`).join('')}</select>`;
             }
             return '';
           }).join('')}
-          <button id="btn-reset-filter" style="background: transparent; border: none; color: #3B82F6; font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 7px 8px; white-space:nowrap;">Reset</button>
+          <button id="btn-reset-filter" style="background: transparent; border: none; color: #38BDF8; font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 7px 8px; white-space:nowrap;">Reset</button>
         </div>
         
         <button id="btn-mobile-filter" class="btn-mobile-filter-trigger">⚙ Filter</button>
         
         <div class="filter-options-wrapper" id="filter-options-wrapper">
           <div class="bottom-sheet-header">
-            <h3 style="margin:0; font-size:1rem;">Filter Data</h3>
-            <button class="btn-close-sheet" id="btn-close-filter-sheet" style="background:none;border:none;font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
+            <h3 style="margin:0; font-size:1rem; color:#F8FAFC;">Filter Data</h3>
+            <button class="btn-close-sheet" id="btn-close-filter-sheet" style="background:none;border:none;font-size:1.5rem;cursor:pointer;line-height:1;color:#94A3B8;">&times;</button>
           </div>
           ${filterFields.filter(f => f.type !== 'search').map(f => {
             if (f.type === 'select' || f.type === 'combobox') {
               const placeholder = (f.label || '').startsWith('Pilih') ? f.label : `Pilih ${f.label || ''}`;
-              return `<select class="filter-select filter-select-sheet" name="${escapeHtml(f.name)}-sheet" id="filter-sheet-${escapeHtml(f.name)}" style="width:100%; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 14px; font-size: 0.9rem; color: #1e293b; cursor: pointer; outline:none;"><option value="">${escapeHtml(placeholder)}</option>${(f.options || []).map(o => `<option value="${escapeHtml(typeof o === 'object' ? o.value : o)}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${escapeHtml(typeof o === 'object' ? o.label : o)}</option>`).join('')}</select>`;
+              return `<select class="filter-select filter-select-sheet" name="${escapeHtml(f.name)}-sheet" id="filter-sheet-${escapeHtml(f.name)}" style="width:100%; background: #172033; border: 1px solid #29364B; border-radius: 10px; padding: 12px 14px; font-size: 0.9rem; color: #F8FAFC; cursor: pointer; outline:none;"><option value="">${escapeHtml(placeholder)}</option>${(f.options || []).map(o => `<option value="${escapeHtml(typeof o === 'object' ? o.value : o)}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${escapeHtml(typeof o === 'object' ? o.label : o)}</option>`).join('')}</select>`;
             }
             return '';
           }).join('')}
-          <button id="btn-reset-filter-sheet" style="background: transparent; border: none; color: #3B82F6; font-weight: 600; font-size: 0.9rem; cursor: pointer; padding: 8px;">Reset</button>
+          <button id="btn-reset-filter-sheet" style="background: transparent; border: none; color: #38BDF8; font-weight: 600; font-size: 0.9rem; cursor: pointer; padding: 8px;">Reset</button>
         </div>
     </div>` : ''}
 

@@ -161,8 +161,15 @@ async function getHealth(env, origin) {
     if (deadLetters.count > 0 || failures.count > 10) status = 'WARNING';
     if (deadLetters.count > 50 || processing.count > 100) status = 'CRITICAL';
     
-    const cb = await env.DB.prepare('SELECT state FROM circuit_breaker WHERE id = 1').first();
-    const cbState = cb ? cb.state : 'CLOSED';
+    let cbState = 'CLOSED';
+    try {
+      const cb = await env.DB.prepare('SELECT state FROM circuit_breaker WHERE id = 1').first();
+      if (cb && cb.state) cbState = cb.state;
+    } catch (cbErr) {
+      if (!/no such table:\s*circuit_breaker/i.test(String(cbErr?.message || cbErr || ''))) {
+        throw cbErr;
+      }
+    }
     const syncState = resolveSyncMode(env);
     
     return ok({
@@ -189,10 +196,16 @@ async function getHealth(env, origin) {
 async function getStatus(env, origin) {
   // Returns the current configuration from SYNC_MAPPER and feature flags
   try {
-    const flags = await env.DB.prepare("SELECT * FROM feature_flags").all();
     const flagMap = {};
-    for (const f of flags.results) {
-      flagMap[f.flag_key] = f.flag_value === 'true';
+    try {
+      const flags = await env.DB.prepare("SELECT * FROM feature_flags").all();
+      for (const f of (flags?.results || [])) {
+        flagMap[f.flag_key] = f.flag_value === 'true';
+      }
+    } catch (flagErr) {
+      if (!/no such table:\s*feature_flags/i.test(String(flagErr?.message || flagErr || ''))) {
+        throw flagErr;
+      }
     }
     
     const modules = {};
@@ -259,19 +272,27 @@ async function getQueue(request, env, origin) {
 async function getMetrics(env, origin) {
   try {
     // Get aggregate metrics from the last 24 hours
-    const stats = await env.DB.prepare(`
-      SELECT 
-        module,
-        COUNT(*) as total_events,
-        AVG(webhook_duration_ms) as avg_webhook_ms,
-        AVG(d1_execution_ms) as avg_d1_ms,
-        AVG(queue_wait_time_ms) as avg_queue_wait_ms
-      FROM sync_metrics
-      WHERE created_at >= datetime('now', '-1 day')
-      GROUP BY module
-    `).all();
+    let results = [];
+    try {
+      const stats = await env.DB.prepare(`
+        SELECT 
+          module,
+          COUNT(*) as total_events,
+          AVG(webhook_duration_ms) as avg_webhook_ms,
+          AVG(d1_execution_ms) as avg_d1_ms,
+          AVG(queue_wait_time_ms) as avg_queue_wait_ms
+        FROM sync_metrics
+        WHERE created_at >= datetime('now', '-1 day')
+        GROUP BY module
+      `).all();
+      results = stats?.results || [];
+    } catch (mErr) {
+      if (!/no such table:\s*sync_metrics/i.test(String(mErr?.message || mErr || ''))) {
+        throw mErr;
+      }
+    }
     
-    return ok(stats.results, 200, origin);
+    return ok(results, 200, origin);
   } catch (err) {
     console.error('getMetrics error:', err);
     return error('Failed to fetch metrics', 500, origin);
@@ -335,15 +356,21 @@ async function getErrors(request, env, origin) {
 async function getPerformance(env, origin) {
   try {
     // Pull recent metrics and compute percentiles in memory
-    const res = await env.DB.prepare(`
-      SELECT webhook_duration_ms, d1_execution_ms, google_api_execution_ms, queue_wait_time_ms
-      FROM sync_metrics
-      WHERE created_at > datetime('now', '-24 hours')
-      ORDER BY created_at DESC
-      LIMIT 1000
-    `).all();
-
-    const metrics = res.results || [];
+    let metrics = [];
+    try {
+      const res = await env.DB.prepare(`
+        SELECT webhook_duration_ms, d1_execution_ms, google_api_execution_ms, queue_wait_time_ms
+        FROM sync_metrics
+        WHERE created_at > datetime('now', '-24 hours')
+        ORDER BY created_at DESC
+        LIMIT 1000
+      `).all();
+      metrics = res?.results || [];
+    } catch (pErr) {
+      if (!/no such table:\s*sync_metrics/i.test(String(pErr?.message || pErr || ''))) {
+        throw pErr;
+      }
+    }
     
     if (metrics.length === 0) {
        return ok({ message: "No data", status: "DATA_UNAVAILABLE" }, 200, origin);

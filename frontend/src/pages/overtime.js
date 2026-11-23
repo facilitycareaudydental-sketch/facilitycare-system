@@ -309,7 +309,7 @@ export async function renderOvertime(container) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Total Jam Lembur <span style="color:#DC2626;">*</span>
             </label>
-            <input type="number" step="0.1" min="0" id="ot-modal-total" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; background:#F8FAFC; font-weight:700; color:#2563EB;" 
+            <input type="number" step="0.1" min="0" id="ot-modal-total" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #29364B; border-radius:8px; background:#1B2940; color:#38BDF8; font-weight:700; color:#2563EB;" 
               value="${defaultTotal}" required />
           </div>
         </div>
@@ -620,7 +620,7 @@ export async function renderOvertime(container) {
 
                     <!-- Card Footer: Aksi -->
                     ${canEdit || canDelete ? `
-                      <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; padding-top:12px; border-top:1px solid #F1F5F9; margin-top:12px;">
+                      <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; padding-top:12px; border-top:1px solid #29364B; margin-top:12px;">
                         ${canEdit ? `
                           <button class="lembur-icon-btn lembur-edit-btn" title="Edit Catatan Lembur" data-id="${o.id}">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -808,8 +808,8 @@ export async function renderOvertime(container) {
 
         /* Controls Card */
         .lembur-controls-card {
-          background: white;
-          border: 1px solid #E2E8F0;
+          background: #172033;
+          border: 1px solid #29364B;
           border-radius: 14px;
           padding: 18px 20px;
           box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -838,7 +838,7 @@ export async function renderOvertime(container) {
         .lembur-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
           outline: none;
@@ -850,11 +850,11 @@ export async function renderOvertime(container) {
         }
         .lembur-select {
           padding: 10px 14px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
-          color: #1E293B;
-          background: white;
+          color: #F8FAFC;
+          background: #172033;
           outline: none;
           min-width: 200px;
           cursor: pointer;
@@ -882,8 +882,8 @@ export async function renderOvertime(container) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #E2E8F0;
-          background: #F8FAFC;
+          border: 1px solid #29364B;
+          background: #111827;
           color: #64748B;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -893,8 +893,8 @@ export async function renderOvertime(container) {
           flex-shrink: 0;
         }
         .lembur-pill:hover {
-          background: #F1F5F9;
-          color: #1E293B;
+          background: #22314A;
+          color: #F8FAFC;
         }
         .lembur-pill.active {
           background: #2563EB;
@@ -907,10 +907,10 @@ export async function renderOvertime(container) {
         .lembur-view-toggle {
           display: inline-flex;
           align-items: center;
-          background: #F1F5F9;
+          background: #111827;
           padding: 3px;
           border-radius: 10px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           gap: 3px;
           flex-shrink: 0;
         }
@@ -932,11 +932,11 @@ export async function renderOvertime(container) {
           user-select: none;
         }
         .lembur-view-btn:hover {
-          color: #0F172A;
+          color: #F8FAFC;
           background: rgba(255, 255, 255, 0.5);
         }
         .lembur-view-btn.active {
-          background: #FFFFFF;
+          background: #172033;
           color: #2563EB;
           font-weight: 700;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
@@ -944,8 +944,8 @@ export async function renderOvertime(container) {
 
         /* Modern Table View */
         .lembur-table-card {
-          background: #FFFFFF;
-          border: 1px solid #E2E8F0;
+          background: #172033;
+          border: 1px solid #29364B;
           border-radius: 14px;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
           overflow: hidden;
@@ -963,7 +963,7 @@ export async function renderOvertime(container) {
           min-width: 860px;
         }
         .lembur-table th {
-          background: #F8FAFC;
+          background: #111827;
           color: #475569;
           font-size: 0.76rem;
           font-weight: 700;
@@ -975,12 +975,12 @@ export async function renderOvertime(container) {
         }
         .lembur-table td {
           padding: 13px 16px;
-          border-bottom: 1px solid #F1F5F9;
-          color: #1E293B;
+          border-bottom: 1px solid #29364B;
+          color: #F8FAFC;
           vertical-align: middle;
         }
         .lembur-table tbody tr:hover td {
-          background: #F8FAFC;
+          background: #111827;
         }
         .lembur-table tbody tr:last-child td {
           border-bottom: none;
@@ -993,8 +993,8 @@ export async function renderOvertime(container) {
           gap: 16px;
         }
         .lembur-card {
-          background: white;
-          border: 1px solid #E2E8F0;
+          background: #172033;
+          border: 1px solid #29364B;
           border-radius: 14px;
           padding: 18px;
           box-shadow: 0 2px 6px rgba(0,0,0,0.03);
@@ -1024,8 +1024,8 @@ export async function renderOvertime(container) {
           box-shadow: 0 3px 6px rgba(79, 70, 229, 0.25);
         }
         .lembur-time-box {
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
+          background: #111827;
+          border: 1px solid #29364B;
           border-radius: 10px;
           padding: 10px 12px;
           margin: 12px 0;
@@ -1058,8 +1058,8 @@ export async function renderOvertime(container) {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #E2E8F0;
-          background: white;
+          border: 1px solid #29364B;
+          background: #172033;
           color: #64748B;
           display: inline-flex;
           align-items: center;
@@ -1068,8 +1068,8 @@ export async function renderOvertime(container) {
           transition: all 0.15s ease;
         }
         .lembur-icon-btn:hover {
-          background: #F1F5F9;
-          color: #0F172A;
+          background: #22314A;
+          color: #F8FAFC;
           border-color: #CBD5E1;
         }
         .lembur-icon-btn.delete:hover {
@@ -1081,7 +1081,7 @@ export async function renderOvertime(container) {
         /* Empty state */
         .lembur-empty-state {
           grid-column: 1 / -1;
-          background: white;
+          background: #172033;
           border: 2px dashed #E2E8F0;
           border-radius: 16px;
           padding: 48px 24px;

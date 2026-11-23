@@ -696,8 +696,8 @@ export async function renderTraining(container) {
 
         /* Controls Card */
         .training-controls-card {
-          background: white;
-          border: 1px solid #E2E8F0;
+          background: #172033;
+          border: 1px solid #29364B;
           border-radius: 14px;
           padding: 18px 20px;
           box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -741,8 +741,8 @@ export async function renderTraining(container) {
           border: 1px solid #CBD5E1;
           border-radius: 10px;
           font-size: 0.9rem;
-          color: #1E293B;
-          background: white;
+          color: #F8FAFC;
+          background: #172033;
           outline: none;
           min-width: 180px;
           cursor: pointer;
@@ -770,8 +770,8 @@ export async function renderTraining(container) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #E2E8F0;
-          background: #F8FAFC;
+          border: 1px solid #29364B;
+          background: #1B2940;
           color: #64748B;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -781,8 +781,8 @@ export async function renderTraining(container) {
           flex-shrink: 0;
         }
         .training-pill:hover {
-          background: #F1F5F9;
-          color: #1E293B;
+          background: #111827;
+          color: #F8FAFC;
         }
         .training-pill.active {
           background: #2563EB;
@@ -798,8 +798,8 @@ export async function renderTraining(container) {
           gap: 16px;
         }
         .training-card {
-          background: white;
-          border: 1px solid #E2E8F0;
+          background: #172033;
+          border: 1px solid #29364B;
           border-radius: 14px;
           padding: 18px;
           box-shadow: 0 2px 6px rgba(0,0,0,0.03);
@@ -853,8 +853,8 @@ export async function renderTraining(container) {
           border: 1px solid #BBF7D0;
         }
         .training-info-box {
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
+          background: #1B2940;
+          border: 1px solid #29364B;
           border-radius: 10px;
           padding: 10px 12px;
           margin: 12px 0;
@@ -866,8 +866,8 @@ export async function renderTraining(container) {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #E2E8F0;
-          background: white;
+          border: 1px solid #29364B;
+          background: #172033;
           color: #64748B;
           display: inline-flex;
           align-items: center;
@@ -876,7 +876,7 @@ export async function renderTraining(container) {
           transition: all 0.15s ease;
         }
         .training-icon-btn:hover {
-          background: #F1F5F9;
+          background: #111827;
           color: #0F172A;
           border-color: #CBD5E1;
         }
@@ -889,8 +889,8 @@ export async function renderTraining(container) {
         /* Empty state */
         .training-empty-state {
           grid-column: 1 / -1;
-          background: white;
-          border: 2px dashed #E2E8F0;
+          background: #172033;
+          border: 2px dashed #29364B;
           border-radius: 16px;
           padding: 48px 24px;
           text-align: center;

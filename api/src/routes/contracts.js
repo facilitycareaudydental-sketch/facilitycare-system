@@ -1,11 +1,12 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination, resolveSortOrder } from '../utils/pagination.js';
-import { requireExportAccess, getExportPagination } from '../utils/export.js';
+import { requireExportAccess, getExportPagination, checkUploadRateLimit } from '../utils/export.js';
 import { runSync } from '../utils/calendar.js';
 import { hasTableColumn } from '../utils/schemaCompat.js';
 import { buildAuditStatement, buildCreateAuditStatement, executeAtomicImportBatch } from '../utils/audit.js';
 import { getManagementBranchSubquery, getManagementBranchSqlPredicate, resolveManagementBranchIds } from '../utils/branchMaster.js';
+import { checkEntityNotArchived, canViewArchivedRecords } from '../utils/archive.js';
 
 const OFFICIAL_DIVISIONS = Object.freeze(['FACILITY CARE', 'SECURITY']);
 
@@ -56,7 +57,7 @@ export async function handleContracts(request, env, origin) {
   return error('Not found', 404, origin);
 }
 
-function buildContractsFilter(url, hasEmpNameCol = true) {
+function buildContractsFilter(url, hasEmpNameCol = true, hasArchivedAt = false) {
   const search = (url.searchParams.get('search') || '').trim();
   const branch_id = (url.searchParams.get('branch_id') || '').trim();
   const division = (url.searchParams.get('division') || '').trim();
@@ -64,10 +65,14 @@ function buildContractsFilter(url, hasEmpNameCol = true) {
   const expiring_days = (url.searchParams.get('expiring_days') || '').trim();
   const month_expiry = (url.searchParams.get('month_expiry') || '').trim();
   const sort = url.searchParams.get('sort') || 'end_date_asc';
+  const showArchived = url.searchParams.get('archived') === 'true';
 
-  // Phase 5.66.10A.1: Management Contract Scope Enforcement
+  // Phase 5.66.10A.1 & Single Archive: Management Contract Scope Enforcement
   const conditions = [
     'c.deleted_at IS NULL',
+    ...(hasArchivedAt
+      ? [showArchived ? 'c.archived_at IS NOT NULL' : 'c.archived_at IS NULL']
+      : (showArchived ? ['1 = 0'] : [])),
     "c.division IN ('FACILITY CARE', 'SECURITY')",
     getManagementBranchSubquery('c.branch_id')
   ];
@@ -154,10 +159,17 @@ function getContractSelect(hasEmpNameCol = true) {
 
 async function listContracts(request, env, origin) {
   const url = new URL(request.url);
+  if (url.searchParams.get('archived') === 'true') {
+    const user = await authenticate(request, env);
+    if (!canViewArchivedRecords(user)) return forbidden(origin);
+  }
   const { page, limit, offset } = getPagination(request.url);
-  const hasEmpNameCol = await hasTableColumn(env.DB, 'contracts', 'employee_name');
+  const [hasEmpNameCol, hasArchivedAt] = await Promise.all([
+    hasTableColumn(env.DB, 'contracts', 'employee_name'),
+    hasTableColumn(env.DB, 'contracts', 'archived_at')
+  ]);
   const selectSql = getContractSelect(hasEmpNameCol);
-  const { where, values, countJoin, orderBy } = buildContractsFilter(url, hasEmpNameCol);
+  const { where, values, countJoin, orderBy } = buildContractsFilter(url, hasEmpNameCol, hasArchivedAt);
   const includeStats = url.searchParams.get('include_stats') === '1';
 
   const queries = [
@@ -255,6 +267,9 @@ async function createContract(request, env, origin, user = null) {
     ).bind(parsedEmpId).first();
     if (!emp) {
       return error('Karyawan tidak ditemukan atau berada di luar cakupan Management', 400, origin);
+    }
+    if ((await checkEntityNotArchived(env.DB, 'employees', parsedEmpId)).archived) {
+      return error('Karyawan berstatus arsip dan tidak dapat ditambahkan pada kontrak baru', 400, origin);
     }
   }
 

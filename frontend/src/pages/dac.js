@@ -37,19 +37,19 @@ export async function renderDAC(container) {
         </p>
       </div>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <div class="btn-group" style="background:#F1F5F9; padding:3px; border-radius:8px; display:inline-flex; border:1px solid var(--border);">
-          <button id="view-timeline-btn" class="btn btn-sm" style="background:#fff; font-weight:600; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05); padding:6px 12px; cursor:pointer;">
+        <div class="btn-group" style="background:#172033; padding:3px; border-radius:8px; display:inline-flex; border:1px solid #29364B;">
+          <button id="view-timeline-btn" class="btn btn-sm" style="background:#2563EB; color:#fff; font-weight:600; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.2); padding:6px 12px; cursor:pointer;">
             ⏱️ Alur Timeline
           </button>
-          <button id="view-table-btn" class="btn btn-sm btn-ghost" style="font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
+          <button id="view-table-btn" class="btn btn-sm btn-ghost" style="color:#94A3B8; font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
             📋 Tabel Standar
           </button>
         </div>
-        <button id="btn-print-dac" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP untuk Ruang Janitor">
+        <button id="btn-print-dac" class="btn btn-outline" style="background:#172033; border:1px solid #29364B; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP untuk Ruang Janitor">
           🖨️ Cetak SOP
         </button>
         ${canExport ? `
-        <button id="btn-export-dac" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+        <button id="btn-export-dac" class="btn btn-outline" style="background:#172033; border:1px solid #29364B; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
           📥 Export Excel
         </button>
         ` : ''}
@@ -62,15 +62,15 @@ export async function renderDAC(container) {
     </div>
 
     <!-- Shift Switcher Tabs -->
-    <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:2px solid #E2E8F0; padding-bottom:8px;">
+    <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:2px solid #29364B; padding-bottom:8px;">
       <button class="shift-tab-btn active" data-shift="pagi" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
         🌅 Shift Pagi (08:00 - 17:00) <span class="badge" style="background:rgba(255,255,255,0.25); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-pagi">31</span>
       </button>
-      <button class="shift-tab-btn" data-shift="siang" style="border:none; background:#F1F5F9; color:var(--text-2); font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
-        🌇 Shift Siang (13:00 - 22:00) <span class="badge" style="background:#CBD5E1; color:#334155; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-siang">33</span>
+      <button class="shift-tab-btn" data-shift="siang" style="border:1px solid #29364B; background:#172033; color:#94A3B8; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
+        🌇 Shift Siang (13:00 - 22:00) <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-siang">33</span>
       </button>
-      <button class="shift-tab-btn" data-shift="all" style="border:none; background:#F1F5F9; color:var(--text-2); font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
-        📑 Semua Shift <span class="badge" style="background:#CBD5E1; color:#334155; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">64</span>
+      <button class="shift-tab-btn" data-shift="all" style="border:1px solid #29364B; background:#172033; color:#94A3B8; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
+        📑 Semua Shift <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">64</span>
       </button>
     </div>
 
@@ -83,17 +83,17 @@ export async function renderDAC(container) {
     </div>
 
     <!-- Filter Toolbar -->
-    <div class="card" style="padding:14px 18px; margin-bottom:24px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <div class="card" style="padding:14px 18px; margin-bottom:24px; background:#111827; border:1px solid #29364B; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
       <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
         <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
           <div style="position:relative; flex:1; min-width:200px; max-width:320px;">
-            <input type="text" id="dac-search" class="form-control" placeholder="Cari lokasi, aktivitas, jam..." style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%;">
+            <input type="text" id="dac-search" class="form-control" placeholder="Cari lokasi, aktivitas, jam..." style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%; background:#1B2940; border:1px solid #29364B; color:#F8FAFC;">
             <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:0.9rem;">🔍</span>
           </div>
-          <select id="dac-category-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:160px;">
+          <select id="dac-category-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:160px; background:#172033; border:1px solid #29364B; color:#F8FAFC;">
             <option value="">Semua Kategori</option>
           </select>
-          <select id="dac-period-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:150px;">
+          <select id="dac-period-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:150px; background:#172033; border:1px solid #29364B; color:#F8FAFC;">
             <option value="">Semua Waktu</option>
             <option value="morning">Sesi Awal (08:00 - 12:00 / 13:00 - 17:00)</option>
             <option value="afternoon">Sesi Lanjutan (12:00 - 17:00 / 17:00 - 22:00)</option>
@@ -186,25 +186,25 @@ export async function renderDAC(container) {
     const shiftLabel = currentShift === 'pagi' ? 'Shift Pagi' : currentShift === 'siang' ? 'Shift Siang' : 'Semua Shift';
 
     kpiEl.innerHTML = `
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid #29364B; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
         <div style="font-size:0.8rem; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Total Aktivitas (${shiftLabel})</div>
         <div style="font-size:1.8rem; font-weight:800; color:var(--text-1); line-height:1.2;">${activeList.length} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Aktivitas</span></div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Urutan Terjadwal dari Awal s/d Penutup</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #2563EB; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid #29364B; border-left:4px solid #2563EB; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
         <div style="font-size:0.8rem; font-weight:600; color:#1E40AF; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Jam Kerja Standar</div>
         <div style="font-size:1.5rem; font-weight:800; color:#1E40AF; line-height:1.2;">${shiftHours}</div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">9 Jam Operasional (Break 1 Jam)</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #0D9488; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid #29364B; border-left:4px solid #14B8A6; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
         <div style="font-size:0.8rem; font-weight:600; color:#0F766E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Cakupan Operasional</div>
         <div style="font-size:1.8rem; font-weight:800; color:#0F766E; line-height:1.2;">12 <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Kategori</span></div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Tindakan, Toilet, Area Umum, Medis, dll.</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #F59E0B; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid #29364B; border-left:4px solid #F59E0B; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
         <div style="font-size:0.8rem; font-weight:600; color:#B45309; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Poin Wajib Harian</div>
         <div style="font-size:1.1rem; font-weight:700; color:#B45309; line-height:1.4;">Check Sheet & Sampah Medis</div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Kontrol mobilitas bertahap & sterilisasi</div>
@@ -230,7 +230,7 @@ export async function renderDAC(container) {
   function renderTimelineView(targetEl, items) {
     if (!items.length) {
       targetEl.innerHTML = `
-        <div class="empty-state" style="padding:50px; text-align:center; background:#fff; border-radius:12px; border:1px solid var(--border);">
+        <div class="empty-state" style="padding:50px; text-align:center; background:#111827; border-radius:12px; border:1px solid var(--border);">
           <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
           <p style="font-size:1.05rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">Tidak ada aktivitas yang cocok dengan filter</p>
           <p style="color:var(--text-3); font-size:0.875rem;">Coba reset kata kunci atau pilihan kategori di atas.</p>
@@ -248,9 +248,9 @@ export async function renderDAC(container) {
           const shiftBadgeColor = item.shift === 'pagi' ? '#92400E' : '#3730A3';
 
           return `
-            <div class="dac-timeline-card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; gap:16px; align-items:flex-start; position:relative;">
+            <div class="dac-timeline-card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.2); display:flex; gap:16px; align-items:flex-start; position:relative;">
               <!-- Time Column -->
-              <div style="min-width:130px; text-align:center; background:#F8FAFC; border:1px solid var(--border); border-radius:8px; padding:10px 8px;">
+              <div style="min-width:130px; text-align:center; background:#111827; border:1px solid var(--border); border-radius:8px; padding:10px 8px;">
                 <div style="font-size:1.1rem; font-weight:800; color:var(--text-1); font-family:monospace;">
                   ${item.start_time} - ${item.end_time}
                 </div>
@@ -285,7 +285,7 @@ export async function renderDAC(container) {
                   ` : ''}
                 </div>
 
-                <div style="font-size:0.9rem; color:var(--text-2); line-height:1.5; background:#FAFBFD; padding:10px 14px; border-radius:8px; border-left:3px solid ${cfg.color}; margin-top:8px;">
+                <div style="font-size:0.9rem; color:var(--text-2); line-height:1.5; background:#1B2940; padding:10px 14px; border-radius:8px; border-left:3px solid ${cfg.color}; margin-top:8px;">
                   ${item.activity}
                 </div>
               </div>
@@ -300,7 +300,7 @@ export async function renderDAC(container) {
   function renderTableView(targetEl, items) {
     if (!items.length) {
       targetEl.innerHTML = `
-        <div class="empty-state" style="padding:50px; text-align:center; background:#fff; border-radius:12px; border:1px solid var(--border);">
+        <div class="empty-state" style="padding:50px; text-align:center; background:#111827; border-radius:12px; border:1px solid var(--border);">
           <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
           <p style="font-size:1.05rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">Tidak ada aktivitas yang cocok dengan filter</p>
         </div>
@@ -309,11 +309,11 @@ export async function renderDAC(container) {
     }
 
     targetEl.innerHTML = `
-      <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
         <div class="table-responsive">
           <table class="table" style="width:100%; border-collapse:collapse;">
             <thead>
-              <tr style="background:#F8FAFC; border-bottom:1px solid var(--border); text-align:left;">
+              <tr style="background:#1B2940; border-bottom:1px solid #29364B; text-align:left; color:#94A3B8;">
                 <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:50px;">NO</th>
                 ${currentShift === 'all' ? `<th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3);">SHIFT</th>` : ''}
                 <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:110px;">JAM</th>

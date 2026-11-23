@@ -54,8 +54,6 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/inspection-scores') return guarded(getInspectionScores, request, env, origin, [
     ['period', /^.{0,32}$/, 'Invalid period filter. Maximum 32 characters.']]);
   if (path === '/notifications')      return getNotifications(request, env, origin);
-  if (path === '/reliefer-summary')   return guarded(getRelieferSummary, request, env, origin, [
-    ['month', MONTH_PATTERN, 'Invalid month format. Expected YYYY-MM.']]);
 
   return error('Not found', 404, origin);
 }
@@ -131,7 +129,7 @@ function getValidatedParam(url, name, pattern, message) {
   return raw;
 }
 
-// ─── /kpi — 12 counters + prev-month trend ───────────────────────────────────
+// ─── /kpi — active module counters + prev-month trend ────────────────────────
 // Consolidated single-pass per table to minimize D1 round-trips and table scans.
 async function getKPI(env, origin) {
   // Opportunistic background sweep for expired contracts (throttled)
@@ -139,19 +137,17 @@ async function getKPI(env, origin) {
 
   const curM  = curMonthStr();
   const prevM = prevMonthStr();
+  const hasEmpArchived = await hasTableColumn(env.DB, 'employees', 'archived_at');
+  const empArchiveClause = hasEmpArchived ? 'AND e.archived_at IS NULL' : '';
 
   const [
     empAgg,
     contractAgg,
     issuesAgg,
-    oo1Agg,
     schedAgg,
-    supplyPending,
     totalBranches,
     trainingCur,
-    fogCur,
-    relieverDoneCur,
-    relieverTotalCur
+    fogCur
   ] = await Promise.all([
     // Single pass on active employees (replaces 2 separate queries) — Phase 5.66.10A.1: Management scope
     env.DB.prepare(
@@ -160,6 +156,7 @@ async function getKPI(env, origin) {
          SUM(CASE WHEN strftime('%Y-%m', e.created_at) = ? THEN 1 ELSE 0 END) as active_prev
        FROM employees e
        WHERE e.status = 'Aktif' AND e.deleted_at IS NULL
+         ${empArchiveClause}
          AND e.division IN ('FACILITY CARE', 'SECURITY')
          AND ${getManagementBranchSubquery('e.branch_id')}`
     ).bind(prevM).first(),
@@ -176,7 +173,7 @@ async function getKPI(env, origin) {
          AND c.deleted_at IS NULL
          AND c.division IN ('FACILITY CARE', 'SECURITY')
          AND ${getManagementBranchSubquery('c.branch_id')}
-         AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL AND e.division IN ('FACILITY CARE', 'SECURITY') AND ${getManagementBranchSubquery('e.branch_id')}))`
+         AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL ${empArchiveClause} AND e.division IN ('FACILITY CARE', 'SECURITY') AND ${getManagementBranchSubquery('e.branch_id')}))`
     ).bind(prevM).first(),
 
     // Single pass on open issues (replaces 2 separate queries)
@@ -185,15 +182,6 @@ async function getKPI(env, origin) {
          COUNT(*) as open_cur,
          SUM(CASE WHEN strftime('%Y-%m', report_date) = ? THEN 1 ELSE 0 END) as open_prev
        FROM issues
-       WHERE status != 'Done' AND deleted_at IS NULL`
-    ).bind(prevM).first(),
-
-    // Single pass on open one_on_one (replaces 2 separate queries)
-    env.DB.prepare(
-      `SELECT
-         COUNT(*) as open_cur,
-         SUM(CASE WHEN strftime('%Y-%m', meeting_date) = ? THEN 1 ELSE 0 END) as open_prev
-       FROM one_on_one
        WHERE status != 'Done' AND deleted_at IS NULL`
     ).bind(prevM).first(),
 
@@ -207,12 +195,9 @@ async function getKPI(env, origin) {
        WHERE deleted_at IS NULL`
     ).bind(curM, curM).first(),
 
-    env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status='Pending' AND deleted_at IS NULL").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM branches WHERE is_active=1 AND deleted_at IS NULL AND TRIM(code) BETWEEN '001' AND '070' AND LENGTH(TRIM(code)) = 3").first(),
     env.DB.prepare("SELECT COUNT(*) c FROM training WHERE deleted_at IS NULL").first(),
     env.DB.prepare("SELECT COUNT(*) as c FROM fogging_reports WHERE deleted_at IS NULL AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m',activity_date)=?").bind(curM).first(),
-    env.DB.prepare("SELECT COUNT(*) as c FROM relievers WHERE deleted_at IS NULL AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m',backup_date)=?").bind(curM).first(),
-    env.DB.prepare("SELECT COUNT(DISTINCT reliever_name) as c FROM relievers WHERE deleted_at IS NULL AND reliever_name IS NOT NULL AND TRIM(reliever_name) != ''").first(),
   ]);
 
   return ok({
@@ -220,16 +205,12 @@ async function getKPI(env, origin) {
     contracts:          { current: contractAgg?.active_cur || 0,  prev: contractAgg?.active_prev || 0 },
     expiring30:         { current: contractAgg?.exp30 || 0 },
     issues:             { current: issuesAgg?.open_cur || 0,      prev: issuesAgg?.open_prev || 0 },
-    one_on_one:         { current: oo1Agg?.open_cur || 0,         prev: oo1Agg?.open_prev || 0 },
     schedule:           { current: schedAgg?.total_sched || 0 },
-    supply:             { current: supplyPending?.c || 0 },
     branches:           { current: totalBranches?.c || 0 },
     training_month:     { current: trainingCur?.c || 0 },
     inspection_month:   { current: schedAgg?.insp_cur || 0 },
     cleaning_month:     { current: schedAgg?.clean_cur || 0 },
     fogging_month:      { current: fogCur?.c || 0 },
-    reliever_completed: { current: relieverDoneCur?.c || 0 },
-    reliever_total:     { current: relieverTotalCur?.c || 0 },
   }, 200, origin);
 }
 
@@ -494,7 +475,7 @@ async function getActivityLog(env, origin) {
   const contractLabelExpr = hasConEmpName
     ? "COALESCE(e.full_name, c.employee_name, 'Karyawan')"
     : "COALESCE(e.full_name, 'Karyawan')";
-  const [issues, contracts, employees, oo1, training, supply, relievers, inspection, bRows] =
+  const [issues, contracts, employees, training, inspection, bRows] =
     await Promise.all([
       env.DB.prepare(
         `SELECT 'issue' type, COALESCE(complaint,'—') label, created_at,
@@ -521,26 +502,9 @@ async function getActivityLog(env, origin) {
          ORDER BY e.created_at DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'one_on_one' type, COALESCE(employee_name,'—') label, created_at,
-         branch_id, status info
-         FROM one_on_one WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 4`
-      ).all(),
-      env.DB.prepare(
         `SELECT 'training' type, COALESCE(subject,'Training') label, created_at,
          NULL branch_id, trainer info
          FROM training WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 4`
-      ).all(),
-      env.DB.prepare(
-        `SELECT 'supply' type, COALESCE(submitter_name,'Pemohon') label,
-         submitted_at created_at, NULL branch_id, status info
-         FROM supply_requests WHERE deleted_at IS NULL ORDER BY submitted_at DESC LIMIT 4`
-      ).all(),
-      env.DB.prepare(
-        `SELECT 'reliever' type, COALESCE(reliever_name,'Reliefer') label, created_at,
-         branch_id, reason info
-         FROM relievers 
-         WHERE deleted_at IS NULL AND LOWER(TRIM(status)) = 'done'
-         ORDER BY created_at DESC LIMIT 3`
       ).all(),
       env.DB.prepare(
         `SELECT 'inspection' type, period label, created_at,
@@ -556,10 +520,7 @@ async function getActivityLog(env, origin) {
     ...(issues.results||[]),
     ...(contracts.results||[]),
     ...(employees.results||[]),
-    ...(oo1.results||[]),
     ...(training.results||[]),
-    ...(supply.results||[]),
-    ...(relievers.results||[]),
     ...(inspection.results||[]),
   ]
   .map(r => ({
@@ -584,7 +545,7 @@ async function getCalendarEvents(request, env, origin) {
   const dateFilter = (col) => `strftime('%Y-%m',${col})=?`;
 
   const [
-    sched, issR, relR, trainR, oneR, cleanR, inspR, fogR, baseR, supplyR, contrList
+    sched, issR, trainR, cleanR, inspR, fogR, baseR, contrList
   ] = await Promise.all([
     env.DB.prepare(
       `SELECT s.id, s.target_date, s.opening_date, s.completion_date,
@@ -600,21 +561,9 @@ async function getCalendarEvents(request, env, origin) {
        WHERE i.deleted_at IS NULL AND ${dateFilter('i.report_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
-      `SELECT r.id,'reliever' type,r.backup_date event_date,r.reliever_name title,
-       r.status,b.full_name branch_name,'teal' color
-       FROM relievers r LEFT JOIN branches b ON r.branch_id=b.id
-       WHERE r.deleted_at IS NULL AND ${dateFilter('r.backup_date')} AND LOWER(TRIM(r.status)) = 'done'`
-    ).bind(...bind).all(),
-    env.DB.prepare(
       `SELECT t.id,'training' type,t.training_date event_date,t.subject title,
        'Done' status,'' branch_name,'indigo' color
        FROM training t WHERE t.deleted_at IS NULL AND ${dateFilter('t.training_date')}`
-    ).bind(...bind).all(),
-    env.DB.prepare(
-      `SELECT o.id,'one_on_one' type,o.meeting_date event_date,'One on One: ' || o.employee_name title,
-       o.status,b.full_name branch_name,'pink' color
-       FROM one_on_one o LEFT JOIN branches b ON o.branch_id=b.id
-       WHERE o.deleted_at IS NULL AND ${dateFilter('o.meeting_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
       `SELECT c.id,'cleaning' type,c.activity_date event_date,c.activity_type || ': ' || b.full_name title,
@@ -639,12 +588,6 @@ async function getCalendarEvents(request, env, origin) {
        bp.status,b.full_name branch_name,'purple' color
        FROM basecamp_reports bp LEFT JOIN branches b ON bp.branch_id=b.id
        WHERE bp.deleted_at IS NULL AND ${dateFilter('bp.info_date')}`
-    ).bind(...bind).all(),
-    env.DB.prepare(
-      `SELECT s.id,'supply' type,strftime('%Y-%m-%d',s.submitted_at) event_date,'Permintaan: ' || s.submitter_name title,
-       s.status,COALESCE(b.full_name,s.branch_name) branch_name,'brown' color
-       FROM supply_requests s LEFT JOIN branches b ON s.branch_id=b.id
-       WHERE s.deleted_at IS NULL AND strftime('%Y-%m',s.submitted_at)=?`
     ).bind(...bind).all(),
     env.DB.prepare(
       `SELECT c.id, c.end_date, ${contractEmpExpr} emp_name
@@ -757,14 +700,12 @@ async function getCalendarEvents(request, env, origin) {
 
   const events = [
     ...schedEvents,
-    ...(relR.results||[]).map(r => ({ ...r, event_date: parseFlexibleDate(r.event_date) })),
     ...(cleanR.results||[]).map(c => ({ ...c, event_date: parseFlexibleDate(c.event_date) })),
     ...(inspR.results||[]).map(i => ({ ...i, event_date: parseFlexibleDate(i.event_date) })),
     ...(fogR.results||[]).map(f => ({ ...f, event_date: parseFlexibleDate(f.event_date) })),
     ...(baseR.results||[]).map(bp => ({ ...bp, event_date: parseFlexibleDate(bp.event_date) })),
     ...(issR.results||[]).map(i => ({ ...i, event_date: parseFlexibleDate(i.event_date) })),
     ...(trainR.results||[]).map(t => ({ ...t, event_date: parseFlexibleDate(t.event_date) })),
-    ...(oneR.results||[]).map(o => ({ ...o, event_date: parseFlexibleDate(o.event_date) })),
     ...contractEvents
   ].filter(e => e.event_date && e.event_date.startsWith(curM))
    .sort((a,b)=>(a.event_date||'').localeCompare(b.event_date||''));
@@ -835,7 +776,7 @@ async function getInspectionScores(request, env, origin) {
 async function getNotifications(request, env, origin) {
   const hasConEmpName = await hasTableColumn(env.DB, 'contracts', 'employee_name');
   const contractEmpExpr = hasConEmpName ? "COALESCE(e.full_name, c.employee_name, '?')" : "COALESCE(e.full_name, '?')";
-  const [contracts, pendingSched, openIssues, pendingSupply] = await Promise.all([
+  const [contracts, pendingSched, openIssues] = await Promise.all([
     env.DB.prepare(
       `SELECT c.id, c.end_date, ${contractEmpExpr} as emp_name
        FROM contracts c LEFT JOIN employees e ON c.employee_id = e.id
@@ -850,9 +791,6 @@ async function getNotifications(request, env, origin) {
     ).all(),
     env.DB.prepare(
       `SELECT id, category, report_date FROM issues WHERE status != 'Done' AND deleted_at IS NULL LIMIT 50`
-    ).all(),
-    env.DB.prepare(
-      `SELECT id, submitter_name, submitted_at FROM supply_requests WHERE status = 'Pending' AND deleted_at IS NULL LIMIT 50`
     ).all()
   ]);
 
@@ -913,70 +851,14 @@ async function getNotifications(request, env, origin) {
     });
   });
 
-  // 4. Pending Supply Requests
-  (pendingSupply.results || []).forEach(s => {
-    list.push({
-      id: `supply-${s.id}`,
-      title: `Permintaan Barang pending: ${s.submitter_name}`,
-      type: 'supply',
-      date: String(s.submitted_at).slice(0, 10),
-      severity: 'info'
-    });
-  });
-
   // Sort by date descending
   list.sort((a, b) => b.date.localeCompare(a.date));
 
   return ok(list, 200, origin);
 }
 
-// ─── /reliefer-summary ───────────────────────────────────────────────────────
-async function getRelieferSummary(request, env, origin) {
-  const url = new URL(request.url);
-  const curM = url.searchParams.get('month') || curMonthStr();
-  
-  const mParts = curM.split('-');
-  const y = mParts[0];
-  const mIdx = parseInt(mParts[1], 10) - 1;
-  const indoMonth = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][mIdx];
-  const engMonth = ['January','February','March','April','May','June','July','August','September','October','November','December'][mIdx];
-
-  const bind = [
-    curM,
-    `%${curM}%`,
-    `%${indoMonth}%${y}%`,
-    `%${engMonth}%${y}%`,
-    `%${mParts[1]}%${y}%`
-  ];
-
-  const aggRow = await env.DB.prepare(`
-    SELECT
-      COUNT(*) as total,
-      SUM(CASE WHEN LOWER(TRIM(status))='done' THEN 1 ELSE 0 END) as done
-    FROM relievers 
-    WHERE deleted_at IS NULL AND (
-      strftime('%Y-%m', backup_date) = ? OR 
-      backup_date LIKE ? OR 
-      backup_date LIKE ? OR 
-      backup_date LIKE ? OR 
-      backup_date LIKE ?
-    )`).bind(...bind).first();
-
-  const done = aggRow?.done || 0;
-  const total = aggRow?.total || 0;
-  const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
-
-  return ok({
-    month: curM,
-    done,
-    total,
-    percentage
-  }, 200, origin);
-}
-
 async function getDropdownAggregates(env, origin) {
-  const [relieverRows, schedMonthRows, foggingRows, scheduleQRows] = await Promise.all([
-    env.DB.prepare("SELECT strftime('%Y-%m', backup_date) as month, COUNT(*) as c FROM relievers WHERE deleted_at IS NULL AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND backup_date IS NOT NULL GROUP BY month").all(),
+  const [schedMonthRows, foggingRows, scheduleQRows] = await Promise.all([
     env.DB.prepare(
       `SELECT
          strftime('%Y-%m', COALESCE(completion_date, target_date)) as month,
@@ -1021,7 +903,6 @@ async function getDropdownAggregates(env, origin) {
   ]));
 
   return ok({
-    relievers_by_month: toMap(relieverRows),
     inspeksi_by_month: inspeksiByMonth,
     gcdc_by_month: gcdcByMonth,
     fogging_by_month: toMap(foggingRows),

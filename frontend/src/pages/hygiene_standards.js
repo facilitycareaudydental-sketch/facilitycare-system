@@ -79,7 +79,7 @@ export function getZoneForRoom(roomName) {
       return { zoneName, ...zoneData };
     }
   }
-  return { zoneName: 'Lainnya', icon: '📍', bg: '#F1F5F9', color: '#475569', border: '#E2E8F0' };
+  return { zoneName: 'Lainnya', icon: '📍', bg: '#172033', color: '#94A3B8', border: '#29364B' };
 }
 
 export async function renderHygieneStandards(container) {
@@ -100,19 +100,19 @@ export async function renderHygieneStandards(container) {
         </p>
       </div>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <div class="btn-group" style="background:#F1F5F9; padding:3px; border-radius:8px; display:inline-flex; border:1px solid var(--border);">
-          <button id="view-table-btn" class="btn btn-sm" style="background:#fff; font-weight:600; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05); padding:6px 12px; cursor:pointer;">
+        <div class="btn-group" style="background:#172033; padding:3px; border-radius:8px; display:inline-flex; border:1px solid #29364B;">
+          <button id="view-table-btn" class="btn btn-sm" style="background:#2563EB; color:#fff; font-weight:600; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.2); padding:6px 12px; cursor:pointer;">
             📋 Tabel Standar
           </button>
-          <button id="view-zone-btn" class="btn btn-sm btn-ghost" style="font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
+          <button id="view-zone-btn" class="btn btn-sm btn-ghost" style="color:#94A3B8; font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
             🗂️ Per Zona Area
           </button>
         </div>
-        <button id="btn-print-hygiene" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP Standar Kebersihan">
+        <button id="btn-print-hygiene" class="btn btn-outline" style="background:#172033; border:1px solid #29364B; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP Standar Kebersihan">
           🖨️ Cetak SOP
         </button>
         ${canExport ? `
-        <button id="btn-export-hygiene" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+        <button id="btn-export-hygiene" class="btn btn-outline" style="background:#172033; border:1px solid #29364B; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
           📥 Export Excel
         </button>
         ` : ''}
@@ -126,8 +126,8 @@ export async function renderHygieneStandards(container) {
 
     <!-- KPI Summary Cards -->
     <div id="hygiene-summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width:48px; height:48px; border-radius:10px; background:#EFF6FF; color:#2563EB; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid #29364B; background:#172033; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+        <div style="width:48px; height:48px; border-radius:10px; background:rgba(37,99,235,0.2); color:#60A5FA; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
           📋
         </div>
         <div>
@@ -136,8 +136,8 @@ export async function renderHygieneStandards(container) {
           <div style="font-size:0.75rem; color:#16A34A; font-weight:500;">✓ Terverifikasi Standar SOP</div>
         </div>
       </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width:48px; height:48px; border-radius:10px; background:#F5F3FF; color:#7C3AED; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid #29364B; background:#172033; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+        <div style="width:48px; height:48px; border-radius:10px; background:rgba(139,92,246,0.2); color:#C084FC; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
           🏢
         </div>
         <div>
@@ -146,8 +146,8 @@ export async function renderHygieneStandards(container) {
           <div style="font-size:0.75rem; color:var(--text-3); font-weight:500;">Klinis, Publik, Sanitair, dll.</div>
         </div>
       </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width:48px; height:48px; border-radius:10px; background:#ECFDF5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid #29364B; background:#172033; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+        <div style="width:48px; height:48px; border-radius:10px; background:rgba(16,185,129,0.2); color:#34D399; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
           🚪
         </div>
         <div>
@@ -156,8 +156,8 @@ export async function renderHygieneStandards(container) {
           <div style="font-size:0.75rem; color:#059669; font-weight:500;">Termasuk Ruang Tindakan</div>
         </div>
       </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width:48px; height:48px; border-radius:10px; background:#FFFBEB; color:#D97706; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid #29364B; background:#172033; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+        <div style="width:48px; height:48px; border-radius:10px; background:rgba(245,158,11,0.2); color:#FBBF24; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
           🛡️
         </div>
         <div>
@@ -170,28 +170,28 @@ export async function renderHygieneStandards(container) {
 
     <!-- Zona Switcher Tabs -->
     <div style="overflow-x:auto; padding-bottom:8px; margin-bottom:18px;">
-      <div id="hygiene-zone-tabs" style="display:flex; gap:8px; min-width:max-content; border-bottom:2px solid #E2E8F0; padding-bottom:8px;">
+      <div id="hygiene-zone-tabs" style="display:flex; gap:8px; min-width:max-content; border-bottom:2px solid #29364B; padding-bottom:8px;">
         <button class="zone-tab-btn active" data-zone="all" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.88rem;">
           🌟 Semua Zona <span class="badge" style="background:rgba(255,255,255,0.25); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">104</span>
         </button>
         ${Object.entries(ZONES).map(([name, data]) => `
-          <button class="zone-tab-btn" data-zone="${name}" style="border:none; background:#F1F5F9; color:var(--text-2); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.88rem;">
+          <button class="zone-tab-btn" data-zone="${name}" style="border:1px solid #29364B; background:#172033; color:#94A3B8; font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.88rem;">
             <span>${data.icon}</span> ${name}
-            <span class="badge" style="background:#CBD5E1; color:#334155; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-${name.replace(/[\s&]+/g, '-')}">-</span>
+            <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-${name.replace(/[\s&]+/g, '-')}">-</span>
           </button>
         `).join('')}
       </div>
     </div>
 
     <!-- Filter Toolbar -->
-    <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#111827; border:1px solid #29364B; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
       <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
         <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
           <div style="position:relative; flex:1; min-width:220px; max-width:360px;">
-            <input type="text" id="hygiene-search" class="form-control" placeholder="Cari ruangan, item objek, atau standar kebersihan..." style="padding-left:36px; height:40px; border-radius:8px; font-size:0.9rem; width:100%;">
+            <input type="text" id="hygiene-search" class="form-control" placeholder="Cari ruangan, item objek, atau standar kebersihan..." style="padding-left:36px; height:40px; border-radius:8px; font-size:0.9rem; width:100%; background:#1B2940; border:1px solid #29364B; color:#F8FAFC;">
             <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:0.95rem;">🔍</span>
           </div>
-          <select id="hygiene-room-filter" class="form-control" style="width:auto; height:40px; border-radius:8px; font-size:0.875rem; min-width:180px;">
+          <select id="hygiene-room-filter" class="form-control" style="width:auto; height:40px; border-radius:8px; font-size:0.875rem; min-width:180px; background:#172033; border:1px solid #29364B; color:#F8FAFC;">
             <option value="">Semua Ruangan</option>
           </select>
           <button id="btn-reset-filters" class="btn btn-sm btn-ghost" style="color:var(--text-3); font-weight:600; cursor:pointer; padding:6px 10px;">
@@ -231,7 +231,7 @@ export async function renderHygieneStandards(container) {
       const viewContainer = container.querySelector('#hygiene-view-container');
       if (viewContainer) {
         viewContainer.innerHTML = `
-          <div class="empty-state" style="text-align:center; padding:40px; background:#fff; border-radius:12px; border:1px solid var(--border);">
+          <div class="empty-state" style="text-align:center; padding:40px; background:#172033; border-radius:12px; border:1px solid #29364B;">
             <div style="font-size:2.5rem; margin-bottom:12px;">⚠️</div>
             <h3 style="margin:0 0 8px 0; color:var(--text-1);">Gagal Memuat Data</h3>
             <p style="color:var(--text-3); margin-bottom:16px;">${err.message}</p>
@@ -323,7 +323,7 @@ export async function renderHygieneStandards(container) {
 
     if (filtered.length === 0) {
       viewContainer.innerHTML = `
-        <div class="empty-state" style="text-align:center; padding:50px 20px; background:#fff; border-radius:12px; border:1px solid var(--border);">
+        <div class="empty-state" style="text-align:center; padding:50px 20px; background:#172033; border-radius:12px; border:1px solid #29364B;">
           <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
           <h3 style="margin:0 0 8px 0; color:var(--text-1); font-weight:700;">Tidak Ada Parameter yang Cocok</h3>
           <p style="color:var(--text-3); max-width:400px; margin:0 auto 16px auto; font-size:0.9rem;">
@@ -346,8 +346,8 @@ export async function renderHygieneStandards(container) {
             b.style.background = '#2563EB';
             b.style.color = '#fff';
           } else {
-            b.style.background = '#F1F5F9';
-            b.style.color = 'var(--text-2)';
+            b.style.background = '#172033';
+            b.style.color = '#94A3B8';
           }
         });
         populateRoomFilter();
@@ -366,13 +366,13 @@ export async function renderHygieneStandards(container) {
   function renderTableView(viewContainer, items) {
     viewContainer.innerHTML = `
       <style>
-        .hygiene-std-row:hover { background-color: #F8FAFC; }
+        .hygiene-std-row:hover { background-color: #22314A; }
       </style>
-      <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
         <div style="overflow-x:auto;">
           <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem;">
             <thead>
-              <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; color:#475569; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.6px;">
+              <tr style="background:#1B2940; border-bottom:1px solid #29364B; color:#94A3B8; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.6px;">
                 <th style="padding:14px 16px; width:50px; text-align:center;">No</th>
                 <th style="padding:14px 16px; width:220px;">Ruangan & Zona</th>
                 <th style="padding:14px 16px; width:280px;">Item / Objek Inspeksi</th>
@@ -384,7 +384,7 @@ export async function renderHygieneStandards(container) {
               ${items.map((item, idx) => {
                 const zInfo = getZoneForRoom(item.room_name);
                 return `
-                  <tr class="hygiene-std-row" style="border-bottom:1px solid #F1F5F9; transition:background-color 0.15s ease;">
+                  <tr class="hygiene-std-row" style="border-bottom:1px solid #29364B; transition:background-color 0.15s ease;">
                     <td style="padding:14px 16px; text-align:center; color:var(--text-3); font-weight:600; font-size:0.85rem;">
                       ${idx + 1}
                     </td>
@@ -404,7 +404,7 @@ export async function renderHygieneStandards(container) {
                       </div>
                     </td>
                     <td style="padding:14px 16px; vertical-align:top;">
-                      <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-left:3px solid #10B981; border-radius:6px; padding:10px 12px; line-height:1.55; color:#334155; font-size:0.875rem;">
+                      <div style="background:#111827; border:1px solid #29364B; border-left:3px solid #10B981; border-radius:6px; padding:10px 12px; line-height:1.55; color:#F8FAFC; font-size:0.875rem;">
                         <span style="color:#059669; font-weight:700; margin-right:4px;">✓</span> ${item.cleanliness_standard}
                       </div>
                     </td>
@@ -455,7 +455,7 @@ export async function renderHygieneStandards(container) {
         ${Object.entries(grouped).map(([zoneName, zGroup]) => {
           const totalInZone = Object.values(zGroup.rooms).reduce((acc, arr) => acc + arr.length, 0);
           return `
-            <div class="card" style="background:#fff; border:1px solid ${zGroup.info.border}; border-radius:14px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+            <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:14px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
               <!-- Zone Card Header -->
               <div style="background:${zGroup.info.bg}; border-bottom:1px solid ${zGroup.info.border}; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -469,7 +469,7 @@ export async function renderHygieneStandards(container) {
                     </div>
                   </div>
                 </div>
-                <span class="badge" style="background:#fff; color:${zGroup.info.color}; border:1px solid ${zGroup.info.border}; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.8rem;">
+                <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; border:1px solid #29364B; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.8rem;">
                   ${totalInZone} Parameter
                 </span>
               </div>
@@ -482,15 +482,15 @@ export async function renderHygieneStandards(container) {
                       <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--text-1);">
                         🚪 ${roomName}
                       </h4>
-                      <span class="badge badge-sm" style="background:#F1F5F9; color:var(--text-3); font-size:0.75rem;">
+                      <span class="badge badge-sm" style="background:#172033; color:#94A3B8; border:1px solid #29364B; font-size:0.75rem;">
                         ${rItems.length} item
                       </span>
                     </div>
 
-                    <div style="border:1px solid #E2E8F0; border-radius:8px; overflow:hidden;">
+                    <div style="border:1px solid #29364B; border-radius:8px; overflow:hidden;">
                       <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
                         <thead>
-                          <tr style="background:#F8FAFC; border-bottom:1px solid #E2E8F0; color:#475569; font-size:0.75rem; text-transform:uppercase;">
+                          <tr style="background:#1B2940; border-bottom:1px solid #29364B; color:#94A3B8; font-size:0.75rem; text-transform:uppercase;">
                             <th style="padding:8px 12px; width:40px; text-align:center;">No</th>
                             <th style="padding:8px 12px; width:260px;">Item / Objek Inspeksi</th>
                             <th style="padding:8px 12px;">Standar Kebersihan Fisik</th>
@@ -499,7 +499,7 @@ export async function renderHygieneStandards(container) {
                         </thead>
                         <tbody>
                           ${rItems.map((item, idx) => `
-                            <tr style="border-bottom:1px solid #F1F5F9;">
+                            <tr style="border-bottom:1px solid #29364B;">
                               <td style="padding:10px 12px; text-align:center; color:var(--text-3); font-size:0.8rem;">
                                 ${idx + 1}
                               </td>
@@ -816,12 +816,12 @@ export async function renderHygieneStandards(container) {
             badge.style.color = '#fff';
           }
         } else {
-          b.style.background = '#F1F5F9';
-          b.style.color = 'var(--text-2)';
+          b.style.background = '#172033';
+          b.style.color = '#94A3B8';
           const badge = b.querySelector('.badge');
           if (badge) {
-            badge.style.background = '#CBD5E1';
-            badge.style.color = '#334155';
+            badge.style.background = 'rgba(255,255,255,0.08)';
+            badge.style.color = '#F8FAFC';
           }
         }
       });
@@ -836,19 +836,19 @@ export async function renderHygieneStandards(container) {
 
   viewTableBtn?.addEventListener('click', () => {
     currentView = 'table';
-    viewTableBtn.style.background = '#fff';
-    viewTableBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+    viewTableBtn.style.background = '#2563EB';
+    viewTableBtn.style.color = '#fff';
     viewZoneBtn.style.background = 'transparent';
-    viewZoneBtn.style.boxShadow = 'none';
+    viewZoneBtn.style.color = '#94A3B8';
     renderContent();
   });
 
   viewZoneBtn?.addEventListener('click', () => {
     currentView = 'zone';
-    viewZoneBtn.style.background = '#fff';
-    viewZoneBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+    viewZoneBtn.style.background = '#2563EB';
+    viewZoneBtn.style.color = '#fff';
     viewTableBtn.style.background = 'transparent';
-    viewTableBtn.style.boxShadow = 'none';
+    viewTableBtn.style.color = '#94A3B8';
     renderContent();
   });
 

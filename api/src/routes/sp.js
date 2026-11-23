@@ -3,6 +3,8 @@ import { ok, error, unauthorized, forbidden, notFound, paginated } from '../util
 import { getPagination, resolveSortOrder } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildAuditStatement, buildCreateAuditStatement, executeAtomicImportBatch } from '../utils/audit.js';
+import { hasTableColumn } from '../utils/schemaCompat.js';
+import { checkEntityNotArchived } from '../utils/archive.js';
 
 const SP_SORT_MAP = Object.freeze({
   date_desc: 's.tanggal DESC, s.id DESC',
@@ -178,6 +180,10 @@ export async function handleSP(request, env, origin) {
         }
       }
 
+      if (resolvedEmpId && (await checkEntityNotArchived(env.DB, 'employees', resolvedEmpId)).archived) {
+        return error('Karyawan berstatus arsip dan tidak dapat diterbitkan SP baru', 400, origin);
+      }
+
       if (branch_id !== undefined && branch_id !== null && branch_id !== '') {
         const parsedBranchId = Number(branch_id);
         if (!Number.isInteger(parsedBranchId) || parsedBranchId <= 0) return error('Invalid branch_id', 400, origin);
@@ -214,10 +220,17 @@ export async function handleSP(request, env, origin) {
         row_version: 1
       };
 
+      const hasEmpIdCol = await hasTableColumn(env.DB, 'sp_data', 'employee_id');
+      const insertStmt = hasEmpIdCol
+        ? env.DB.prepare(
+            "INSERT INTO sp_data (tanggal, employee_id, employee_name, division, branch_id, akhir_sp, sp_type, status, document_link, row_version, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))"
+          ).bind(tanggal || null, resolvedEmpId, cleanEmpName, division || null, branch_id || null, akhir_sp || null, sp_type || '', normalizedStatus, document_link || null)
+        : env.DB.prepare(
+            "INSERT INTO sp_data (tanggal, employee_name, division, branch_id, akhir_sp, sp_type, status, document_link, row_version, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))"
+          ).bind(tanggal || null, cleanEmpName, division || null, branch_id || null, akhir_sp || null, sp_type || '', normalizedStatus, document_link || null);
+
       const batchRes = await env.DB.batch([
-        env.DB.prepare(
-          'INSERT INTO sp_data (tanggal, employee_id, employee_name, division, branch_id, akhir_sp, sp_type, status, document_link, row_version, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime(\'now\'))'
-        ).bind(tanggal || null, resolvedEmpId, cleanEmpName, division || null, branch_id || null, akhir_sp || null, sp_type || '', normalizedStatus, document_link || null),
+        insertStmt,
         buildCreateAuditStatement(env, user, 'sp', 'new', newSnapshot)
       ]);
       const newId = batchRes?.[0]?.meta?.last_row_id;
@@ -300,7 +313,11 @@ export async function handleSP(request, env, origin) {
           }
         }
 
-        if (branch_id !== undefined && branch_id !== null && branch_id !== '') {
+        if (resolvedEmpId && (await checkEntityNotArchived(env.DB, 'employees', resolvedEmpId)).archived) {
+        return error('Karyawan berstatus arsip dan tidak dapat diterbitkan SP baru', 400, origin);
+      }
+
+      if (branch_id !== undefined && branch_id !== null && branch_id !== '') {
           const parsedBranchId = Number(branch_id);
           if (!Number.isInteger(parsedBranchId) || parsedBranchId <= 0) return error('Invalid branch_id', 400, origin);
           const branchRow = await env.DB.prepare('SELECT id FROM branches WHERE id = ? AND deleted_at IS NULL').bind(parsedBranchId).first();

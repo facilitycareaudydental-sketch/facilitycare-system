@@ -14,6 +14,7 @@ import {
   executeAtomicImportBatch
 } from '../utils/audit.js';
 import { executeJournaledImport, extractImportRequestMeta } from '../utils/import_journal.js';
+import { hasTableColumn, hasTable } from '../utils/schemaCompat.js';
 
 // ─── Phase 5.48: input validation constants & helpers ────────────────────────
 const MAX_SEARCH_LENGTH = 200;
@@ -81,7 +82,6 @@ export async function handleMisc(request, env, origin) {
   if (path.startsWith('/api/sop/bundle')) return handleSopBundle(request, env, origin, path.replace('/api/sop/bundle', ''));
   if (path.startsWith('/api/sop')) return handleTable(request, env, origin, 'sop', path.replace('/api/sop', ''));
   if (path.startsWith('/api/checklist')) return handleTable(request, env, origin, 'master_checklist', path.replace('/api/checklist', ''));
-  if (path.startsWith('/api/forms')) return handleForms(request, env, origin, path.replace('/api/forms', ''));
   if (path.startsWith('/api/pic')) return handlePic(request, env, origin);
   if (path.startsWith('/api/options')) return handleOptions(request, env, origin);
 
@@ -98,18 +98,20 @@ async function listTableRows(request, env, origin, table, { isExport = false } =
   }
   const all = url.searchParams.get('all');
   const includeStats = !isExport && url.searchParams.get('include_stats') === '1';
-  const baseConditions = ['deleted_at IS NULL'];
+  const hasDeletedAt = await hasTableColumn(env.DB, table, 'deleted_at');
+  const baseConditions = hasDeletedAt ? ['deleted_at IS NULL'] : [];
   if (table === 'sop') baseConditions.push("(category != 'sop_bundle' OR category IS NULL)");
   const baseCondition = baseConditions.join(' AND ');
   const descField = table === 'sop' ? 'notes' : 'description';
 
   if (!isExport && all === '1') {
-    const sql = `SELECT * FROM ${table} WHERE ${baseCondition} ORDER BY name ASC, id ASC`;
+    const whereAll = baseCondition ? `WHERE ${baseCondition}` : '';
+    const sql = `SELECT * FROM ${table} ${whereAll} ORDER BY name ASC, id ASC`;
     const rows = await env.DB.prepare(sql).all();
     return ok(rows.results, 200, origin);
   }
 
-  const conditions = [baseCondition];
+  const conditions = baseCondition ? [baseCondition] : [];
   const values = [];
   if (category) {
     if (category === 'Lainnya') {
@@ -238,7 +240,9 @@ async function handleTable(request, env, origin, table, path) {
         onDuplicate: 'upsert',
         importMeta,
         buildPlan: async ({ startRowIndex, initialCounts }) => {
-          const baseWhere = table === 'sop' ? " WHERE deleted_at IS NULL AND (category != 'sop_bundle' OR category IS NULL)" : " WHERE deleted_at IS NULL";
+          const hasDeletedAt = await hasTableColumn(env.DB, table, 'deleted_at');
+          const delPred = hasDeletedAt ? 'deleted_at IS NULL' : '1=1';
+          const baseWhere = table === 'sop' ? ` WHERE ${delPred} AND (category != 'sop_bundle' OR category IS NULL)` : (hasDeletedAt ? ' WHERE deleted_at IS NULL' : '');
           const existing = await env.DB.prepare(`SELECT * FROM ${table}${baseWhere}`).all();
           const existingMap = new Map();
           (existing.results || []).forEach(r => {
@@ -277,7 +281,7 @@ async function handleTable(request, env, origin, table, path) {
                 counts: { inserted, updated, skipped },
                 stmts: [
                   env.DB.prepare(
-                    `UPDATE ${table} SET category = COALESCE(?, category), document_link = COALESCE(?, document_link), ${descField} = COALESCE(?, ${descField}), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ? AND deleted_at IS NULL`
+                    `UPDATE ${table} SET category = COALESCE(?, category), document_link = COALESCE(?, document_link), ${descField} = COALESCE(?, ${descField}), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?${hasDeletedAt ? ' AND deleted_at IS NULL' : ''}`
                   ).bind(item.category || null, item.document_link || null, item.description || null, oldRow.id),
                   buildAuditStatement(env, user, 'UPDATE', moduleKey, oldRow.id, oldRow, afterRow, { source: 'import' }, 'SUCCESS', true),
                 ],
@@ -325,15 +329,17 @@ async function handleTable(request, env, origin, table, path) {
 
   if (idMatch) {
     const id = idMatch[1];
+    const hasDeletedAt = await hasTableColumn(env.DB, table, 'deleted_at');
+    const delClause = hasDeletedAt ? ' AND deleted_at IS NULL' : '';
     const extraWhere = table === 'sop' ? " AND (category != 'sop_bundle' OR category IS NULL)" : "";
     if (request.method === 'GET') {
-      const row = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ? AND deleted_at IS NULL${extraWhere}`).bind(id).first();
+      const row = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?${delClause}${extraWhere}`).bind(id).first();
       return row ? ok(row, 200, origin) : notFound(origin);
     }
     if (request.method === 'PUT') {
       let body; try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
       if (!body || typeof body !== 'object' || Array.isArray(body)) return error('Payload must be a JSON object', 400, origin);
-      const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ? AND deleted_at IS NULL${extraWhere}`).bind(id).first();
+      const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?${delClause}${extraWhere}`).bind(id).first();
       if (!existing) return notFound(origin);
       const { name, category, document_link, description } = body;
       const fieldErr = firstFieldError(body, [
@@ -348,7 +354,7 @@ async function handleTable(request, env, origin, table, path) {
       }
       const descField = table === 'sop' ? 'notes' : 'description';
       const updateStmt = env.DB.prepare(
-        `UPDATE ${table} SET name = COALESCE(?, name), category = COALESCE(?, category), document_link = COALESCE(?, document_link), ${descField} = COALESCE(?, ${descField}), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ? AND deleted_at IS NULL${extraWhere}`
+        `UPDATE ${table} SET name = COALESCE(?, name), category = COALESCE(?, category), document_link = COALESCE(?, document_link), ${descField} = COALESCE(?, ${descField}), updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?${delClause}${extraWhere}`
       ).bind(name || null, category || null, document_link || null, description || null, id);
       const newData = {
         ...existing,
@@ -365,16 +371,24 @@ async function handleTable(request, env, origin, table, path) {
     }
     if (request.method === 'DELETE') {
       if (!hasPermission(user, moduleKey, 'delete')) return forbidden(origin);
-      const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ? AND deleted_at IS NULL${extraWhere}`).bind(id).first();
+      const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?${delClause}${extraWhere}`).bind(id).first();
       if (!existing) return notFound(origin);
-      const deletedAtIso = new Date().toISOString();
-      const delStmt = env.DB.prepare(
-        `UPDATE ${table} SET deleted_at = ?, updated_at = ?, row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ? AND deleted_at IS NULL${extraWhere}`
-      ).bind(deletedAtIso, deletedAtIso, id);
-      const auditStmt = buildSoftDeleteRecordAuditStatement(env, user, moduleKey, table, 'id', 'deleted_at', deletedAtIso, existing);
-      const batchRes = await env.DB.batch([delStmt, auditStmt]);
-      const changes = Number(batchRes?.[0]?.meta?.changes ?? batchRes?.[0]?.changes ?? 0);
-      if (changes === 0) return notFound(origin);
+      if (hasDeletedAt) {
+        const deletedAtIso = new Date().toISOString();
+        const delStmt = env.DB.prepare(
+          `UPDATE ${table} SET deleted_at = ?, updated_at = ?, row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ? AND deleted_at IS NULL${extraWhere}`
+        ).bind(deletedAtIso, deletedAtIso, id);
+        const auditStmt = buildSoftDeleteRecordAuditStatement(env, user, moduleKey, table, 'id', 'deleted_at', deletedAtIso, existing);
+        const batchRes = await env.DB.batch([delStmt, auditStmt]);
+        const changes = Number(batchRes?.[0]?.meta?.changes ?? batchRes?.[0]?.changes ?? 0);
+        if (changes === 0) return notFound(origin);
+      } else {
+        const delStmt = env.DB.prepare(`DELETE FROM ${table} WHERE id = ?${extraWhere}`).bind(id);
+        const auditStmt = buildAuditStatement(env, user, 'DELETE', moduleKey, id, existing, null, null, 'SUCCESS', true);
+        const batchRes = await env.DB.batch([delStmt, auditStmt]);
+        const changes = Number(batchRes?.[0]?.meta?.changes ?? batchRes?.[0]?.changes ?? 0);
+        if (changes === 0) return notFound(origin);
+      }
       return ok({ message: 'Deleted' }, 200, origin, undefined, { 'X-Audit-Batched': 'true' });
     }
   }
@@ -618,21 +632,27 @@ async function handleOptions(request, env, origin) {
   const user = await authenticate(request, env);
   if (!user) return unauthorized(origin);
   if (!hasPermission(user, 'options', 'read')) return forbidden(origin);
-  const rows = await env.DB.prepare('SELECT category, value FROM validation_options ORDER BY value').all();
-  
+
   const data = {
     pic: [],
     activity: [],
     quarter: [],
     pkwt: []
   };
-  
-  (rows.results || []).forEach(r => {
-    if (data[r.category]) {
-      data[r.category].push(r.value);
+
+  if (await hasTable(env.DB, 'validation_options')) {
+    try {
+      const rows = await env.DB.prepare('SELECT category, value FROM validation_options ORDER BY value').all();
+      (rows.results || []).forEach(r => {
+        if (data[r.category]) {
+          data[r.category].push(r.value);
+        }
+      });
+    } catch {
+      // Fallback gracefully if validation_options table is absent
     }
-  });
-  
+  }
+
   return ok(data, 200, origin);
 }
 
@@ -645,20 +665,25 @@ async function handleSopBundle(request, env, origin, path) {
   const isOatFixtureKey = isStagingOatSopBundleKey(key, env);
   if (!SOP_BUNDLE_KEYS.has(key) && !isOatFixtureKey) return error('Unknown SOP bundle key', 400, origin);
 
+  const hasDescCol = await hasTableColumn(env.DB, 'sop', 'description');
+  const hasDeletedAt = await hasTableColumn(env.DB, 'sop', 'deleted_at');
+  const bundleCol = hasDescCol ? 'description' : 'notes';
+  const delClause = hasDeletedAt ? ' AND deleted_at IS NULL' : '';
+
   if (request.method === 'GET') {
     // Phase 5.48: bundle content is internal reference data; authentication + read required.
     const user = await authenticate(request, env);
     if (!user) return unauthorized(origin);
     if (!hasPermission(user, 'sop', 'read')) return forbidden(origin);
-    const row = await env.DB.prepare("SELECT description FROM sop WHERE name = ? AND category = 'sop_bundle' AND deleted_at IS NULL LIMIT 1")
+    const row = await env.DB.prepare(`SELECT ${bundleCol} as bundle_data FROM sop WHERE name = ? AND category = 'sop_bundle'${delClause} LIMIT 1`)
       .bind(key).first();
-    if (!row || !row.description) {
+    if (!row || !row.bundle_data) {
       return ok(null, 200, origin);
     }
     try {
-      return ok(JSON.parse(row.description), 200, origin);
+      return ok(JSON.parse(row.bundle_data), 200, origin);
     } catch {
-      return ok(row.description, 200, origin);
+      return ok(row.bundle_data, 200, origin);
     }
   }
 
@@ -691,9 +716,9 @@ async function handleSopBundle(request, env, origin, path) {
     const existing = await env.DB.prepare("SELECT * FROM sop WHERE name = ? AND category = 'sop_bundle' LIMIT 1")
       .bind(key).first();
     if (existing) {
-      const wasDeleted = existing.deleted_at !== null && existing.deleted_at !== undefined;
+      const wasDeleted = hasDeletedAt && existing.deleted_at !== null && existing.deleted_at !== undefined;
       const mutStmt = env.DB.prepare(
-        "UPDATE sop SET description = ?, deleted_at = NULL, updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?"
+        `UPDATE sop SET ${bundleCol} = ?${hasDeletedAt ? ', deleted_at = NULL' : ''}, updated_at = datetime('now'), row_version = COALESCE(row_version, 0) + 1, last_sync_source = 'FCMS' WHERE id = ?`
       ).bind(serialized, existing.id);
       const auditStmt = buildAuditStatement(
         env,
@@ -701,8 +726,8 @@ async function handleSopBundle(request, env, origin, path) {
         wasDeleted ? 'CREATE' : 'UPDATE',
         'sop',
         key,
-        wasDeleted ? null : { id: existing.id, name: existing.name, category: existing.category, description: existing.description },
-        { id: existing.id, name: key, category: 'sop_bundle', description: serialized },
+        wasDeleted ? null : { id: existing.id, name: existing.name, category: existing.category, [bundleCol]: existing[bundleCol] },
+        { id: existing.id, name: key, category: 'sop_bundle', [bundleCol]: serialized },
         { bundle_key: key, restored: wasDeleted },
         'SUCCESS',
         true
@@ -710,9 +735,9 @@ async function handleSopBundle(request, env, origin, path) {
       await env.DB.batch([mutStmt, auditStmt]);
     } else {
       const insertStmt = env.DB.prepare(
-        "INSERT INTO sop (name, category, description, created_at, updated_at) VALUES (?, 'sop_bundle', ?, datetime('now'), datetime('now'))"
+        `INSERT INTO sop (name, category, ${bundleCol}, created_at, updated_at) VALUES (?, 'sop_bundle', ?, datetime('now'), datetime('now'))`
       ).bind(key, serialized);
-      const auditStmt = buildCreateAuditStatement(env, user, 'sop', key, { name: key, category: 'sop_bundle', description: serialized }, { bundle_key: key });
+      const auditStmt = buildCreateAuditStatement(env, user, 'sop', key, { name: key, category: 'sop_bundle', [bundleCol]: serialized }, { bundle_key: key });
       await env.DB.batch([insertStmt, auditStmt]);
     }
     return ok({ success: true, key }, 200, origin, undefined, { 'X-Audit-Batched': 'true' });
@@ -720,15 +745,14 @@ async function handleSopBundle(request, env, origin, path) {
 
   if (request.method === 'DELETE') {
     if (!hasPermission(user, 'sop', 'delete')) return forbidden(origin);
-    const existing = await env.DB.prepare("SELECT * FROM sop WHERE name = ? AND category = 'sop_bundle' AND deleted_at IS NULL LIMIT 1").bind(key).first();
+    const existing = await env.DB.prepare(`SELECT * FROM sop WHERE name = ? AND category = 'sop_bundle'${delClause} LIMIT 1`).bind(key).first();
     if (!existing) return notFound(origin);
-    if (isOatFixtureKey) {
-      // Staging-only OAT fixture cleanup: hard-delete so zero residue rows remain in sop table.
+    if (isOatFixtureKey || !hasDeletedAt) {
       const delStmt = env.DB.prepare(
         "DELETE FROM sop WHERE id = ? AND name = ? AND category = 'sop_bundle'"
       ).bind(existing.id, key);
       const { executeAtomicDelete } = await import('../utils/audit.js');
-      await executeAtomicDelete(env, user, delStmt, 'sop', key, existing, { bundle_key: key, oat_fixture_cleanup: true });
+      await executeAtomicDelete(env, user, delStmt, 'sop', key, existing, { bundle_key: key, oat_fixture_cleanup: isOatFixtureKey });
       return ok({ success: true, key, hardDeleted: true }, 200, origin, undefined, { 'X-Audit-Batched': 'true' });
     }
     const deletedAtIso = new Date().toISOString();

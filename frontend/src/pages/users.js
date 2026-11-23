@@ -27,7 +27,7 @@ export async function renderUsers(container) {
       { key: 'username', label: 'Username' },
       { key: 'email', label: 'Email' },
       { key: 'role', label: 'Role', render: v => {
-        const colors = { superadmin: 'badge-danger', fc_specialist_leader: 'badge-info' };
+        const colors = { superadmin: 'badge-danger', fc_specialist_leader: 'badge-info', editor_khusus: 'badge-info', viewer: 'badge-success' };
         return `<span class="badge ${colors[v] || 'badge-neutral'}">${escapeHtml(v)}</span>`;
       }},
       { key: 'is_active', label: 'Status', render: v => v ? '<span class="badge badge-success">Aktif</span>' : '<span class="badge badge-neutral">Nonaktif</span>' },
@@ -47,10 +47,14 @@ export async function renderUsers(container) {
         value: 'fc_specialist_leader',
         label: 'FC Specialist / Leader (View All + Input & Edit Lembur & Issue - Maks. 2 Aktif)'
       };
+      const VIEWER_OPTION = {
+        value: 'viewer',
+        label: 'Viewer (Read-Only Semua Modul Aktif - Maks. 5 Aktif)'
+      };
       const roleOptions = isEdit && currentRole === 'superadmin'
-        ? [SUPERADMIN_OPTION, FC_LEADER_OPTION]
-        : [FC_LEADER_OPTION, SUPERADMIN_OPTION];
-      const defaultRoleValue = isEdit && (currentRole === 'superadmin' || currentRole === 'fc_specialist_leader')
+        ? [SUPERADMIN_OPTION, FC_LEADER_OPTION, VIEWER_OPTION]
+        : [FC_LEADER_OPTION, VIEWER_OPTION, SUPERADMIN_OPTION];
+      const defaultRoleValue = isEdit && (currentRole === 'superadmin' || currentRole === 'fc_specialist_leader' || currentRole === 'viewer')
         ? currentRole
         : 'fc_specialist_leader';
       return [

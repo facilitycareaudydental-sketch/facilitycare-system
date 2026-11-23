@@ -34,8 +34,11 @@ import { mapDBToPayload } from './utils/sync_mapper.js';
 import { handleMonitoring } from './routes/monitoring.js';
 import { resolveManagementBranchIds } from './utils/branchMaster.js';
 import { options, error, ok, forbidden, unauthorized, resolveAllowedOrigin, isAllowedOrigin, corsHeaders } from './utils/response.js';
-import { authenticate, hasPermission, verifyToken, fetchAuthUserWithSession, isSessionRecordValid } from './utils/auth.js';
+import { authenticate, hasPermission, verifyToken, fetchAuthUserWithSession, isSessionRecordValid, VIEWER_ROLES, maskViewerData } from './utils/auth.js';
 import { sanitizeAuditData } from './utils/audit.js';
+import { hasTable, hasTableColumn } from './utils/schemaCompat.js';
+import { ARCHIVABLE_ROUTE_MAP, handleEntityArchiveRestore, canViewArchivedRecords } from './utils/archive.js';
+import { checkTier3GeneralApiRateLimit } from './utils/rate_limit.js';
 
 export const MAX_BULK_IDS = 100;
 
@@ -221,42 +224,17 @@ export default {
             perm: 'schedule',
             maxLimit: MAX_BULK_IDS
           },
-          '/api/one-on-one/bulk': {
-            table: 'one_on_one',
-            primaryKey: 'id',
-            strategy: 'soft',
-            softDeleteCol: 'deleted_at',
-            updatedAtCol: 'updated_at',
-            trackSyncVersion: true,
-            outboxEntity: 'One on One',
-            perm: 'one_on_one',
-            maxLimit: MAX_BULK_IDS
-          },
           '/api/training/bulk': { table: 'training', primaryKey: 'id', strategy: 'hard', calModule: 'training', perm: 'training', maxLimit: MAX_BULK_IDS },
-          '/api/relievers/bulk': {
-            table: 'relievers',
-            primaryKey: 'id',
-            strategy: 'soft',
-            softDeleteCol: 'deleted_at',
-            updatedAtCol: 'updated_at',
-            trackSyncVersion: true,
-            outboxEntity: 'Jadwal Reliefer',
-            calModule: 'relievers',
-            perm: 'relievers',
-            maxLimit: MAX_BULK_IDS
-          },
           '/api/sp/bulk': { table: 'sp_data', primaryKey: 'id', strategy: 'hard', perm: 'sp', maxLimit: 100 },
           '/api/mutasi/bulk': { table: 'mutasi_data', primaryKey: 'id', strategy: 'hard', perm: 'mutasi', maxLimit: 100 },
           '/api/sop/bulk': { table: 'sop', primaryKey: 'id', strategy: 'soft', softDeleteCol: 'deleted_at', updatedAtCol: 'updated_at', trackSyncVersion: true, outboxEntity: 'Master SOP', perm: 'sop', maxLimit: 100 },
           '/api/checklist/bulk': { table: 'master_checklist', primaryKey: 'id', strategy: 'soft', softDeleteCol: 'deleted_at', updatedAtCol: 'updated_at', trackSyncVersion: true, outboxEntity: 'Master Checklist', perm: 'checklist', maxLimit: 100 },
-          '/api/forms/bulk': { table: 'master_forms', primaryKey: 'id', strategy: 'hard', perm: 'forms', maxLimit: 100 },
           '/api/pic/bulk': { table: 'pic_list', primaryKey: 'id', strategy: 'hard', perm: 'pic', maxLimit: 100 },
           '/api/users/bulk': { table: 'users', primaryKey: 'id', strategy: 'hard', customGuard: 'no_superadmin', perm: 'users', maxLimit: 100 },
           '/api/contracts/bulk': { table: 'contracts', primaryKey: 'id', strategy: 'soft', softDeleteCol: 'deleted_at', updatedAtCol: 'updated_at', calModule: 'contracts', perm: 'contracts', maxLimit: 100, managementScope: true },
           '/api/reports/cleaning/bulk': { table: 'cleaning_reports', primaryKey: 'id', strategy: 'soft', softDeleteCol: 'deleted_at', updatedAtCol: 'updated_at', trackSyncVersion: true, outboxEntity: 'GC-DC', perm: 'reports', maxLimit: 100 },
           '/api/reports/fogging/bulk': { table: 'fogging_reports', primaryKey: 'id', strategy: 'soft', softDeleteCol: 'deleted_at', updatedAtCol: 'updated_at', trackSyncVersion: true, outboxEntity: 'Fogging', perm: 'reports', maxLimit: 100 },
           '/api/reports/basecamp/bulk': { table: 'basecamp_reports', primaryKey: 'id', strategy: 'soft', softDeleteCol: 'deleted_at', updatedAtCol: 'updated_at', trackSyncVersion: true, outboxEntity: 'Basecamp', perm: 'reports', maxLimit: 100 },
-          '/api/reports/supply/bulk': { table: 'supply_requests', primaryKey: 'id', strategy: 'soft', softDeleteCol: 'deleted_at', updatedAtCol: 'updated_at', trackSyncVersion: true, outboxEntity: 'Chemical', perm: 'reports', maxLimit: 100 },
           '/api/reports/inspection/bulk': { table: 'inspection_reports', primaryKey: 'id', strategy: 'soft', softDeleteCol: 'deleted_at', updatedAtCol: 'updated_at', trackSyncVersion: true, outboxEntity: 'Hygiene', perm: 'reports', maxLimit: 100 },
           '/api/overtime/bulk': { table: 'overtime_records', primaryKey: 'id', strategy: 'hard', perm: 'overtime', maxLimit: 100 },
           '/api/os-migrations/bulk': { table: 'os_migrations', primaryKey: 'id', strategy: 'hard', perm: 'os_migrations', maxLimit: 100 },
@@ -264,8 +242,14 @@ export default {
           '/api/dac/bulk': { table: 'master_dac_standards', primaryKey: 'id', strategy: 'hard', perm: 'dac', maxLimit: 100 }
         };
 
-        const config = moduleMap[path];
-        if (!config) return error('Invalid bulk delete module', 400, origin);
+        const rawConfig = moduleMap[path];
+        if (!rawConfig) return error('Invalid bulk delete module', 400, origin);
+        const hasSoftCol = rawConfig.strategy === 'soft' && rawConfig.softDeleteCol
+          ? await hasTableColumn(env.DB, rawConfig.table, rawConfig.softDeleteCol)
+          : false;
+        const config = (rawConfig.strategy === 'soft' && !hasSoftCol)
+          ? { ...rawConfig, strategy: 'hard', outboxEntity: undefined }
+          : rawConfig;
         if (!hasPermission(user, config.perm, 'delete')) return forbidden(origin);
 
         let body;
@@ -402,38 +386,16 @@ export default {
           }
 
           // 2. Prepare single atomic batch for active IDs based on module deletion strategy
+          // Chunk primary UPDATE/DELETE into <= 50 IDs per statement so bound params stay <= 52 (well below D1's 100-variable limit)
           const {
             buildSoftDeleteRecordAuditStatement,
             buildBulkHardDeleteAuditStatements
           } = await import('./utils/audit.js');
-          const placeholders = activeIds.map(() => '?').join(',');
           const batchDeletedAt = new Date().toISOString();
           const bulkCorrelationId = crypto.randomUUID();
-          let deleteSql;
-          let deleteBinds;
-          if (config.strategy === 'soft') {
-            const setClauses = [
-              `${config.softDeleteCol} = ?`,
-              `${config.updatedAtCol} = ?`
-            ];
-            if (config.isActiveCol) {
-              setClauses.push(`${config.isActiveCol} = 0`);
-            }
-            if (config.trackSyncVersion) {
-              setClauses.push(`row_version = COALESCE(row_version, 0) + 1`);
-              setClauses.push(`last_sync_source = 'FCMS'`);
-            }
-            deleteSql = `UPDATE ${config.table} SET ${setClauses.join(', ')} WHERE ${config.primaryKey} IN (${placeholders}) AND ${config.softDeleteCol} IS NULL`;
-            deleteBinds = [batchDeletedAt, batchDeletedAt, ...activeIds];
-          } else if (config.customGuard === 'no_superadmin') {
-            deleteSql = `DELETE FROM ${config.table} WHERE ${config.primaryKey} IN (${placeholders}) AND LOWER(role) != 'superadmin'`;
-            deleteBinds = [...activeIds];
-          } else {
-            deleteSql = `DELETE FROM ${config.table} WHERE ${config.primaryKey} IN (${placeholders})`;
-            deleteBinds = [...activeIds];
-          }
-
-          const batchStmts = [env.DB.prepare(deleteSql).bind(...deleteBinds)];
+          const MUTATION_CHUNK_SIZE = 50;
+          const batchStmts = [];
+          const mutationStmtIndices = [];
           const batchAuditMeta = {
             batch_id: bulkCorrelationId,
             batch_size: activeIds.length,
@@ -443,45 +405,78 @@ export default {
             strategy: config.strategy
           };
 
-          // Enqueue chunked multi-row outbox DELETE events immediately after stmt 0 so (SELECT changes()) > 0 reflects mutation count
-          if (config.outboxEntity) {
-            const outboxEntries = activeRows.map(row => {
-              const nextRowVersion = (row.row_version !== null && row.row_version !== undefined && !isNaN(Number(row.row_version)))
-                ? Number(row.row_version) + 1
-                : 1;
-              const deletedRecord = {
-                ...row,
-                deleted_at: batchDeletedAt,
-                last_sync_source: 'FCMS',
-                row_version: nextRowVersion,
-                ...(config.isActiveCol ? { [config.isActiveCol]: 0 } : {}),
-                ...(config.table === 'branches'
-                  ? { branch_code: row.code, branch_name: row.name || row.full_name }
-                  : {})
-              };
-              return {
-                entityName: config.outboxEntity,
-                entityId: row[config.primaryKey],
-                action: 'DELETE',
-                payload: mapDBToPayload(config.outboxEntity, deletedRecord),
-                correlationId: bulkCorrelationId
-              };
-            });
-            batchStmts.push(
-              ...buildBulkOutboxStatements(env, outboxEntries, { chunkSize: 15, requireChanges: true })
-            );
-          }
+          for (let i = 0; i < activeRows.length; i += MUTATION_CHUNK_SIZE) {
+            const rowChunk = activeRows.slice(i, i + MUTATION_CHUNK_SIZE);
+            const idChunk = rowChunk.map(r => Number(r[config.primaryKey]));
+            const chunkPlaceholders = idChunk.map(() => '?').join(',');
+            let deleteSql;
+            let deleteBinds;
 
-          // For hard deletes without outbox, insert chunked per-record audit statements right after DELETE
-          if (config.strategy === 'hard') {
-            batchStmts.push(
-              ...buildBulkHardDeleteAuditStatements(env, user, config.perm, activeRows, config.primaryKey, batchAuditMeta)
-            );
+            if (config.strategy === 'soft') {
+              const setClauses = [
+                `${config.softDeleteCol} = ?`,
+                `${config.updatedAtCol} = ?`
+              ];
+              if (config.isActiveCol) {
+                setClauses.push(`${config.isActiveCol} = 0`);
+              }
+              if (config.trackSyncVersion) {
+                setClauses.push(`row_version = COALESCE(row_version, 0) + 1`);
+                setClauses.push(`last_sync_source = 'FCMS'`);
+              }
+              deleteSql = `UPDATE ${config.table} SET ${setClauses.join(', ')} WHERE ${config.primaryKey} IN (${chunkPlaceholders}) AND ${config.softDeleteCol} IS NULL`;
+              deleteBinds = [batchDeletedAt, batchDeletedAt, ...idChunk];
+            } else if (config.customGuard === 'no_superadmin') {
+              deleteSql = `DELETE FROM ${config.table} WHERE ${config.primaryKey} IN (${chunkPlaceholders}) AND LOWER(role) != 'superadmin'`;
+              deleteBinds = [...idChunk];
+            } else {
+              deleteSql = `DELETE FROM ${config.table} WHERE ${config.primaryKey} IN (${chunkPlaceholders})`;
+              deleteBinds = [...idChunk];
+            }
+
+            mutationStmtIndices.push(batchStmts.length);
+            batchStmts.push(env.DB.prepare(deleteSql).bind(...deleteBinds));
+
+            // Enqueue chunked multi-row outbox DELETE events immediately after each mutation chunk so (SELECT changes()) > 0 reflects mutation count
+            if (config.outboxEntity) {
+              const outboxEntries = rowChunk.map(row => {
+                const nextRowVersion = (row.row_version !== null && row.row_version !== undefined && !isNaN(Number(row.row_version)))
+                  ? Number(row.row_version) + 1
+                  : 1;
+                const deletedRecord = {
+                  ...row,
+                  deleted_at: batchDeletedAt,
+                  last_sync_source: 'FCMS',
+                  row_version: nextRowVersion,
+                  ...(config.isActiveCol ? { [config.isActiveCol]: 0 } : {}),
+                  ...(config.table === 'branches'
+                    ? { branch_code: row.code, branch_name: row.name || row.full_name }
+                    : {})
+                };
+                return {
+                  entityName: config.outboxEntity,
+                  entityId: row[config.primaryKey],
+                  action: 'DELETE',
+                  payload: mapDBToPayload(config.outboxEntity, deletedRecord),
+                  correlationId: bulkCorrelationId
+                };
+              });
+              batchStmts.push(
+                ...buildBulkOutboxStatements(env, outboxEntries, { chunkSize: 15, requireChanges: true })
+              );
+            }
+
+            // For hard deletes without outbox, insert chunked per-record audit statements right after each DELETE chunk
+            if (config.strategy === 'hard') {
+              batchStmts.push(
+                ...buildBulkHardDeleteAuditStatements(env, user, config.perm, rowChunk, config.primaryKey, batchAuditMeta)
+              );
+            }
           }
 
           // Delete associated calendar events only for modules where single delete removes them,
           // chunked safely within D1's 100 bound-parameter limit and scoped to mutated records.
-          if (config.calModule) {
+          if (config.calModule && (await hasTable(env.DB, 'calendar_events'))) {
             try {
               const CAL_CHUNK_SIZE = 50; // 1 + 50 = 51 bind params <= 100 D1 limit
               for (let i = 0; i < activeIds.length; i += CAL_CHUNK_SIZE) {
@@ -543,17 +538,18 @@ export default {
           // Atomic single D1 execution: mutation + audit log + outbox + calendar/session cleanup in ONE transaction
           const batchRes = await env.DB.batch(batchStmts);
 
-          // Fail-closed verification of changes metadata from primary mutation statement
-          let rawChanges = batchRes?.[0]?.meta?.changes;
-          if (rawChanges === undefined || rawChanges === null) {
-            rawChanges = batchRes?.[0]?.changes;
+          // Fail-closed verification of changes metadata across all primary mutation statement chunks
+          let changedCount = 0;
+          for (const stmtIdx of mutationStmtIndices) {
+            let rawChanges = batchRes?.[stmtIdx]?.meta?.changes;
+            if (rawChanges === undefined || rawChanges === null) {
+              rawChanges = batchRes?.[stmtIdx]?.changes;
+            }
+            if (typeof rawChanges !== 'number' || isNaN(rawChanges) || rawChanges < 0) {
+              throw new Error('DATABASE_MUTATION_UNVERIFIED: Mutation changes metadata missing or invalid from D1 execution');
+            }
+            changedCount += rawChanges;
           }
-
-          if (typeof rawChanges !== 'number' || isNaN(rawChanges) || rawChanges < 0) {
-            throw new Error('DATABASE_MUTATION_UNVERIFIED: Mutation changes metadata missing or invalid from D1 execution');
-          }
-
-          const changedCount = rawChanges;
 
           if (changedCount === 0) {
             return ok({ 
@@ -630,6 +626,35 @@ export default {
         );
       }
 
+      // ── Tier 3 General API Rate Limit (120 req/min/user across all roles including superadmin) ──
+      if (!path.startsWith('/api/auth') && !path.startsWith('/api/sync/webhook') && env?.ENFORCE_TIER3_RATE_LIMIT === true) {
+        const rlUser = await authenticate(request, env);
+        if (rlUser) {
+          const tier3 = await checkTier3GeneralApiRateLimit(rlUser, env, origin);
+          if (!tier3.allowed) return tier3.response;
+        }
+      }
+
+      // ── Global Single Archive Read Guard (?archived=true) & Unified Archive/Restore Dispatch ──
+      if (request.method === 'GET' && url.searchParams.get('archived') === 'true') {
+        const archUser = await authenticate(request, env);
+        if (!archUser) return unauthorized(origin);
+        if (!canViewArchivedRecords(archUser)) return forbidden(origin);
+      }
+
+      const archiveRouteMatch = path.match(/^\/api\/(employees|contracts|branches|issues|schedule|sop|checklist|reports\/(?:inspection|cleaning|fogging|basecamp))\/(\d+)\/(archive|restore)$/);
+      if (archiveRouteMatch && (request.method === 'PATCH' || request.method === 'POST')) {
+        const archUser = await authenticate(request, env);
+        if (!archUser) return unauthorized(origin);
+        const routeSpec = ARCHIVABLE_ROUTE_MAP[archiveRouteMatch[1]];
+        if (!routeSpec) return error('Not found', 404, origin);
+        return handleEntityArchiveRestore(env, origin, archUser, {
+          ...routeSpec,
+          id: archiveRouteMatch[2],
+          mode: archiveRouteMatch[3]
+        });
+      }
+
       let response;
       if (path.startsWith('/api/auth')) response = await handleAuth(request, env, origin);
       else if (path.startsWith('/api/users')) response = await handleUsers(request, env, origin);
@@ -638,9 +663,7 @@ export default {
       else if (path.startsWith('/api/contracts')) response = await handleContracts(request, env, origin);
       else if (path.startsWith('/api/schedule')) response = await handleSchedule(request, env, origin);
       else if (path.startsWith('/api/issues')) response = await handleIssues(request, env, origin);
-      else if (path.startsWith('/api/one-on-one')) response = await handleOneOnOne(request, env, origin);
       else if (path.startsWith('/api/training')) response = await handleTraining(request, env, origin);
-      else if (path.startsWith('/api/relievers')) response = await handleRelievers(request, env, origin);
       else if (path.startsWith('/api/reports')) response = await handleReports(request, env, origin);
       else if (path.startsWith('/api/dashboard')) response = await handleDashboard(request, env, origin);
       else if (path.startsWith('/api/import')) response = await handleImport(request, env, origin);
@@ -651,7 +674,7 @@ export default {
       else if (path.startsWith('/api/os-migrations')) response = await handleOSMigrations(request, env, origin);
       else if (path.startsWith('/api/dac')) response = await handleDAC(request, env, origin);
       else if (path.startsWith('/api/audit-logs')) response = await (await import('./routes/audit_logs.js')).handleAuditLogs(request, env, origin);
-      else if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || path.startsWith('/api/forms') || path.startsWith('/api/pic') || path.startsWith('/api/options')) response = await handleMisc(request, env, origin);
+      else if (path.startsWith('/api/sop') || path.startsWith('/api/checklist') || path.startsWith('/api/pic') || path.startsWith('/api/options')) response = await handleMisc(request, env, origin);
       
       // Post-processing for Audit Logging (Handles both Success and Authorized Failed Mutations)
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method) && !path.startsWith('/api/auth') && response) {
@@ -696,7 +719,29 @@ export default {
          }
       }
 
-      if (response) return response;
+      if (response) {
+        // Central response-boundary Sensitive Data Masking for Viewer roles on JSON GET responses
+        const activeUser = request._fcmsAuthResult;
+        if (
+          request.method === 'GET' &&
+          activeUser &&
+          VIEWER_ROLES.has(String(activeUser.role || '').trim().toLowerCase()) &&
+          response.status === 200 &&
+          (response.headers?.get?.('Content-Type') || '').includes('application/json')
+        ) {
+          try {
+            const bodyObj = await response.clone().json();
+            if (bodyObj && typeof bodyObj === 'object' && 'data' in bodyObj) {
+              bodyObj.data = maskViewerData(bodyObj.data, activeUser.role);
+              return new Response(JSON.stringify(bodyObj), {
+                status: response.status,
+                headers: response.headers
+              });
+            }
+          } catch {}
+        }
+        return response;
+      }
       
       if (path === '/api/sync/google-sheets' && request.method === 'POST') {
         const user = await authenticate(request, env);

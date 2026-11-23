@@ -24,7 +24,7 @@ const IMPORT_ORDER = [
   'validation', 'employees', 'contracts', 'schedule', 'issues',
   'training', 'checklist', 'sop',
   'inspection', 'cleaning', 'fogging', 'basecamp',
-  'sp', 'mutasi', 'forms',
+  'sp', 'mutasi',
 ];
 
 export function renderImportPage(container) {

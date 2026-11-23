@@ -1,0 +1,46 @@
+# ==============================================================================
+# FCMS STAGING WRANGLER CONFIGURATION TEMPLATE (API WORKSPACE)
+# ──────────────────────────────────────────────────────────────────────────────
+# INERT TEMPLATE: DO NOT DEPLOY UNTIL OFFICIAL STAGING IDENTITY IS PROVISIONED
+# This file serves as the isolated blueprint for FCMS Staging API environment.
+#
+# MANDATORY PROVISIONING STEPS BEFORE USE:
+# 1. Obtain official Cloudflare Account ID for staging.
+# 2. Provision 'fcms-staging-db' via Cloudflare D1 dashboard/CLI.
+# 3. Replace UNASSIGNED_STAGING_ACCOUNT_ID and UNASSIGNED_STAGING_DATABASE_ID.
+# 4. Copy to api/wrangler.staging.toml (never commit live secrets).
+# ==============================================================================
+
+name = "fm-operations-api-staging"
+# Replace with official staging account_id (DO NOT use Production: 293440e04e5d0c8073e7e2893750b527)
+account_id = "UNASSIGNED_STAGING_ACCOUNT_ID"
+main = "src/index.js"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fcms-staging-db"
+# Replace with official staging database_id (DO NOT use Production: 62b4b6e5-a718-40bc-9aab-6a700b82a9c9)
+database_id = "UNASSIGNED_STAGING_DATABASE_ID"
+
+# Note: KV SESSIONS binding is unreferenced in code; omitted from staging to avoid unused cloud bindings.
+
+[vars]
+ENVIRONMENT = "staging"
+CORS_ORIGIN = "https://staging.facilitycare-system.pages.dev"
+SYNC_MODE = "DRY_RUN"
+GOOGLE_SPREADSHEET_ID = "UNASSIGNED_STAGING_SPREADSHEET_ID"
+# Confidential secrets (JWT_SECRET, SYNC_WEBHOOK_SECRET) MUST NOT be placed in [vars].
+# Provision them as distinct staging encrypted secrets via:
+#   wrangler secret put JWT_SECRET --config api/wrangler.staging.toml
+#   wrangler secret put SYNC_WEBHOOK_SECRET --config api/wrangler.staging.toml
+
+[dev]
+port = 8788
+local_protocol = "http"
+
+# CRON TRIGGERS INERT IN STAGING TEMPLATE
+# Background sync outbox sweeper is disabled in staging by default to prevent unintended external pushes.
+# [triggers]
+# crons = []

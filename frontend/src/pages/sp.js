@@ -271,7 +271,7 @@ export async function renderSP(container) {
         font-weight: 600;
       }
       .sp-controls-panel {
-        background: #FFFFFF;
+        background: #172033;
         border: 1px solid #E2E8F0;
         border-radius: 16px;
         padding: 18px 20px;
@@ -308,13 +308,13 @@ export async function renderSP(container) {
         border: 1.5px solid #CBD5E1;
         border-radius: 10px;
         font-size: 0.9rem;
-        background: #F8FAFC;
+        background: #1B2940;
         transition: all 0.2s ease;
       }
       .sp-search-input:focus {
         outline: none;
         border-color: #2563EB;
-        background: #FFFFFF;
+        background: #172033;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
       .sp-filter-select {
@@ -322,7 +322,7 @@ export async function renderSP(container) {
         border: 1.5px solid #CBD5E1;
         border-radius: 10px;
         font-size: 0.88rem;
-        background: #F8FAFC;
+        background: #1B2940;
         color: #334155;
         font-weight: 500;
         cursor: pointer;
@@ -330,7 +330,7 @@ export async function renderSP(container) {
       .sp-filter-select:focus {
         outline: none;
         border-color: #2563EB;
-        background: #FFFFFF;
+        background: #172033;
       }
       .sp-filter-pills {
         display: flex;
@@ -339,9 +339,9 @@ export async function renderSP(container) {
         align-items: center;
       }
       .sp-pill {
-        border: 1px solid #E2E8F0;
-        background: #F8FAFC;
-        color: #475569;
+        border: 1px solid #29364B;
+        background: #172033;
+        color: #94A3B8;
         font-size: 0.82rem;
         font-weight: 600;
         padding: 6px 14px;
@@ -376,10 +376,10 @@ export async function renderSP(container) {
       .sp-view-toggle {
         display: inline-flex;
         align-items: center;
-        background: #F1F5F9;
+        background: #111827;
         padding: 3px;
         border-radius: 10px;
-        border: 1px solid #CBD5E1;
+        border: 1px solid #29364B;
         gap: 3px;
         flex-shrink: 0;
       }
@@ -401,18 +401,18 @@ export async function renderSP(container) {
         user-select: none;
       }
       .sp-view-btn:hover {
-        color: #0F172A;
+        color: #F8FAFC;
         background: rgba(255, 255, 255, 0.5);
       }
       .sp-view-btn.active {
-        background: #FFFFFF;
+        background: #172033;
         color: #2563EB;
         font-weight: 700;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
       }
       /* Modern Table View */
       .sp-table-card {
-        background: #FFFFFF;
+        background: #172033;
         border: 1px solid #E2E8F0;
         border-radius: 16px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -430,7 +430,7 @@ export async function renderSP(container) {
         min-width: 900px;
       }
       .sp-table th {
-        background: #F8FAFC;
+        background: #111827;
         padding: 13px 16px;
         font-size: 0.76rem;
         font-weight: 700;
@@ -443,12 +443,12 @@ export async function renderSP(container) {
       .sp-table td {
         padding: 13px 16px;
         font-size: 0.88rem;
-        color: #1E293B;
+        color: #F8FAFC;
         border-bottom: 1px solid #F1F5F9;
         vertical-align: middle;
       }
       .sp-table tbody tr:hover td {
-        background: #F8FAFC;
+        background: #22314A;
       }
       .sp-table tbody tr:last-child td {
         border-bottom: none;
@@ -460,7 +460,7 @@ export async function renderSP(container) {
         gap: 20px;
       }
       .sp-card {
-        background: #FFFFFF;
+        background: #172033;
         border: 1px solid #E2E8F0;
         border-radius: 16px;
         padding: 22px;
@@ -509,8 +509,8 @@ export async function renderSP(container) {
         flex-shrink: 0;
       }
       .sp-icon-btn {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
+        background: #1B2940;
+        border: 1px solid #29364B;
         color: #64748B;
         width: 32px;
         height: 32px;
@@ -523,7 +523,7 @@ export async function renderSP(container) {
       }
       .sp-icon-btn:hover {
         background: #EDF2F7;
-        color: #1E293B;
+        color: #F8FAFC;
         border-color: #CBD5E1;
       }
       .sp-icon-btn.delete:hover {
@@ -534,7 +534,7 @@ export async function renderSP(container) {
       .sp-empty-state {
         text-align: center;
         padding: 60px 20px;
-        background: #FFFFFF;
+        background: #172033;
         border-radius: 16px;
         border: 1px dashed #CBD5E1;
       }
@@ -1064,7 +1064,7 @@ export async function renderSP(container) {
         </div>
 
         <div class="sp-detail-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
+          <div style="background:#111827; border:1px solid #29364B; border-radius:10px; padding:12px;">
             <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Tingkat Sanksi</div>
             <span class="sp-type-badge" style="background:${typeMeta.bg}; color:${typeMeta.color}; border:1px solid ${typeMeta.border}; font-size:0.85rem;">
               <span>${typeMeta.icon}</span>
@@ -1072,7 +1072,7 @@ export async function renderSP(container) {
             </span>
           </div>
 
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
+          <div style="background:#111827; border:1px solid #29364B; border-radius:10px; padding:12px;">
             <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Status Masa Berlaku</div>
             <span class="sp-status-badge" style="background:${meta.bg}; color:${meta.color}; border:1px solid ${meta.border}; font-size:0.85rem;">
               <span>${meta.icon}</span>
@@ -1082,19 +1082,19 @@ export async function renderSP(container) {
         </div>
 
         <div class="sp-detail-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
+          <div style="background:#111827; border:1px solid #29364B; border-radius:10px; padding:12px;">
             <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:2px;">Tanggal Terbit SP</div>
             <div style="font-size:0.95rem; font-weight:700; color:#1E293B;">${formatDateIndo(item.tanggal)}</div>
           </div>
 
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
+          <div style="background:#111827; border:1px solid #29364B; border-radius:10px; padding:12px;">
             <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:2px;">Akhir Masa Berlaku</div>
             <div style="font-size:0.95rem; font-weight:700; color:#1E293B;">${formatDateIndo(item.akhir_sp)}</div>
           </div>
         </div>
 
         ${item.notes || item.description ? `
-          <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px;">
+          <div style="background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); border-radius:10px; padding:14px;">
             <div style="font-size:0.78rem; font-weight:700; color:#92400E; margin-bottom:4px;">📝 Catatan Pelanggaran / Pembinaan:</div>
             <div style="font-size:0.88rem; color:#78350F; line-height:1.5;">${item.notes || item.description}</div>
           </div>
@@ -1292,7 +1292,7 @@ export async function renderSP(container) {
                         </div>
                       </div>
 
-                      <div style="background:#F8FAFC; border-radius:10px; padding:10px 12px; margin-bottom:14px; font-size:0.82rem; display:flex; justify-content:space-between;">
+                      <div style="background:#111827; border-radius:10px; padding:10px 12px; margin-bottom:14px; font-size:0.82rem; display:flex; justify-content:space-between;">
                         <div>
                           <div style="color:#64748B; font-size:0.72rem; text-transform:uppercase; font-weight:600;">Tanggal Terbit</div>
                           <div style="font-weight:700; color:#1E293B;">${formatDateIndo(s.tanggal)}</div>
@@ -1308,7 +1308,7 @@ export async function renderSP(container) {
                       </p>
                     </div>
 
-                    <div style="padding-top:12px; border-top:1px solid #F1F5F9; display:flex; align-items:center; justify-content:space-between;">
+                    <div style="padding-top:12px; border-top:1px solid #29364B; display:flex; align-items:center; justify-content:space-between;">
                       <button class="btn btn-sm btn-ghost sp-detail-btn" style="border:1px solid #CBD5E1; border-radius:8px; font-weight:600; font-size:0.82rem; padding:6px 12px;" data-id="${s.id}">
                         👁️ Rincian BAP
                       </button>

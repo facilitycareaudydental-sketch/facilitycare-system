@@ -87,13 +87,13 @@ function ensureComboboxStyles() {
       height: 46px !important;
       min-height: 46px !important;
       padding: 0 38px 0 42px !important;
-      border: 1px solid #CBD5E1 !important;
+      border: 1px solid #29364B !important;
       border-radius: 12px !important;
       font-size: 0.95rem !important;
       font-family: inherit !important;
       font-weight: 500 !important;
-      color: #0F172A !important;
-      background: #FFFFFF !important;
+      color: #F8FAFC !important;
+      background: #1B2940 !important;
       outline: none !important;
       box-sizing: border-box !important;
       transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
@@ -106,8 +106,8 @@ function ensureComboboxStyles() {
     }
     .fc-emp-input:focus {
       border-color: #2563EB !important;
-      box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.12) !important;
-      background: #FFFFFF !important;
+      box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.2) !important;
+      background: #1B2940 !important;
     }
     .fc-emp-clear-btn {
       position: absolute;
@@ -118,8 +118,8 @@ function ensureComboboxStyles() {
       height: 22px;
       border-radius: 50%;
       border: none;
-      background: #E2E8F0;
-      color: #64748B;
+      background: #22314A;
+      color: #94A3B8;
       cursor: pointer;
       display: none;
       align-items: center;
@@ -131,8 +131,8 @@ function ensureComboboxStyles() {
       padding: 0;
     }
     .fc-emp-clear-btn:hover {
-      background: #CBD5E1;
-      color: #0F172A;
+      background: #29364B;
+      color: #F8FAFC;
     }
     .fc-emp-dropdown {
       position: absolute;
@@ -141,10 +141,10 @@ function ensureComboboxStyles() {
       right: 0;
       width: 100%;
       z-index: 1070;
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      background: #172033;
+      border: 1px solid #29364B;
       border-radius: 12px;
-      box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+      box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.3);
       max-height: 260px;
       overflow-y: auto;
       overscroll-behavior: contain;
@@ -162,16 +162,16 @@ function ensureComboboxStyles() {
       background: transparent;
     }
     .fc-emp-dropdown::-webkit-scrollbar-thumb {
-      background: #CBD5E1;
+      background: #29364B;
       border-radius: 999px;
     }
     .fc-emp-dropdown::-webkit-scrollbar-thumb:hover {
-      background: #94A3B8;
+      background: #64748B;
     }
     .fc-emp-option {
       padding: 10px 14px;
       cursor: pointer;
-      border-bottom: 1px solid #F1F5F9;
+      border-bottom: 1px solid #29364B;
       transition: background-color 0.12s ease;
       display: flex;
       align-items: center;
@@ -184,10 +184,10 @@ function ensureComboboxStyles() {
     }
     .fc-emp-option:hover,
     .fc-emp-option.active {
-      background: #F0F7FF;
+      background: #22314A;
     }
     .fc-emp-option.active {
-      background: #EFF6FF;
+      background: #22314A;
       border-left: 3px solid #2563EB;
       padding-left: 11px;
     }
@@ -201,29 +201,29 @@ function ensureComboboxStyles() {
     .fc-emp-option-name {
       font-size: 0.92rem;
       font-weight: 600;
-      color: #0F172A;
+      color: #F8FAFC;
       line-height: 1.35;
       letter-spacing: -0.01em;
       word-break: break-word;
     }
     .fc-emp-option-meta {
       font-size: 0.78rem;
-      color: #64748B;
+      color: #94A3B8;
       line-height: 1.3;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .fc-emp-option-manual {
-      background: #FFFDF5;
-      border-top: 1px dashed #FCD34D;
+      background: rgba(245, 158, 11, 0.08);
+      border-top: 1px dashed rgba(245, 158, 11, 0.3);
     }
     .fc-emp-option-manual:hover,
     .fc-emp-option-manual.active {
-      background: #FEF9C3;
+      background: rgba(245, 158, 11, 0.18);
     }
     .fc-emp-option-manual .fc-emp-option-name {
-      color: #92400E;
+      color: #FBBF24;
       font-weight: 600;
     }
     .fc-emp-manual-row {
@@ -234,7 +234,7 @@ function ensureComboboxStyles() {
     .fc-emp-manual-icon {
       font-size: 1.1rem;
       font-weight: 700;
-      color: #D97706;
+      color: #F59E0B;
       line-height: 1;
     }
     .fc-emp-manual-badge-row {
@@ -243,7 +243,7 @@ function ensureComboboxStyles() {
     .fc-emp-empty {
       padding: 14px 16px;
       font-size: 0.85rem;
-      color: #64748B;
+      color: #94A3B8;
       text-align: center;
     }
     .fc-emp-status-row {
@@ -264,14 +264,14 @@ function ensureComboboxStyles() {
       line-height: 1.3;
     }
     .fc-emp-badge-master {
-      background: #ECFDF5;
-      color: #065F46;
-      border: 1px solid #A7F3D0;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
     }
     .fc-emp-badge-manual {
-      background: #FFFBEB;
-      color: #92400E;
-      border: 1px solid #FCD34D;
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
     }
     .fc-emp-chips {
       margin-top: 8px;
@@ -284,17 +284,17 @@ function ensureComboboxStyles() {
       align-items: center;
       gap: 6px;
       padding: 4px 10px;
-      background: #F1F5F9;
-      color: #1E293B;
-      border: 1px solid #CBD5E1;
+      background: #1B2940;
+      color: #F8FAFC;
+      border: 1px solid #29364B;
       border-radius: 999px;
       font-size: 0.78rem;
       font-weight: 500;
     }
     .fc-emp-chip.manual {
-      background: #FEF3C7;
-      color: #92400E;
-      border-color: #FCD34D;
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border-color: rgba(245, 158, 11, 0.3);
     }
     .fc-emp-chip-tag {
       font-size: 0.68rem;

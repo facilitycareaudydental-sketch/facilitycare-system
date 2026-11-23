@@ -546,7 +546,7 @@ export async function renderMutasi(container) {
                     </div>
 
                     <!-- Card Footer: Dokumen & Aksi -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #F1F5F9; margin-top:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #29364B; margin-top:8px;">
                       <div>
                         ${m.document_link ? `
                           <a href="${m.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.78rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
@@ -748,8 +748,8 @@ export async function renderMutasi(container) {
 
         /* Controls Card */
         .mutasi-controls-card {
-          background: white;
-          border: 1px solid #E2E8F0;
+          background: #172033;
+          border: 1px solid #29364B;
           border-radius: 14px;
           padding: 18px 20px;
           box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -779,7 +779,7 @@ export async function renderMutasi(container) {
         .mutasi-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
           outline: none;
@@ -791,11 +791,11 @@ export async function renderMutasi(container) {
         }
         .mutasi-select {
           padding: 10px 14px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
-          color: #1E293B;
-          background: white;
+          color: #F8FAFC;
+          background: #172033;
           outline: none;
           min-width: 180px;
           cursor: pointer;
@@ -823,8 +823,8 @@ export async function renderMutasi(container) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #E2E8F0;
-          background: #F8FAFC;
+          border: 1px solid #29364B;
+          background: #111827;
           color: #64748B;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -834,8 +834,8 @@ export async function renderMutasi(container) {
           flex-shrink: 0;
         }
         .mutasi-pill:hover {
-          background: #F1F5F9;
-          color: #1E293B;
+          background: #22314A;
+          color: #F8FAFC;
         }
         .mutasi-pill.active {
           background: #2563EB;
@@ -848,10 +848,10 @@ export async function renderMutasi(container) {
         .mutasi-view-toggle {
           display: inline-flex;
           align-items: center;
-          background: #F1F5F9;
+          background: #111827;
           padding: 3px;
           border-radius: 10px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           gap: 3px;
           flex-shrink: 0;
         }
@@ -873,11 +873,11 @@ export async function renderMutasi(container) {
           user-select: none;
         }
         .mutasi-view-btn:hover {
-          color: #0F172A;
+          color: #F8FAFC;
           background: rgba(255, 255, 255, 0.5);
         }
         .mutasi-view-btn.active {
-          background: #FFFFFF;
+          background: #172033;
           color: #2563EB;
           font-weight: 700;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
@@ -885,8 +885,8 @@ export async function renderMutasi(container) {
 
         /* Modern Table View */
         .mutasi-table-card {
-          background: #FFFFFF;
-          border: 1px solid #E2E8F0;
+          background: #172033;
+          border: 1px solid #29364B;
           border-radius: 14px;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
           overflow: hidden;
@@ -904,7 +904,7 @@ export async function renderMutasi(container) {
           min-width: 860px;
         }
         .mutasi-table th {
-          background: #F8FAFC;
+          background: #111827;
           color: #475569;
           font-size: 0.76rem;
           font-weight: 700;
@@ -916,12 +916,12 @@ export async function renderMutasi(container) {
         }
         .mutasi-table td {
           padding: 13px 16px;
-          border-bottom: 1px solid #F1F5F9;
-          color: #1E293B;
+          border-bottom: 1px solid #29364B;
+          color: #F8FAFC;
           vertical-align: middle;
         }
         .mutasi-table tbody tr:hover td {
-          background: #F8FAFC;
+          background: #111827;
         }
         .mutasi-table tbody tr:last-child td {
           border-bottom: none;
@@ -934,8 +934,8 @@ export async function renderMutasi(container) {
           gap: 16px;
         }
         .mutasi-card {
-          background: white;
-          border: 1px solid #E2E8F0;
+          background: #172033;
+          border: 1px solid #29364B;
           border-radius: 14px;
           padding: 18px;
           box-shadow: 0 2px 6px rgba(0,0,0,0.03);
@@ -965,7 +965,7 @@ export async function renderMutasi(container) {
           box-shadow: 0 3px 6px rgba(37, 99, 235, 0.2);
         }
         .mutasi-route-box {
-          background: #F8FAFC;
+          background: #111827;
           border: 1px dashed #CBD5E1;
           border-radius: 10px;
           padding: 12px 14px;
@@ -996,7 +996,7 @@ export async function renderMutasi(container) {
         .mutasi-route-branch {
           font-size: 0.85rem;
           font-weight: 700;
-          color: #1E293B;
+          color: #F8FAFC;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1036,8 +1036,8 @@ export async function renderMutasi(container) {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #E2E8F0;
-          background: white;
+          border: 1px solid #29364B;
+          background: #172033;
           color: #64748B;
           display: inline-flex;
           align-items: center;
@@ -1046,8 +1046,8 @@ export async function renderMutasi(container) {
           transition: all 0.15s ease;
         }
         .mutasi-icon-btn:hover {
-          background: #F1F5F9;
-          color: #0F172A;
+          background: #22314A;
+          color: #F8FAFC;
           border-color: #CBD5E1;
         }
         .mutasi-icon-btn.delete:hover {
@@ -1059,7 +1059,7 @@ export async function renderMutasi(container) {
         /* Empty state */
         .mutasi-empty-state {
           grid-column: 1 / -1;
-          background: white;
+          background: #172033;
           border: 2px dashed #E2E8F0;
           border-radius: 16px;
           padding: 48px 24px;

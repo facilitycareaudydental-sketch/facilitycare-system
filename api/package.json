@@ -2,6 +2,7 @@
   "name": "fm-operations-api",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "echo 'No build step required for API'",
     "dev": "wrangler dev --port 8787",

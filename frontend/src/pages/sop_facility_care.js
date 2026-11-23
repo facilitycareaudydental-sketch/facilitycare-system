@@ -491,11 +491,11 @@ export async function renderSOPFacilityCare(container) {
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           ${canDelete ? `
-          <button id="btn-reset-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          <button id="btn-reset-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🔄 Reset ke Standar
           </button>
           ` : ''}
-          <button id="btn-print-sop" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          <button id="btn-print-sop" class="btn btn-outline" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
           ${hasPermission(currentUser, "export") ? `<button id="btn-export-tools" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
@@ -532,7 +532,7 @@ export async function renderSOPFacilityCare(container) {
     if (isActive) {
       return 'border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
     }
-    return 'border:none; background:#F1F5F9; color:var(--text-2); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
+    return 'border:none; background:#172033; color:var(--text-2); border:1px solid var(--border); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
   }
 
   function getBadgeStyle(isActive) {
@@ -607,7 +607,7 @@ export async function renderSOPFacilityCare(container) {
   function renderIKTab(parent) {
     parent.innerHTML = `
       <!-- Toolbar Filter & Search -->
-      <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#172033; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
         <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
           <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
             <div style="position:relative; flex:1; min-width:220px; max-width:340px;">
@@ -646,7 +646,7 @@ export async function renderSOPFacilityCare(container) {
     styleTag.innerHTML = `
       .cat-pill {
         border: 1px solid var(--border);
-        background: #F8FAFC;
+        background: #172033;
         color: var(--text-2);
         font-size: 0.8rem;
         font-weight: 600;
@@ -658,7 +658,7 @@ export async function renderSOPFacilityCare(container) {
         white-space: nowrap;
       }
       .cat-pill:hover {
-        background: #E2E8F0;
+        background: #22314A;
       }
       .cat-pill.active {
         background: #2563EB;
@@ -711,7 +711,7 @@ export async function renderSOPFacilityCare(container) {
 
       if (filteredIK.length === 0) {
         gridContainer.innerHTML = `
-          <div style="text-align:center; padding:48px 20px; background:#fff; border-radius:12px; border:1px solid var(--border);">
+          <div style="text-align:center; padding:48px 20px; background:#111827; border-radius:12px; border:1px solid var(--border);">
             <div style="font-size:2.5rem; margin-bottom:8px;">🔍</div>
             <h3 style="margin:0 0 4px; font-size:1.1rem; color:var(--text-1);">Tidak ada Instruksi Kerja yang cocok</h3>
             <p style="margin:0; font-size:0.85rem; color:var(--text-3);">Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
@@ -723,7 +723,7 @@ export async function renderSOPFacilityCare(container) {
       gridContainer.innerHTML = `
         <div class="sop-ik-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:18px;">
           ${filteredIK.map(ik => `
-            <div class="card ik-card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.04); transition:all 0.2s;">
+            <div class="card ik-card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.04); transition:all 0.2s;">
               <div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
                   <div style="display:flex; align-items:center; gap:10px;">
@@ -753,7 +753,7 @@ export async function renderSOPFacilityCare(container) {
                   </div>
                 </div>
 
-                <div style="font-size:0.85rem; color:var(--text-2); margin-bottom:14px; background:#F8FAFC; padding:8px 12px; border-radius:8px; border-left:3px solid ${ik.color || '#2563EB'};">
+                <div style="font-size:0.85rem; color:var(--text-2); margin-bottom:14px; background:#111827; padding:8px 12px; border-radius:8px; border-left:3px solid ${ik.color || '#2563EB'};">
                   <strong>Area:</strong> ${ik.target}
                 </div>
 
@@ -863,14 +863,14 @@ export async function renderSOPFacilityCare(container) {
             <span>ID: IK-${String(ik.id).padStart(2, '0')}</span>
           </div>
 
-          <div style="background:#F8FAFC; padding:12px 14px; border-radius:8px; border-left:4px solid ${ik.color || '#2563EB'};">
+          <div style="background:#111827; padding:12px 14px; border-radius:8px; border-left:4px solid ${ik.color || '#2563EB'};">
             <strong style="color:var(--text-1); font-size:0.85rem; display:block; margin-bottom:4px;">📍 Area & Sasaran Target:</strong>
             <span style="font-size:0.88rem; color:var(--text-2);">${ik.target}</span>
           </div>
 
           <div>
             <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:var(--text-1);">🧰 Alat & Bahan yang Dibutuhkan:</h4>
-            <div style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
+            <div style="background:#111827; border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
               <ul style="margin:0 0 0 16px; padding:0; font-size:0.875rem; color:var(--text-2); line-height:1.7;">
                 ${ik.tools.map(t => `<li>${t}</li>`).join('')}
               </ul>
@@ -886,7 +886,7 @@ export async function renderSOPFacilityCare(container) {
 
           <div>
             <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:var(--text-1);">📝 Langkah-Langkah Pelaksanaan:</h4>
-            <div style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:12px 16px;">
+            <div style="background:#111827; border:1px solid var(--border); border-radius:8px; padding:12px 16px;">
               <ol style="margin:0 0 0 18px; padding:0; font-size:0.875rem; color:var(--text-2); line-height:1.8;">
                 ${ik.steps.map(s => `<li style="margin-bottom:6px;">${s}</li>`).join('')}
               </ol>
@@ -1045,7 +1045,7 @@ export async function renderSOPFacilityCare(container) {
     parent.innerHTML = `
       <!-- Sub-tab Switcher & Actions -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
-        <div class="btn-group" style="background:#E2E8F0; padding:3px; border-radius:8px; display:inline-flex;">
+        <div class="btn-group" style="background:#111827; padding:3px; border-radius:8px; display:inline-flex; border:1px solid var(--border);">
           <button id="view-tools-btn" class="btn btn-sm ${toolView === 'tools' ? 'btn-primary' : 'btn-ghost'}" style="font-weight:700; border-radius:6px; padding:6px 16px; cursor:pointer;">
             🧹 Alat Kebersihan (${listTools.length} Item)
           </button>
@@ -1076,15 +1076,15 @@ export async function renderSOPFacilityCare(container) {
       if (toolView === 'tools') {
         const filtered = listTools.filter(x => !q || x.name.toLowerCase().includes(q) || x.area.toLowerCase().includes(q));
         subContent.innerHTML = `
-          <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-            <div style="padding:14px 18px; background:#F8FAFC; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+          <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+            <div style="padding:14px 18px; background:#111827; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
               <strong style="color:var(--text-1); font-size:0.95rem;">Daftar Standar Peralatan Kebersihan (Lampiran 8.1 SOP)</strong>
               <span class="badge badge-primary">${filtered.length} Item</span>
             </div>
             <div style="overflow-x:auto;">
               <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.875rem;">
                 <thead>
-                  <tr style="background:#F1F5F9; border-bottom:2px solid #E2E8F0; text-align:left;">
+                  <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
                     <th style="padding:10px 14px; width:60px;">No</th>
                     <th style="padding:10px 14px;">Nama Alat / Item</th>
                     <th style="padding:10px 14px; width:130px;">Kuantitas Standar</th>
@@ -1094,7 +1094,7 @@ export async function renderSOPFacilityCare(container) {
                 </thead>
                 <tbody>
                   ${filtered.map((item, idx) => `
-                    <tr style="border-bottom:1px solid #F1F5F9; background:${idx % 2 === 0 ? '#fff' : '#FAFAFA'};">
+                    <tr style="border-bottom:1px solid var(--border); background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:var(--text-1);">
                       <td style="padding:10px 14px; font-weight:600; color:var(--text-3);">${item.no || idx + 1}</td>
                       <td style="padding:10px 14px; font-weight:700; color:var(--text-1);">${escapeHtml(item.name)}</td>
                       <td style="padding:10px 14px;"><span class="badge" style="background:#E0F2FE; color:#0369A1; font-weight:600;">${escapeHtml(item.qty)}</span></td>
@@ -1143,15 +1143,15 @@ export async function renderSOPFacilityCare(container) {
       } else {
         const filtered = listChem.filter(x => !q || x.name.toLowerCase().includes(q) || x.function.toLowerCase().includes(q));
         subContent.innerHTML = `
-          <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-            <div style="padding:14px 18px; background:#F8FAFC; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+          <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+            <div style="padding:14px 18px; background:#111827; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
               <strong style="color:var(--text-1); font-size:0.95rem;">Daftar Bahan Kimia & Standar Takaran (Lampiran 8.1 SOP)</strong>
               <span class="badge badge-success">${filtered.length} Chemical</span>
             </div>
             <div style="overflow-x:auto;">
               <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.875rem;">
                 <thead>
-                  <tr style="background:#F1F5F9; border-bottom:2px solid #E2E8F0; text-align:left;">
+                  <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
                     <th style="padding:10px 14px; width:60px;">No</th>
                     <th style="padding:10px 14px;">Nama Produk Chemical</th>
                     <th style="padding:10px 14px; width:110px;">Kemasan</th>
@@ -1162,7 +1162,7 @@ export async function renderSOPFacilityCare(container) {
                 </thead>
                 <tbody>
                   ${filtered.map((item, idx) => `
-                    <tr style="border-bottom:1px solid #F1F5F9; background:${idx % 2 === 0 ? '#fff' : '#FAFAFA'};">
+                    <tr style="border-bottom:1px solid var(--border); background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:var(--text-1);">
                       <td style="padding:10px 14px; font-weight:600; color:var(--text-3);">${item.no || idx + 1}</td>
                       <td style="padding:10px 14px; font-weight:700; color:var(--text-1);">${escapeHtml(item.name)}</td>
                       <td style="padding:10px 14px;"><span class="badge" style="background:#FEF3C7; color:#92400E; font-weight:600;">${escapeHtml(item.size)}</span></td>
@@ -1359,7 +1359,7 @@ export async function renderSOPFacilityCare(container) {
     parent.innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:20px;">
         <!-- Card 1: Grooming -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
             <span style="font-size:1.5rem; background:#EFF6FF; padding:8px; border-radius:8px;">👔</span>
             <div>
@@ -1380,7 +1380,7 @@ export async function renderSOPFacilityCare(container) {
         </div>
 
         <!-- Card 2: Jam Kerja -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
             <span style="font-size:1.5rem; background:#FEF3C7; padding:8px; border-radius:8px;">⏰</span>
             <div>
@@ -1389,11 +1389,11 @@ export async function renderSOPFacilityCare(container) {
             </div>
           </div>
           <div style="font-size:0.88rem; color:var(--text-2); line-height:1.7;">
-            <div style="background:#F8FAFC; border-radius:8px; padding:10px 14px; margin-bottom:10px; border-left:3px solid #2563EB;">
+            <div style="background:#111827; border-radius:8px; padding:10px 14px; margin-bottom:10px; border-left:3px solid #2563EB;">
               <strong style="color:var(--text-1); display:block; margin-bottom:2px;">🏥 Klinik Primer (1 Orang Facility Care):</strong>
               <span>Shift 1 (Normal): <strong>08.00 s/d 17.00</strong> (Istirahat 13.00 s/d 14.00)</span>
             </div>
-            <div style="background:#F8FAFC; border-radius:8px; padding:10px 14px; margin-bottom:12px; border-left:3px solid #059669;">
+            <div style="background:#111827; border-radius:8px; padding:10px 14px; margin-bottom:12px; border-left:3px solid #059669;">
               <strong style="color:var(--text-1); display:block; margin-bottom:2px;">✨ Klinik Luxury (> 1 Orang Facility Care):</strong>
               <div style="margin-bottom:2px;">• Shift 1 (Pagi): <strong>07.00 s/d 16.00</strong> (Istirahat 12.00 s/d 13.00)</div>
               <div>• Shift 2 (Siang): <strong>13.00 s/d 22.00</strong> (Istirahat 17.00 s/d 18.00)</div>
@@ -1405,7 +1405,7 @@ export async function renderSOPFacilityCare(container) {
         </div>
 
         <!-- Card 3: Tanggung Jawab & Pembagian Area -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
             <span style="font-size:1.5rem; background:#ECFDF5; padding:8px; border-radius:8px;">🏢</span>
             <div>
@@ -1415,7 +1415,7 @@ export async function renderSOPFacilityCare(container) {
           </div>
           <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:14px;">
             <thead>
-              <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+              <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
                 <th style="padding:6px 10px;">Area Kerja</th>
                 <th style="padding:6px 10px;">Pelaksana</th>
                 <th style="padding:6px 10px;">PIC Pengawas</th>
@@ -1441,7 +1441,7 @@ export async function renderSOPFacilityCare(container) {
         </div>
 
         <!-- Card 4: Monitoring & Evaluasi -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
             <span style="font-size:1.5rem; background:#F5F3FF; padding:8px; border-radius:8px;">🔍</span>
             <div>
@@ -1475,7 +1475,7 @@ export async function renderSOPFacilityCare(container) {
     parent.innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
         <!-- Card: Ceklist Harian Google Sheets -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
               <span style="font-size:2rem;">📊</span>
@@ -1494,7 +1494,7 @@ export async function renderSOPFacilityCare(container) {
         </div>
 
         <!-- Card: Form Inspeksi Hygiene Google Forms -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
               <span style="font-size:2rem;">📑</span>
@@ -1513,7 +1513,7 @@ export async function renderSOPFacilityCare(container) {
         </div>
 
         <!-- Card: Basecamp Monitoring Project -->
-        <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
               <span style="font-size:2rem;">🏕️</span>
@@ -1526,14 +1526,14 @@ export async function renderSOPFacilityCare(container) {
               To-do list dan kanal pelaporan temuan inspeksi cabang. PIC Cabang wajib memberikan respon tindak lanjut maksimal 3 hari kerja setelah laporan terbit.
             </p>
           </div>
-          <a href="https://3.basecamp.com/5259614/buckets/33617501/todosets/6367925585" target="_blank" rel="noopener" class="btn btn-outline" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:600; padding:10px; border-radius:8px; background:#fff;">
+          <a href="https://3.basecamp.com/5259614/buckets/33617501/todosets/6367925585" target="_blank" rel="noopener" class="btn btn-outline" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:600; padding:10px; border-radius:8px; background:#1B2940; border:1px solid var(--border); color:#F8FAFC;">
             🚀 Buka Laporan di Basecamp ➔
           </a>
         </div>
       </div>
 
       <!-- Validasi & Pengesahan SOP -->
-      <div class="card" style="margin-top:20px; padding:20px; background:#fff; border:1px solid var(--border); border-radius:12px;">
+      <div class="card" style="margin-top:20px; padding:20px; background:#172033; border:1px solid var(--border); border-radius:12px;">
         <h3 style="margin:0 0 14px 0; font-size:1rem; font-weight:700; color:var(--text-1); display:flex; align-items:center; gap:8px;">
           <span>📜</span> Validasi & Pengesahan Dokumen SOP
         </h3>

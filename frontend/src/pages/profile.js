@@ -7,7 +7,7 @@ export async function renderProfile(container) {
   const initial = (user?.full_name || user?.username || 'U')[0].toUpperCase();
 
   const roleColors = {
-    superadmin: '#7C3AED', fc_specialist_leader: '#0284C7',
+    superadmin: '#7C3AED', fc_specialist_leader: '#0284C7', editor_khusus: '#0284C7', viewer: '#10B981',
   };
   const roleColor = roleColors[user?.role] || '#64748B';
 

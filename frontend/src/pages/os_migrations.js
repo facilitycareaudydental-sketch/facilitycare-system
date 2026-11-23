@@ -32,8 +32,8 @@ export async function renderOSMigrations(container) {
         </h1>
       </div>
       <div class="os-header-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <div class="btn-group" style="background:#F1F5F9; padding:3px; border-radius:10px; display:inline-flex; align-items:center; border:1px solid var(--border); height:38px; box-sizing:border-box;">
-          <button id="view-board-btn" class="btn btn-sm" style="background:#fff; font-weight:600; border-radius:7px; box-shadow:0 1px 2px rgba(0,0,0,0.05); padding:0 12px; height:100%; display:inline-flex; align-items:center; cursor:pointer;">
+        <div class="btn-group" style="background:#111827; padding:3px; border-radius:10px; display:inline-flex; align-items:center; border:1px solid var(--border); height:38px; box-sizing:border-box;">
+          <button id="view-board-btn" class="btn btn-sm" style="background:#2563EB; color:#fff; font-weight:600; border-radius:7px; box-shadow:0 1px 2px rgba(0,0,0,0.05); padding:0 12px; height:100%; display:inline-flex; align-items:center; cursor:pointer;">
             🗂️ Matrix Board
           </button>
           <button id="view-table-btn" class="btn btn-sm btn-ghost" style="font-weight:600; border-radius:7px; padding:0 12px; height:100%; display:inline-flex; align-items:center; cursor:pointer;">
@@ -41,7 +41,7 @@ export async function renderOSMigrations(container) {
           </button>
         </div>
         ${canExport ? `
-        <button id="btn-export-migrations" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; height:38px; padding:0 14px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-sizing:border-box;">
+        <button id="btn-export-migrations" class="btn btn-outline" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; height:38px; padding:0 14px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-sizing:border-box;">
           📥 Export Excel
         </button>
         ` : ''}
@@ -62,7 +62,7 @@ export async function renderOSMigrations(container) {
     </div>
 
     <!-- Filter Toolbar -->
-    <div class="card" style="padding:16px 20px; margin-bottom:24px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <div class="card" style="padding:16px 20px; margin-bottom:24px; background:#172033; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
       <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;">
         <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
           <div style="position:relative; flex:1; min-width:200px; max-width:320px;">
@@ -142,30 +142,30 @@ export async function renderOSMigrations(container) {
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     kpiEl.innerHTML = `
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
         <div style="font-size:0.8rem; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Total Cabang Migrasi</div>
         <div style="font-size:1.8rem; font-weight:800; color:var(--text-1); line-height:1.2;">${total} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Timeline Periode Sep - Des 2026</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #2563EB; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #2563EB; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
         <div style="font-size:0.8rem; font-weight:600; color:#1E40AF; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor AEON</div>
         <div style="font-size:1.8rem; font-weight:800; color:#1E40AF; line-height:1.2;">${aeonTotal} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Sep: 9 • Nov: 3 • Des: 8</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #0D9488; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #0D9488; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
         <div style="font-size:0.8rem; font-weight:600; color:#0F766E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor Triple S</div>
         <div style="font-size:1.8rem; font-weight:800; color:#0F766E; line-height:1.2;">${tripleSTotal} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Sep: 5 • Okt: 5 • Nov: 5 • Des: 27</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #16A34A; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #16A34A; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <span style="font-size:0.8rem; font-weight:600; color:#15803D; text-transform:uppercase; letter-spacing:0.5px;">Progres Realisasi</span>
           <span style="font-size:0.85rem; font-weight:700; color:#15803D;">${pct}%</span>
         </div>
-        <div style="width:100%; height:8px; background:#E2E8F0; border-radius:4px; overflow:hidden; margin-bottom:8px;">
+        <div style="width:100%; height:8px; background:#1B2940; border-radius:4px; overflow:hidden; margin-bottom:8px;">
           <div style="width:${pct}%; height:100%; background:#16A34A; border-radius:4px;"></div>
         </div>
         <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-2); font-weight:500;">
@@ -214,7 +214,7 @@ export async function renderOSMigrations(container) {
   function renderBoardView(targetEl, rows) {
     if (!rows.length) {
       targetEl.innerHTML = `
-        <div class="empty-state" style="padding:50px; text-align:center; background:#fff; border-radius:12px; border:1px solid var(--border);">
+        <div class="empty-state" style="padding:50px; text-align:center; background:#111827; border-radius:12px; border:1px solid var(--border);">
           <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
           <p style="font-size:1.05rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">Tidak ada cabang yang cocok dengan filter</p>
           <p style="color:var(--text-3); font-size:0.875rem;">Coba reset kata kunci pencarian atau pilihan filter di atas.</p>
@@ -242,12 +242,12 @@ export async function renderOSMigrations(container) {
       const activeMonths = months.filter(m => vRows.some(r => r.target_month === m));
 
       html += `
-        <div class="vendor-board-section" style="margin-bottom:32px; background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+        <div class="vendor-board-section" style="margin-bottom:32px; background:#111827; border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.04);">
           <!-- Vendor Section Header -->
           <div style="padding:14px 20px; background:${vBgColor}; border-bottom:1px solid ${vBorderColor}; display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; align-items:center; gap:10px;">
               <span style="font-size:1.1rem; font-weight:800; color:${vThemeColor};">${v === 'AEON' ? '🏢 AEON' : '🛡️ Triple S'}</span>
-              <span class="badge" style="background:#fff; color:${vThemeColor}; border:1px solid ${vBorderColor}; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:6px;">
+              <span class="badge" style="background:#172033; color:${vThemeColor}; border:1px solid ${vBorderColor}; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:6px;">
                 ${vTotal} Cabang
               </span>
             </div>
@@ -264,13 +264,13 @@ export async function renderOSMigrations(container) {
               const shortMonth = mName.split(' ')[0];
 
               return `
-                <div class="month-column" style="background:#F8FAFC; border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; min-height:220px;">
+                <div class="month-column" style="background:#172033; border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; min-height:220px;">
                   <!-- Month Header -->
-                  <div style="padding:12px 14px; background:#F1F5F9; border-bottom:1px solid var(--border); border-radius:9px 9px 0 0; display:flex; justify-content:space-between; align-items:center;">
+                  <div style="padding:12px 14px; background:#111827; border-bottom:1px solid var(--border); border-radius:9px 9px 0 0; display:flex; justify-content:space-between; align-items:center;">
                     <div style="font-weight:700; font-size:0.9rem; color:var(--text-1);">
                       📅 ${shortMonth}
                     </div>
-                    <span class="badge" style="background:#E2E8F0; color:var(--text-2); font-weight:700; font-size:0.75rem; padding:2px 7px; border-radius:4px;">
+                    <span class="badge" style="background:#1B2940; color:var(--text-2); font-weight:700; font-size:0.75rem; padding:2px 7px; border-radius:4px;">
                       ${mRows.length}
                     </span>
                   </div>
@@ -280,7 +280,7 @@ export async function renderOSMigrations(container) {
                     ${mRows.map(r => {
                       const st = STATUS_CONFIG[r.status] || STATUS_CONFIG.scheduled;
                       return `
-                        <div class="branch-card" style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:10px 12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); transition:transform 0.15s, box-shadow 0.15s;">
+                        <div class="branch-card" style="background:#172033; border:1px solid var(--border); border-radius:8px; padding:10px 12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); transition:transform 0.15s, box-shadow 0.15s;">
                           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px; margin-bottom:6px;">
                             <div style="font-weight:700; font-size:0.9rem; color:var(--text-1); line-height:1.3;">
                               <span style="color:#2563EB; font-family:monospace; margin-right:4px;">${r.branch_code}.</span>${r.branch_name}
@@ -332,7 +332,7 @@ export async function renderOSMigrations(container) {
   function renderTableView(targetEl, rows) {
     if (!rows.length) {
       targetEl.innerHTML = `
-        <div class="empty-state" style="padding:50px; text-align:center; background:#fff; border-radius:12px; border:1px solid var(--border);">
+        <div class="empty-state" style="padding:50px; text-align:center; background:#111827; border-radius:12px; border:1px solid var(--border);">
           <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
           <p style="font-size:1.05rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">Tidak ada cabang yang cocok dengan filter</p>
         </div>
@@ -341,11 +341,11 @@ export async function renderOSMigrations(container) {
     }
 
     targetEl.innerHTML = `
-      <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
         <div class="table-responsive">
           <table class="table" style="width:100%; border-collapse:collapse;">
             <thead>
-              <tr style="background:#F8FAFC; border-bottom:1px solid var(--border); text-align:left;">
+              <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
                 <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:50px;">NO</th>
                 <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">KODE & CABANG</th>
                 <th style="padding:12px 16px; font-size:0.8rem; font-weight:700; color:var(--text-3);">VENDOR</th>
@@ -461,7 +461,7 @@ export async function renderOSMigrations(container) {
       position: fixed;
       top: ${rect.bottom + window.scrollY + 4}px;
       left: ${rect.left + window.scrollX}px;
-      background: #fff;
+      background: #172033;
       border: 1px solid var(--border);
       border-radius: 8px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.12);

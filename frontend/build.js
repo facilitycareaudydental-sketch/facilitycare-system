@@ -281,6 +281,31 @@ if (esbuildCmd) {
     const outputs = Object.keys(meta.outputs).filter(f => f.endsWith('.js') && !f.endsWith('.css'));
     const outFilename = outputs.length ? path.basename(outputs[0]) : 'app.js';
     activeBundleFilename = outFilename;
+
+    // Post-process bundle: compact embedded <style>...</style> CSS blocks inside template literals
+    // and minify standalone CSS files in dist/assets/
+    const minifyCssText = (css) => css
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\s*([{};:,>~])\s*/g, '$1')
+      .replace(/;\}/g, '}')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    const bundlePath = path.join(distDir, 'assets', outFilename);
+    if (fs.existsSync(bundlePath)) {
+      let bundleCode = readFileSyncRetry(bundlePath, 'utf8');
+      bundleCode = bundleCode.replace(/<style>([\s\S]*?)<\/style>/g, (_, cssBlock) => `<style>${minifyCssText(cssBlock)}</style>`);
+      writeFileSyncRetry(bundlePath, bundleCode);
+    }
+
+    for (const cssFile of ['style.css', 'responsive.css']) {
+      const cssPath = path.join(distDir, 'assets', cssFile);
+      if (fs.existsSync(cssPath)) {
+        const rawCss = readFileSyncRetry(cssPath, 'utf8');
+        writeFileSyncRetry(cssPath, minifyCssText(rawCss));
+      }
+    }
+
     console.log(`✅ Bundle created: dist/assets/${outFilename}`);
 
     // Patch index.html to reference the hashed filename deterministically
@@ -406,6 +431,14 @@ if (envName === 'staging') {
       path.join(distDir, 'assets', activeBundleFilename),
       path.join(stagingDistDir, 'assets', activeBundleFilename)
     );
+  }
+  for (const cssFile of ['style.css', 'responsive.css']) {
+    if (fs.existsSync(path.join(distDir, 'assets', cssFile))) {
+      fs.copyFileSync(
+        path.join(distDir, 'assets', cssFile),
+        path.join(stagingDistDir, 'assets', cssFile)
+      );
+    }
   }
   if (fs.existsSync(path.join(distDir, 'assets', 'meta.json'))) {
     fs.copyFileSync(

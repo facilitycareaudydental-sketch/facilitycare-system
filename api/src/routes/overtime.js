@@ -3,6 +3,8 @@ import { ok, error, unauthorized, forbidden, notFound, paginated } from '../util
 import { getPagination, resolveSortOrder } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildAuditStatement, buildCreateAuditStatement, executeAtomicDelete } from '../utils/audit.js';
+import { hasTableColumn } from '../utils/schemaCompat.js';
+import { checkEntityNotArchived } from '../utils/archive.js';
 
 const OVERTIME_SORT_MAP = Object.freeze({
   date_desc: 'o.date DESC, o.id DESC',
@@ -222,6 +224,9 @@ export async function handleOvertime(request, env, origin) {
           return error('Employee not found or inactive (invalid employee_id foreign key)', 400, origin);
         }
       }
+      if ((await checkEntityNotArchived(env.DB, 'employees', parsedEmpId)).archived) {
+        return error('Karyawan berstatus arsip dan tidak dapat ditambahkan pada data lembur baru', 400, origin);
+      }
 
       const dup = await env.DB.prepare(
         'SELECT id FROM overtime_records WHERE employee_id = ? AND date = ? AND start_time = ? AND end_time = ?'
@@ -230,19 +235,35 @@ export async function handleOvertime(request, env, origin) {
         return error('Data lembur untuk karyawan, tanggal, dan jam yang sama sudah tercatat', 409, origin);
       }
 
-      const insertStmt = env.DB.prepare(`
-        INSERT INTO overtime_records (date, branch_id, employee_id, start_time, end_time, break_hours, total_hours, reason, row_version, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
-      `).bind(
-        body.date,
-        parsedBranchId,
-        parsedEmpId,
-        body.start_time,
-        body.end_time,
-        parsedBreak,
-        computedTotalHours,
-        body.reason || null
-      );
+      const safeReason = body.reason || body.description || '';
+      const hasRowVerCol = await hasTableColumn(env.DB, 'overtime_records', 'row_version');
+      const insertStmt = hasRowVerCol
+        ? env.DB.prepare(`
+            INSERT INTO overtime_records (date, branch_id, employee_id, start_time, end_time, break_hours, total_hours, reason, row_version, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+          `).bind(
+            body.date,
+            parsedBranchId,
+            parsedEmpId,
+            body.start_time,
+            body.end_time,
+            parsedBreak,
+            computedTotalHours,
+            safeReason
+          )
+        : env.DB.prepare(`
+            INSERT INTO overtime_records (date, branch_id, employee_id, start_time, end_time, break_hours, total_hours, reason, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `).bind(
+            body.date,
+            parsedBranchId,
+            parsedEmpId,
+            body.start_time,
+            body.end_time,
+            parsedBreak,
+            computedTotalHours,
+            safeReason
+          );
       const auditStmt = buildCreateAuditStatement(env, user, 'overtime', 'new', {
         date: body.date,
         branch_id: parsedBranchId,
@@ -251,7 +272,7 @@ export async function handleOvertime(request, env, origin) {
         end_time: body.end_time,
         break_hours: parsedBreak,
         total_hours: computedTotalHours,
-        reason: body.reason || null
+        reason: safeReason || null
       });
       const batchRes = await env.DB.batch([insertStmt, auditStmt]);
       const createdId = batchRes?.[0]?.meta?.last_row_id ?? 1;

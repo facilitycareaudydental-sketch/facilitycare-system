@@ -372,7 +372,7 @@ export async function renderIssues(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
               Durasi (Hari)
             </label>
-            <input type="number" id="iss-modal-daycount" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; background:#F8FAFC;" 
+            <input type="number" id="iss-modal-daycount" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #29364B; border-radius:8px; background:#1B2940; color:#F8FAFC;" 
               value="${item?.day_count != null ? item.day_count : ''}" readonly placeholder="Otomatis" />
           </div>
         </div>
@@ -872,9 +872,9 @@ export async function renderIssues(container, params) {
 
         /* Controls / Filter Bar */
         .issues-controls-card {
-          background: white;
+          background: #172033;
           border-radius: 14px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #29364B;
           padding: 16px 20px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.03);
           display: flex;
@@ -917,8 +917,8 @@ export async function renderIssues(container, params) {
           border: 1px solid #CBD5E1;
           border-radius: 10px;
           font-size: 0.9rem;
-          color: #1E293B;
-          background: white;
+          color: #F8FAFC;
+          background: #172033;
           outline: none;
           min-width: 160px;
           cursor: pointer;
@@ -946,8 +946,8 @@ export async function renderIssues(container, params) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #E2E8F0;
-          background: #F8FAFC;
+          border: 1px solid #29364B;
+          background: #1B2940;
           color: #64748B;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -957,8 +957,8 @@ export async function renderIssues(container, params) {
           flex-shrink: 0;
         }
         .issues-pill:hover {
-          background: #F1F5F9;
-          color: #1E293B;
+          background: #111827;
+          color: #F8FAFC;
         }
         .issues-pill.active {
           background: #0F172A;
@@ -988,9 +988,9 @@ export async function renderIssues(container, params) {
           gap: 16px;
         }
         .issues-card {
-          background: white;
+          background: #172033;
           border-radius: 14px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #29364B;
           padding: 18px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.04);
           display: flex;
@@ -1039,9 +1039,9 @@ export async function renderIssues(container, params) {
           border: 1px solid #FDE68A;
         }
         .issues-category-lainnya {
-          background: #F1F5F9;
+          background: #111827;
           color: #475569;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #29364B;
         }
 
         .issues-status-badge {
@@ -1071,7 +1071,7 @@ export async function renderIssues(container, params) {
 
         /* Complaint Quote Box */
         .issues-complaint-box {
-          background: #F8FAFC;
+          background: #1B2940;
           border-left: 4px solid #F59E0B;
           border-radius: 0 10px 10px 0;
           padding: 12px 14px;
@@ -1089,7 +1089,7 @@ export async function renderIssues(container, params) {
 
         /* Person / Location Box */
         .issues-person-box {
-          background: #F8FAFC;
+          background: #1B2940;
           border: 1px solid #F1F5F9;
           border-radius: 10px;
           padding: 12px;
@@ -1175,8 +1175,8 @@ export async function renderIssues(container, params) {
           width: 34px;
           height: 34px;
           border-radius: 8px;
-          border: 1px solid #E2E8F0;
-          background: white;
+          border: 1px solid #29364B;
+          background: #172033;
           color: #64748B;
           display: flex;
           align-items: center;
@@ -1185,7 +1185,7 @@ export async function renderIssues(container, params) {
           transition: all 0.15s ease;
         }
         .issues-icon-btn:hover {
-          background: #F1F5F9;
+          background: #111827;
           color: #0F172A;
           border-color: #CBD5E1;
         }
@@ -1234,8 +1234,8 @@ export async function renderIssues(container, params) {
         /* Empty state */
         .issues-empty-state {
           grid-column: 1 / -1;
-          background: white;
-          border: 2px dashed #E2E8F0;
+          background: #172033;
+          border: 2px dashed #29364B;
           border-radius: 16px;
           padding: 48px 24px;
           text-align: center;

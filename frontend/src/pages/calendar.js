@@ -70,7 +70,7 @@ export async function renderCalendar(container) {
 
     // Show mini skeleton while loading
     gridEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);">
-      ${Array(35).fill('<div style="background:#f8fafc;min-height:70px;"></div>').join('')}
+      ${Array(35).fill('<div style="background:#111827;min-height:70px;"></div>').join('')}
     </div>`;
 
     await loadEvents();
