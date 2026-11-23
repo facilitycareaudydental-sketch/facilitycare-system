@@ -504,13 +504,14 @@ function renderLayout() {
       tooltipEl.setAttribute('aria-hidden', 'false');
     };
     el.addEventListener('mouseenter', show);
+    el.addEventListener('pointerenter', show);
     el.addEventListener('focus', show);
     el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('pointerleave', hideTooltip);
     el.addEventListener('blur', hideTooltip);
   };
   document.querySelectorAll('#sidebar [data-tooltip]').forEach(bindTooltipTarget);
   sidebar?.addEventListener('scroll', hideTooltip, { passive: true });
-  window.addEventListener('resize', hideTooltip, { passive: true });
 
   // Global horizontal scrollable tabs & pills observer across all pages
   initGlobalScrollTabsObserver(document.getElementById('main-content'));
