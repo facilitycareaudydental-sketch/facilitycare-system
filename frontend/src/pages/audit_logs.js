@@ -11,6 +11,94 @@ export async function renderAuditLogs(container) {
     return;
   }
 
+  if (!document.getElementById('fc-audit-log-styles')) {
+    const style = document.createElement('style');
+    style.id = 'fc-audit-log-styles';
+    style.textContent = `
+      .audit-detail-btn {
+        background: rgba(59, 130, 246, 0.14);
+        color: #60A5FA;
+        border: 1px solid rgba(96, 165, 250, 0.42);
+        border-radius: 7px;
+        padding: 5px 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+      }
+      .audit-detail-btn:hover,
+      .audit-detail-btn:focus-visible {
+        background: rgba(59, 130, 246, 0.25);
+        color: #93C5FD;
+        border-color: #93C5FD;
+        text-decoration: underline;
+        outline: none;
+      }
+      .audit-json-pre {
+        background: #0F172A;
+        color: #F8FAFC;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 14px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.84rem;
+        line-height: 1.65;
+        max-height: 360px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const ACTION_BADGE_MAP = {
+    CREATE: 'badge-success',
+    UPDATE: 'badge-info',
+    DELETE: 'badge-danger',
+    LOGIN: 'badge-primary',
+    LOGOUT: 'badge-neutral'
+  };
+
+  const SENSITIVE_FIELD_RE = /(password|secret|token|jwt|signature|hmac|api_key|private_key|credential|authorization)/i;
+  function redactSensitiveFields(val) {
+    if (val === null || val === undefined) return val;
+    if (Array.isArray(val)) return val.map(redactSensitiveFields);
+    if (typeof val !== 'object') return val;
+    const out = {};
+    for (const [k, v] of Object.entries(val)) {
+      out[k] = SENSITIVE_FIELD_RE.test(k) ? '[REDACTED]' : redactSensitiveFields(v);
+    }
+    return out;
+  }
+
+  function formatAuditPayloadHtml(raw, emptyLabel) {
+    if (raw === null || raw === undefined || (typeof raw === 'string' && raw.trim() === '')) {
+      return `<span style="color:#CBD5E1; font-style:italic;">${escapeHtml(emptyLabel)}</span>`;
+    }
+    if (typeof raw === 'object') {
+      return escapeHtml(JSON.stringify(redactSensitiveFields(raw), null, 2));
+    }
+    const str = String(raw);
+    try {
+      const parsed = JSON.parse(str);
+      if (parsed !== null && typeof parsed === 'object') {
+        return escapeHtml(JSON.stringify(redactSensitiveFields(parsed), null, 2));
+      }
+      return escapeHtml(String(parsed));
+    } catch {
+      return escapeHtml(str);
+    }
+  }
+
+  function formatAuditTime(v) {
+    if (!v) return '-';
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? escapeHtml(String(v)) : d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'medium' });
+  }
+
   buildCrudPage({
     container,
     title: 'Riwayat Aktivitas',
@@ -42,27 +130,15 @@ export async function renderAuditLogs(container) {
       }
     },
     columns: [
-      { key: 'created_at', label: 'Waktu', nowrap: true, render: v => {
-          const d = new Date(v);
-          return Number.isNaN(d.getTime()) ? escapeHtml(v || '-') : d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'medium' });
-      }},
-      { key: 'user_name', label: 'Pengguna', render: (v, row) => `<strong>${escapeHtml(v || 'Sistem')}</strong><br><small class="text-muted" style="text-transform:capitalize">${escapeHtml(row.user_role || '')}</small>` },
-      { key: 'action', label: 'Aksi', render: v => {
-        const colors = {
-          CREATE: 'badge-success',
-          UPDATE: 'badge-info',
-          DELETE: 'badge-danger',
-          LOGIN: 'badge-primary',
-          LOGOUT: 'badge-neutral'
-        };
-        return `<span class="badge ${colors[v] || 'badge-neutral'}">${escapeHtml(v)}</span>`;
-      }},
-      { key: 'module', label: 'Modul', render: v => `<span style="text-transform:capitalize">${escapeHtml((v || '').replace(/_/g, ' '))}</span>` },
-      { key: 'target_id', label: 'ID Target' },
+      { key: 'created_at', label: 'Waktu', nowrap: true, render: v => `<span style="color:#F8FAFC; font-variant-numeric:tabular-nums;">${formatAuditTime(v)}</span>` },
+      { key: 'user_name', label: 'Pengguna', render: (v, row) => `<strong style="color:#F8FAFC; font-weight:700;">${escapeHtml(v || 'Sistem')}</strong><br><small style="color:#CBD5E1; text-transform:capitalize; font-size:0.78rem;">${escapeHtml(row.user_role || '-')}</small>` },
+      { key: 'action', label: 'Aksi', render: v => `<span class="badge ${ACTION_BADGE_MAP[v] || 'badge-neutral'}">${escapeHtml(v || '-')}</span>` },
+      { key: 'module', label: 'Modul', render: v => `<span style="color:#F8FAFC; text-transform:capitalize; font-weight:500;">${escapeHtml((v || '-').replace(/_/g, ' '))}</span>` },
+      { key: 'target_id', label: 'ID Target', render: v => `<span style="color:#CBD5E1; font-family:ui-monospace, monospace;">${escapeHtml(v !== null && v !== undefined && v !== '' ? String(v) : '-')}</span>` },
       { key: 'id', label: 'Detail', render: (v) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'btn btn-xs btn-outline';
+        btn.className = 'audit-detail-btn';
         btn.textContent = 'Lihat Detail';
         btn.addEventListener('click', () => window.viewAuditDetail?.(v));
         return btn;
@@ -115,43 +191,57 @@ export async function renderAuditLogs(container) {
   // Attach global detail viewer function using direct GET /api/audit-logs/:id
   window.viewAuditDetail = async (id) => {
     try {
-       const result = await apiFetch(`/api/audit-logs/${encodeURIComponent(id)}`);
-       const row = result?.data?.data || null;
-       if (!result?.ok || !row) return alert('Data tidak ditemukan');
+      const result = await apiFetch(`/api/audit-logs/${encodeURIComponent(id)}`);
+      const row = result?.data?.data || null;
+      if (!result?.ok || !row) return alert('Data tidak ditemukan');
 
-       const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-       const formatJSON = (str) => {
-         if (!str) return 'Tidak ada data';
-         try {
-           const val = typeof str === 'object' ? str : JSON.parse(str);
-           return escHtml(JSON.stringify(val, null, 2));
-         } catch {
-           return escHtml(String(str));
-         }
-       };
+      const actionCls = ACTION_BADGE_MAP[row.action] || 'badge-neutral';
+      const content = `
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; background:#0F172A; border:1px solid #334155; border-radius:10px; padding:12px 14px;">
+            <div>
+              <div style="font-size:0.72rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">ID Audit Log</div>
+              <div style="font-size:0.9rem; color:#F8FAFC; font-weight:700; margin-top:2px;">#${escapeHtml(String(row.id ?? id))}</div>
+            </div>
+            <div>
+              <div style="font-size:0.72rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Waktu</div>
+              <div style="font-size:0.86rem; color:#F8FAFC; font-weight:600; margin-top:2px;">${formatAuditTime(row.created_at)}</div>
+            </div>
+            <div>
+              <div style="font-size:0.72rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Pengguna</div>
+              <div style="font-size:0.88rem; color:#F8FAFC; font-weight:700; margin-top:2px;">${escapeHtml(row.user_name || 'Sistem')} <span style="color:#CBD5E1; font-weight:500;">(${escapeHtml(row.user_role || '-')})</span></div>
+            </div>
+            <div>
+              <div style="font-size:0.72rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Aksi &amp; Modul</div>
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:3px;">
+                <span class="badge ${actionCls}">${escapeHtml(row.action || '-')}</span>
+                <span style="font-size:0.84rem; color:#F8FAFC; text-transform:capitalize;">${escapeHtml((row.module || '-').replace(/_/g, ' '))}${row.target_id ? ` (#${escapeHtml(String(row.target_id))})` : ''}</span>
+              </div>
+            </div>
+          </div>
 
-       const content = `
-         <div style="display:flex; gap:1rem; flex-wrap:wrap">
-           <div style="flex:1; min-width:300px">
-              <h4>Data Lama</h4>
-              <pre style="background:#f8f9fa; padding:10px; border-radius:5px; font-size:12px; overflow-x:auto; border:1px solid #ddd; max-height:400px; overflow-y:auto;">${formatJSON(row.old_data)}</pre>
-           </div>
-           <div style="flex:1; min-width:300px">
-              <h4>Data Baru</h4>
-              <pre style="background:#f8f9fa; padding:10px; border-radius:5px; font-size:12px; overflow-x:auto; border:1px solid #ddd; max-height:400px; overflow-y:auto;">${formatJSON(row.new_data)}</pre>
-           </div>
-         </div>
-       `;
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+            <div>
+              <h4 style="margin:0 0 8px 0; font-size:0.92rem; font-weight:700; color:#F8FAFC;">Data Lama</h4>
+              <pre class="audit-json-pre">${formatAuditPayloadHtml(row.old_data, 'Tidak ada data lama')}</pre>
+            </div>
+            <div>
+              <h4 style="margin:0 0 8px 0; font-size:0.92rem; font-weight:700; color:#F8FAFC;">Data Baru</h4>
+              <pre class="audit-json-pre">${formatAuditPayloadHtml(row.new_data, 'Tidak ada data baru')}</pre>
+            </div>
+          </div>
+        </div>
+      `;
 
-       const { createModal } = await import('../components/modal.js');
-       createModal({
-         title: `Detail Audit Log #${id}`,
-         content,
-         width: '800px',
-         hideFooter: true
-       });
+      const { createModal } = await import('../components/modal.js');
+      createModal({
+        title: `Detail Audit Log #${id}`,
+        content,
+        size: 'lg',
+        cancelText: 'Tutup'
+      });
     } catch {
-       alert('Gagal mengambil detail');
+      alert('Gagal mengambil detail');
     }
   };
 }
