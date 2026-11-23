@@ -1305,4 +1305,272 @@ img, svg, canvas, video, iframe { max-width: 100%; }
     max-width: 100%;
     overflow-x: hidden;
   }
+
+  /* ── Laporan Inspeksi Hygiene — Owner-Approved Mobile Card Design (<= 767px ONLY) ── */
+  .insp-mobile-card {
+    background: #131F36;
+    border: 1px solid #223456;
+    border-radius: 14px;
+    padding: 15px 14px 14px;
+    gap: 12px;
+  }
+
+  .insp-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .insp-card-branch {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .insp-branch-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(37, 99, 235, 0.14);
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    color: #60A5FA;
+    flex-shrink: 0;
+  }
+
+  .insp-branch-name {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #F8FAFC;
+    line-height: 1.32;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .insp-card-header-badges {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .insp-card-header-badges .badge {
+    min-height: 26px;
+    padding: 3px 10px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .insp-total-badge {
+    background: rgba(37, 99, 235, 0.18) !important;
+    border: 1px solid rgba(96, 165, 250, 0.42) !important;
+    color: #DBEAFE !important;
+    min-width: 40px;
+  }
+
+  .insp-metrics-box {
+    display: grid;
+    grid-template-columns: minmax(0, 1.48fr) minmax(0, 0.76fr) minmax(0, 0.76fr);
+    align-items: stretch;
+    background: #0E182B;
+    border: 1px solid #1E2E4A;
+    border-radius: 10px;
+    padding: 11px 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .insp-metric-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 11px;
+    min-width: 0;
+  }
+
+  .insp-metric-col:not(:last-child) {
+    border-right: 1px solid rgba(51, 65, 85, 0.58);
+  }
+
+  .insp-metric-col--score {
+    align-items: center;
+    text-align: center;
+  }
+
+  .insp-metric-label {
+    font-size: 0.69rem;
+    font-weight: 600;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .insp-metric-value {
+    color: #F8FAFC;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .insp-metric-value--date {
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  .insp-metric-value--num {
+    font-size: 1.04rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .insp-score-good {
+    color: #34D399 !important;
+  }
+
+  .insp-score-warn {
+    color: #FBBF24 !important;
+  }
+
+  .insp-score-low {
+    color: #F87171 !important;
+  }
+
+  .insp-card-extra {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .insp-extra-notes {
+    padding: 9px 11px;
+    background: #0E182B;
+    border: 1px solid #1E2E4A;
+    border-radius: 8px;
+  }
+
+  .insp-extra-label {
+    display: block;
+    font-size: 0.69rem;
+    font-weight: 600;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 3px;
+  }
+
+  .insp-extra-text {
+    font-size: 0.84rem;
+    color: #CBD5E1;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .insp-doc-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    align-self: flex-start;
+    min-height: 40px;
+    padding: 0 13px;
+    border-radius: 8px;
+    background: #0F1A2E;
+    border: 1px solid #2A3F66;
+    color: #93C5FD;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .insp-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-top: 10px;
+    border-top: 1px solid rgba(34, 52, 86, 0.78);
+  }
+
+  .insp-card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .insp-action-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px;
+    min-width: 96px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 15px !important;
+    border-radius: 9px !important;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  }
+
+  .insp-action-view {
+    background: #0F1A2E;
+    border: 1px solid #2A3F66;
+    color: #93C5FD;
+  }
+
+  .insp-action-edit {
+    background: rgba(37, 99, 235, 0.18);
+    border: 1px solid rgba(96, 165, 250, 0.48);
+    color: #93C5FD;
+  }
+
+  .insp-action-del {
+    background: rgba(239, 68, 68, 0.13);
+    border: 1px solid rgba(248, 113, 113, 0.36);
+    color: #FCA5A5;
+  }
+}
+
+@media (max-width: 375px) {
+  .insp-mobile-card {
+    padding: 13px 12px;
+  }
+  .insp-branch-name {
+    font-size: 0.9rem;
+  }
+  .insp-metrics-box {
+    grid-template-columns: minmax(0, 1.52fr) minmax(0, 0.74fr) minmax(0, 0.74fr);
+    padding: 10px 0;
+  }
+  .insp-metric-col {
+    padding: 0 8px;
+  }
+  .insp-metric-label {
+    font-size: 0.65rem;
+  }
+  .insp-metric-value--date {
+    font-size: 0.8rem;
+  }
+  .insp-metric-value--num {
+    font-size: 0.96rem;
+  }
+  .insp-action-btn {
+    min-width: 88px;
+    padding: 0 12px !important;
+  }
 }
