@@ -363,7 +363,7 @@ export async function renderIssues(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Durasi (Hari)
             </label>
-            <input type="number" id="iss-modal-daycount" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #29364B; border-radius:8px; background:#1B2940; color:#F8FAFC;" 
+            <input type="number" id="iss-modal-daycount" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #223456; border-radius:8px; background:#0E182B; color:#F8FAFC;" 
               value="${item?.day_count != null ? item.day_count : ''}" readonly placeholder="Otomatis" />
           </div>
         </div>
@@ -854,7 +854,7 @@ export async function renderIssues(container, params) {
           letter-spacing: -0.02em;
         }
         .issues-stat-lbl {
-          font-size: 0.72rem;
+          font-size: 0.76rem;
           text-transform: uppercase;
           color: #94A3B8;
           font-weight: 700;
@@ -864,9 +864,9 @@ export async function renderIssues(container, params) {
 
         /* Controls / Filter Bar */
         .issues-controls-card {
-          background: #172033;
+          background: #131F36;
           border-radius: 14px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           padding: 16px 20px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.03);
           display: flex;
@@ -894,9 +894,9 @@ export async function renderIssues(container, params) {
         .issues-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          background: #1B2940;
+          background: #0E182B;
           color: #F8FAFC;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           border-radius: 10px;
           font-size: 0.9rem;
           outline: none;
@@ -908,11 +908,11 @@ export async function renderIssues(container, params) {
         }
         .issues-select {
           padding: 10px 14px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #1B2940;
+          background: #0E182B;
           outline: none;
           min-width: 160px;
           cursor: pointer;
@@ -940,8 +940,8 @@ export async function renderIssues(container, params) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -967,7 +967,7 @@ export async function renderIssues(container, params) {
         .issues-pill-count {
           padding: 1px 6px;
           border-radius: 10px;
-          font-size: 0.72rem;
+          font-size: 0.76rem;
           background: rgba(255,255,255,0.1);
           color: #E2E8F0;
         }
@@ -983,9 +983,9 @@ export async function renderIssues(container, params) {
           gap: 16px;
         }
         .issues-card {
-          background: #172033;
+          background: #131F36;
           border-radius: 14px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           padding: 18px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.2);
           display: flex;
@@ -1067,7 +1067,7 @@ export async function renderIssues(container, params) {
 
         /* Complaint Quote Box */
         .issues-complaint-box {
-          background: #1B2940;
+          background: #0E182B;
           border-left: 4px solid #F59E0B;
           border-radius: 0 10px 10px 0;
           padding: 12px 14px;
@@ -1085,8 +1085,8 @@ export async function renderIssues(container, params) {
 
         /* Person / Location Box */
         .issues-person-box {
-          background: #1B2940;
-          border: 1px solid #29364B;
+          background: #0E182B;
+          border: 1px solid #223456;
           border-radius: 10px;
           padding: 12px;
           display: flex;
@@ -1097,7 +1097,7 @@ export async function renderIssues(container, params) {
           width: 44px;
           height: 44px;
           border-radius: 10px;
-          background: #4F46E5;
+          background: #2563EB;
           color: white;
           display: flex;
           align-items: center;
@@ -1112,7 +1112,7 @@ export async function renderIssues(container, params) {
           color: #F8FAFC;
         }
         .issues-person-sub {
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           color: #94A3B8;
           font-weight: 600;
           text-transform: uppercase;
@@ -1158,7 +1158,7 @@ export async function renderIssues(container, params) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-top: 1px solid #29364B;
+          border-top: 1px solid #223456;
           padding-top: 12px;
           margin-top: auto;
           gap: 8px;
@@ -1172,8 +1172,8 @@ export async function renderIssues(container, params) {
           width: 34px;
           height: 34px;
           border-radius: 8px;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           display: flex;
           align-items: center;
@@ -1234,8 +1234,8 @@ export async function renderIssues(container, params) {
         /* Empty state */
         .issues-empty-state {
           grid-column: 1 / -1;
-          background: #172033;
-          border: 2px dashed #29364B;
+          background: #131F36;
+          border: 2px dashed #223456;
           border-radius: 16px;
           padding: 48px 24px;
           text-align: center;

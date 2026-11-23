@@ -198,21 +198,21 @@ export async function renderAuditLogs(container) {
       const actionCls = ACTION_BADGE_MAP[row.action] || 'badge-neutral';
       const content = `
         <div style="display:flex; flex-direction:column; gap:14px;">
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; background:#0F172A; border:1px solid #334155; border-radius:10px; padding:12px 14px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; background:#0E182B; border:1px solid #223456; border-radius:10px; padding:12px 14px;">
             <div>
-              <div style="font-size:0.72rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">ID Audit Log</div>
+              <div style="font-size:0.76rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">ID Audit Log</div>
               <div style="font-size:0.9rem; color:#F8FAFC; font-weight:700; margin-top:2px;">#${escapeHtml(String(row.id ?? id))}</div>
             </div>
             <div>
-              <div style="font-size:0.72rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Waktu</div>
+              <div style="font-size:0.76rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Waktu</div>
               <div style="font-size:0.86rem; color:#F8FAFC; font-weight:600; margin-top:2px;">${formatAuditTime(row.created_at)}</div>
             </div>
             <div>
-              <div style="font-size:0.72rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Pengguna</div>
+              <div style="font-size:0.76rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Pengguna</div>
               <div style="font-size:0.88rem; color:#F8FAFC; font-weight:700; margin-top:2px;">${escapeHtml(row.user_name || 'Sistem')} <span style="color:#CBD5E1; font-weight:500;">(${escapeHtml(row.user_role || '-')})</span></div>
             </div>
             <div>
-              <div style="font-size:0.72rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Aksi &amp; Modul</div>
+              <div style="font-size:0.76rem; color:#CBD5E1; text-transform:uppercase; font-weight:700;">Aksi &amp; Modul</div>
               <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:3px;">
                 <span class="badge ${actionCls}">${escapeHtml(row.action || '-')}</span>
                 <span style="font-size:0.84rem; color:#F8FAFC; text-transform:capitalize;">${escapeHtml((row.module || '-').replace(/_/g, ' '))}${row.target_id ? ` (#${escapeHtml(String(row.target_id))})` : ''}</span>

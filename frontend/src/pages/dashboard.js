@@ -237,7 +237,7 @@ export async function renderDashboard(container) {
             <div>
               <div class="chart-card-title">Tren Kegiatan Operasional</div>
             </div>
-            <select id="filter-jadwal-period" class="dash-header-select" style="background:#162032; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:4px 8px; font-size:0.75rem;" aria-label="Filter Periode">
+            <select id="filter-jadwal-period" class="dash-header-select" style="background:#0E182B; border:1px solid #223456; border-radius:6px; padding:4px 8px; font-size:0.78rem; color:#F8FAFC;" aria-label="Filter Periode">
               <option value="month">Per Bulan</option>
             </select>
           </div>
@@ -245,7 +245,7 @@ export async function renderDashboard(container) {
             <div id="skel-jadwal" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-jadwal" style="display:none"></canvas>
           </div>
-          <div id="jadwal-legend" style="display:flex;justify-content:center;gap:12px;margin-top:6px;font-size:0.72rem;font-weight:600;color:#CBD5E1;flex-wrap:wrap;">
+          <div id="jadwal-legend" style="display:flex;justify-content:center;gap:12px;margin-top:6px;font-size:0.76rem;font-weight:600;color:#CBD5E1;flex-wrap:wrap;">
             <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#2563EB"></div> Inspeksi</div>
             <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#3B82F6"></div> General Cleaning</div>
             <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#38BDF8"></div> Deep Cleaning</div>
@@ -265,7 +265,7 @@ export async function renderDashboard(container) {
             </div>
             <div id="donut-legend" class="donut-legend" style="min-width:110px;"></div>
           </div>
-          <div style="text-align:center; font-size:0.74rem; color:#CBD5E1; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <div style="text-align:center; font-size:0.78rem; color:#CBD5E1; display:flex; align-items:center; justify-content:center; gap:6px;">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
             <span id="donut-period-text">Distribusi Kategori Permasalahan</span>
           </div>
@@ -275,7 +275,7 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Tren Permasalahan 12 Bulan</div>
-            <div style="display:flex;align-items:center;gap:12px;font-size:0.72rem;font-weight:600;color:#CBD5E1">
+            <div style="display:flex;align-items:center;gap:12px;font-size:0.76rem;font-weight:600;color:#CBD5E1">
                <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#38BDF8"></div> Open</div>
                <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#2563EB"></div> Closed</div>
             </div>

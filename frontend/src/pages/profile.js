@@ -7,13 +7,13 @@ export async function renderProfile(container) {
   const initial = (user?.full_name || user?.username || 'U')[0].toUpperCase();
 
   const roleColors = {
-    superadmin: '#7C3AED', fc_specialist_leader: '#0284C7', editor_khusus: '#0284C7', viewer: '#10B981',
+    superadmin: '#60A5FA', fc_specialist_leader: '#38BDF8', editor_khusus: '#38BDF8', viewer: '#34D399',
   };
-  const roleColor = roleColors[user?.role] || '#64748B';
+  const roleColor = roleColors[user?.role] || '#93C5FD';
 
   container.innerHTML = `
     <div class="page-header">
-      <h1 class="page-title">👤 Profil Saya</h1>
+      <h1 class="page-title">Profil Saya</h1>
     </div>
 
     <div class="profile-layout">
@@ -21,13 +21,13 @@ export async function renderProfile(container) {
       <!-- LEFT: Info Card -->
       <div class="chart-card profile-info-card">
         <div class="profile-avatar-wrap">
-          <div class="profile-avatar-xl" style="background:linear-gradient(135deg,${roleColor},${roleColor}99)">
+          <div class="profile-avatar-xl" style="background:#2563EB;color:#FFFFFF;border:1px solid #3B82F6;">
             ${escapeHtml(initial)}
           </div>
           <div class="profile-name-block">
             <div class="profile-fullname">${escapeHtml(user?.full_name || '—')}</div>
             <div class="profile-username">@${escapeHtml(user?.username || '—')}</div>
-            <span class="badge badge-info" style="background:${roleColor}18;color:${roleColor};margin-top:6px">
+            <span class="badge badge-primary" style="margin-top:6px">
               ${escapeHtml((user?.role || '-').toUpperCase())}
             </span>
           </div>
@@ -37,15 +37,15 @@ export async function renderProfile(container) {
 
         <div class="info-list">
           <div class="info-row">
-            <span class="info-key">📧 Email</span>
+            <span class="info-key">Email</span>
             <span class="info-value">${escapeHtml(user?.email || '—')}</span>
           </div>
           <div class="info-row">
-            <span class="info-key">👤 Username</span>
+            <span class="info-key">Username</span>
             <span class="info-value">${escapeHtml(user?.username || '—')}</span>
           </div>
           <div class="info-row">
-            <span class="info-key">🎯 Role</span>
+            <span class="info-key">Role</span>
             <span class="info-value" style="color:${roleColor};font-weight:700">${escapeHtml(user?.role || '—')}</span>
           </div>
         </div>
@@ -55,7 +55,7 @@ export async function renderProfile(container) {
       <div class="chart-card">
         <div class="chart-card-header">
           <div>
-            <div class="chart-card-title">🔑 Ganti Password</div>
+            <div class="chart-card-title">Ganti Password</div>
             <div class="chart-card-subtitle">Gunakan password yang kuat, minimal 12 karakter</div>
           </div>
         </div>

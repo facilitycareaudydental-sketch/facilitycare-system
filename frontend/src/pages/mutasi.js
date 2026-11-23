@@ -422,7 +422,7 @@ export async function renderMutasi(container) {
                               </div>
                               <div>
                                 <div style="font-weight:700; color:#F8FAFC; white-space:nowrap;">${m.employee_name}</div>
-                                <div style="font-size:0.72rem; color:#94A3B8;">ID Mutasi: #${m.id}</div>
+                                <div style="font-size: 0.76rem; color:#94A3B8;">ID Mutasi: #${m.id}</div>
                               </div>
                             </div>
                           </td>
@@ -537,7 +537,7 @@ export async function renderMutasi(container) {
                     </div>
 
                     <!-- Card Footer: Dokumen & Aksi -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #29364B; margin-top:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #223456; margin-top:8px;">
                       <div>
                         ${m.document_link ? `
                           <a href="${m.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.78rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
@@ -740,8 +740,8 @@ export async function renderMutasi(container) {
 
         /* Controls Card */
         .mutasi-controls-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           padding: 18px 20px;
           box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -771,7 +771,7 @@ export async function renderMutasi(container) {
         .mutasi-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           border-radius: 10px;
           font-size: 0.9rem;
           outline: none;
@@ -783,11 +783,11 @@ export async function renderMutasi(container) {
         }
         .mutasi-select {
           padding: 10px 14px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #172033;
+          background: #131F36;
           outline: none;
           min-width: 180px;
           cursor: pointer;
@@ -815,8 +815,8 @@ export async function renderMutasi(container) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -840,10 +840,10 @@ export async function renderMutasi(container) {
         .mutasi-view-toggle {
           display: inline-flex;
           align-items: center;
-          background: #111827;
+          background: #0E182B;
           padding: 3px;
           border-radius: 10px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           gap: 3px;
           flex-shrink: 0;
         }
@@ -869,7 +869,7 @@ export async function renderMutasi(container) {
           background: #22314A;
         }
         .mutasi-view-btn.active {
-          background: #172033;
+          background: #131F36;
           color: #60A5FA;
           font-weight: 700;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
@@ -877,8 +877,8 @@ export async function renderMutasi(container) {
 
         /* Modern Table View */
         .mutasi-table-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
           overflow: hidden;
@@ -896,19 +896,19 @@ export async function renderMutasi(container) {
           min-width: 860px;
         }
         .mutasi-table th {
-          background: #111827;
+          background: #0E182B;
           color: #CBD5E1;
           font-size: 0.76rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 13px 16px;
-          border-bottom: 1.5px solid #29364B;
+          border-bottom: 1.5px solid #223456;
           white-space: nowrap;
         }
         .mutasi-table td {
           padding: 13px 16px;
-          border-bottom: 1px solid #29364B;
+          border-bottom: 1px solid #223456;
           color: #F8FAFC;
           vertical-align: middle;
         }
@@ -926,8 +926,8 @@ export async function renderMutasi(container) {
           gap: 16px;
         }
         .mutasi-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           padding: 18px;
           box-shadow: 0 2px 6px rgba(0,0,0,0.03);
@@ -1010,7 +1010,7 @@ export async function renderMutasi(container) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
         }
         .mutasi-status-badge.selesai {
@@ -1027,8 +1027,8 @@ export async function renderMutasi(container) {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           display: inline-flex;
           align-items: center;
@@ -1050,7 +1050,7 @@ export async function renderMutasi(container) {
         /* Empty state */
         .mutasi-empty-state {
           grid-column: 1 / -1;
-          background: #172033;
+          background: #131F36;
           border: 2px dashed #E2E8F0;
           border-radius: 16px;
           padding: 48px 24px;

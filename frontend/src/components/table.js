@@ -178,33 +178,41 @@ export function createTable({ columns, data, onEdit, onDelete, onView, actions =
 
       if (onView) {
         const btn = document.createElement('button');
-        btn.className = 'btn btn-xs btn-ghost';
-        btn.innerHTML = '👁';
+        btn.type = 'button';
+        btn.className = 'fc-action-btn fc-action-view';
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
         btn.title = 'Lihat';
+        btn.setAttribute('aria-label', 'Lihat detail');
         btn.addEventListener('click', () => onView(row));
         btnGroup.appendChild(btn);
       }
       if (onEdit) {
         const btn = document.createElement('button');
-        btn.className = 'btn btn-xs btn-secondary';
-        btn.innerHTML = '✏️';
+        btn.type = 'button';
+        btn.className = 'fc-action-btn fc-action-edit';
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
         btn.title = 'Edit';
+        btn.setAttribute('aria-label', 'Edit data');
         btn.addEventListener('click', () => onEdit(row));
         btnGroup.appendChild(btn);
       }
       actions.forEach(action => {
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = `btn btn-xs ${action.class || 'btn-ghost'}`;
         btn.innerHTML = action.icon || action.label;
         btn.title = action.label;
+        btn.setAttribute('aria-label', action.label || 'Aksi');
         btn.addEventListener('click', () => action.handler(row));
         btnGroup.appendChild(btn);
       });
       if (onDelete) {
         const btn = document.createElement('button');
-        btn.className = 'btn btn-xs btn-ghost text-danger';
-        btn.innerHTML = '🗑️';
+        btn.type = 'button';
+        btn.className = 'fc-action-btn fc-action-del';
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
         btn.title = 'Hapus';
+        btn.setAttribute('aria-label', 'Hapus data');
         btn.addEventListener('click', () => onDelete(row));
         btnGroup.appendChild(btn);
       }

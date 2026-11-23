@@ -968,7 +968,7 @@ export async function renderSOPSecurity(container) {
               </thead>
               <tbody>
                 ${filtered.map((item, idx) => `
-                  <tr style="border-bottom:1px solid #29364B; background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:#F8FAFC;">
+                  <tr style="border-bottom:1px solid #1E2E4A; background:${idx % 2 === 0 ? '#131F36' : '#0E182B'}; color:#F8FAFC;">
                     <td style="padding:11px 14px; font-weight:600; color:#CBD5E1;">${item.no || idx + 1}</td>
                     <td style="padding:11px 14px;">
                       <span class="badge" style="${getTypeBadgeStyle(item.type)}">${escapeHtml(item.type)}</span>
@@ -977,12 +977,14 @@ export async function renderSOPSecurity(container) {
                     <td style="padding:11px 14px; color:#CBD5E1; line-height:1.5;">${escapeHtml(item.description)}</td>
                     <td style="padding:11px 14px; font-weight:700; color:#93C5FD;">${escapeHtml(item.pic || '-')}</td>
                     <td style="padding:11px 14px; text-align:center;">
+                      <div style="display:inline-flex; gap:5px;">
                     ${canEdit ? `
-                      <button class="btn btn-sm btn-ghost btn-edit-asset" data-no="${item.no}" title="Edit Aset" style="padding:4px 7px; color:#93C5FD; cursor:pointer;">✏️</button>
+                      <button type="button" class="fc-action-btn fc-action-edit btn-edit-asset" data-no="${item.no}" title="Edit Aset" aria-label="Edit aset ${escapeHtml(item.item || '')}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>
                     ` : ''}
                     ${canDelete ? `
-                      <button class="btn btn-sm btn-ghost btn-delete-asset" data-no="${item.no}" title="Hapus Aset" style="padding:4px 7px; color:#FCA5A5; cursor:pointer;">🗑️</button>
+                      <button type="button" class="fc-action-btn fc-action-del btn-delete-asset" data-no="${item.no}" title="Hapus Aset" aria-label="Hapus aset ${escapeHtml(item.item || '')}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                     ` : ''}
+                      </div>
                     </td>
                   </tr>
                 `).join('')}

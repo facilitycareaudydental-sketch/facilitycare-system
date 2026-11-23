@@ -262,7 +262,7 @@ export async function renderContracts(container, params) {
                   historyText = `Riwayat: Status <strong>${last.status}</strong> (Selesai: ${formatDateIndo(last.end_date)})`;
                 }
                 return `
-                  <div style="background:#172033; border:1px solid #29364B; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                  <div style="background:#131F36; border:1px solid #223456; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div>
                       <div style="font-weight:700; font-size:0.88rem; color:#F8FAFC;">${m.full_name}</div>
                       <div style="font-size:0.76rem; color:#CBD5E1;">
@@ -486,7 +486,7 @@ export async function renderContracts(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Selesai Kontrak
             </label>
-            <input type="date" id="con-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; ${defaultIsTetap ? 'opacity:0.5; background-color:#1B2940; cursor:not-allowed;' : 'background-color:#1B2940;'}" 
+            <input type="date" id="con-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; ${defaultIsTetap ? 'opacity:0.5; background-color:#0E182B; cursor:not-allowed;' : 'background-color:#0E182B;'}" 
               value="${defaultEndDate}" ${defaultIsTetap ? 'disabled' : ''} />
             <div style="margin-top:6px; display:flex; align-items:center; gap:6px;">
               <input type="checkbox" id="con-modal-is-tetap" ${defaultIsTetap ? 'checked' : ''} style="cursor:pointer;" />
@@ -881,7 +881,7 @@ export async function renderContracts(container, params) {
                               </div>
                               <div style="min-width:0;">
                                 <div style="font-weight:700; color:#F8FAFC; font-size:0.9rem;">${item.employee_name || 'Karyawan Tanpa Nama'}</div>
-                                <div style="font-size:0.74rem; color:#94A3B8;">ID #${item.id} ${item.pkwt_number ? '• ' + item.pkwt_number : ''}</div>
+                                <div style="font-size: 0.76rem; color:#94A3B8;">ID #${item.id} ${item.pkwt_number ? '• ' + item.pkwt_number : ''}</div>
                               </div>
                             </div>
                           </td>
@@ -1273,7 +1273,7 @@ export async function renderContracts(container, params) {
           letter-spacing: -0.02em;
         }
         .con-stat-lbl {
-          font-size: 0.72rem;
+          font-size: 0.76rem;
           text-transform: uppercase;
           color: #94A3B8;
           font-weight: 700;
@@ -1283,9 +1283,9 @@ export async function renderContracts(container, params) {
 
         /* Controls / Filter Bar */
         .con-controls-card {
-          background: #172033;
+          background: #131F36;
           border-radius: 14px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           padding: 16px 20px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.03);
           display: flex;
@@ -1334,7 +1334,7 @@ export async function renderContracts(container, params) {
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #172033;
+          background: #131F36;
           outline: none;
           min-width: 170px;
           cursor: pointer;
@@ -1362,8 +1362,8 @@ export async function renderContracts(container, params) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -1389,7 +1389,7 @@ export async function renderContracts(container, params) {
         .con-pill-count {
           padding: 1px 6px;
           border-radius: 10px;
-          font-size: 0.72rem;
+          font-size: 0.76rem;
           background: rgba(255,255,255,0.1);
           color: #E2E8F0;
         }
@@ -1402,10 +1402,10 @@ export async function renderContracts(container, params) {
         .con-view-toggle {
           display: inline-flex;
           align-items: center;
-          background: #111827;
+          background: #0E182B;
           padding: 3px;
           border-radius: 10px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           gap: 3px;
           flex-shrink: 0;
         }
@@ -1431,7 +1431,7 @@ export async function renderContracts(container, params) {
           background: #22314A;
         }
         .con-view-btn.active {
-          background: #172033;
+          background: #131F36;
           color: #60A5FA;
           font-weight: 700;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
@@ -1439,8 +1439,8 @@ export async function renderContracts(container, params) {
 
         /* Modern Table View */
         .con-table-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
           overflow: hidden;
@@ -1458,24 +1458,24 @@ export async function renderContracts(container, params) {
           min-width: 960px;
         }
         .con-table th {
-          background: #1B2940;
+          background: #0E182B;
           color: #CBD5E1;
           font-size: 0.76rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 13px 16px;
-          border-bottom: 1.5px solid #29364B;
+          border-bottom: 1.5px solid #223456;
           white-space: nowrap;
         }
         .con-table td {
           padding: 13px 16px;
-          border-bottom: 1px solid #29364B;
+          border-bottom: 1px solid #223456;
           color: #F8FAFC;
           vertical-align: middle;
         }
         .con-table tbody tr:hover td {
-          background: #1B2940;
+          background: #0E182B;
         }
         .con-table tbody tr:last-child td {
           border-bottom: none;
@@ -1492,9 +1492,9 @@ export async function renderContracts(container, params) {
           box-sizing: border-box;
         }
         .con-card {
-          background: #172033;
+          background: #131F36;
           border-radius: 14px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           padding: 16px 18px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.04);
           display: flex;
@@ -1530,7 +1530,7 @@ export async function renderContracts(container, params) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
           flex-shrink: 0;
           white-space: nowrap;
@@ -1557,7 +1557,7 @@ export async function renderContracts(container, params) {
           gap: 4px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
           background: rgba(139, 92, 246, 0.18);
           color: #C4B5FD;
@@ -1572,7 +1572,7 @@ export async function renderContracts(container, params) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
           flex-shrink: 0;
           white-space: nowrap;
@@ -1644,8 +1644,8 @@ export async function renderContracts(container, params) {
 
         /* Info Container */
         .con-info-card {
-          background: #1B2940;
-          border: 1px solid #29364B;
+          background: #0E182B;
+          border: 1px solid #223456;
           border-radius: 10px;
           padding: 11px 12px;
           display: flex;
@@ -1706,7 +1706,7 @@ export async function renderContracts(container, params) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-top: 1px solid #29364B;
+          border-top: 1px solid #223456;
           padding-top: 11px;
           margin-top: auto;
           gap: 8px;
@@ -1726,8 +1726,8 @@ export async function renderContracts(container, params) {
           width: 34px;
           height: 34px;
           border-radius: 8px;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           display: flex;
           align-items: center;
@@ -1749,8 +1749,8 @@ export async function renderContracts(container, params) {
         /* Empty state */
         .con-empty-state {
           grid-column: 1 / -1;
-          background: #172033;
-          border: 2px dashed #29364B;
+          background: #131F36;
+          border: 2px dashed #223456;
           border-radius: 16px;
           padding: 48px 24px;
           text-align: center;

@@ -87,13 +87,13 @@ function ensureComboboxStyles() {
       height: 46px !important;
       min-height: 46px !important;
       padding: 0 38px 0 42px !important;
-      border: 1px solid #29364B !important;
+      border: 1px solid #223456 !important;
       border-radius: 12px !important;
       font-size: 0.95rem !important;
       font-family: inherit !important;
       font-weight: 500 !important;
       color: #F8FAFC !important;
-      background: #1B2940 !important;
+      background: #0E182B !important;
       outline: none !important;
       box-sizing: border-box !important;
       transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
@@ -107,7 +107,7 @@ function ensureComboboxStyles() {
     .fc-emp-input:focus {
       border-color: #2563EB !important;
       box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.2) !important;
-      background: #1B2940 !important;
+      background: #0E182B !important;
     }
     .fc-emp-clear-btn {
       position: absolute;
@@ -131,7 +131,7 @@ function ensureComboboxStyles() {
       padding: 0;
     }
     .fc-emp-clear-btn:hover {
-      background: #29364B;
+      background: #223456;
       color: #F8FAFC;
     }
     .fc-emp-dropdown {
@@ -141,8 +141,8 @@ function ensureComboboxStyles() {
       right: 0;
       width: 100%;
       z-index: 1070;
-      background: #172033;
-      border: 1px solid #29364B;
+      background: #131F36;
+      border: 1px solid #223456;
       border-radius: 12px;
       box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.3);
       max-height: 260px;
@@ -162,7 +162,7 @@ function ensureComboboxStyles() {
       background: transparent;
     }
     .fc-emp-dropdown::-webkit-scrollbar-thumb {
-      background: #29364B;
+      background: #223456;
       border-radius: 999px;
     }
     .fc-emp-dropdown::-webkit-scrollbar-thumb:hover {
@@ -171,7 +171,7 @@ function ensureComboboxStyles() {
     .fc-emp-option {
       padding: 10px 14px;
       cursor: pointer;
-      border-bottom: 1px solid #29364B;
+      border-bottom: 1px solid #223456;
       transition: background-color 0.12s ease;
       display: flex;
       align-items: center;
@@ -284,9 +284,9 @@ function ensureComboboxStyles() {
       align-items: center;
       gap: 6px;
       padding: 4px 10px;
-      background: #1B2940;
+      background: #0E182B;
       color: #F8FAFC;
-      border: 1px solid #29364B;
+      border: 1px solid #223456;
       border-radius: 999px;
       font-size: 0.78rem;
       font-weight: 500;
@@ -297,7 +297,7 @@ function ensureComboboxStyles() {
       border-color: rgba(245, 158, 11, 0.3);
     }
     .fc-emp-chip-tag {
-      font-size: 0.68rem;
+      font-size: 0.76rem;
       padding: 1px 5px;
       background: #F59E0B;
       color: #FFFFFF;

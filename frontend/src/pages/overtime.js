@@ -300,7 +300,7 @@ export async function renderOvertime(container) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Total Jam Lembur <span style="color:#DC2626;">*</span>
             </label>
-            <input type="number" step="0.1" min="0" id="ot-modal-total" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #29364B; border-radius:8px; background:#1B2940; color:#38BDF8; font-weight:700; color:#2563EB;" 
+            <input type="number" step="0.1" min="0" id="ot-modal-total" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #223456; border-radius:8px; background:#0E182B; color:#38BDF8; font-weight:700; color:#2563EB;" 
               value="${defaultTotal}" required />
           </div>
         </div>
@@ -611,7 +611,7 @@ export async function renderOvertime(container) {
 
                     <!-- Card Footer: Aksi -->
                     ${canEdit || canDelete ? `
-                      <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; padding-top:12px; border-top:1px solid #29364B; margin-top:12px;">
+                      <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; padding-top:12px; border-top:1px solid #223456; margin-top:12px;">
                         ${canEdit ? `
                           <button class="lembur-icon-btn lembur-edit-btn" title="Edit Catatan Lembur" data-id="${o.id}">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -800,8 +800,8 @@ export async function renderOvertime(container) {
 
         /* Controls Card */
         .lembur-controls-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           padding: 18px 20px;
           box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -830,10 +830,10 @@ export async function renderOvertime(container) {
         .lembur-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           border-radius: 10px;
           font-size: 0.9rem;
-          background: #111827;
+          background: #0E182B;
           color: #F8FAFC;
           outline: none;
           transition: border-color 0.15s ease;
@@ -847,11 +847,11 @@ export async function renderOvertime(container) {
         }
         .lembur-select {
           padding: 10px 14px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #172033;
+          background: #131F36;
           outline: none;
           min-width: 200px;
           cursor: pointer;
@@ -879,8 +879,8 @@ export async function renderOvertime(container) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #29364B;
-          background: #111827;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -904,10 +904,10 @@ export async function renderOvertime(container) {
         .lembur-view-toggle {
           display: inline-flex;
           align-items: center;
-          background: #111827;
+          background: #0E182B;
           padding: 3px;
           border-radius: 10px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           gap: 3px;
           flex-shrink: 0;
         }
@@ -933,7 +933,7 @@ export async function renderOvertime(container) {
           background: rgba(255, 255, 255, 0.08);
         }
         .lembur-view-btn.active {
-          background: #1B2940;
+          background: #0E182B;
           color: #60A5FA;
           font-weight: 700;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
@@ -941,8 +941,8 @@ export async function renderOvertime(container) {
 
         /* Modern Table View */
         .lembur-table-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
           overflow: hidden;
@@ -960,19 +960,19 @@ export async function renderOvertime(container) {
           min-width: 860px;
         }
         .lembur-table th {
-          background: #111827;
+          background: #0E182B;
           color: #CBD5E1;
           font-size: 0.76rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 13px 16px;
-          border-bottom: 1.5px solid #29364B;
+          border-bottom: 1.5px solid #223456;
           white-space: nowrap;
         }
         .lembur-table td {
           padding: 13px 16px;
-          border-bottom: 1px solid #29364B;
+          border-bottom: 1px solid #223456;
           color: #F8FAFC;
           vertical-align: middle;
         }
@@ -990,8 +990,8 @@ export async function renderOvertime(container) {
           gap: 16px;
         }
         .lembur-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           padding: 18px;
           box-shadow: 0 2px 6px rgba(0,0,0,0.03);
@@ -1054,8 +1054,8 @@ export async function renderOvertime(container) {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           display: inline-flex;
           align-items: center;
@@ -1077,7 +1077,7 @@ export async function renderOvertime(container) {
         /* Empty state */
         .lembur-empty-state {
           grid-column: 1 / -1;
-          background: #172033;
+          background: #131F36;
           border: 2px dashed #E2E8F0;
           border-radius: 16px;
           padding: 48px 24px;

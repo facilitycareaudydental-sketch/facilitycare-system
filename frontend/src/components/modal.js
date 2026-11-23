@@ -10,12 +10,12 @@ export function createModal({ title, content, onConfirm, onCancel, confirmText =
     <div class="modal" style="max-width:${sizes[size] || sizes.md}">
       <div class="modal-header">
         <h3 class="modal-title">${escapeHtml(title)}</h3>
-        <button class="modal-close" aria-label="Close">&times;</button>
+        <button type="button" class="modal-close" aria-label="Tutup modal">&times;</button>
       </div>
       <div class="modal-body">${safeContent}</div>
       <div class="modal-footer">
-        <button class="btn btn-ghost modal-cancel">${escapeHtml(cancelText)}</button>
-        ${onConfirm ? `<button class="btn ${escapeHtml(confirmClass)} modal-confirm">${escapeHtml(confirmText)}</button>` : ''}
+        <button type="button" class="btn btn-ghost modal-cancel">${escapeHtml(cancelText)}</button>
+        ${onConfirm ? `<button type="button" class="btn ${escapeHtml(confirmClass)} modal-confirm">${escapeHtml(confirmText)}</button>` : ''}
       </div>
     </div>
   `;
@@ -41,6 +41,15 @@ export function createModal({ title, content, onConfirm, onCancel, confirmText =
   return { overlay, close };
 }
 
+function formatConfirmContent(msg) {
+  if (typeof msg !== 'string') return msg;
+  const cleaned = msg.replace(/<\/?strong>/gi, '');
+  const p = document.createElement('p');
+  p.style.cssText = 'margin:0;color:#E2E8F0;line-height:1.6;font-size:0.94rem;';
+  p.textContent = cleaned;
+  return p;
+}
+
 export function confirmDialog(message, onConfirm, title = 'Konfirmasi') {
   // Support both object options: confirmDialog({ title, message, onConfirm, confirmText, confirmClass, cancelText })
   // and positional arguments: confirmDialog(message, onConfirm, title)
@@ -48,7 +57,7 @@ export function confirmDialog(message, onConfirm, title = 'Konfirmasi') {
     const opts = message;
     return createModal({
       title: opts.title || 'Konfirmasi',
-      content: typeof opts.message === 'string' ? `<p>${escapeHtml(opts.message)}</p>` : opts.message,
+      content: formatConfirmContent(opts.message),
       onConfirm: async (_, close) => {
         if (opts.onConfirm) await opts.onConfirm();
         close();
@@ -62,7 +71,7 @@ export function confirmDialog(message, onConfirm, title = 'Konfirmasi') {
 
   return createModal({
     title,
-    content: typeof message === 'string' ? `<p>${escapeHtml(message)}</p>` : message,
+    content: formatConfirmContent(message),
     onConfirm: async (_, close) => {
       if (onConfirm) await onConfirm();
       close();

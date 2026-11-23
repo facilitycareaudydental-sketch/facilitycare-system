@@ -1171,18 +1171,20 @@ export async function renderSOPFacilityCare(container) {
                 </thead>
                 <tbody>
                   ${filtered.map((item, idx) => `
-                    <tr style="border-bottom:1px solid #29364B; background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:#F8FAFC;">
+                    <tr style="border-bottom:1px solid #1E2E4A; background:${idx % 2 === 0 ? '#131F36' : '#0E182B'}; color:#F8FAFC;">
                       <td style="padding:11px 14px; font-weight:600; color:#CBD5E1;">${item.no || idx + 1}</td>
                       <td style="padding:11px 14px; font-weight:700; color:#FFFFFF;">${escapeHtml(item.name)}</td>
                       <td style="padding:11px 14px;"><span class="badge" style="background:rgba(56,189,248,0.16); color:#7DD3FC; border:1px solid rgba(56,189,248,0.35); font-weight:700; padding:3px 9px; border-radius:6px;">${escapeHtml(item.qty)}</span></td>
                       <td style="padding:11px 14px; color:#CBD5E1; line-height:1.5;">${escapeHtml(item.area)}</td>
                       <td style="padding:11px 14px; text-align:center;">
+                        <div style="display:inline-flex; gap:5px;">
                     ${canEdit ? `
-                        <button class="btn btn-sm btn-ghost btn-edit-tool" data-no="${item.no}" title="Edit Alat" style="padding:4px 7px; color:#93C5FD; cursor:pointer;">✏️</button>
+                        <button type="button" class="fc-action-btn fc-action-edit btn-edit-tool" data-no="${item.no}" title="Edit Alat" aria-label="Edit alat ${escapeHtml(item.name || '')}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>
                     ` : ''}
                     ${canDelete ? `
-                        <button class="btn btn-sm btn-ghost btn-delete-tool" data-no="${item.no}" title="Hapus Alat" style="padding:4px 7px; color:#FCA5A5; cursor:pointer;">🗑️</button>
+                        <button type="button" class="fc-action-btn fc-action-del btn-delete-tool" data-no="${item.no}" title="Hapus Alat" aria-label="Hapus alat ${escapeHtml(item.name || '')}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                     ` : ''}
+                        </div>
                       </td>
                     </tr>
                   `).join('')}
@@ -1239,19 +1241,21 @@ export async function renderSOPFacilityCare(container) {
                 </thead>
                 <tbody>
                   ${filtered.map((item, idx) => `
-                    <tr style="border-bottom:1px solid #29364B; background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:#F8FAFC;">
+                    <tr style="border-bottom:1px solid #1E2E4A; background:${idx % 2 === 0 ? '#131F36' : '#0E182B'}; color:#F8FAFC;">
                       <td style="padding:11px 14px; font-weight:600; color:#CBD5E1;">${item.no || idx + 1}</td>
                       <td style="padding:11px 14px; font-weight:700; color:#FFFFFF;">${escapeHtml(item.name)}</td>
                       <td style="padding:11px 14px;"><span class="badge" style="background:rgba(245,158,11,0.18); color:#FCD34D; border:1px solid rgba(251,191,36,0.38); font-weight:700; padding:3px 9px; border-radius:6px;">${escapeHtml(item.size)}</span></td>
-                      <td style="padding:11px 14px;"><span style="background:rgba(59,130,246,0.18); color:#93C5FD; border:1px solid rgba(96,165,250,0.38); padding:4px 9px; border-radius:6px; font-weight:700; font-size:0.84rem; display:inline-block;">${escapeHtml(item.ratio)}</span></td>
+                      <td style="padding:11px 14px;"><span style="background:rgba(56,189,248,0.14); color:#7DD3FC; border:1px solid rgba(56,189,248,0.35); padding:4px 9px; border-radius:6px; font-weight:700; font-size:0.84rem; display:inline-block;">${escapeHtml(item.ratio)}</span></td>
                       <td style="padding:11px 14px; color:#CBD5E1; line-height:1.5;">${escapeHtml(item.function)}</td>
                       <td style="padding:11px 14px; text-align:center;">
+                        <div style="display:inline-flex; gap:5px;">
                     ${canEdit ? `
-                        <button class="btn btn-sm btn-ghost btn-edit-chem" data-no="${item.no}" title="Edit Chemical" style="padding:4px 7px; color:#93C5FD; cursor:pointer;">✏️</button>
+                        <button type="button" class="fc-action-btn fc-action-edit btn-edit-chem" data-no="${item.no}" title="Edit Chemical" aria-label="Edit chemical ${escapeHtml(item.name || '')}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>
                     ` : ''}
                     ${canDelete ? `
-                        <button class="btn btn-sm btn-ghost btn-delete-chem" data-no="${item.no}" title="Hapus Chemical" style="padding:4px 7px; color:#FCA5A5; cursor:pointer;">🗑️</button>
+                        <button type="button" class="fc-action-btn fc-action-del btn-delete-chem" data-no="${item.no}" title="Hapus Chemical" aria-label="Hapus chemical ${escapeHtml(item.name || '')}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                     ` : ''}
+                        </div>
                       </td>
                     </tr>
                   `).join('')}
@@ -1577,20 +1581,20 @@ export async function renderSOPFacilityCare(container) {
               <span style="font-size:2rem;">📑</span>
               <div>
                 <h3 style="margin:0 0 4px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Form Inspeksi Hygiene Cabang</h3>
-                <span class="badge" style="background:rgba(139,92,246,0.18); color:#DDD6FE; border:1px solid rgba(167,139,250,0.38); font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:6px;">Google Forms</span>
+                <span class="badge" style="background:rgba(37,99,235,0.16); color:#93C5FD; border:1px solid rgba(59,130,246,0.35); font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:6px;">Google Forms</span>
               </div>
             </div>
             <p style="font-size:0.88rem; color:#CBD5E1; line-height:1.6; margin-bottom:16px;">
               Formulir digital inspeksi evaluasi kebersihan dan kepatuhan hygiene cabang yang diisi oleh Facility Care Specialist setiap periode 3 bulanan.
             </p>
           </div>
-          <a href="https://docs.google.com/forms/d/e/1FAIpQLScn8iPabIt51E_GORkbD86IURSS-EsUYINEQ_Zwdq_uC3XOCQ/viewform" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:700; padding:10px; border-radius:8px; background:#7E22CE; border-color:#9333EA; color:#FFFFFF;">
-            📋 Buka Google Form Inspeksi ➔
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLScn8iPabIt51E_GORkbD86IURSS-EsUYINEQ_Zwdq_uC3XOCQ/viewform" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:700; padding:10px; border-radius:8px; background:#2563EB; border-color:#3B82F6; color:#FFFFFF;">
+            📋 Buka Google Form Inspeksi →
           </a>
         </div>
 
         <!-- Card: Basecamp Monitoring Project -->
-        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#131F36; border:1px solid #223456; border-radius:12px; padding:20px; display:flex; flex-direction:column; justify-content:space-between;">
           <div>
             <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
               <span style="font-size:2rem;">🏕️</span>

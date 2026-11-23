@@ -99,10 +99,10 @@ export function buildCrudPage({
         ${canCreate ? `<button class="btn btn-primary" id="btn-create">+ Tambah ${escapeHtml(itemLabel)}</button>` : ''}
         ${exportOptions ? `
           <div class="aksi-dropdown-container" style="position:relative; display:inline-block;">
-            <button class="btn btn-ghost" id="btn-aksi-main" style="background:#172033; border:1px solid #29364B; padding:8px 16px; border-radius:8px; font-weight:600; color:#F8FAFC; display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <button class="btn btn-ghost" id="btn-aksi-main" style="background:#131F36; border:1px solid #223456; padding:8px 16px; border-radius:8px; font-weight:600; color:#F8FAFC; display:flex; align-items:center; gap:6px; cursor:pointer;">
               ⋮ Aksi
             </button>
-            <div id="aksi-menu-main" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#172033; border:1px solid #29364B; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.5); flex-direction:column; min-width:200px; z-index:999; padding:8px 0;">
+            <div id="aksi-menu-main" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#131F36; border:1px solid #223456; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.5); flex-direction:column; min-width:200px; z-index:999; padding:8px 0;">
               ${exportOptions.export !== false && typeof exportOptions.onExport === 'function' ? `
               <button type="button" class="dropdown-item" id="btn-export-${exportOptions.moduleName || 'default'}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#F8FAFC; display:flex; gap:8px; align-items:center;">
                 📥 Export Excel

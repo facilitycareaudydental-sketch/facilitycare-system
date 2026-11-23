@@ -208,7 +208,7 @@ export async function renderEmployees(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
               Nama Lengkap Karyawan <span style="color:#EF4444;">*</span>
             </label>
-            <input type="text" id="emp-modal-name" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#111827; color:#F8FAFC;" 
+            <input type="text" id="emp-modal-name" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#0E182B; color:#F8FAFC;" 
               placeholder="Contoh: Achmad Nuryaini" value="${item?.full_name ? String(item.full_name).replace(/"/g, '&quot;') : ''}" required />
           </div>
 
@@ -216,7 +216,7 @@ export async function renderEmployees(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
               No. Handphone / WhatsApp
             </label>
-            <input type="tel" id="emp-modal-phone" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#111827; color:#F8FAFC;" 
+            <input type="tel" id="emp-modal-phone" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#0E182B; color:#F8FAFC;" 
               placeholder="08xx-xxxx-xxxx" value="${item?.phone ? String(item.phone).replace(/"/g, '&quot;') : ''}" />
           </div>
         </div>
@@ -226,7 +226,7 @@ export async function renderEmployees(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
               Cabang Penempatan <span style="color:#EF4444;">*</span>
             </label>
-            <select id="emp-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#172033; color:#F8FAFC;" required>
+            <select id="emp-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#131F36; color:#F8FAFC;" required>
               <option value="">-- Pilih Cabang --</option>
               ${branchOptions.map(b => `
                 <option value="${b.value}" ${String(item?.branch_id) === String(b.value) ? 'selected' : ''}>
@@ -240,7 +240,7 @@ export async function renderEmployees(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
               Divisi / Bagian <span style="color:#EF4444;">*</span>
             </label>
-            <select id="emp-modal-division" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#172033; color:#F8FAFC;" required>
+            <select id="emp-modal-division" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#131F36; color:#F8FAFC;" required>
               ${DIVISION_LIST.map(div => `
                 <option value="${div}" ${defaultDivision === div ? 'selected' : ''}>${div}</option>
               `).join('')}
@@ -253,7 +253,7 @@ export async function renderEmployees(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
               Tanggal Masuk Kerja
             </label>
-            <input type="date" id="emp-modal-joindate" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#111827; color:#F8FAFC; color-scheme:dark;" 
+            <input type="date" id="emp-modal-joindate" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#0E182B; color:#F8FAFC; color-scheme:dark;" 
               value="${item?.join_date || ''}" />
           </div>
 
@@ -261,7 +261,7 @@ export async function renderEmployees(container, params) {
             <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
               Status Karyawan <span style="color:#EF4444;">*</span>
             </label>
-            <select id="emp-modal-status" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#172033; color:#F8FAFC;" required>
+            <select id="emp-modal-status" class="form-control" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#131F36; color:#F8FAFC;" required>
               ${STATUS_LIST.map(st => `
                 <option value="${st}" ${defaultStatus === st ? 'selected' : ''}>${st}</option>
               `).join('')}
@@ -273,7 +273,7 @@ export async function renderEmployees(container, params) {
           <label style="display:block; font-size:0.82rem; font-weight:600; color:#94A3B8; margin-bottom:5px;">
             Catatan / Keterangan Karyawan
           </label>
-          <textarea id="emp-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#111827; color:#F8FAFC;" 
+          <textarea id="emp-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:#0E182B; color:#F8FAFC;" 
             placeholder="Catatan keahlian, tugas khusus, riwayat cover...">${item?.notes || ''}</textarea>
         </div>
       </div>
@@ -436,7 +436,7 @@ export async function renderEmployees(container, params) {
                               </div>
                               <div style="min-width:0;">
                                 <div style="font-weight:700; color:#F8FAFC; font-size:0.9rem;">${item.full_name || 'Karyawan'}</div>
-                                <div style="font-size:0.74rem; color:#94A3B8;">ID #${item.id} ${item.nik ? '• ' + item.nik : ''}</div>
+                                <div style="font-size: 0.76rem; color:#94A3B8;">ID #${item.id} ${item.nik ? '• ' + item.nik : ''}</div>
                               </div>
                             </div>
                           </td>
@@ -680,7 +680,7 @@ export async function renderEmployees(container, params) {
           overflow-x: hidden;
         }
         .emp-hero-card {
-          background: #111827;
+          background: #0E182B;
           border-radius: 16px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           padding: 22px 26px;
@@ -711,7 +711,7 @@ export async function renderEmployees(container, params) {
           margin-top: 18px;
         }
         .emp-stat-box {
-          background: #172033;
+          background: #131F36;
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 12px;
           padding: 14px 18px;
@@ -746,7 +746,7 @@ export async function renderEmployees(container, params) {
           font-variant-numeric: tabular-nums;
         }
         .emp-stat-lbl {
-          font-size: 0.72rem;
+          font-size: 0.76rem;
           text-transform: uppercase;
           color: #94A3B8;
           font-weight: 700;
@@ -756,7 +756,7 @@ export async function renderEmployees(container, params) {
 
         /* Controls / Filter Bar */
         .emp-controls-card {
-          background: #111827;
+          background: #0E182B;
           border-radius: 14px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           padding: 16px 20px;
@@ -777,7 +777,7 @@ export async function renderEmployees(container, params) {
         }
         .emp-view-toggle {
           display: inline-flex;
-          background: #172033;
+          background: #131F36;
           padding: 4px;
           border-radius: 10px;
           border: 1px solid rgba(255, 255, 255, 0.08);
@@ -807,7 +807,7 @@ export async function renderEmployees(container, params) {
           box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
         }
         .emp-table-card {
-          background: #111827;
+          background: #0E182B;
           border-radius: 14px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
@@ -826,10 +826,10 @@ export async function renderEmployees(container, params) {
           font-size: 0.85rem;
         }
         .emp-table th {
-          background: #172033;
+          background: #131F36;
           color: #94A3B8;
           font-weight: 700;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           text-transform: uppercase;
           letter-spacing: 0.04em;
           padding: 13px 16px;
@@ -871,7 +871,7 @@ export async function renderEmployees(container, params) {
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #111827;
+          background: #0E182B;
           outline: none;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
           box-sizing: border-box;
@@ -889,14 +889,14 @@ export async function renderEmployees(container, params) {
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #172033;
+          background: #131F36;
           outline: none;
           min-width: 170px;
           cursor: pointer;
           transition: border-color 0.15s ease;
         }
         .emp-select option {
-          background: #172033;
+          background: #131F36;
           color: #F8FAFC;
         }
         .emp-select:focus {
@@ -923,7 +923,7 @@ export async function renderEmployees(container, params) {
           font-weight: 600;
           cursor: pointer;
           border: 1px solid rgba(255, 255, 255, 0.08);
-          background: #172033;
+          background: #131F36;
           color: #94A3B8;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -951,7 +951,7 @@ export async function renderEmployees(container, params) {
         .emp-pill-count {
           padding: 1px 7px;
           border-radius: 10px;
-          font-size: 0.72rem;
+          font-size: 0.76rem;
           background: rgba(255, 255, 255, 0.08);
           color: #F8FAFC;
         }
@@ -971,7 +971,7 @@ export async function renderEmployees(container, params) {
           box-sizing: border-box;
         }
         .emp-card {
-          background: #172033;
+          background: #131F36;
           border-radius: 14px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           padding: 16px 18px;
@@ -1008,7 +1008,7 @@ export async function renderEmployees(container, params) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
           flex-shrink: 0;
           white-space: nowrap;
@@ -1030,7 +1030,7 @@ export async function renderEmployees(container, params) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
           flex-shrink: 0;
           white-space: nowrap;
@@ -1094,7 +1094,7 @@ export async function renderEmployees(container, params) {
           gap: 8px;
         }
         .emp-info-card {
-          background: #111827;
+          background: #0E182B;
           border: 1px solid rgba(255, 255, 255, 0.06);
           border-radius: 10px;
           padding: 10px 12px;
@@ -1109,7 +1109,7 @@ export async function renderEmployees(container, params) {
         }
         .emp-info-label {
           color: #94A3B8;
-          font-size: 0.72rem;
+          font-size: 0.76rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.03em;
@@ -1175,7 +1175,7 @@ export async function renderEmployees(container, params) {
           height: 34px;
           border-radius: 8px;
           border: 1px solid rgba(255, 255, 255, 0.08);
-          background: #111827;
+          background: #0E182B;
           color: #94A3B8;
           display: flex;
           align-items: center;
@@ -1197,7 +1197,7 @@ export async function renderEmployees(container, params) {
         /* Empty state */
         .emp-empty-state {
           grid-column: 1 / -1;
-          background: #172033;
+          background: #131F36;
           border: 2px dashed rgba(255, 255, 255, 0.12);
           border-radius: 16px;
           padding: 48px 24px;
@@ -1331,12 +1331,12 @@ export async function renderEmployees(container, params) {
                 </button>
               ` : ''}
               
-              ${hasPermission(currentUser, "export") ? `<button id="emp-btn-excel" class="btn btn-ghost emp-btn-excel" style="background:#172033; border:1px solid rgba(255,255,255,0.12); color:#F8FAFC; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+              ${hasPermission(currentUser, "export") ? `<button id="emp-btn-excel" class="btn btn-ghost emp-btn-excel" style="background:#131F36; border:1px solid rgba(255,255,255,0.12); color:#F8FAFC; padding:9px 14px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;">
                 <span>📥</span>
                 <span>Ekspor Excel</span>
               </button>` : ''}
 
-              <button id="emp-btn-refresh" class="btn btn-ghost emp-btn-refresh" style="background:#172033; border:1px solid rgba(255,255,255,0.12); color:#F8FAFC; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+              <button id="emp-btn-refresh" class="btn btn-ghost emp-btn-refresh" style="background:#131F36; border:1px solid rgba(255,255,255,0.12); color:#F8FAFC; width:38px; height:38px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" class="${isLoading ? 'spin-icon' : ''}"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
             </div>
@@ -1349,7 +1349,7 @@ export async function renderEmployees(container, params) {
               <div>
                 <div class="emp-stat-val" id="emp-stat-total">${totalEmployees}</div>
                 <div class="emp-stat-lbl">Karyawan Terdaftar</div>
-                <div id="emp-stat-sub" style="font-size:0.68rem; color:#A5B4C8; margin-top:2px;">${activeCount} Aktif • ${countNonactive} Nonaktif</div>
+                <div id="emp-stat-sub" style="font-size: 0.76rem; color:#A5B4C8; margin-top:2px;">${activeCount} Aktif • ${countNonactive} Nonaktif</div>
               </div>
             </div>
 
@@ -1358,7 +1358,7 @@ export async function renderEmployees(container, params) {
               <div>
                 <div class="emp-stat-val" id="emp-stat-active">${activeCount}</div>
                 <div class="emp-stat-lbl">Personil Aktif</div>
-                <div style="font-size:0.68rem; color:#34D399; margin-top:2px;">Status Aktif Operasional</div>
+                <div style="font-size: 0.76rem; color:#34D399; margin-top:2px;">Status Aktif Operasional</div>
               </div>
             </div>
 
@@ -1367,7 +1367,7 @@ export async function renderEmployees(container, params) {
               <div>
                 <div class="emp-stat-val" id="emp-stat-fc">${fcCount}</div>
                 <div class="emp-stat-lbl">Facility Care</div>
-                <div style="font-size:0.68rem; color:#93C5FD; margin-top:2px;">Aktif Operasional</div>
+                <div style="font-size: 0.76rem; color:#93C5FD; margin-top:2px;">Aktif Operasional</div>
               </div>
             </div>
 
@@ -1376,7 +1376,7 @@ export async function renderEmployees(container, params) {
               <div>
                 <div class="emp-stat-val" id="emp-stat-sec">${secCount}</div>
                 <div class="emp-stat-lbl">Security</div>
-                <div style="font-size:0.68rem; color:#7DD3FC; margin-top:2px;">Aktif Operasional</div>
+                <div style="font-size: 0.76rem; color:#7DD3FC; margin-top:2px;">Aktif Operasional</div>
               </div>
             </div>
           </div>

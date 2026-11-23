@@ -226,8 +226,8 @@ export async function renderChecklist(container) {
         font-weight: 600;
       }
       .doc-controls-panel {
-        background: #172033;
-        border: 1px solid #29364B;
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 16px;
         padding: 18px 20px;
         margin-bottom: 24px;
@@ -263,13 +263,13 @@ export async function renderChecklist(container) {
         border: 1.5px solid #CBD5E1;
         border-radius: 10px;
         font-size: 0.9rem;
-        background: #1B2940;
+        background: #0E182B;
         transition: all 0.2s ease;
       }
       .doc-search-input:focus {
         outline: none;
         border-color: #2563EB;
-        background: #172033;
+        background: #131F36;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
       .doc-filter-pills {
@@ -279,8 +279,8 @@ export async function renderChecklist(container) {
         align-items: center;
       }
       .doc-pill {
-        border: 1px solid #29364B;
-        background: #1B2940;
+        border: 1px solid #223456;
+        background: #0E182B;
         color: #CBD5E1;
         font-size: 0.82rem;
         font-weight: 600;
@@ -321,8 +321,8 @@ export async function renderChecklist(container) {
         gap: 20px;
       }
       .doc-card {
-        background: #172033;
-        border: 1px solid #29364B;
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 16px;
         padding: 22px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -351,7 +351,7 @@ export async function renderChecklist(container) {
         gap: 6px;
         padding: 4px 10px;
         border-radius: 6px;
-        font-size: 0.74rem;
+        font-size: 0.76rem;
         font-weight: 700;
         letter-spacing: 0.02em;
         text-transform: uppercase;
@@ -360,11 +360,11 @@ export async function renderChecklist(container) {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-size: 0.74rem;
+        font-size: 0.76rem;
         font-weight: 600;
         color: #CBD5E1;
-        background: #1B2940;
-        border: 1px solid #29364B;
+        background: #0E182B;
+        border: 1px solid #223456;
         padding: 3px 8px;
         border-radius: 6px;
       }
@@ -388,7 +388,7 @@ export async function renderChecklist(container) {
       }
       .doc-card-footer {
         padding-top: 14px;
-        border-top: 1px solid #29364B;
+        border-top: 1px solid #223456;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -424,8 +424,8 @@ export async function renderChecklist(container) {
         gap: 4px;
       }
       .doc-icon-btn {
-        background: #1B2940;
-        border: 1px solid #29364B;
+        background: #0E182B;
+        border: 1px solid #223456;
         color: #CBD5E1;
         width: 34px;
         height: 34px;
@@ -448,8 +448,8 @@ export async function renderChecklist(container) {
       }
       /* Table View */
       .doc-table-card {
-        background: #172033;
-        border: 1px solid #29364B;
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 16px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         overflow: hidden;
@@ -460,20 +460,20 @@ export async function renderChecklist(container) {
         text-align: left;
       }
       .doc-table th {
-        background: #1B2940;
+        background: #0E182B;
         padding: 14px 18px;
         font-size: 0.78rem;
         font-weight: 700;
         color: #CBD5E1;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        border-bottom: 1.5px solid #29364B;
+        border-bottom: 1.5px solid #223456;
       }
       .doc-table td {
         padding: 16px 18px;
         font-size: 0.88rem;
         color: #F8FAFC;
-        border-bottom: 1px solid #29364B;
+        border-bottom: 1px solid #223456;
         vertical-align: middle;
       }
       .doc-table tr:hover td {
@@ -482,9 +482,9 @@ export async function renderChecklist(container) {
       .doc-empty-state {
         text-align: center;
         padding: 60px 20px;
-        background: #172033;
+        background: #131F36;
         border-radius: 16px;
-        border: 1px dashed #29364B;
+        border: 1px dashed #223456;
       }
 
       /* ── TAMPILAN RESPONSIVE HP / MOBILE (≤ 768px) ─────────────────── */
@@ -565,7 +565,7 @@ export async function renderChecklist(container) {
           font-size: 1.15rem !important;
         }
         .doc-stat-label {
-          font-size: 0.68rem !important;
+          font-size: 0.76rem !important;
         }
         .doc-controls-panel {
           padding: 14px 12px !important;

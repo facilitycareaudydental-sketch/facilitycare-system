@@ -37,19 +37,19 @@ export async function renderDAC(container) {
         </p>
       </div>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <div class="btn-group" style="background:#172033; padding:3px; border-radius:8px; display:inline-flex; border:1px solid #29364B;">
-          <button id="view-timeline-btn" class="btn btn-sm" style="background:#2563EB; color:#fff; font-weight:600; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.2); padding:6px 12px; cursor:pointer;">
+        <div class="btn-group" style="background:#0E182B; padding:3px; border-radius:8px; display:inline-flex; border:1px solid #223456;">
+          <button id="view-timeline-btn" class="btn btn-sm" style="background:#2563EB; color:#fff; font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
             ⏱️ Alur Timeline
           </button>
-          <button id="view-table-btn" class="btn btn-sm btn-ghost" style="color:#94A3B8; font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
+          <button id="view-table-btn" class="btn btn-sm btn-ghost" style="color:#CBD5E1; font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
             📋 Tabel Standar
           </button>
         </div>
-        <button id="btn-print-dac" class="btn btn-outline" style="background:#172033; border:1px solid #29364B; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP untuk Ruang Janitor">
+        <button id="btn-print-dac" class="btn btn-outline" style="background:#131F36; border:1px solid #223456; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP untuk Ruang Janitor">
           🖨️ Cetak SOP
         </button>
         ${canExport ? `
-        <button id="btn-export-dac" class="btn btn-outline" style="background:#172033; border:1px solid #29364B; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+        <button id="btn-export-dac" class="btn btn-outline" style="background:#131F36; border:1px solid #223456; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
           📥 Export Excel
         </button>
         ` : ''}
@@ -62,20 +62,20 @@ export async function renderDAC(container) {
     </div>
 
     <!-- Shift Switcher Tabs -->
-    <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:8px;">
-      <button class="shift-tab-btn active" data-shift="pagi" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
+    <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #223456; padding-bottom:8px; overflow-x:auto;">
+      <button class="shift-tab-btn active" data-shift="pagi" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap;">
         🌅 Shift Pagi (08:00 - 17:00) <span class="badge" style="background:rgba(15,23,42,0.55); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-pagi">31</span>
       </button>
-      <button class="shift-tab-btn" data-shift="siang" style="border:1px solid var(--border); background:var(--bg-card); color:#CBD5E1; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
+      <button class="shift-tab-btn" data-shift="siang" style="border:1px solid #223456; background:#131F36; color:#CBD5E1; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap;">
         🌇 Shift Siang (13:00 - 22:00) <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-siang">33</span>
       </button>
-      <button class="shift-tab-btn" data-shift="all" style="border:1px solid var(--border); background:var(--bg-card); color:#CBD5E1; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
+      <button class="shift-tab-btn" data-shift="all" style="border:1px solid #223456; background:#131F36; color:#CBD5E1; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap;">
         📑 Semua Shift <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">64</span>
       </button>
     </div>
 
     <!-- Summary KPI Cards -->
-    <div id="dac-summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
+    <div id="dac-summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
       <div class="kpi-card skeleton" style="height:90px; border-radius:12px;"></div>
       <div class="kpi-card skeleton" style="height:90px; border-radius:12px;"></div>
       <div class="kpi-card skeleton" style="height:90px; border-radius:12px;"></div>
@@ -83,17 +83,17 @@ export async function renderDAC(container) {
     </div>
 
     <!-- Filter Toolbar -->
-    <div class="card" style="padding:14px 18px; margin-bottom:24px; background:#111827; border:1px solid #29364B; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+    <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#131F36; border:1px solid #223456; border-radius:12px;">
       <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
-        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:260px;">
           <div style="position:relative; flex:1; min-width:200px; max-width:320px;">
-            <input type="text" id="dac-search" class="form-control" placeholder="Cari lokasi, aktivitas, jam..." style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%; background:#1B2940; border:1px solid #29364B; color:#F8FAFC;">
+            <input type="text" id="dac-search" class="form-control" placeholder="Cari lokasi, aktivitas, jam..." style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%; background:#0E182B; border:1px solid #223456; color:#F8FAFC;">
             <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:0.9rem;">🔍</span>
           </div>
-          <select id="dac-category-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:160px; background:#172033; border:1px solid #29364B; color:#F8FAFC;">
+          <select id="dac-category-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:160px; background:#0E182B; border:1px solid #223456; color:#F8FAFC;">
             <option value="">Semua Kategori</option>
           </select>
-          <select id="dac-period-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:150px; background:#172033; border:1px solid #29364B; color:#F8FAFC;">
+          <select id="dac-period-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:150px; background:#0E182B; border:1px solid #223456; color:#F8FAFC;">
             <option value="">Semua Waktu</option>
             <option value="morning">Sesi Awal (08:00 - 12:00 / 13:00 - 17:00)</option>
             <option value="afternoon">Sesi Lanjutan (12:00 - 17:00 / 17:00 - 22:00)</option>
@@ -230,7 +230,7 @@ export async function renderDAC(container) {
   function renderTimelineView(targetEl, items) {
     if (!items.length) {
       targetEl.innerHTML = `
-        <div class="empty-state" style="padding:50px; text-align:center; background:#111827; border-radius:12px; border:1px solid var(--border);">
+        <div class="empty-state" style="padding:50px; text-align:center; background:#0E182B; border-radius:12px; border:1px solid var(--border);">
           <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
           <p style="font-size:1.05rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">Tidak ada aktivitas yang cocok dengan filter</p>
           <p style="color:var(--text-3); font-size:0.875rem;">Coba reset kata kunci atau pilihan kategori di atas.</p>
@@ -242,24 +242,24 @@ export async function renderDAC(container) {
     targetEl.innerHTML = `
       <div class="timeline-container" style="display:flex; flex-direction:column; gap:12px; max-width:960px; margin:0 auto;">
         ${items.map(item => {
-          const cfg = CATEGORY_COLORS[item.category] || { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' };
-          const shiftBadge = item.shift === 'pagi' ? '🌅 Pagi' : '🌇 Siang';
-          const shiftBadgeBg = item.shift === 'pagi' ? '#FEF3C7' : '#E0E7FF';
-          const shiftBadgeColor = item.shift === 'pagi' ? '#92400E' : '#3730A3';
+          const cfg = CATEGORY_COLORS[item.category] || { bg: 'rgba(148,163,184,0.14)', color: '#E2E8F0', border: 'rgba(148,163,184,0.3)' };
+          const shiftBadge = item.shift === 'pagi' ? 'Pagi' : 'Siang';
+          const shiftBadgeBg = item.shift === 'pagi' ? 'rgba(245,158,11,0.16)' : 'rgba(37,99,235,0.18)';
+          const shiftBadgeColor = item.shift === 'pagi' ? '#FCD34D' : '#93C5FD';
 
           return `
-            <div class="dac-timeline-card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.2); display:flex; gap:16px; align-items:flex-start; position:relative;">
+            <div class="dac-timeline-card" style="background:#131F36; border:1px solid #223456; border-radius:12px; padding:16px 20px; display:flex; gap:16px; align-items:flex-start; position:relative; flex-wrap:wrap;">
               <!-- Time Column -->
-              <div style="min-width:130px; text-align:center; background:#111827; border:1px solid var(--border); border-radius:8px; padding:10px 8px;">
-                <div style="font-size:1.1rem; font-weight:800; color:var(--text-1); font-family:monospace;">
+              <div style="min-width:130px; text-align:center; background:#0E182B; border:1px solid #1E2E4A; border-radius:8px; padding:10px 8px;">
+                <div style="font-size:1.06rem; font-weight:800; color:#FFFFFF; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
                   ${item.start_time} - ${item.end_time}
                 </div>
-                <div style="font-size:0.75rem; color:var(--text-3); font-weight:600; margin-top:4px;">
+                <div style="font-size:0.76rem; color:#A5B4C8; font-weight:600; margin-top:4px;">
                   Item #${item.item_no}
                 </div>
                 ${currentShift === 'all' ? `
                   <div style="margin-top:6px;">
-                    <span class="badge" style="background:${shiftBadgeBg}; color:${shiftBadgeColor}; font-size:0.7rem; font-weight:700; padding:2px 6px; border-radius:4px;">
+                    <span class="badge" style="background:${shiftBadgeBg}; color:${shiftBadgeColor}; border:1px solid rgba(96,165,250,0.28); font-size: 0.76rem; font-weight:700; padding:2px 7px; border-radius:5px;">
                       ${shiftBadge}
                     </span>
                   </div>
@@ -267,25 +267,25 @@ export async function renderDAC(container) {
               </div>
 
               <!-- Content Column -->
-              <div style="flex:1;">
+              <div style="flex:1; min-width:220px;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
                   <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <span class="badge" style="background:${cfg.bg}; color:${cfg.color}; border:1px solid ${cfg.border}; font-weight:700; font-size:0.75rem; padding:3px 10px; border-radius:6px;">
+                    <span class="badge" style="background:${cfg.bg}; color:${cfg.color}; border:1px solid ${cfg.border}; font-weight:700; font-size:0.76rem; padding:3px 10px; border-radius:6px;">
                       ${item.category}
                     </span>
-                    <span style="font-weight:700; font-size:0.95rem; color:var(--text-1);">
+                    <span style="font-weight:700; font-size:0.95rem; color:#FFFFFF;">
                       📍 ${item.location}
                     </span>
                   </div>
                   ${canEdit || canDelete ? `
-                    <div style="display:flex; gap:4px;">
-                      ${canEdit ? `<button class="btn btn-ghost btn-sm edit-dac-btn" data-id="${item.id}" title="Edit" style="padding:4px 8px; font-size:0.8rem; cursor:pointer;">✏️</button>` : ''}
-                      ${canDelete ? `<button class="btn btn-ghost btn-sm delete-dac-btn" data-id="${item.id}" data-name="${item.location}" title="Hapus" style="padding:4px 8px; font-size:0.8rem; color:var(--danger); cursor:pointer;">🗑️</button>` : ''}
+                    <div style="display:flex; gap:5px; flex-shrink:0;">
+                      ${canEdit ? `<button type="button" class="fc-action-btn fc-action-edit edit-dac-btn" data-id="${item.id}" title="Edit" aria-label="Edit aktivitas DAC"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>` : ''}
+                      ${canDelete ? `<button type="button" class="fc-action-btn fc-action-del delete-dac-btn" data-id="${item.id}" data-name="${item.location}" title="Hapus" aria-label="Hapus aktivitas DAC"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>` : ''}
                     </div>
                   ` : ''}
                 </div>
 
-                <div style="font-size:0.9rem; color:var(--text-2); line-height:1.5; background:#1B2940; padding:10px 14px; border-radius:8px; border-left:3px solid ${cfg.color}; margin-top:8px;">
+                <div style="font-size:0.9rem; color:#E2E8F0; line-height:1.5; background:#0E182B; padding:10px 14px; border-radius:8px; border:1px solid #1E2E4A; border-left:3px solid ${cfg.color}; margin-top:8px;">
                   ${item.activity}
                 </div>
               </div>
@@ -300,43 +300,43 @@ export async function renderDAC(container) {
   function renderTableView(targetEl, items) {
     if (!items.length) {
       targetEl.innerHTML = `
-        <div class="empty-state" style="padding:50px; text-align:center; background:#111827; border-radius:12px; border:1px solid var(--border);">
+        <div class="empty-state" style="padding:50px; text-align:center; background:#131F36; border-radius:12px; border:1px solid #223456;">
           <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
-          <p style="font-size:1.05rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">Tidak ada aktivitas yang cocok dengan filter</p>
+          <p style="font-size:1.05rem; font-weight:600; color:#E2E8F0; margin-bottom:6px;">Tidak ada aktivitas yang cocok dengan filter</p>
         </div>
       `;
       return;
     }
 
     targetEl.innerHTML = `
-      <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+      <div class="card" style="background:#131F36; border:1px solid #223456; border-radius:12px; overflow:hidden;">
         <div class="table-responsive">
           <table class="table" style="width:100%; border-collapse:collapse;">
             <thead>
-              <tr style="background:#1B2940; border-bottom:1px solid #29364B; text-align:left; color:#94A3B8;">
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:50px;">NO</th>
-                ${currentShift === 'all' ? `<th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3);">SHIFT</th>` : ''}
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:110px;">JAM</th>
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:140px;">KATEGORI</th>
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:200px;">LOKASI / AREA</th>
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3);">AKTIVITAS</th>
-                ${canEdit || canDelete ? `<th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); text-align:right; width:100px;">AKSI</th>` : ''}
+              <tr style="background:#0E182B; border-bottom:1px solid #223456; text-align:left; color:#CBD5E1;">
+                <th style="padding:12px 14px; font-size:0.78rem; font-weight:700; width:50px;">NO</th>
+                ${currentShift === 'all' ? `<th style="padding:12px 14px; font-size:0.78rem; font-weight:700;">SHIFT</th>` : ''}
+                <th style="padding:12px 14px; font-size:0.78rem; font-weight:700; width:110px;">JAM</th>
+                <th style="padding:12px 14px; font-size:0.78rem; font-weight:700; width:140px;">KATEGORI</th>
+                <th style="padding:12px 14px; font-size:0.78rem; font-weight:700; width:200px;">LOKASI / AREA</th>
+                <th style="padding:12px 14px; font-size:0.78rem; font-weight:700;">AKTIVITAS</th>
+                ${canEdit || canDelete ? `<th style="padding:12px 14px; font-size:0.78rem; font-weight:700; text-align:right; width:100px;">AKSI</th>` : ''}
               </tr>
             </thead>
             <tbody>
               ${items.map(item => {
-                const cfg = CATEGORY_COLORS[item.category] || { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' };
+                const cfg = CATEGORY_COLORS[item.category] || { bg: 'rgba(148,163,184,0.14)', color: '#E2E8F0', border: 'rgba(148,163,184,0.3)' };
                 return `
-                  <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:12px 14px; font-size:0.85rem; color:var(--text-3); font-weight:600;">${item.item_no}</td>
+                  <tr style="border-bottom:1px solid #1E2E4A;">
+                    <td style="padding:12px 14px; font-size:0.85rem; color:#CBD5E1; font-weight:600;">${item.item_no}</td>
                     ${currentShift === 'all' ? `
                       <td style="padding:12px 14px;">
-                        <span class="badge" style="background:${item.shift === 'pagi' ? '#FEF3C7' : '#E0E7FF'}; color:${item.shift === 'pagi' ? '#92400E' : '#3730A3'}; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:4px;">
+                        <span class="badge" style="background:${item.shift === 'pagi' ? 'rgba(245,158,11,0.16)' : 'rgba(37,99,235,0.18)'}; color:${item.shift === 'pagi' ? '#FCD34D' : '#93C5FD'}; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:5px;">
                           ${item.shift === 'pagi' ? 'Pagi' : 'Siang'}
                         </span>
                       </td>
                     ` : ''}
-                    <td style="padding:12px 14px; font-family:monospace; font-weight:700; font-size:0.85rem; color:var(--text-1); white-space:nowrap;">
+                    <td style="padding:12px 14px; font-family:monospace; font-weight:700; font-size:0.85rem; color:#FFFFFF; white-space:nowrap;">
                       ${item.start_time} - ${item.end_time}
                     </td>
                     <td style="padding:12px 14px;">
@@ -344,16 +344,18 @@ export async function renderDAC(container) {
                         ${item.category}
                       </span>
                     </td>
-                    <td style="padding:12px 14px; font-size:0.875rem; font-weight:600; color:var(--text-1);">
+                    <td style="padding:12px 14px; font-size:0.875rem; font-weight:600; color:#FFFFFF;">
                       ${item.location}
                     </td>
-                    <td style="padding:12px 14px; font-size:0.875rem; color:var(--text-2); line-height:1.4;">
+                    <td style="padding:12px 14px; font-size:0.875rem; color:#E2E8F0; line-height:1.45;">
                       ${item.activity}
                     </td>
                     ${canEdit || canDelete ? `
                       <td style="padding:12px 14px; text-align:right; white-space:nowrap;">
-                        ${canEdit ? `<button class="btn btn-outline btn-sm edit-dac-btn" data-id="${item.id}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px; margin-right:4px;">Edit</button>` : ''}
-                        ${canDelete ? `<button class="btn btn-danger btn-sm delete-dac-btn" data-id="${item.id}" data-name="${item.location}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px;">Hapus</button>` : ''}
+                        <div style="display:inline-flex; gap:5px;">
+                          ${canEdit ? `<button type="button" class="fc-action-btn fc-action-edit edit-dac-btn" data-id="${item.id}" title="Edit" aria-label="Edit aktivitas DAC"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>` : ''}
+                          ${canDelete ? `<button type="button" class="fc-action-btn fc-action-del delete-dac-btn" data-id="${item.id}" data-name="${item.location}" title="Hapus" aria-label="Hapus aktivitas DAC"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>` : ''}
+                        </div>
                       </td>
                     ` : ''}
                   </tr>

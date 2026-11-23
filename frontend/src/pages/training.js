@@ -412,7 +412,7 @@ export async function renderTraining(container) {
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
               <h3 style="font-size:1.2rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak Ada Data Training Ditemukan</h3>
               <p style="color:#94A3B8; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
-              <button id="tr-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #29364B; color:#CBD5E1; border-radius:8px; padding:8px 16px;">
+              <button id="tr-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #223456; color:#CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
             </div>
@@ -455,7 +455,7 @@ export async function renderTraining(container) {
                           ${initials}
                         </div>
                         <div style="min-width:0;">
-                          <div style="font-size:0.72rem; text-transform:uppercase; font-weight:700; color:#94A3B8; margin-bottom:2px; letter-spacing:0.04em;">Peserta Training</div>
+                          <div style="font-size: 0.76rem; text-transform:uppercase; font-weight:700; color:#94A3B8; margin-bottom:2px; letter-spacing:0.04em;">Peserta Training</div>
                           <div style="font-size:0.95rem; font-weight:700; color:#F8FAFC; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${participantsText}">
                             ${participantsText}
                           </div>
@@ -482,10 +482,10 @@ export async function renderTraining(container) {
                     </div>
 
                     <!-- Card Footer: Dokumen & Aksi -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #29364B; margin-top:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #223456; margin-top:8px;">
                       <div>
                         ${t.document_link ? `
-                          <a href="${t.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #29364B; color:#93C5FD; background:rgba(59,130,246,0.12); border-radius:6px; font-size:0.78rem; padding:4px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                          <a href="${t.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #223456; color:#93C5FD; background:rgba(59,130,246,0.12); border-radius:6px; font-size:0.78rem; padding:4px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
                             <span>📄 Materi / Sertifikat</span>
                           </a>
                         ` : `
@@ -688,8 +688,8 @@ export async function renderTraining(container) {
 
         /* Controls Card */
         .training-controls-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           padding: 18px 20px;
           box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -718,9 +718,9 @@ export async function renderTraining(container) {
         .training-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          background: #1B2940;
+          background: #0E182B;
           color: #F8FAFC;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           border-radius: 10px;
           font-size: 0.9rem;
           outline: none;
@@ -732,11 +732,11 @@ export async function renderTraining(container) {
         }
         .training-select {
           padding: 10px 14px;
-          border: 1px solid #29364B;
+          border: 1px solid #223456;
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #1B2940;
+          background: #0E182B;
           outline: none;
           min-width: 180px;
           cursor: pointer;
@@ -764,8 +764,8 @@ export async function renderTraining(container) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
@@ -792,8 +792,8 @@ export async function renderTraining(container) {
           gap: 16px;
         }
         .training-card {
-          background: #172033;
-          border: 1px solid #29364B;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
           padding: 18px;
           box-shadow: 0 2px 6px rgba(0,0,0,0.2);
@@ -846,8 +846,8 @@ export async function renderTraining(container) {
           border: 1px solid rgba(52, 211, 153, 0.35);
         }
         .training-info-box {
-          background: #1B2940;
-          border: 1px solid #29364B;
+          background: #0E182B;
+          border: 1px solid #223456;
           border-radius: 10px;
           padding: 10px 12px;
           margin: 12px 0;
@@ -859,8 +859,8 @@ export async function renderTraining(container) {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #29364B;
-          background: #1B2940;
+          border: 1px solid #223456;
+          background: #0E182B;
           color: #CBD5E1;
           display: inline-flex;
           align-items: center;
@@ -882,8 +882,8 @@ export async function renderTraining(container) {
         /* Empty state */
         .training-empty-state {
           grid-column: 1 / -1;
-          background: #172033;
-          border: 2px dashed #29364B;
+          background: #131F36;
+          border: 2px dashed #223456;
           border-radius: 16px;
           padding: 48px 24px;
           text-align: center;
