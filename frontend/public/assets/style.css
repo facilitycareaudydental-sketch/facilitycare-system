@@ -2376,3 +2376,55 @@ body .doc-stat-icon {
   border: 1px solid rgba(59, 130, 246, 0.35) !important;
   color: #93C5FD !important;
 }
+
+/* Master Hygiene Accessible SVG Action Controls */
+.hygiene-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.hygiene-action-btn--compact {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+.hygiene-action-edit {
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  color: #93C5FD;
+}
+.hygiene-action-edit:hover {
+  background: rgba(37, 99, 235, 0.30);
+  border-color: #93C5FD;
+  color: #FFFFFF;
+}
+.hygiene-action-edit:focus-visible {
+  outline: 2px solid #60A5FA;
+  outline-offset: 2px;
+  background: rgba(37, 99, 235, 0.30);
+  border-color: #93C5FD;
+  color: #FFFFFF;
+}
+.hygiene-action-delete {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #FCA5A5;
+}
+.hygiene-action-delete:hover {
+  background: rgba(220, 38, 38, 0.30);
+  border-color: #FCA5A5;
+  color: #FFFFFF;
+}
+.hygiene-action-delete:focus-visible {
+  outline: 2px solid #FCA5A5;
+  outline-offset: 2px;
+  background: rgba(220, 38, 38, 0.30);
+  border-color: #FCA5A5;
+  color: #FFFFFF;
+}

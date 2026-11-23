@@ -3,6 +3,37 @@ import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
 import { fetchExportRows } from '../utils/dataCache.js';
+import { escapeHtml } from '../utils/sanitize.js';
+
+function renderHygieneActionButtons(item, canEdit, canDelete, compact = false) {
+  if (!canEdit && !canDelete) return '';
+  const id = escapeHtml(String(item.id ?? ''));
+  const name = escapeHtml(item.item_name || 'Parameter Standar');
+  const size = compact ? 14 : 15;
+  const clsSuffix = compact ? ' hygiene-action-btn--compact' : '';
+  return `
+    <div style="display:inline-flex; gap:${compact ? 4 : 6}px; align-items:center;">
+      ${canEdit ? `
+        <button type="button" class="hygiene-action-btn hygiene-action-edit${clsSuffix} btn-edit-item" data-id="${id}" title="Edit ${name}" aria-label="Edit parameter ${name}">
+          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </button>
+      ` : ''}
+      ${canDelete ? `
+        <button type="button" class="hygiene-action-btn hygiene-action-delete${clsSuffix} btn-delete-item" data-id="${id}" data-name="${name}" title="Hapus ${name}" aria-label="Hapus parameter ${name}">
+          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        </button>
+      ` : ''}
+    </div>
+  `;
+}
 
 // 8 Kategori Zona Standar Kebersihan Fisik FCMS (Audy Dental)
 export const ZONES = {
@@ -404,24 +435,13 @@ export async function renderHygieneStandards(container) {
                       </div>
                     </td>
                     <td style="padding:14px 16px; vertical-align:top;">
-                      <div style="background:#111827; border:1px solid #29364B; border-left:3px solid #10B981; border-radius:6px; padding:10px 12px; line-height:1.55; color:#F8FAFC; font-size:0.875rem;">
-                        <span style="color:#059669; font-weight:700; margin-right:4px;">✓</span> ${item.cleanliness_standard}
+                      <div style="background:#0E182B; border:1px solid #223456; border-left:3px solid #34D399; border-radius:6px; padding:10px 12px; line-height:1.55; color:#F8FAFC; font-size:0.875rem;">
+                        <span style="color:#34D399; font-weight:700; margin-right:4px;">✓</span> ${item.cleanliness_standard}
                       </div>
                     </td>
                     ${canEdit || canDelete ? `
                       <td style="padding:14px 16px; text-align:center; vertical-align:middle;">
-                        <div style="display:inline-flex; gap:6px;">
-                          ${canEdit ? `
-                            <button class="btn btn-sm btn-ghost btn-edit-item" data-id="${item.id}" title="Edit Parameter" style="padding:6px 8px; border-radius:6px; color:#2563EB; cursor:pointer;">
-                              ✏️
-                            </button>
-                          ` : ''}
-                          ${canDelete ? `
-                            <button class="btn btn-sm btn-ghost btn-delete-item" data-id="${item.id}" data-name="${item.item_name}" title="Hapus Parameter" style="padding:6px 8px; border-radius:6px; color:#DC2626; cursor:pointer;">
-                              🗑️
-                            </button>
-                          ` : ''}
-                        </div>
+                        ${renderHygieneActionButtons(item, canEdit, canDelete, false)}
                       </td>
                     ` : ''}
                   </tr>
@@ -508,16 +528,13 @@ export async function renderHygieneStandards(container) {
                               </td>
                               <td style="padding:10px 12px; vertical-align:top; color:var(--text-2);">
                                 <div style="display:flex; align-items:flex-start; gap:6px;">
-                                  <span style="color:#10B981; font-weight:700;">✓</span>
+                                  <span style="color:#34D399; font-weight:700;">✓</span>
                                   <span>${item.cleanliness_standard}</span>
                                 </div>
                               </td>
                               ${canEdit || canDelete ? `
                                 <td style="padding:10px 12px; text-align:center; vertical-align:middle;">
-                                  <div style="display:inline-flex; gap:4px;">
-                                    ${canEdit ? `<button class="btn btn-sm btn-ghost btn-edit-item" data-id="${item.id}" title="Edit" style="padding:4px 6px; cursor:pointer;">✏️</button>` : ''}
-                                    ${canDelete ? `<button class="btn btn-sm btn-ghost btn-delete-item" data-id="${item.id}" data-name="${item.item_name}" title="Hapus" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>` : ''}
-                                  </div>
+                                  ${renderHygieneActionButtons(item, canEdit, canDelete, true)}
                                 </td>
                               ` : ''}
                             </tr>
