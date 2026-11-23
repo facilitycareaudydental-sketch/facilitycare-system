@@ -16,9 +16,9 @@ export async function renderAuditLogs(container) {
     style.id = 'fc-audit-log-styles';
     style.textContent = `
       .audit-detail-btn {
-        background: rgba(59, 130, 246, 0.14);
-        color: #60A5FA;
-        border: 1px solid rgba(96, 165, 250, 0.42);
+        background: rgba(59, 130, 246, 0.16);
+        color: #93C5FD;
+        border: 1px solid rgba(96, 165, 250, 0.48);
         border-radius: 7px;
         padding: 5px 12px;
         font-size: 0.8rem;
@@ -29,8 +29,8 @@ export async function renderAuditLogs(container) {
       }
       .audit-detail-btn:hover,
       .audit-detail-btn:focus-visible {
-        background: rgba(59, 130, 246, 0.25);
-        color: #93C5FD;
+        background: rgba(59, 130, 246, 0.30);
+        color: #FFFFFF;
         border-color: #93C5FD;
         text-decoration: underline;
         outline: none;
