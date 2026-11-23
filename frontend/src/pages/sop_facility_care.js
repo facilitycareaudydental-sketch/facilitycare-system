@@ -478,34 +478,53 @@ export async function renderSOPFacilityCare(container) {
   let listTools = getStoredTools();
   let listChem = getStoredChem();
 
+  const FC_CATEGORY_THEMES = {
+    'Pembersihan Rutin': { text: '#93C5FD', bg: 'rgba(59, 130, 246, 0.16)', border: 'rgba(96, 165, 250, 0.38)', accent: '#60A5FA' },
+    'Sanitasi Toilet': { text: '#FCA5A5', bg: 'rgba(239, 68, 68, 0.16)', border: 'rgba(248, 113, 113, 0.38)', accent: '#F87171' },
+    'Klinis & Medis': { text: '#FDA4AF', bg: 'rgba(244, 63, 94, 0.16)', border: 'rgba(251, 113, 133, 0.38)', accent: '#FB7185' },
+    'Elektronik & Utility': { text: '#5EEAD4', bg: 'rgba(20, 184, 166, 0.16)', border: 'rgba(45, 212, 191, 0.38)', accent: '#2DD4BF' },
+    'Pembersihan Khusus': { text: '#DDD6FE', bg: 'rgba(139, 92, 246, 0.16)', border: 'rgba(167, 139, 250, 0.38)', accent: '#A78BFA' },
+  };
+  const FC_HEX_THEMES = {
+    '#D97706': { text: '#FCD34D', bg: 'rgba(245, 158, 11, 0.16)', border: 'rgba(251, 191, 36, 0.38)', accent: '#FBBF24' },
+    '#059669': { text: '#6EE7B7', bg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(52, 211, 153, 0.38)', accent: '#34D399' },
+    '#0891B2': { text: '#67E8F9', bg: 'rgba(6, 182, 212, 0.16)', border: 'rgba(34, 211, 238, 0.38)', accent: '#22D3EE' },
+    '#4F46E5': { text: '#C7D2FE', bg: 'rgba(99, 102, 241, 0.18)', border: 'rgba(129, 140, 248, 0.40)', accent: '#818CF8' },
+  };
+  function getIKTheme(ik) {
+    return FC_HEX_THEMES[String(ik?.color || '').toUpperCase()] ||
+      FC_CATEGORY_THEMES[ik?.category] ||
+      FC_CATEGORY_THEMES['Pembersihan Rutin'];
+  }
+
   function renderPage() {
     container.innerHTML = `
       <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
         <div>
-          <h1 class="page-title" style="display:flex; align-items:center; gap:8px; margin:0 0 6px 0; font-size:1.6rem; font-weight:700; color:var(--text-1);">
+          <h1 class="page-title" style="display:flex; align-items:center; gap:8px; margin:0 0 6px 0; font-size:1.65rem; font-weight:700; color:#FFFFFF;">
             <span>📚</span> SOP Facility Care & Housekeeping
           </h1>
-          <p class="page-subtitle" style="margin:0; font-size:0.9rem; color:var(--text-3);">
+          <p class="page-subtitle" style="margin:0; font-size:0.92rem; color:#CBD5E1; line-height:1.5;">
             Pedoman Standar Operasional Prosedur Kebersihan & Pemeliharaan Fasilitas PT Audy Mandiri Indonesia
           </p>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           ${canDelete ? `
-          <button id="btn-reset-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          <button id="btn-reset-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#172033; border:1px solid #334155; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
             🔄 Reset ke Standar
           </button>
           ` : ''}
-          <button id="btn-print-sop" class="btn btn-outline" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          <button id="btn-print-sop" class="btn btn-outline" style="background:#172033; border:1px solid #334155; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
-          ${hasPermission(currentUser, "export") ? `<button id="btn-export-tools" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          ${hasPermission(currentUser, "export") ? `<button id="btn-export-tools" class="btn btn-primary" style="font-weight:700; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem; background:#2563EB; color:#FFFFFF;">
             📥 Download Data Excel
           </button>` : ''}
         </div>
       </div>
 
       <!-- Navigation Tabs -->
-      <div style="display:flex; gap:8px; margin-bottom:22px; border-bottom:2px solid #E2E8F0; padding-bottom:8px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
+      <div style="display:flex; gap:8px; margin-bottom:22px; border-bottom:1px solid #29364B; padding-bottom:10px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
         <button class="sop-tab-btn ${activeTab === 'ik' ? 'active' : ''}" data-tab="ik" style="${getTabStyle(activeTab === 'ik')}">
           📋 Instruksi Kerja (IK) <span class="badge" style="${getBadgeStyle(activeTab === 'ik')}">${listIK.length}</span>
         </button>
@@ -530,16 +549,16 @@ export async function renderSOPFacilityCare(container) {
 
   function getTabStyle(isActive) {
     if (isActive) {
-      return 'border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
+      return 'border:1px solid #3B82F6; background:#2563EB; color:#FFFFFF; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
     }
-    return 'border:none; background:#172033; color:var(--text-2); border:1px solid var(--border); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
+    return 'background:#172033; color:#E2E8F0; border:1px solid #334155; font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
   }
 
   function getBadgeStyle(isActive) {
     if (isActive) {
-      return 'background:rgba(255,255,255,0.25); color:#fff; font-size:0.75rem; padding:2px 7px; border-radius:10px; font-weight:700;';
+      return 'background:#0F172A; color:#FFFFFF; font-size:0.75rem; padding:2px 8px; border-radius:10px; font-weight:700;';
     }
-    return 'background:#CBD5E1; color:#334155; font-size:0.75rem; padding:2px 7px; border-radius:10px; font-weight:700;';
+    return 'background:#22314A; color:#E2E8F0; border:1px solid #334155; font-size:0.75rem; padding:2px 8px; border-radius:10px; font-weight:700;';
   }
 
   function bindTabEvents() {
@@ -625,11 +644,11 @@ export async function renderSOPFacilityCare(container) {
             </div>
           </div>
           <div style="display:flex; gap:10px; align-items:center;">
-            <div id="ik-count-label" style="font-size:0.85rem; color:var(--text-3); font-weight:600;">
+            <div id="ik-count-label" style="font-size:0.86rem; color:#CBD5E1; font-weight:600;">
               Menampilkan ${listIK.length} dari ${listIK.length} Instruksi Kerja
             </div>
             ${canEdit ? `
-            <button id="btn-add-ik" class="btn btn-primary" style="font-weight:600; padding:7px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+            <button id="btn-add-ik" class="btn btn-primary" style="font-weight:700; padding:7px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem; background:#2563EB; color:#FFFFFF;">
               ➕ Tambah IK Baru
             </button>
             ` : ''}
@@ -645,12 +664,12 @@ export async function renderSOPFacilityCare(container) {
     const styleTag = document.createElement('style');
     styleTag.innerHTML = `
       .cat-pill {
-        border: 1px solid var(--border);
-        background: #172033;
-        color: var(--text-2);
-        font-size: 0.8rem;
+        border: 1px solid #334155;
+        background: #111827;
+        color: #E2E8F0;
+        font-size: 0.82rem;
         font-weight: 600;
-        padding: 5px 12px;
+        padding: 6px 13px;
         border-radius: 20px;
         cursor: pointer;
         transition: all 0.15s;
@@ -659,15 +678,34 @@ export async function renderSOPFacilityCare(container) {
       }
       .cat-pill:hover {
         background: #22314A;
+        color: #FFFFFF;
+        border-color: #475569;
       }
       .cat-pill.active {
         background: #2563EB;
-        color: #fff;
-        border-color: #2563EB;
+        color: #FFFFFF;
+        border-color: #3B82F6;
       }
       .ik-card:hover {
-        box-shadow: 0 6px 16px rgba(0,0,0,0.08) !important;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.35) !important;
+        border-color: #3B82F6 !important;
         transform: translateY(-2px);
+      }
+      .sop-icon-btn {
+        background: #1B2940;
+        border: 1px solid #334155;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+      }
+      .sop-icon-btn:hover {
+        background: #22314A;
+        border-color: #60A5FA;
       }
       @media (max-width: 768px) {
         #cat-pills-wrap {
@@ -711,10 +749,10 @@ export async function renderSOPFacilityCare(container) {
 
       if (filteredIK.length === 0) {
         gridContainer.innerHTML = `
-          <div style="text-align:center; padding:48px 20px; background:#111827; border-radius:12px; border:1px solid var(--border);">
+          <div style="text-align:center; padding:48px 20px; background:#111827; border-radius:12px; border:1px solid #29364B;">
             <div style="font-size:2.5rem; margin-bottom:8px;">🔍</div>
-            <h3 style="margin:0 0 4px; font-size:1.1rem; color:var(--text-1);">Tidak ada Instruksi Kerja yang cocok</h3>
-            <p style="margin:0; font-size:0.85rem; color:var(--text-3);">Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
+            <h3 style="margin:0 0 6px; font-size:1.12rem; color:#FFFFFF;">Tidak ada Instruksi Kerja yang cocok</h3>
+            <p style="margin:0; font-size:0.88rem; color:#CBD5E1;">Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
           </div>
         `;
         return;
@@ -722,68 +760,71 @@ export async function renderSOPFacilityCare(container) {
 
       gridContainer.innerHTML = `
         <div class="sop-ik-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:18px;">
-          ${filteredIK.map(ik => `
-            <div class="card ik-card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.04); transition:all 0.2s;">
+          ${filteredIK.map(ik => {
+            const theme = getIKTheme(ik);
+            return `
+            <div class="card ik-card" style="background:#172033; border:1px solid #29364B; border-radius:14px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.22); transition:all 0.2s;">
               <div>
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                  <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:1.6rem; width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; background:${ik.bg || '#EFF6FF'}; border-radius:10px;">${ik.icon || '📋'}</span>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:14px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:1.55rem; width:46px; height:46px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; background:${theme.bg}; border:1px solid ${theme.border}; border-radius:11px;">${ik.icon || '📋'}</span>
                     <div>
-                      <h3 style="margin:0 0 2px 0; font-size:1.05rem; font-weight:700; color:var(--text-1);">
+                      <h3 style="margin:0 0 5px 0; font-size:1.08rem; font-weight:700; color:#FFFFFF; line-height:1.35;">
                         ${ik.id}. ${ik.title}
                       </h3>
-                      <span class="badge" style="background:${ik.bg || '#EFF6FF'}; color:${ik.color || '#2563EB'}; font-size:0.75rem; font-weight:700; border-radius:6px; padding:2px 8px;">
+                      <span class="badge" style="background:${theme.bg}; color:${theme.text}; border:1px solid ${theme.border}; font-size:0.78rem; font-weight:700; border-radius:6px; padding:3px 9px; display:inline-block;">
                         ${ik.category}
                       </span>
                     </div>
                   </div>
 
                   <!-- Quick Action Buttons: Edit & Hapus -->
-                  <div style="display:flex; gap:4px;">
+                  <div style="display:flex; gap:6px; flex-shrink:0;">
                     ${canEdit ? `
-                    <button class="btn btn-sm btn-ghost btn-edit-ik" data-id="${ik.id}" title="Edit Instruksi Kerja" style="padding:4px 8px; border-radius:6px; font-size:0.9rem; cursor:pointer;">
+                    <button class="sop-icon-btn btn-edit-ik" data-id="${ik.id}" title="Edit Instruksi Kerja" style="color:#93C5FD;">
                       ✏️
                     </button>
                     ` : ''}
                     ${canDelete ? `
-                    <button class="btn btn-sm btn-ghost btn-delete-ik" data-id="${ik.id}" title="Hapus Instruksi Kerja" style="padding:4px 8px; border-radius:6px; font-size:0.9rem; color:#DC2626; cursor:pointer;">
+                    <button class="sop-icon-btn btn-delete-ik" data-id="${ik.id}" title="Hapus Instruksi Kerja" style="color:#FCA5A5;">
                       🗑️
                     </button>
                     ` : ''}
                   </div>
                 </div>
 
-                <div style="font-size:0.85rem; color:var(--text-2); margin-bottom:14px; background:#111827; padding:8px 12px; border-radius:8px; border-left:3px solid ${ik.color || '#2563EB'};">
-                  <strong>Area:</strong> ${ik.target}
+                <div style="font-size:0.88rem; color:#F8FAFC; line-height:1.55; margin-bottom:14px; background:#0F172A; padding:10px 13px; border-radius:9px; border:1px solid #29364B; border-left:3.5px solid ${theme.accent};">
+                  <strong style="color:#FFFFFF;">Area:</strong> ${ik.target}
                 </div>
 
                 <div style="margin-bottom:14px;">
-                  <div style="font-size:0.8rem; font-weight:700; color:var(--text-3); text-transform:uppercase; margin-bottom:6px;">🧰 Alat & Bahan Utama:</div>
-                  <ul style="margin:0 0 0 16px; padding:0; font-size:0.83rem; color:var(--text-2);">
-                    ${ik.tools.slice(0, 3).map(t => `<li style="margin-bottom:2px;">${t}</li>`).join('')}
-                    ${ik.tools.length > 3 ? `<li style="color:var(--text-3); font-style:italic;">+ ${ik.tools.length - 3} alat lainnya...</li>` : ''}
+                  <div style="font-size:0.8rem; font-weight:700; color:#CBD5E1; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:7px;">🧰 Alat & Bahan Utama:</div>
+                  <ul style="margin:0 0 0 18px; padding:0; font-size:0.87rem; color:#F8FAFC; line-height:1.6;">
+                    ${ik.tools.slice(0, 3).map(t => `<li style="margin-bottom:3px;">${t}</li>`).join('')}
+                    ${ik.tools.length > 3 ? `<li style="color:#93C5FD; font-style:italic; font-weight:600; margin-top:2px;">+ ${ik.tools.length - 3} alat lainnya...</li>` : ''}
                   </ul>
                 </div>
 
                 ${ik.chemical_ratio && ik.chemical_ratio !== '-' ? `
-                  <div style="font-size:0.8rem; background:#FEF3C7; color:#92400E; padding:6px 10px; border-radius:6px; margin-bottom:14px; font-weight:600;">
-                    🧪 Takaran: ${ik.chemical_ratio}
+                  <div style="font-size:0.85rem; background:rgba(245, 158, 11, 0.14); border:1px solid rgba(251, 191, 36, 0.36); color:#FDE68A; padding:8px 12px; border-radius:8px; margin-bottom:14px; font-weight:600; line-height:1.45;">
+                    🧪 <strong style="color:#FCD34D;">Takaran:</strong> ${ik.chemical_ratio}
                   </div>
                 ` : ''}
               </div>
 
-              <div style="border-top:1px solid #F1F5F9; padding-top:12px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.8rem; color:var(--text-3); font-weight:500;">
+              <div style="border-top:1px solid #29364B; padding-top:13px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.86rem; color:#CBD5E1; font-weight:600;">
                   ${ik.steps.length} Langkah Kerja
                 </span>
                 <div style="display:flex; gap:6px;">
-                  <button class="btn btn-sm btn-primary btn-view-ik" data-id="${ik.id}" style="padding:6px 14px; font-weight:600; border-radius:6px;">
+                  <button class="btn btn-sm btn-primary btn-view-ik" data-id="${ik.id}" style="padding:7px 15px; font-weight:700; font-size:0.85rem; border-radius:8px; background:#2563EB; color:#FFFFFF; border:1px solid #3B82F6;">
                     Lihat Panduan ➔
                   </button>
                 </div>
               </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       `;
 
@@ -853,50 +894,51 @@ export async function renderSOPFacilityCare(container) {
 
   // MODAL VIEW DETAIL IK
   function openIKDetailModal(ik) {
+    const theme = getIKTheme(ik);
     createModal({
       title: `${ik.icon || '📋'} IK-${ik.id}: ${ik.title}`,
       size: 'lg',
       content: `
         <div style="display:flex; flex-direction:column; gap:16px;">
-          <div style="background:${ik.bg || '#EFF6FF'}; color:${ik.color || '#2563EB'}; padding:10px 14px; border-radius:8px; font-weight:700; font-size:0.9rem; display:flex; justify-content:space-between; align-items:center;">
+          <div style="background:${theme.bg}; color:${theme.text}; border:1px solid ${theme.border}; padding:11px 15px; border-radius:9px; font-weight:700; font-size:0.92rem; display:flex; justify-content:space-between; align-items:center;">
             <span>Kategori: ${ik.category}</span>
-            <span>ID: IK-${String(ik.id).padStart(2, '0')}</span>
+            <span style="color:#FFFFFF;">ID: IK-${String(ik.id).padStart(2, '0')}</span>
           </div>
 
-          <div style="background:#111827; padding:12px 14px; border-radius:8px; border-left:4px solid ${ik.color || '#2563EB'};">
-            <strong style="color:var(--text-1); font-size:0.85rem; display:block; margin-bottom:4px;">📍 Area & Sasaran Target:</strong>
-            <span style="font-size:0.88rem; color:var(--text-2);">${ik.target}</span>
+          <div style="background:#0F172A; padding:12px 15px; border-radius:9px; border:1px solid #29364B; border-left:4px solid ${theme.accent};">
+            <strong style="color:#FFFFFF; font-size:0.88rem; display:block; margin-bottom:4px;">📍 Area & Sasaran Target:</strong>
+            <span style="font-size:0.92rem; color:#F8FAFC; line-height:1.55;">${ik.target}</span>
           </div>
 
           <div>
-            <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:var(--text-1);">🧰 Alat & Bahan yang Dibutuhkan:</h4>
-            <div style="background:#111827; border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
-              <ul style="margin:0 0 0 16px; padding:0; font-size:0.875rem; color:var(--text-2); line-height:1.7;">
-                ${ik.tools.map(t => `<li>${t}</li>`).join('')}
+            <h4 style="margin:0 0 8px 0; font-size:0.98rem; font-weight:700; color:#FFFFFF;">🧰 Alat & Bahan yang Dibutuhkan:</h4>
+            <div style="background:#0F172A; border:1px solid #29364B; border-radius:9px; padding:12px 16px;">
+              <ul style="margin:0 0 0 18px; padding:0; font-size:0.9rem; color:#F8FAFC; line-height:1.75;">
+                ${ik.tools.map(t => `<li style="margin-bottom:4px;">${t}</li>`).join('')}
               </ul>
             </div>
           </div>
 
           ${ik.chemical_ratio && ik.chemical_ratio !== '-' ? `
-            <div style="background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; padding:10px 14px;">
-              <strong style="color:#92400E; font-size:0.85rem; display:block; margin-bottom:2px;">🧪 Rasio & Takaran Chemical:</strong>
-              <span style="color:#78350F; font-size:0.9rem; font-weight:600;">${ik.chemical_ratio}</span>
+            <div style="background:rgba(245, 158, 11, 0.14); border:1px solid rgba(251, 191, 36, 0.36); border-radius:9px; padding:11px 15px;">
+              <strong style="color:#FCD34D; font-size:0.88rem; display:block; margin-bottom:3px;">🧪 Rasio & Takaran Chemical:</strong>
+              <span style="color:#FDE68A; font-size:0.92rem; font-weight:600; line-height:1.5;">${ik.chemical_ratio}</span>
             </div>
           ` : ''}
 
           <div>
-            <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:var(--text-1);">📝 Langkah-Langkah Pelaksanaan:</h4>
-            <div style="background:#111827; border:1px solid var(--border); border-radius:8px; padding:12px 16px;">
-              <ol style="margin:0 0 0 18px; padding:0; font-size:0.875rem; color:var(--text-2); line-height:1.8;">
-                ${ik.steps.map(s => `<li style="margin-bottom:6px;">${s}</li>`).join('')}
+            <h4 style="margin:0 0 8px 0; font-size:0.98rem; font-weight:700; color:#FFFFFF;">📝 Langkah-Langkah Pelaksanaan:</h4>
+            <div style="background:#0F172A; border:1px solid #29364B; border-radius:9px; padding:13px 18px;">
+              <ol style="margin:0 0 0 20px; padding:0; font-size:0.9rem; color:#F8FAFC; line-height:1.8;">
+                ${ik.steps.map(s => `<li style="margin-bottom:7px;">${s}</li>`).join('')}
               </ol>
             </div>
           </div>
 
           ${ik.notes ? `
-            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:10px 14px;">
-              <strong style="color:#1E40AF; font-size:0.85rem; display:block; margin-bottom:2px;">⚠️ Catatan Penting & Safety:</strong>
-              <span style="color:#1E3A8A; font-size:0.85rem; line-height:1.6;">${ik.notes}</span>
+            <div style="background:rgba(59, 130, 246, 0.14); border:1px solid rgba(96, 165, 250, 0.36); border-radius:9px; padding:12px 15px;">
+              <strong style="color:#93C5FD; font-size:0.88rem; display:block; margin-bottom:3px;">⚠️ Catatan Penting & Safety:</strong>
+              <span style="color:#F8FAFC; font-size:0.88rem; line-height:1.6;">${ik.notes}</span>
             </div>
           ` : ''}
         </div>
@@ -1078,33 +1120,33 @@ export async function renderSOPFacilityCare(container) {
         subContent.innerHTML = `
           <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
             <div style="padding:14px 18px; background:#111827; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-              <strong style="color:var(--text-1); font-size:0.95rem;">Daftar Standar Peralatan Kebersihan (Lampiran 8.1 SOP)</strong>
-              <span class="badge badge-primary">${filtered.length} Item</span>
+              <strong style="color:#FFFFFF; font-size:0.96rem;">Daftar Standar Peralatan Kebersihan (Lampiran 8.1 SOP)</strong>
+              <span class="badge" style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid rgba(96,165,250,0.4); font-weight:700; padding:3px 9px; border-radius:6px;">${filtered.length} Item</span>
             </div>
             <div style="overflow-x:auto;">
-              <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.875rem;">
+              <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.9rem;">
                 <thead>
-                  <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
-                    <th style="padding:10px 14px; width:60px;">No</th>
-                    <th style="padding:10px 14px;">Nama Alat / Item</th>
-                    <th style="padding:10px 14px; width:130px;">Kuantitas Standar</th>
-                    <th style="padding:10px 14px;">Peruntukan Area & Kegunaan</th>
-                    <th style="padding:10px 14px; width:110px; text-align:center;">Aksi</th>
+                  <tr style="background:#111827; border-bottom:1px solid #29364B; text-align:left;">
+                    <th style="padding:11px 14px; width:60px; color:#CBD5E1;">No</th>
+                    <th style="padding:11px 14px; color:#CBD5E1;">Nama Alat / Item</th>
+                    <th style="padding:11px 14px; width:140px; color:#CBD5E1;">Kuantitas Standar</th>
+                    <th style="padding:11px 14px; color:#CBD5E1;">Peruntukan Area & Kegunaan</th>
+                    <th style="padding:11px 14px; width:110px; text-align:center; color:#CBD5E1;">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${filtered.map((item, idx) => `
-                    <tr style="border-bottom:1px solid var(--border); background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:var(--text-1);">
-                      <td style="padding:10px 14px; font-weight:600; color:var(--text-3);">${item.no || idx + 1}</td>
-                      <td style="padding:10px 14px; font-weight:700; color:var(--text-1);">${escapeHtml(item.name)}</td>
-                      <td style="padding:10px 14px;"><span class="badge" style="background:#E0F2FE; color:#0369A1; font-weight:600;">${escapeHtml(item.qty)}</span></td>
-                      <td style="padding:10px 14px; color:var(--text-2);">${escapeHtml(item.area)}</td>
-                      <td style="padding:10px 14px; text-align:center;">
+                    <tr style="border-bottom:1px solid #29364B; background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:#F8FAFC;">
+                      <td style="padding:11px 14px; font-weight:600; color:#CBD5E1;">${item.no || idx + 1}</td>
+                      <td style="padding:11px 14px; font-weight:700; color:#FFFFFF;">${escapeHtml(item.name)}</td>
+                      <td style="padding:11px 14px;"><span class="badge" style="background:rgba(56,189,248,0.16); color:#7DD3FC; border:1px solid rgba(56,189,248,0.35); font-weight:700; padding:3px 9px; border-radius:6px;">${escapeHtml(item.qty)}</span></td>
+                      <td style="padding:11px 14px; color:#CBD5E1; line-height:1.5;">${escapeHtml(item.area)}</td>
+                      <td style="padding:11px 14px; text-align:center;">
                     ${canEdit ? `
-                        <button class="btn btn-sm btn-ghost btn-edit-tool" data-no="${item.no}" title="Edit Alat" style="padding:4px 6px; cursor:pointer;">✏️</button>
+                        <button class="btn btn-sm btn-ghost btn-edit-tool" data-no="${item.no}" title="Edit Alat" style="padding:4px 7px; color:#93C5FD; cursor:pointer;">✏️</button>
                     ` : ''}
                     ${canDelete ? `
-                        <button class="btn btn-sm btn-ghost btn-delete-tool" data-no="${item.no}" title="Hapus Alat" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>
+                        <button class="btn btn-sm btn-ghost btn-delete-tool" data-no="${item.no}" title="Hapus Alat" style="padding:4px 7px; color:#FCA5A5; cursor:pointer;">🗑️</button>
                     ` : ''}
                       </td>
                     </tr>
@@ -1145,35 +1187,35 @@ export async function renderSOPFacilityCare(container) {
         subContent.innerHTML = `
           <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
             <div style="padding:14px 18px; background:#111827; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-              <strong style="color:var(--text-1); font-size:0.95rem;">Daftar Bahan Kimia & Standar Takaran (Lampiran 8.1 SOP)</strong>
-              <span class="badge badge-success">${filtered.length} Chemical</span>
+              <strong style="color:#FFFFFF; font-size:0.96rem;">Daftar Bahan Kimia & Standar Takaran (Lampiran 8.1 SOP)</strong>
+              <span class="badge" style="background:rgba(16,185,129,0.18); color:#6EE7B7; border:1px solid rgba(52,211,153,0.4); font-weight:700; padding:3px 9px; border-radius:6px;">${filtered.length} Chemical</span>
             </div>
             <div style="overflow-x:auto;">
-              <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.875rem;">
+              <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.9rem;">
                 <thead>
-                  <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
-                    <th style="padding:10px 14px; width:60px;">No</th>
-                    <th style="padding:10px 14px;">Nama Produk Chemical</th>
-                    <th style="padding:10px 14px; width:110px;">Kemasan</th>
-                    <th style="padding:10px 14px; width:220px;">Rasio & Standar Takaran</th>
-                    <th style="padding:10px 14px;">Fungsi & Cara Penggunaan</th>
-                    <th style="padding:10px 14px; width:110px; text-align:center;">Aksi</th>
+                  <tr style="background:#111827; border-bottom:1px solid #29364B; text-align:left;">
+                    <th style="padding:11px 14px; width:60px; color:#CBD5E1;">No</th>
+                    <th style="padding:11px 14px; color:#CBD5E1;">Nama Produk Chemical</th>
+                    <th style="padding:11px 14px; width:115px; color:#CBD5E1;">Kemasan</th>
+                    <th style="padding:11px 14px; width:230px; color:#CBD5E1;">Rasio & Standar Takaran</th>
+                    <th style="padding:11px 14px; color:#CBD5E1;">Fungsi & Cara Penggunaan</th>
+                    <th style="padding:11px 14px; width:110px; text-align:center; color:#CBD5E1;">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${filtered.map((item, idx) => `
-                    <tr style="border-bottom:1px solid var(--border); background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:var(--text-1);">
-                      <td style="padding:10px 14px; font-weight:600; color:var(--text-3);">${item.no || idx + 1}</td>
-                      <td style="padding:10px 14px; font-weight:700; color:var(--text-1);">${escapeHtml(item.name)}</td>
-                      <td style="padding:10px 14px;"><span class="badge" style="background:#FEF3C7; color:#92400E; font-weight:600;">${escapeHtml(item.size)}</span></td>
-                      <td style="padding:10px 14px;"><span style="background:#EFF6FF; color:#1E40AF; padding:3px 8px; border-radius:6px; font-weight:600; font-size:0.82rem;">${escapeHtml(item.ratio)}</span></td>
-                      <td style="padding:10px 14px; color:var(--text-2);">${escapeHtml(item.function)}</td>
-                      <td style="padding:10px 14px; text-align:center;">
+                    <tr style="border-bottom:1px solid #29364B; background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:#F8FAFC;">
+                      <td style="padding:11px 14px; font-weight:600; color:#CBD5E1;">${item.no || idx + 1}</td>
+                      <td style="padding:11px 14px; font-weight:700; color:#FFFFFF;">${escapeHtml(item.name)}</td>
+                      <td style="padding:11px 14px;"><span class="badge" style="background:rgba(245,158,11,0.18); color:#FCD34D; border:1px solid rgba(251,191,36,0.38); font-weight:700; padding:3px 9px; border-radius:6px;">${escapeHtml(item.size)}</span></td>
+                      <td style="padding:11px 14px;"><span style="background:rgba(59,130,246,0.18); color:#93C5FD; border:1px solid rgba(96,165,250,0.38); padding:4px 9px; border-radius:6px; font-weight:700; font-size:0.84rem; display:inline-block;">${escapeHtml(item.ratio)}</span></td>
+                      <td style="padding:11px 14px; color:#CBD5E1; line-height:1.5;">${escapeHtml(item.function)}</td>
+                      <td style="padding:11px 14px; text-align:center;">
                     ${canEdit ? `
-                        <button class="btn btn-sm btn-ghost btn-edit-chem" data-no="${item.no}" title="Edit Chemical" style="padding:4px 6px; cursor:pointer;">✏️</button>
+                        <button class="btn btn-sm btn-ghost btn-edit-chem" data-no="${item.no}" title="Edit Chemical" style="padding:4px 7px; color:#93C5FD; cursor:pointer;">✏️</button>
                     ` : ''}
                     ${canDelete ? `
-                        <button class="btn btn-sm btn-ghost btn-delete-chem" data-no="${item.no}" title="Hapus Chemical" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>
+                        <button class="btn btn-sm btn-ghost btn-delete-chem" data-no="${item.no}" title="Hapus Chemical" style="padding:4px 7px; color:#FCA5A5; cursor:pointer;">🗑️</button>
                     ` : ''}
                       </td>
                     </tr>
@@ -1359,15 +1401,15 @@ export async function renderSOPFacilityCare(container) {
     parent.innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:20px;">
         <!-- Card 1: Grooming -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
-            <span style="font-size:1.5rem; background:#EFF6FF; padding:8px; border-radius:8px;">👔</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:12px;">
+            <span style="font-size:1.5rem; background:rgba(59,130,246,0.16); border:1px solid rgba(96,165,250,0.35); padding:8px; border-radius:9px;">👔</span>
             <div>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Standar Grooming Petugas (6.1)</h3>
-              <span style="font-size:0.8rem; color:var(--text-3);">8 Persyaratan Wajib Penampilan Facility Care</span>
+              <h3 style="margin:0 0 2px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Standar Grooming Petugas (6.1)</h3>
+              <span style="font-size:0.84rem; color:#CBD5E1;">8 Persyaratan Wajib Penampilan Facility Care</span>
             </div>
           </div>
-          <ol style="margin:0 0 0 18px; padding:0; font-size:0.88rem; color:var(--text-2); line-height:1.8;">
+          <ol style="margin:0 0 0 18px; padding:0; font-size:0.9rem; color:#F8FAFC; line-height:1.8;">
             <li>Menggunakan seragam resmi setiap hari (Senin s/d Minggu).</li>
             <li>Menggunakan celana bahan berwarna hitam (bukan jeans/chino kasual).</li>
             <li>Wajib mengenakan name badge atau ID Card di dada kiri.</li>
@@ -1380,86 +1422,86 @@ export async function renderSOPFacilityCare(container) {
         </div>
 
         <!-- Card 2: Jam Kerja -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
-            <span style="font-size:1.5rem; background:#FEF3C7; padding:8px; border-radius:8px;">⏰</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:12px;">
+            <span style="font-size:1.5rem; background:rgba(245,158,11,0.16); border:1px solid rgba(251,191,36,0.35); padding:8px; border-radius:9px;">⏰</span>
             <div>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Pengaturan Jam Kerja & Shift (6.2)</h3>
-              <span style="font-size:0.8rem; color:var(--text-3);">Sistem Kerja 6 Hari Kerja : 1 Hari Libur</span>
+              <h3 style="margin:0 0 2px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Pengaturan Jam Kerja & Shift (6.2)</h3>
+              <span style="font-size:0.84rem; color:#CBD5E1;">Sistem Kerja 6 Hari Kerja : 1 Hari Libur</span>
             </div>
           </div>
-          <div style="font-size:0.88rem; color:var(--text-2); line-height:1.7;">
-            <div style="background:#111827; border-radius:8px; padding:10px 14px; margin-bottom:10px; border-left:3px solid #2563EB;">
-              <strong style="color:var(--text-1); display:block; margin-bottom:2px;">🏥 Klinik Primer (1 Orang Facility Care):</strong>
-              <span>Shift 1 (Normal): <strong>08.00 s/d 17.00</strong> (Istirahat 13.00 s/d 14.00)</span>
+          <div style="font-size:0.9rem; color:#F8FAFC; line-height:1.7;">
+            <div style="background:#0F172A; border:1px solid #29364B; border-radius:8px; padding:11px 14px; margin-bottom:10px; border-left:3.5px solid #60A5FA;">
+              <strong style="color:#FFFFFF; display:block; margin-bottom:2px;">🏥 Klinik Primer (1 Orang Facility Care):</strong>
+              <span style="color:#E2E8F0;">Shift 1 (Normal): <strong style="color:#FFFFFF;">08.00 s/d 17.00</strong> (Istirahat 13.00 s/d 14.00)</span>
             </div>
-            <div style="background:#111827; border-radius:8px; padding:10px 14px; margin-bottom:12px; border-left:3px solid #059669;">
-              <strong style="color:var(--text-1); display:block; margin-bottom:2px;">✨ Klinik Luxury (> 1 Orang Facility Care):</strong>
-              <div style="margin-bottom:2px;">• Shift 1 (Pagi): <strong>07.00 s/d 16.00</strong> (Istirahat 12.00 s/d 13.00)</div>
-              <div>• Shift 2 (Siang): <strong>13.00 s/d 22.00</strong> (Istirahat 17.00 s/d 18.00)</div>
+            <div style="background:#0F172A; border:1px solid #29364B; border-radius:8px; padding:11px 14px; margin-bottom:12px; border-left:3.5px solid #34D399;">
+              <strong style="color:#FFFFFF; display:block; margin-bottom:2px;">✨ Klinik Luxury (&gt; 1 Orang Facility Care):</strong>
+              <div style="margin-bottom:2px; color:#E2E8F0;">• Shift 1 (Pagi): <strong style="color:#FFFFFF;">07.00 s/d 16.00</strong> (Istirahat 12.00 s/d 13.00)</div>
+              <div style="color:#E2E8F0;">• Shift 2 (Siang): <strong style="color:#FFFFFF;">13.00 s/d 22.00</strong> (Istirahat 17.00 s/d 18.00)</div>
             </div>
-            <p style="margin:0; font-size:0.82rem; color:var(--text-3);">
-              <strong>Ketentuan Backup:</strong> Saat Facility Care cabang libur, tim cabang wajib melakukan backup pekerjaan yang ditentukan oleh Supervisor (SPV) Cabang.
+            <p style="margin:0; font-size:0.85rem; color:#CBD5E1; line-height:1.6;">
+              <strong style="color:#FFFFFF;">Ketentuan Backup:</strong> Saat Facility Care cabang libur, tim cabang wajib melakukan backup pekerjaan yang ditentukan oleh Supervisor (SPV) Cabang.
             </p>
           </div>
         </div>
 
         <!-- Card 3: Tanggung Jawab & Pembagian Area -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
-            <span style="font-size:1.5rem; background:#ECFDF5; padding:8px; border-radius:8px;">🏢</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:12px;">
+            <span style="font-size:1.5rem; background:rgba(16,185,129,0.16); border:1px solid rgba(52,211,153,0.35); padding:8px; border-radius:9px;">🏢</span>
             <div>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Tanggung Jawab & Area (6.3)</h3>
-              <span style="font-size:0.8rem; color:var(--text-3);">Pembagian Pelaksana & Penanggung Jawab Area</span>
+              <h3 style="margin:0 0 2px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Tanggung Jawab & Area (6.3)</h3>
+              <span style="font-size:0.84rem; color:#CBD5E1;">Pembagian Pelaksana & Penanggung Jawab Area</span>
             </div>
           </div>
-          <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:14px;">
+          <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:14px;">
             <thead>
-              <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
-                <th style="padding:6px 10px;">Area Kerja</th>
-                <th style="padding:6px 10px;">Pelaksana</th>
-                <th style="padding:6px 10px;">PIC Pengawas</th>
+              <tr style="background:#0F172A; border-bottom:1px solid #29364B; text-align:left;">
+                <th style="padding:8px 10px; color:#CBD5E1;">Area Kerja</th>
+                <th style="padding:8px 10px; color:#CBD5E1;">Pelaksana</th>
+                <th style="padding:8px 10px; color:#CBD5E1;">PIC Pengawas</th>
               </tr>
             </thead>
             <tbody>
-              <tr style="border-bottom:1px solid #F1F5F9;">
-                <td style="padding:8px 10px; font-weight:600;">HQ & Gudang Pusat</td>
-                <td style="padding:8px 10px;">Facility Care Pusat</td>
-                <td style="padding:8px 10px; color:#2563EB; font-weight:600;">FC Supervisor</td>
+              <tr style="border-bottom:1px solid #29364B;">
+                <td style="padding:9px 10px; font-weight:600; color:#F8FAFC;">HQ & Gudang Pusat</td>
+                <td style="padding:9px 10px; color:#CBD5E1;">Facility Care Pusat</td>
+                <td style="padding:9px 10px; color:#93C5FD; font-weight:700;">FC Supervisor</td>
               </tr>
               <tr>
-                <td style="padding:8px 10px; font-weight:600;">Klinik / Cabang</td>
-                <td style="padding:8px 10px;">Facility Care Cabang</td>
-                <td style="padding:8px 10px; color:#059669; font-weight:600;">SPV Cabang</td>
+                <td style="padding:9px 10px; font-weight:600; color:#F8FAFC;">Klinik / Cabang</td>
+                <td style="padding:9px 10px; color:#CBD5E1;">Facility Care Cabang</td>
+                <td style="padding:9px 10px; color:#6EE7B7; font-weight:700;">SPV Cabang</td>
               </tr>
             </tbody>
           </table>
-          <div style="font-size:0.83rem; color:var(--text-2); line-height:1.6;">
-            <div style="margin-bottom:6px;"><strong>Deep Cleaning:</strong> Pembersihan total eventual pasca renovasi, pembukaan cabang baru, atau relokasi cabang lama.</div>
-            <div><strong>General Cleaning (GC):</strong> Pembersihan menyeluruh berkala untuk cabang eksisting sesuai jadwal yang telah ditetapkan.</div>
+          <div style="font-size:0.86rem; color:#CBD5E1; line-height:1.65;">
+            <div style="margin-bottom:6px;"><strong style="color:#FFFFFF;">Deep Cleaning:</strong> Pembersihan total eventual pasca renovasi, pembukaan cabang baru, atau relokasi cabang lama.</div>
+            <div><strong style="color:#FFFFFF;">General Cleaning (GC):</strong> Pembersihan menyeluruh berkala untuk cabang eksisting sesuai jadwal yang telah ditetapkan.</div>
           </div>
         </div>
 
         <!-- Card 4: Monitoring & Evaluasi -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
-            <span style="font-size:1.5rem; background:#F5F3FF; padding:8px; border-radius:8px;">🔍</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:12px;">
+            <span style="font-size:1.5rem; background:rgba(139,92,246,0.16); border:1px solid rgba(167,139,250,0.35); padding:8px; border-radius:9px;">🔍</span>
             <div>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Sistem Monitoring & Inspeksi (6.4)</h3>
-              <span style="font-size:0.8rem; color:var(--text-3);">Mekanisme Evaluasi Kinerja Harian & Triwulanan</span>
+              <h3 style="margin:0 0 2px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Sistem Monitoring & Inspeksi (6.4)</h3>
+              <span style="font-size:0.84rem; color:#CBD5E1;">Mekanisme Evaluasi Kinerja Harian & Triwulanan</span>
             </div>
           </div>
-          <div style="font-size:0.88rem; color:var(--text-2); line-height:1.7;">
+          <div style="font-size:0.9rem; color:#F8FAFC; line-height:1.7;">
             <div style="margin-bottom:10px;">
-              <strong style="color:var(--text-1);">1. Monitor Harian & Mingguan:</strong>
-              <div style="font-size:0.84rem; color:var(--text-2); margin-top:2px;">
+              <strong style="color:#FFFFFF;">1. Monitor Harian & Mingguan:</strong>
+              <div style="font-size:0.87rem; color:#CBD5E1; margin-top:3px; line-height:1.6;">
                 Ceklist harian diisi 2 kali sehari (Pagi & Siang) dan pekerjaan mingguan diisi seminggu sekali. Wajib ditandatangani oleh SPV Cabang / FC Supervisor.
               </div>
             </div>
             <div>
-              <strong style="color:var(--text-1);">2. Inspeksi Cabang Triwulanan (3 Bulan):</strong>
-              <div style="font-size:0.84rem; color:var(--text-2); margin-top:2px;">
-                Dilakukan oleh FC Specialist langsung ke lokasi klinik. Laporan inspeksi diunggah ke Basecamp dan wajib diberikan tindak lanjut oleh PIC cabang maksimal <strong>3 hari</strong> setelah laporan terbit. Hasil penilaian mempengaruhi performance cabang.
+              <strong style="color:#FFFFFF;">2. Inspeksi Cabang Triwulanan (3 Bulan):</strong>
+              <div style="font-size:0.87rem; color:#CBD5E1; margin-top:3px; line-height:1.6;">
+                Dilakukan oleh FC Specialist langsung ke lokasi klinik. Laporan inspeksi diunggah ke Basecamp dan wajib diberikan tindak lanjut oleh PIC cabang maksimal <strong style="color:#FFFFFF;">3 hari</strong> setelah laporan terbit. Hasil penilaian mempengaruhi performance cabang.
               </div>
             </div>
           </div>
@@ -1475,83 +1517,83 @@ export async function renderSOPFacilityCare(container) {
     parent.innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
         <!-- Card: Ceklist Harian Google Sheets -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
               <span style="font-size:2rem;">📊</span>
               <div>
-                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Form Ceklist Harian & Mingguan</h3>
-                <span class="badge" style="background:#E0F2FE; color:#0369A1; font-size:0.75rem; font-weight:700;">Google Sheets</span>
+                <h3 style="margin:0 0 4px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Form Ceklist Harian & Mingguan</h3>
+                <span class="badge" style="background:rgba(56,189,248,0.16); color:#7DD3FC; border:1px solid rgba(56,189,248,0.35); font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:6px;">Google Sheets</span>
               </div>
             </div>
-            <p style="font-size:0.85rem; color:var(--text-2); line-height:1.6; margin-bottom:16px;">
+            <p style="font-size:0.88rem; color:#CBD5E1; line-height:1.6; margin-bottom:16px;">
               Format lembar ceklist kebersihan harian (Shift Pagi & Siang) dan ceklist pembersihan berkala mingguan yang wajib diisi oleh Facility Care dan disetujui Supervisor Cabang.
             </p>
           </div>
-          <a href="https://docs.google.com/spreadsheets/d/1alq6ppT7syB8Q0_RjjeqwYhjeHgrWvVe-KJ3dHXWrss/edit?usp=sharing" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:600; padding:10px; border-radius:8px;">
+          <a href="https://docs.google.com/spreadsheets/d/1alq6ppT7syB8Q0_RjjeqwYhjeHgrWvVe-KJ3dHXWrss/edit?usp=sharing" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:700; padding:10px; border-radius:8px; background:#2563EB; color:#FFFFFF;">
             📄 Buka Google Sheets Ceklist ➔
           </a>
         </div>
 
         <!-- Card: Form Inspeksi Hygiene Google Forms -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
               <span style="font-size:2rem;">📑</span>
               <div>
-                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Form Inspeksi Hygiene Cabang</h3>
-                <span class="badge" style="background:#F3E8FF; color:#7E22CE; font-size:0.75rem; font-weight:700;">Google Forms</span>
+                <h3 style="margin:0 0 4px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Form Inspeksi Hygiene Cabang</h3>
+                <span class="badge" style="background:rgba(139,92,246,0.18); color:#DDD6FE; border:1px solid rgba(167,139,250,0.38); font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:6px;">Google Forms</span>
               </div>
             </div>
-            <p style="font-size:0.85rem; color:var(--text-2); line-height:1.6; margin-bottom:16px;">
+            <p style="font-size:0.88rem; color:#CBD5E1; line-height:1.6; margin-bottom:16px;">
               Formulir digital inspeksi evaluasi kebersihan dan kepatuhan hygiene cabang yang diisi oleh Facility Care Specialist setiap periode 3 bulanan.
             </p>
           </div>
-          <a href="https://docs.google.com/forms/d/e/1FAIpQLScn8iPabIt51E_GORkbD86IURSS-EsUYINEQ_Zwdq_uC3XOCQ/viewform" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:600; padding:10px; border-radius:8px; background:#7E22CE; border-color:#7E22CE;">
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLScn8iPabIt51E_GORkbD86IURSS-EsUYINEQ_Zwdq_uC3XOCQ/viewform" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:700; padding:10px; border-radius:8px; background:#7E22CE; border-color:#9333EA; color:#FFFFFF;">
             📋 Buka Google Form Inspeksi ➔
           </a>
         </div>
 
         <!-- Card: Basecamp Monitoring Project -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
               <span style="font-size:2rem;">🏕️</span>
               <div>
-                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Laporan Inspeksi Basecamp</h3>
-                <span class="badge" style="background:#FEF3C7; color:#92400E; font-size:0.75rem; font-weight:700;">Basecamp 3 Project</span>
+                <h3 style="margin:0 0 4px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Laporan Inspeksi Basecamp</h3>
+                <span class="badge" style="background:rgba(245,158,11,0.16); color:#FCD34D; border:1px solid rgba(251,191,36,0.35); font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:6px;">Basecamp 3 Project</span>
               </div>
             </div>
-            <p style="font-size:0.85rem; color:var(--text-2); line-height:1.6; margin-bottom:16px;">
+            <p style="font-size:0.88rem; color:#CBD5E1; line-height:1.6; margin-bottom:16px;">
               To-do list dan kanal pelaporan temuan inspeksi cabang. PIC Cabang wajib memberikan respon tindak lanjut maksimal 3 hari kerja setelah laporan terbit.
             </p>
           </div>
-          <a href="https://3.basecamp.com/5259614/buckets/33617501/todosets/6367925585" target="_blank" rel="noopener" class="btn btn-outline" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:600; padding:10px; border-radius:8px; background:#1B2940; border:1px solid var(--border); color:#F8FAFC;">
+          <a href="https://3.basecamp.com/5259614/buckets/33617501/todosets/6367925585" target="_blank" rel="noopener" class="btn btn-outline" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:700; padding:10px; border-radius:8px; background:#1B2940; border:1px solid #334155; color:#FFFFFF;">
             🚀 Buka Laporan di Basecamp ➔
           </a>
         </div>
       </div>
 
       <!-- Validasi & Pengesahan SOP -->
-      <div class="card" style="margin-top:20px; padding:20px; background:#172033; border:1px solid var(--border); border-radius:12px;">
-        <h3 style="margin:0 0 14px 0; font-size:1rem; font-weight:700; color:var(--text-1); display:flex; align-items:center; gap:8px;">
+      <div class="card" style="margin-top:20px; padding:20px; background:#172033; border:1px solid #29364B; border-radius:12px;">
+        <h3 style="margin:0 0 14px 0; font-size:1.05rem; font-weight:700; color:#FFFFFF; display:flex; align-items:center; gap:8px;">
           <span>📜</span> Validasi & Pengesahan Dokumen SOP
         </h3>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
-          <div style="border-left:3px solid #2563EB; padding-left:12px;">
-            <div style="font-size:0.75rem; color:var(--text-3); font-weight:700; text-transform:uppercase;">Disiapkan Oleh:</div>
-            <div style="font-size:0.95rem; font-weight:700; color:var(--text-1); margin-top:2px;">Berlin Ariansyah</div>
-            <div style="font-size:0.8rem; color:var(--text-2);">Facility Care Supervisor</div>
+          <div style="border-left:3.5px solid #60A5FA; padding-left:12px;">
+            <div style="font-size:0.78rem; color:#CBD5E1; font-weight:700; text-transform:uppercase;">Disiapkan Oleh:</div>
+            <div style="font-size:0.98rem; font-weight:700; color:#FFFFFF; margin-top:2px;">Berlin Ariansyah</div>
+            <div style="font-size:0.84rem; color:#CBD5E1;">Facility Care Supervisor</div>
           </div>
-          <div style="border-left:3px solid #059669; padding-left:12px;">
-            <div style="font-size:0.75rem; color:var(--text-3); font-weight:700; text-transform:uppercase;">Diketahui Oleh:</div>
-            <div style="font-size:0.95rem; font-weight:700; color:var(--text-1); margin-top:2px;">Catur Meiyogo</div>
-            <div style="font-size:0.8rem; color:var(--text-2);">General Support Manager</div>
+          <div style="border-left:3.5px solid #34D399; padding-left:12px;">
+            <div style="font-size:0.78rem; color:#CBD5E1; font-weight:700; text-transform:uppercase;">Diketahui Oleh:</div>
+            <div style="font-size:0.98rem; font-weight:700; color:#FFFFFF; margin-top:2px;">Catur Meiyogo</div>
+            <div style="font-size:0.84rem; color:#CBD5E1;">General Support Manager</div>
           </div>
-          <div style="border-left:3px solid #7C3AED; padding-left:12px;">
-            <div style="font-size:0.75rem; color:var(--text-3); font-weight:700; text-transform:uppercase;">Disetujui Oleh:</div>
-            <div style="font-size:0.95rem; font-weight:700; color:var(--text-1); margin-top:2px;">Drg. Yulita</div>
-            <div style="font-size:0.8rem; color:var(--text-2);">Chief Executive Officer</div>
+          <div style="border-left:3.5px solid #A78BFA; padding-left:12px;">
+            <div style="font-size:0.78rem; color:#CBD5E1; font-weight:700; text-transform:uppercase;">Disetujui Oleh:</div>
+            <div style="font-size:0.98rem; font-weight:700; color:#FFFFFF; margin-top:2px;">Drg. Yulita</div>
+            <div style="font-size:0.84rem; color:#CBD5E1;">Chief Executive Officer</div>
           </div>
         </div>
       </div>

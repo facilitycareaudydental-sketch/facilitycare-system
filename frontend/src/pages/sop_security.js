@@ -172,34 +172,49 @@ export async function renderSOPSecurity(container) {
   let listIK = getStoredIK();
   let listAssets = getStoredAssets();
 
+  const SEC_CATEGORY_THEMES = {
+    'Pengamanan Fisik & Patroli': { text: '#93C5FD', bg: 'rgba(59, 130, 246, 0.16)', border: 'rgba(96, 165, 250, 0.38)', accent: '#60A5FA' },
+    'Operasional Parkir & Luar': { text: '#FCD34D', bg: 'rgba(245, 158, 11, 0.16)', border: 'rgba(251, 191, 36, 0.38)', accent: '#FBBF24' },
+    'Layanan & Hospitalitas': { text: '#6EE7B7', bg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(52, 211, 153, 0.38)', accent: '#34D399' },
+  };
+  function getSecIKTheme(ik) {
+    return SEC_CATEGORY_THEMES[ik?.category] || SEC_CATEGORY_THEMES['Pengamanan Fisik & Patroli'];
+  }
+
+  const SEC_ZONE_THEMES = {
+    'Zona Hijau': { title: '#6EE7B7', dot: '#34D399', bg: 'rgba(16, 185, 129, 0.14)', border: 'rgba(52, 211, 153, 0.36)', body: '#F8FAFC' },
+    'Zona Kuning': { title: '#FCD34D', dot: '#FBBF24', bg: 'rgba(245, 158, 11, 0.14)', border: 'rgba(251, 191, 36, 0.36)', body: '#F8FAFC' },
+    'Zona Merah': { title: '#FCA5A5', dot: '#F87171', bg: 'rgba(239, 68, 68, 0.14)', border: 'rgba(248, 113, 113, 0.36)', body: '#F8FAFC' },
+  };
+
   function renderPage() {
     container.innerHTML = `
       <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
         <div>
-          <h1 class="page-title" style="display:flex; align-items:center; gap:8px; margin:0 0 6px 0; font-size:1.6rem; font-weight:700; color:var(--text-1);">
+          <h1 class="page-title" style="display:flex; align-items:center; gap:8px; margin:0 0 6px 0; font-size:1.65rem; font-weight:700; color:#FFFFFF;">
             <span>🛡️</span> SOP Pengelolaan Keamanan & Aset Perusahaan
           </h1>
-          <p class="page-subtitle" style="margin:0; font-size:0.9rem; color:var(--text-3);">
+          <p class="page-subtitle" style="margin:0; font-size:0.92rem; color:#CBD5E1; line-height:1.5;">
             Standar Operasional Prosedur Pengawasan Keamanan Area, Fasilitas, dan Perlindungan Aset PT Audy Mandiri Indonesia
           </p>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           ${canDelete ? `
-          <button id="btn-reset-sec-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          <button id="btn-reset-sec-default" class="btn btn-outline" title="Kembalikan data ke dokumen standar asli" style="background:#172033; border:1px solid #334155; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
             🔄 Reset ke Standar
           </button>
           ` : ''}
-          <button id="btn-print-sec" class="btn btn-outline" style="background:#172033; border:1px solid var(--border); color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          <button id="btn-print-sec" class="btn btn-outline" style="background:#172033; border:1px solid #334155; color:#F8FAFC; font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem;">
             🖨️ Cetak Ringkasan SOP
           </button>
-          ${hasPermission(currentUser, "export") ? `<button id="btn-export-sec" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem;">
+          ${hasPermission(currentUser, "export") ? `<button id="btn-export-sec" class="btn btn-primary" style="font-weight:700; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem; background:#2563EB; color:#FFFFFF;">
             📥 Download Data Excel
           </button>` : ''}
         </div>
       </div>
 
       <!-- Navigation Tabs -->
-      <div style="display:flex; gap:8px; margin-bottom:22px; border-bottom:2px solid #E2E8F0; padding-bottom:8px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
+      <div style="display:flex; gap:8px; margin-bottom:22px; border-bottom:1px solid #29364B; padding-bottom:10px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;">
         <button class="sec-tab-btn ${activeTab === 'ik' ? 'active' : ''}" data-tab="ik" style="${getTabStyle(activeTab === 'ik')}">
           🛡️ Instruksi Kerja (IK) <span class="badge" style="${getBadgeStyle(activeTab === 'ik')}">${listIK.length}</span>
         </button>
@@ -227,16 +242,16 @@ export async function renderSOPSecurity(container) {
 
   function getTabStyle(isActive) {
     if (isActive) {
-      return 'border:none; background:#1E40AF; color:#fff; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
+      return 'border:1px solid #3B82F6; background:#2563EB; color:#FFFFFF; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
     }
-    return 'border:none; background:#172033; color:var(--text-2); border:1px solid var(--border); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
+    return 'background:#172033; color:#E2E8F0; border:1px solid #334155; font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-size:0.9rem; white-space:nowrap; transition:all 0.2s;';
   }
 
   function getBadgeStyle(isActive) {
     if (isActive) {
-      return 'background:rgba(255,255,255,0.25); color:#fff; font-size:0.75rem; padding:2px 7px; border-radius:10px; font-weight:700;';
+      return 'background:#0F172A; color:#FFFFFF; font-size:0.75rem; padding:2px 8px; border-radius:10px; font-weight:700;';
     }
-    return 'background:#CBD5E1; color:#334155; font-size:0.75rem; padding:2px 7px; border-radius:10px; font-weight:700;';
+    return 'background:#22314A; color:#E2E8F0; border:1px solid #334155; font-size:0.75rem; padding:2px 8px; border-radius:10px; font-weight:700;';
   }
 
   function bindTabEvents() {
@@ -313,11 +328,11 @@ export async function renderSOPSecurity(container) {
             </div>
           </div>
           <div style="display:flex; gap:10px; align-items:center;">
-            <div id="sec-ik-count-label" style="font-size:0.85rem; color:var(--text-3); font-weight:600;">
+            <div id="sec-ik-count-label" style="font-size:0.86rem; color:#CBD5E1; font-weight:600;">
               Menampilkan ${listIK.length} Instruksi Kerja
             </div>
             ${canEdit ? `
-            <button id="btn-add-sec-ik" class="btn btn-primary" style="font-weight:600; padding:7px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem; background:#1E40AF; border-color:#1E40AF;">
+            <button id="btn-add-sec-ik" class="btn btn-primary" style="font-weight:700; padding:7px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem; background:#2563EB; border-color:#3B82F6; color:#FFFFFF;">
               ➕ Tambah IK Baru
             </button>
             ` : ''}
@@ -333,27 +348,44 @@ export async function renderSOPSecurity(container) {
     const styleTag = document.createElement('style');
     styleTag.innerHTML = `
       .sec-cat-pill {
-        border: 1px solid var(--border);
-        background: #172033;
-        color: var(--text-2);
-        font-size: 0.8rem;
+        border: 1px solid #334155;
+        background: #111827;
+        color: #E2E8F0;
+        font-size: 0.82rem;
         font-weight: 600;
-        padding: 5px 12px;
+        padding: 6px 13px;
         border-radius: 20px;
         cursor: pointer;
         transition: all 0.15s;
         flex-shrink: 0;
         white-space: nowrap;
       }
-      .sec-cat-pill:hover { background: #22314A; color:#F8FAFC; }
+      .sec-cat-pill:hover { background: #22314A; color:#FFFFFF; border-color:#475569; }
       .sec-cat-pill.active {
-        background: #1E40AF;
-        color: #fff;
-        border-color: #1E40AF;
+        background: #2563EB;
+        color: #FFFFFF;
+        border-color: #3B82F6;
       }
       .sec-ik-card:hover {
-        box-shadow: 0 6px 16px rgba(0,0,0,0.08) !important;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.35) !important;
+        border-color: #3B82F6 !important;
         transform: translateY(-2px);
+      }
+      .sec-icon-btn {
+        background: #1B2940;
+        border: 1px solid #334155;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+      }
+      .sec-icon-btn:hover {
+        background: #22314A;
+        border-color: #60A5FA;
       }
       @media (max-width: 768px) {
         #sec-cat-pills-wrap {
@@ -397,10 +429,10 @@ export async function renderSOPSecurity(container) {
 
       if (filteredIK.length === 0) {
         gridContainer.innerHTML = `
-          <div style="text-align:center; padding:48px 20px; background:#111827; border-radius:12px; border:1px solid var(--border);">
+          <div style="text-align:center; padding:48px 20px; background:#111827; border-radius:12px; border:1px solid #29364B;">
             <div style="font-size:2.5rem; margin-bottom:8px;">🔍</div>
-            <h3 style="margin:0 0 4px; font-size:1.1rem; color:var(--text-1);">Tidak ada Instruksi Kerja yang cocok</h3>
-            <p style="margin:0; font-size:0.85rem; color:var(--text-3);">Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
+            <h3 style="margin:0 0 6px; font-size:1.12rem; color:#FFFFFF;">Tidak ada Instruksi Kerja yang cocok</h3>
+            <p style="margin:0; font-size:0.88rem; color:#CBD5E1;">Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
           </div>
         `;
         return;
@@ -408,60 +440,63 @@ export async function renderSOPSecurity(container) {
 
       gridContainer.innerHTML = `
         <div class="sec-ik-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:18px;">
-          ${filteredIK.map(ik => `
-            <div class="card sec-ik-card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.04); transition:all 0.2s;">
+          ${filteredIK.map(ik => {
+            const theme = getSecIKTheme(ik);
+            return `
+            <div class="card sec-ik-card" style="background:#172033; border:1px solid #29364B; border-radius:14px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 14px rgba(0,0,0,0.22); transition:all 0.2s;">
               <div>
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                  <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:1.6rem; width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; background:${ik.bg || '#EFF6FF'}; border-radius:10px;">${ik.icon || '🛡️'}</span>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:14px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:1.55rem; width:46px; height:46px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; background:${theme.bg}; border:1px solid ${theme.border}; border-radius:11px;">${ik.icon || '🛡️'}</span>
                     <div>
-                      <h3 style="margin:0 0 2px 0; font-size:1.05rem; font-weight:700; color:var(--text-1);">
+                      <h3 style="margin:0 0 5px 0; font-size:1.08rem; font-weight:700; color:#FFFFFF; line-height:1.35;">
                         IK-${String(ik.id).padStart(2, '0')}. ${ik.title}
                       </h3>
-                      <span class="badge" style="background:${ik.bg || '#EFF6FF'}; color:${ik.color || '#1E40AF'}; font-size:0.75rem; font-weight:700; border-radius:6px; padding:2px 8px;">
+                      <span class="badge" style="background:${theme.bg}; color:${theme.text}; border:1px solid ${theme.border}; font-size:0.78rem; font-weight:700; border-radius:6px; padding:3px 9px; display:inline-block;">
                         ${ik.category}
                       </span>
                     </div>
                   </div>
 
                   <!-- Quick Action Buttons: Edit & Hapus -->
-                  <div style="display:flex; gap:4px;">
+                  <div style="display:flex; gap:6px; flex-shrink:0;">
                     ${canEdit ? `
-                    <button class="btn btn-sm btn-ghost btn-edit-sec-ik" data-id="${ik.id}" title="Edit Instruksi Kerja" style="padding:4px 8px; border-radius:6px; font-size:0.9rem; cursor:pointer;">
+                    <button class="sec-icon-btn btn-edit-sec-ik" data-id="${ik.id}" title="Edit Instruksi Kerja" style="color:#93C5FD;">
                       ✏️
                     </button>
                     ` : ''}
                     ${canDelete ? `
-                    <button class="btn btn-sm btn-ghost btn-delete-sec-ik" data-id="${ik.id}" title="Hapus Instruksi Kerja" style="padding:4px 8px; border-radius:6px; font-size:0.9rem; color:#DC2626; cursor:pointer;">
+                    <button class="sec-icon-btn btn-delete-sec-ik" data-id="${ik.id}" title="Hapus Instruksi Kerja" style="color:#FCA5A5;">
                       🗑️
                     </button>
                     ` : ''}
                   </div>
                 </div>
 
-                <div style="font-size:0.85rem; color:var(--text-2); margin-bottom:14px; background:#111827; padding:8px 12px; border-radius:8px; border-left:3px solid ${ik.color || '#1E40AF'};">
-                  <strong>Area Sasaran:</strong> ${ik.target}
+                <div style="font-size:0.88rem; color:#F8FAFC; line-height:1.55; margin-bottom:14px; background:#0F172A; padding:10px 13px; border-radius:9px; border:1px solid #29364B; border-left:3.5px solid ${theme.accent};">
+                  <strong style="color:#FFFFFF;">Area Sasaran:</strong> ${ik.target}
                 </div>
 
                 <div style="margin-bottom:14px;">
-                  <div style="font-size:0.8rem; font-weight:700; color:var(--text-3); text-transform:uppercase; margin-bottom:6px;">🧰 Alat & Perlengkapan:</div>
-                  <ul style="margin:0 0 0 16px; padding:0; font-size:0.83rem; color:var(--text-2);">
-                    ${ik.tools.slice(0, 3).map(t => `<li style="margin-bottom:2px;">${escapeHtml(t)}</li>`).join('')}
-                    ${ik.tools.length > 3 ? `<li style="color:var(--text-3); font-style:italic;">+ ${ik.tools.length - 3} perlengkapan lainnya...</li>` : ''}
+                  <div style="font-size:0.8rem; font-weight:700; color:#CBD5E1; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:7px;">🧰 Alat & Perlengkapan:</div>
+                  <ul style="margin:0 0 0 18px; padding:0; font-size:0.87rem; color:#F8FAFC; line-height:1.6;">
+                    ${ik.tools.slice(0, 3).map(t => `<li style="margin-bottom:3px; word-break:break-word;">${escapeHtml(t)}</li>`).join('')}
+                    ${ik.tools.length > 3 ? `<li style="color:#93C5FD; font-style:italic; font-weight:600; margin-top:2px;">+ ${ik.tools.length - 3} perlengkapan lainnya...</li>` : ''}
                   </ul>
                 </div>
               </div>
 
-              <div style="border-top:1px solid #F1F5F9; padding-top:12px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.8rem; color:var(--text-3); font-weight:500;">
+              <div style="border-top:1px solid #29364B; padding-top:13px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.86rem; color:#CBD5E1; font-weight:600;">
                   ${ik.steps.length} Langkah Prosedur
                 </span>
-                <button class="btn btn-sm btn-primary btn-view-sec-ik" data-id="${ik.id}" style="padding:6px 14px; font-weight:600; border-radius:6px; background:#1E40AF; border-color:#1E40AF;">
+                <button class="btn btn-sm btn-primary btn-view-sec-ik" data-id="${ik.id}" style="padding:7px 15px; font-weight:700; font-size:0.85rem; border-radius:8px; background:#2563EB; border:1px solid #3B82F6; color:#FFFFFF;">
                   Lihat Panduan Lengkap ➔
                 </button>
               </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       `;
 
@@ -531,49 +566,50 @@ export async function renderSOPSecurity(container) {
 
   // MODAL DETAIL IK
   function openIKDetailModal(ik) {
+    const theme = getSecIKTheme(ik);
     createModal({
       title: `${ik.icon || '🛡️'} IK-${String(ik.id).padStart(2, '0')}: ${ik.title}`,
       size: 'lg',
       content: `
         <div style="display:flex; flex-direction:column; gap:16px;">
-          <div style="background:${ik.bg || '#EFF6FF'}; color:${ik.color || '#1E40AF'}; padding:10px 14px; border-radius:8px; font-weight:700; font-size:0.9rem; display:flex; justify-content:space-between; align-items:center;">
+          <div style="background:${theme.bg}; color:${theme.text}; border:1px solid ${theme.border}; padding:11px 15px; border-radius:9px; font-weight:700; font-size:0.92rem; display:flex; justify-content:space-between; align-items:center;">
             <span>Kategori: ${ik.category}</span>
-            <span>Kode: IK-SEC-${String(ik.id).padStart(2, '0')}</span>
+            <span style="color:#FFFFFF;">Kode: IK-SEC-${String(ik.id).padStart(2, '0')}</span>
           </div>
 
-          <div style="background:#111827; padding:12px 14px; border-radius:8px; border-left:4px solid ${ik.color || '#1E40AF'};">
-            <strong style="color:var(--text-1); font-size:0.85rem; display:block; margin-bottom:4px;">📍 Area & Sasaran Target:</strong>
-            <span style="font-size:0.88rem; color:var(--text-2);">${ik.target}</span>
+          <div style="background:#0F172A; padding:12px 15px; border-radius:9px; border:1px solid #29364B; border-left:4px solid ${theme.accent};">
+            <strong style="color:#FFFFFF; font-size:0.88rem; display:block; margin-bottom:4px;">📍 Area & Sasaran Target:</strong>
+            <span style="font-size:0.92rem; color:#F8FAFC; line-height:1.55;">${ik.target}</span>
           </div>
 
           <div>
-            <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:var(--text-1);">🧰 Alat & Perlengkapan yang Disiapkan:</h4>
-            <div style="background:#111827; border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
-              <ul style="margin:0 0 0 16px; padding:0; font-size:0.875rem; color:var(--text-2); line-height:1.7;">
+            <h4 style="margin:0 0 8px 0; font-size:0.98rem; font-weight:700; color:#FFFFFF;">🧰 Alat & Perlengkapan yang Disiapkan:</h4>
+            <div style="background:#0F172A; border:1px solid #29364B; border-radius:9px; padding:12px 16px;">
+              <ul style="margin:0 0 0 18px; padding:0; font-size:0.9rem; color:#F8FAFC; line-height:1.75;">
                 ${ik.tools.map(t => {
                   if (t.includes('http')) {
                     const parts = t.split(': ');
-                    return `<li>${parts[0]}: <a href="${parts.slice(1).join(': ')}" target="_blank" rel="noopener" style="color:#2563EB; font-weight:600; text-decoration:underline;">Buka Tautan Form ➔</a></li>`;
+                    return `<li style="margin-bottom:4px;">${parts[0]}: <a href="${parts.slice(1).join(': ')}" target="_blank" rel="noopener" style="color:#60A5FA; font-weight:700; text-decoration:underline;">Buka Tautan Form ➔</a></li>`;
                   }
-                  return `<li>${escapeHtml(t)}</li>`;
+                  return `<li style="margin-bottom:4px;">${escapeHtml(t)}</li>`;
                 }).join('')}
               </ul>
             </div>
           </div>
 
           <div>
-            <h4 style="margin:0 0 8px 0; font-size:0.95rem; font-weight:700; color:var(--text-1);">📝 Langkah & Prosedur Pelaksanaan:</h4>
-            <div style="background:#111827; border:1px solid var(--border); border-radius:8px; padding:12px 16px;">
-              <ol style="margin:0 0 0 18px; padding:0; font-size:0.875rem; color:var(--text-2); line-height:1.8;">
-                ${ik.steps.map(s => `<li style="margin-bottom:6px;">${escapeHtml(s)}</li>`).join('')}
+            <h4 style="margin:0 0 8px 0; font-size:0.98rem; font-weight:700; color:#FFFFFF;">📝 Langkah & Prosedur Pelaksanaan:</h4>
+            <div style="background:#0F172A; border:1px solid #29364B; border-radius:9px; padding:13px 18px;">
+              <ol style="margin:0 0 0 20px; padding:0; font-size:0.9rem; color:#F8FAFC; line-height:1.8;">
+                ${ik.steps.map(s => `<li style="margin-bottom:7px;">${escapeHtml(s)}</li>`).join('')}
               </ol>
             </div>
           </div>
 
           ${ik.notes ? `
-            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:10px 14px;">
-              <strong style="color:#1E40AF; font-size:0.85rem; display:block; margin-bottom:2px;">⚠️ Catatan Khusus & Ketentuan Penting:</strong>
-              <span style="color:#1E3A8A; font-size:0.85rem; line-height:1.6;">${escapeHtml(ik.notes)}</span>
+            <div style="background:rgba(59, 130, 246, 0.14); border:1px solid rgba(96, 165, 250, 0.36); border-radius:9px; padding:12px 15px;">
+              <strong style="color:#93C5FD; font-size:0.88rem; display:block; margin-bottom:3px;">⚠️ Catatan Khusus & Ketentuan Penting:</strong>
+              <span style="color:#F8FAFC; font-size:0.88rem; line-height:1.6;">${escapeHtml(ik.notes)}</span>
             </div>
           ` : ''}
         </div>
@@ -716,39 +752,39 @@ export async function renderSOPSecurity(container) {
             🏢 Zonasi Head Quarter (5 Lantai)
           </button>
         </div>
-        <div style="font-size:0.85rem; color:var(--text-3); font-weight:500;">
+        <div style="font-size:0.86rem; color:#CBD5E1; font-weight:600;">
           Ketentuan Pembagian Akses Ruangan (Lampiran 8.1 SOP)
         </div>
       </div>
 
       <!-- Definisi 3 Zona Header Cards -->
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:22px;">
-        <div class="card" style="background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:14px;">
+        <div class="card" style="background:rgba(239, 68, 68, 0.14); border:1px solid rgba(248, 113, 113, 0.36); border-radius:11px; padding:15px;">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <span style="width:14px; height:14px; border-radius:50%; background:#DC2626; display:inline-block;"></span>
-            <strong style="color:#991B1B; font-size:0.95rem;">ZONA MERAH (Restricted Area)</strong>
+            <span style="width:13px; height:13px; border-radius:50%; background:#F87171; display:inline-block;"></span>
+            <strong style="color:#FCA5A5; font-size:0.96rem;">ZONA MERAH (Restricted Area)</strong>
           </div>
-          <p style="margin:0; font-size:0.82rem; color:#7F1D1D; line-height:1.5;">
+          <p style="margin:0; font-size:0.86rem; color:#F8FAFC; line-height:1.55;">
             Area sangat terbatas. Hanya personal yang bertugas spesifik di area tersebut dan BOD. Tamu WAJIB mendapat izin tertulis Manajemen dan didampingi penuh.
           </p>
         </div>
 
-        <div class="card" style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px;">
+        <div class="card" style="background:rgba(245, 158, 11, 0.14); border:1px solid rgba(251, 191, 36, 0.36); border-radius:11px; padding:15px;">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <span style="width:14px; height:14px; border-radius:50%; background:#D97706; display:inline-block;"></span>
-            <strong style="color:#92400E; font-size:0.95rem;">ZONA KUNING (Limited Area)</strong>
+            <span style="width:13px; height:13px; border-radius:50%; background:#FBBF24; display:inline-block;"></span>
+            <strong style="color:#FCD34D; font-size:0.96rem;">ZONA KUNING (Limited Area)</strong>
           </div>
-          <p style="margin:0; font-size:0.82rem; color:#78350F; line-height:1.5;">
+          <p style="margin:0; font-size:0.86rem; color:#F8FAFC; line-height:1.55;">
             Area dengan pengamanan terbatas. Karyawan umum atau tamu yang memasuki area ini perlu mendapatkan arahan dan didampingi staf area terkait.
           </p>
         </div>
 
-        <div class="card" style="background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; padding:14px;">
+        <div class="card" style="background:rgba(16, 185, 129, 0.14); border:1px solid rgba(52, 211, 153, 0.36); border-radius:11px; padding:15px;">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <span style="width:14px; height:14px; border-radius:50%; background:#059669; display:inline-block;"></span>
-            <strong style="color:#065F46; font-size:0.95rem;">ZONA HIJAU (Public Area)</strong>
+            <span style="width:13px; height:13px; border-radius:50%; background:#34D399; display:inline-block;"></span>
+            <strong style="color:#6EE7B7; font-size:0.96rem;">ZONA HIJAU (Public Area)</strong>
           </div>
-          <p style="margin:0; font-size:0.82rem; color:#064E3B; line-height:1.5;">
+          <p style="margin:0; font-size:0.86rem; color:#F8FAFC; line-height:1.55;">
             Area umum dengan pengawasan security. Diperbolehkan untuk seluruh tamu dan pasien setelah diarahkan oleh petugas security.
           </p>
         </div>
@@ -763,57 +799,60 @@ export async function renderSOPSecurity(container) {
     if (zonasiView === 'cabang') {
       subContent.innerHTML = `
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
-          ${ZONASI_SECURITY.cabang.map(z => `
-            <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #F1F5F9; padding-bottom:8px;">
-                <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:${z.color}; display:flex; align-items:center; gap:8px;">
-                  <span style="width:12px; height:12px; border-radius:50%; background:${z.color}; display:inline-block;"></span>
+          ${ZONASI_SECURITY.cabang.map(z => {
+            const zt = SEC_ZONE_THEMES[z.zone] || SEC_ZONE_THEMES['Zona Hijau'];
+            return `
+            <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:18px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; border-bottom:1px solid #29364B; padding-bottom:10px;">
+                <h3 style="margin:0; font-size:1.08rem; font-weight:700; color:${zt.title}; display:flex; align-items:center; gap:8px;">
+                  <span style="width:12px; height:12px; border-radius:50%; background:${zt.dot}; display:inline-block;"></span>
                   ${z.zone}
                 </h3>
-                <span class="badge" style="background:${z.bg}; color:${z.color}; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:6px;">
+                <span class="badge" style="background:${zt.bg}; color:${zt.title}; border:1px solid ${zt.border}; font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:6px;">
                   ${z.level}
                 </span>
               </div>
-              <p style="font-size:0.82rem; color:var(--text-3); margin-bottom:14px; line-height:1.5;">${z.desc}</p>
+              <p style="font-size:0.86rem; color:#CBD5E1; margin-bottom:14px; line-height:1.55;">${z.desc}</p>
               <div>
-                <strong style="font-size:0.8rem; text-transform:uppercase; color:var(--text-2); display:block; margin-bottom:6px;">Daftar Ruangan Terkait:</strong>
-                <ul style="margin:0 0 0 16px; padding:0; font-size:0.85rem; color:var(--text-1); line-height:1.7;">
-                  ${z.rooms.map(r => `<li>${r}</li>`).join('')}
+                <strong style="font-size:0.8rem; text-transform:uppercase; color:#E2E8F0; letter-spacing:0.03em; display:block; margin-bottom:7px;">Daftar Ruangan Terkait:</strong>
+                <ul style="margin:0 0 0 18px; padding:0; font-size:0.88rem; color:#F8FAFC; line-height:1.75;">
+                  ${z.rooms.map(r => `<li style="margin-bottom:2px;">${r}</li>`).join('')}
                 </ul>
               </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       `;
     } else {
       subContent.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:16px;">
           ${ZONASI_SECURITY.hq.map(fl => `
-            <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:2px solid #F1F5F9; padding-bottom:8px;">
-                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1); display:flex; align-items:center; gap:8px;">
+            <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:18px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:10px;">
+                <h3 style="margin:0; font-size:1.12rem; font-weight:700; color:#FFFFFF; display:flex; align-items:center; gap:8px;">
                   <span>🏢</span> Head Quarter — ${fl.floor}
                 </h3>
               </div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
                 <!-- Zona Hijau -->
-                <div style="background:#ECFDF5; border:1px solid #A7F3D0; border-radius:8px; padding:12px;">
-                  <strong style="color:#065F46; font-size:0.85rem; display:block; margin-bottom:6px;">🟢 ZONA HIJAU (Publik):</strong>
-                  <ul style="margin:0 0 0 16px; padding:0; font-size:0.82rem; color:#064E3B; line-height:1.6;">
+                <div style="background:rgba(16, 185, 129, 0.14); border:1px solid rgba(52, 211, 153, 0.35); border-radius:9px; padding:13px;">
+                  <strong style="color:#6EE7B7; font-size:0.88rem; display:block; margin-bottom:7px;">🟢 ZONA HIJAU (Publik):</strong>
+                  <ul style="margin:0 0 0 18px; padding:0; font-size:0.86rem; color:#F8FAFC; line-height:1.65;">
                     ${fl.hijau.map(item => `<li>${item}</li>`).join('')}
                   </ul>
                 </div>
                 <!-- Zona Kuning -->
-                <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:12px;">
-                  <strong style="color:#92400E; font-size:0.85rem; display:block; margin-bottom:6px;">🟡 ZONA KUNING (Terbatas):</strong>
-                  <ul style="margin:0 0 0 16px; padding:0; font-size:0.82rem; color:#78350F; line-height:1.6;">
+                <div style="background:rgba(245, 158, 11, 0.14); border:1px solid rgba(251, 191, 36, 0.35); border-radius:9px; padding:13px;">
+                  <strong style="color:#FCD34D; font-size:0.88rem; display:block; margin-bottom:7px;">🟡 ZONA KUNING (Terbatas):</strong>
+                  <ul style="margin:0 0 0 18px; padding:0; font-size:0.86rem; color:#F8FAFC; line-height:1.65;">
                     ${fl.kuning.map(item => `<li>${item}</li>`).join('')}
                   </ul>
                 </div>
                 <!-- Zona Merah -->
-                <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; padding:12px;">
-                  <strong style="color:#991B1B; font-size:0.85rem; display:block; margin-bottom:6px;">🔴 ZONA MERAH (Restricted):</strong>
-                  <ul style="margin:0 0 0 16px; padding:0; font-size:0.82rem; color:#7F1D1D; line-height:1.6;">
+                <div style="background:rgba(239, 68, 68, 0.14); border:1px solid rgba(248, 113, 113, 0.35); border-radius:9px; padding:13px;">
+                  <strong style="color:#FCA5A5; font-size:0.88rem; display:block; margin-bottom:7px;">🔴 ZONA MERAH (Restricted):</strong>
+                  <ul style="margin:0 0 0 18px; padding:0; font-size:0.86rem; color:#F8FAFC; line-height:1.65;">
                     ${fl.merah.map(item => `<li>${item}</li>`).join('')}
                   </ul>
                 </div>
@@ -842,18 +881,18 @@ export async function renderSOPSecurity(container) {
     parent.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
         <div>
-          <h3 style="margin:0 0 4px 0; font-size:1.1rem; font-weight:700; color:var(--text-1);">
+          <h3 style="margin:0 0 4px 0; font-size:1.12rem; font-weight:700; color:#FFFFFF;">
             Daftar Klasifikasi Aset yang Dipantau Security (Lampiran 8.3)
           </h3>
-          <p style="margin:0; font-size:0.85rem; color:var(--text-3);">
+          <p style="margin:0; font-size:0.88rem; color:#CBD5E1;">
             Pengawasan dan perlindungan sarana prasarana fisik, elektronik, dan peralatan klinik
           </p>
         </div>
 
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <input type="text" id="sec-asset-search" class="form-control" placeholder="Cari nama aset / tipe / PIC..." value="${assetSearch}" style="height:36px; border-radius:8px; font-size:0.875rem; width:240px;">
+          <input type="text" id="sec-asset-search" class="form-control" placeholder="Cari nama aset / tipe / PIC..." value="${assetSearch}" style="height:36px; border-radius:8px; font-size:0.88rem; width:240px;">
             ${canEdit ? `
-          <button id="btn-add-sec-asset" class="btn btn-primary" style="font-weight:600; padding:6px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem; background:#1E40AF; border-color:#1E40AF;">
+          <button id="btn-add-sec-asset" class="btn btn-primary" style="font-weight:700; padding:7px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.86rem; background:#2563EB; border-color:#3B82F6; color:#FFFFFF;">
             ➕ Tambah Aset Baru
           </button>
             ` : ''}
@@ -871,39 +910,39 @@ export async function renderSOPSecurity(container) {
       const filtered = listAssets.filter(x => !q || x.item.toLowerCase().includes(q) || x.type.toLowerCase().includes(q) || x.description.toLowerCase().includes(q) || (x.pic && x.pic.toLowerCase().includes(q)));
 
       subContent.innerHTML = `
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="padding:14px 18px; background:#111827; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-            <strong style="color:var(--text-1); font-size:0.95rem;">Rekap Klasifikasi Aset Perusahaan</strong>
-            <span class="badge badge-primary">${filtered.length} Aset</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="padding:14px 18px; background:#111827; border-bottom:1px solid #29364B; display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#FFFFFF; font-size:0.96rem;">Rekap Klasifikasi Aset Perusahaan</strong>
+            <span class="badge" style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid rgba(96,165,250,0.4); font-weight:700; padding:3px 9px; border-radius:6px;">${filtered.length} Aset</span>
           </div>
           <div style="overflow-x:auto;">
-            <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.875rem;">
+            <table class="table" style="width:100%; margin:0; border-collapse:collapse; font-size:0.9rem;">
               <thead>
-                <tr style="background:#111827; border-bottom:1px solid var(--border); text-align:left;">
-                  <th style="padding:10px 14px; width:60px;">No</th>
-                  <th style="padding:10px 14px; width:140px;">Tipe Aset</th>
-                  <th style="padding:10px 14px; width:220px;">Nama Aset / Kelompok</th>
-                  <th style="padding:10px 14px;">Deskripsi / Contoh Item</th>
-                  <th style="padding:10px 14px; width:180px;">PIC Pengawas</th>
-                  <th style="padding:10px 14px; width:110px; text-align:center;">Aksi</th>
+                <tr style="background:#111827; border-bottom:1px solid #29364B; text-align:left;">
+                  <th style="padding:11px 14px; width:60px; color:#CBD5E1;">No</th>
+                  <th style="padding:11px 14px; width:145px; color:#CBD5E1;">Tipe Aset</th>
+                  <th style="padding:11px 14px; width:220px; color:#CBD5E1;">Nama Aset / Kelompok</th>
+                  <th style="padding:11px 14px; color:#CBD5E1;">Deskripsi / Contoh Item</th>
+                  <th style="padding:11px 14px; width:190px; color:#CBD5E1;">PIC Pengawas</th>
+                  <th style="padding:11px 14px; width:110px; text-align:center; color:#CBD5E1;">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 ${filtered.map((item, idx) => `
-                  <tr style="border-bottom:1px solid var(--border); background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:var(--text-1);">
-                    <td style="padding:10px 14px; font-weight:600; color:var(--text-3);">${item.no || idx + 1}</td>
-                    <td style="padding:10px 14px;">
+                  <tr style="border-bottom:1px solid #29364B; background:${idx % 2 === 0 ? '#172033' : '#111827'}; color:#F8FAFC;">
+                    <td style="padding:11px 14px; font-weight:600; color:#CBD5E1;">${item.no || idx + 1}</td>
+                    <td style="padding:11px 14px;">
                       <span class="badge" style="${getTypeBadgeStyle(item.type)}">${escapeHtml(item.type)}</span>
                     </td>
-                    <td style="padding:10px 14px; font-weight:700; color:var(--text-1);">${escapeHtml(item.item)}</td>
-                    <td style="padding:10px 14px; color:var(--text-2);">${escapeHtml(item.description)}</td>
-                    <td style="padding:10px 14px; font-weight:600; color:#93C5FD;">${escapeHtml(item.pic || '-')}</td>
-                    <td style="padding:10px 14px; text-align:center;">
+                    <td style="padding:11px 14px; font-weight:700; color:#FFFFFF;">${escapeHtml(item.item)}</td>
+                    <td style="padding:11px 14px; color:#CBD5E1; line-height:1.5;">${escapeHtml(item.description)}</td>
+                    <td style="padding:11px 14px; font-weight:700; color:#93C5FD;">${escapeHtml(item.pic || '-')}</td>
+                    <td style="padding:11px 14px; text-align:center;">
                     ${canEdit ? `
-                      <button class="btn btn-sm btn-ghost btn-edit-asset" data-no="${item.no}" title="Edit Aset" style="padding:4px 6px; cursor:pointer;">✏️</button>
+                      <button class="btn btn-sm btn-ghost btn-edit-asset" data-no="${item.no}" title="Edit Aset" style="padding:4px 7px; color:#93C5FD; cursor:pointer;">✏️</button>
                     ` : ''}
                     ${canDelete ? `
-                      <button class="btn btn-sm btn-ghost btn-delete-asset" data-no="${item.no}" title="Hapus Aset" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>
+                      <button class="btn btn-sm btn-ghost btn-delete-asset" data-no="${item.no}" title="Hapus Aset" style="padding:4px 7px; color:#FCA5A5; cursor:pointer;">🗑️</button>
                     ` : ''}
                     </td>
                   </tr>
@@ -941,9 +980,9 @@ export async function renderSOPSecurity(container) {
     }
 
     function getTypeBadgeStyle(type) {
-      if (type === 'Aset Tetap') return 'background:#EFF6FF; color:#1E40AF; font-weight:700; padding:3px 8px; border-radius:6px;';
-      if (type === 'Aset Bergerak') return 'background:#ECFDF5; color:#047857; font-weight:700; padding:3px 8px; border-radius:6px;';
-      return 'background:#FEF3C7; color:#92400E; font-weight:700; padding:3px 8px; border-radius:6px;';
+      if (type === 'Aset Tetap') return 'background:rgba(59,130,246,0.18); color:#93C5FD; border:1px solid rgba(96,165,250,0.38); font-weight:700; padding:3px 9px; border-radius:6px;';
+      if (type === 'Aset Bergerak') return 'background:rgba(16,185,129,0.18); color:#6EE7B7; border:1px solid rgba(52,211,153,0.38); font-weight:700; padding:3px 9px; border-radius:6px;';
+      return 'background:rgba(245,158,11,0.18); color:#FCD34D; border:1px solid rgba(251,191,36,0.38); font-weight:700; padding:3px 9px; border-radius:6px;';
     }
 
     renderAssetTable();
@@ -1031,89 +1070,89 @@ export async function renderSOPSecurity(container) {
     parent.innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:20px;">
         <!-- Card 1: Shift Kerja -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
-            <span style="font-size:1.5rem; background:#EFF6FF; padding:8px; border-radius:8px;">⏰</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:12px;">
+            <span style="font-size:1.5rem; background:rgba(59,130,246,0.16); border:1px solid rgba(96,165,250,0.35); padding:8px; border-radius:9px;">⏰</span>
             <div>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Sistem Jam Kerja & Shift (6.2)</h3>
-              <span style="font-size:0.8rem; color:var(--text-3);">Ketentuan 12 Jam Kerja dengan 2 Hari Libur per Minggu</span>
+              <h3 style="margin:0 0 2px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Sistem Jam Kerja & Shift (6.2)</h3>
+              <span style="font-size:0.84rem; color:#CBD5E1;">Ketentuan 12 Jam Kerja dengan 2 Hari Libur per Minggu</span>
             </div>
           </div>
-          <div style="font-size:0.88rem; color:var(--text-2); line-height:1.7;">
-            <div style="background:#111827; border-radius:8px; padding:10px 14px; margin-bottom:10px; border-left:3px solid #2563EB;">
-              <strong style="color:var(--text-1); display:block; margin-bottom:2px;">☀️ Shift 1 (Pagi - Siang):</strong>
-              <span>Pukul <strong>07.00 s/d 19.00 WIB</strong></span>
+          <div style="font-size:0.9rem; color:#F8FAFC; line-height:1.7;">
+            <div style="background:#0F172A; border:1px solid #29364B; border-radius:8px; padding:11px 14px; margin-bottom:10px; border-left:3.5px solid #60A5FA;">
+              <strong style="color:#FFFFFF; display:block; margin-bottom:2px;">☀️ Shift 1 (Pagi - Siang):</strong>
+              <span style="color:#E2E8F0;">Pukul <strong style="color:#FFFFFF;">07.00 s/d 19.00 WIB</strong></span>
             </div>
-            <div style="background:#111827; border-radius:8px; padding:10px 14px; margin-bottom:12px; border-left:3px solid #1E293B;">
-              <strong style="color:var(--text-1); display:block; margin-bottom:2px;">🌙 Shift 2 (Malam):</strong>
-              <span>Pukul <strong>19.00 s/d 07.00 WIB</strong></span>
+            <div style="background:#0F172A; border:1px solid #29364B; border-radius:8px; padding:11px 14px; margin-bottom:12px; border-left:3.5px solid #A78BFA;">
+              <strong style="color:#FFFFFF; display:block; margin-bottom:2px;">🌙 Shift 2 (Malam):</strong>
+              <span style="color:#E2E8F0;">Pukul <strong style="color:#FFFFFF;">19.00 s/d 07.00 WIB</strong></span>
             </div>
-            <p style="margin:0; font-size:0.82rem; color:var(--text-3);">
-              <strong>Ketentuan Off:</strong> Berlaku 2 hari off dalam setiap pekannya sesuai jadwal roster yang ditetapkan oleh Facility Care Supervisor / General Support.
+            <p style="margin:0; font-size:0.85rem; color:#CBD5E1; line-height:1.6;">
+              <strong style="color:#FFFFFF;">Ketentuan Off:</strong> Berlaku 2 hari off dalam setiap pekannya sesuai jadwal roster yang ditetapkan oleh Facility Care Supervisor / General Support.
             </p>
           </div>
         </div>
 
         <!-- Card 2: Jadwal Safety Patrol -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
-            <span style="font-size:1.5rem; background:#FEF3C7; padding:8px; border-radius:8px;">🚶‍♂️</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:12px;">
+            <span style="font-size:1.5rem; background:rgba(245,158,11,0.16); border:1px solid rgba(251,191,36,0.35); padding:8px; border-radius:9px;">🚶‍♂️</span>
             <div>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Jadwal Safety Patrol Harian (6.2 B)</h3>
-              <span style="font-size:0.8rem; color:var(--text-3);">Keliling Pengecekan Area & Form Checklist Digital</span>
+              <h3 style="margin:0 0 2px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Jadwal Safety Patrol Harian (6.2 B)</h3>
+              <span style="font-size:0.84rem; color:#CBD5E1;">Keliling Pengecekan Area & Form Checklist Digital</span>
             </div>
           </div>
-          <div style="display:flex; flex-direction:column; gap:8px; font-size:0.86rem;">
-            <div style="background:#111827; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-              <strong>Patroli 1 (Pagi):</strong>
-              <span class="badge" style="background:#E0F2FE; color:#0369A1; font-weight:700;">07.30 - 08.30 WIB</span>
+          <div style="display:flex; flex-direction:column; gap:9px; font-size:0.88rem;">
+            <div style="background:#0F172A; border:1px solid #29364B; padding:9px 13px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:#F8FAFC;">Patroli 1 (Pagi):</strong>
+              <span class="badge" style="background:rgba(56,189,248,0.16); color:#7DD3FC; border:1px solid rgba(56,189,248,0.35); font-weight:700; padding:3px 9px; border-radius:6px;">07.30 - 08.30 WIB</span>
             </div>
-            <div style="background:#111827; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-              <strong>Patroli 2 (Malam):</strong>
-              <span class="badge" style="background:#FEF3C7; color:#92400E; font-weight:700;">19.30 - 20.30 WIB</span>
+            <div style="background:#0F172A; border:1px solid #29364B; padding:9px 13px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:#F8FAFC;">Patroli 2 (Malam):</strong>
+              <span class="badge" style="background:rgba(245,158,11,0.16); color:#FCD34D; border:1px solid rgba(251,191,36,0.35); font-weight:700; padding:3px 9px; border-radius:6px;">19.30 - 20.30 WIB</span>
             </div>
-            <div style="background:#111827; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-              <strong>Patroli 3 (Dini Hari):</strong>
-              <span class="badge" style="background:#F3E8FF; color:#7E22CE; font-weight:700;">04.00 - 05.00 WIB</span>
+            <div style="background:#0F172A; border:1px solid #29364B; padding:9px 13px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:#F8FAFC;">Patroli 3 (Dini Hari):</strong>
+              <span class="badge" style="background:rgba(139,92,246,0.18); color:#DDD6FE; border:1px solid rgba(167,139,250,0.38); font-weight:700; padding:3px 9px; border-radius:6px;">04.00 - 05.00 WIB</span>
             </div>
-            <div style="font-size:0.8rem; color:var(--text-3); margin-top:4px;">
+            <div style="font-size:0.84rem; color:#CBD5E1; margin-top:4px; line-height:1.5;">
               * <em>Patroli 3 khusus berlaku untuk area Head Quarter atau lokasi yang memiliki lebih dari 1 personil security.</em>
             </div>
           </div>
         </div>
 
         <!-- Card 3: Penanganan Pelanggaran Disiplin -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
-            <span style="font-size:1.5rem; background:#ECFDF5; padding:8px; border-radius:8px;">⚠️</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:12px;">
+            <span style="font-size:1.5rem; background:rgba(16,185,129,0.16); border:1px solid rgba(52,211,153,0.35); padding:8px; border-radius:9px;">⚠️</span>
             <div>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Penanganan Pelanggaran Disiplin (6.4)</h3>
-              <span style="font-size:0.8rem; color:var(--text-3);">Pelanggaran SK Tata Tertib Perusahaan</span>
+              <h3 style="margin:0 0 2px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Penanganan Pelanggaran Disiplin (6.4)</h3>
+              <span style="font-size:0.84rem; color:#CBD5E1;">Pelanggaran SK Tata Tertib Perusahaan</span>
             </div>
           </div>
-          <ol style="margin:0 0 0 18px; padding:0; font-size:0.85rem; color:var(--text-2); line-height:1.7;">
-            <li>Petugas security membuat <strong>Berita Acara Umum (BA)</strong> kejadian secara lengkap.</li>
-            <li>Melaporkan kronologis tertulis kepada atasan (General Support Manager / FC Supervisor).</li>
+          <ol style="margin:0 0 0 18px; padding:0; font-size:0.88rem; color:#F8FAFC; line-height:1.75;">
+            <li style="margin-bottom:4px;">Petugas security membuat <strong style="color:#FFFFFF;">Berita Acara Umum (BA)</strong> kejadian secara lengkap.</li>
+            <li style="margin-bottom:4px;">Melaporkan kronologis tertulis kepada atasan (General Support Manager / FC Supervisor).</li>
             <li>Melaporkan dan meneruskan berkas kepada atasan langsung dari karyawan yang bersangkutan untuk penanganan HR/HC.</li>
           </ol>
         </div>
 
         <!-- Card 4: Penanganan Pelanggaran Kriminal -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:10px;">
-            <span style="font-size:1.5rem; background:#FEF2F2; padding:8px; border-radius:8px;">🚨</span>
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid #29364B; padding-bottom:12px;">
+            <span style="font-size:1.5rem; background:rgba(239,68,68,0.16); border:1px solid rgba(248,113,113,0.35); padding:8px; border-radius:9px;">🚨</span>
             <div>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#DC2626;">Penanganan Pelanggaran Kriminal (6.4)</h3>
-              <span style="font-size:0.8rem; color:var(--text-3);">Tindak Pidana, Pencurian, & Pelanggaran Hukum</span>
+              <h3 style="margin:0 0 2px; font-size:1.12rem; font-weight:700; color:#FCA5A5;">Penanganan Pelanggaran Kriminal (6.4)</h3>
+              <span style="font-size:0.84rem; color:#CBD5E1;">Tindak Pidana, Pencurian, & Pelanggaran Hukum</span>
             </div>
           </div>
-          <ol style="margin:0 0 0 18px; padding:0; font-size:0.84rem; color:var(--text-2); line-height:1.7;">
-            <li>Buat <strong>Berita Acara Umum</strong> secara resmi.</li>
-            <li>Periksa dan amankan rekaman bukti visual melalui <strong>CCTV</strong>.</li>
-            <li>Laporkan ke atasan dari karyawan terkait dengan rincian kronologis (bila pelaku karyawan).</li>
-            <li>Minta dan catat detail identitas <strong>KTP / ID Card</strong> dari pihak yang bersangkutan.</li>
-            <li>Amankan dan netralisir <strong>Tempat Kejadian Perkara (TKP)</strong> dari gangguan orang lain.</li>
-            <li>Laporkan ke <strong>Kepolisian terdekat</strong> untuk proses hukum tindak lanjut.</li>
+          <ol style="margin:0 0 0 18px; padding:0; font-size:0.88rem; color:#F8FAFC; line-height:1.75;">
+            <li style="margin-bottom:3px;">Buat <strong style="color:#FFFFFF;">Berita Acara Umum</strong> secara resmi.</li>
+            <li style="margin-bottom:3px;">Periksa dan amankan rekaman bukti visual melalui <strong style="color:#FFFFFF;">CCTV</strong>.</li>
+            <li style="margin-bottom:3px;">Laporkan ke atasan dari karyawan terkait dengan rincian kronologis (bila pelaku karyawan).</li>
+            <li style="margin-bottom:3px;">Minta dan catat detail identitas <strong style="color:#FFFFFF;">KTP / ID Card</strong> dari pihak yang bersangkutan.</li>
+            <li style="margin-bottom:3px;">Amankan dan netralisir <strong style="color:#FFFFFF;">Tempat Kejadian Perkara (TKP)</strong> dari gangguan orang lain.</li>
+            <li>Laporkan ke <strong style="color:#FFFFFF;">Kepolisian terdekat</strong> untuk proses hukum tindak lanjut.</li>
           </ol>
         </div>
       </div>
@@ -1127,66 +1166,66 @@ export async function renderSOPSecurity(container) {
     parent.innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
         <!-- Card: Google Form Safety Patrol -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
               <span style="font-size:2rem;">📑</span>
               <div>
-                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Form Safety Patrol Audy</h3>
-                <span class="badge" style="background:#E0F2FE; color:#0369A1; font-size:0.75rem; font-weight:700;">Google Forms Resmi</span>
+                <h3 style="margin:0 0 4px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Form Safety Patrol Audy</h3>
+                <span class="badge" style="background:rgba(56,189,248,0.16); color:#7DD3FC; border:1px solid rgba(56,189,248,0.35); font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:6px;">Google Forms Resmi</span>
               </div>
             </div>
-            <p style="font-size:0.85rem; color:var(--text-2); line-height:1.6; margin-bottom:16px;">
+            <p style="font-size:0.88rem; color:#CBD5E1; line-height:1.6; margin-bottom:16px;">
               Formulir digital inspeksi keamanan yang wajib diisi oleh tim security saat melakukan Safety Patrol rutin di klinik dan kantor pusat Audy Dental.
             </p>
           </div>
-          <a href="https://forms.gle/1EAvkqDJVdctXEGn7" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:600; padding:10px; border-radius:8px; background:#1E40AF; border-color:#1E40AF;">
+          <a href="https://forms.gle/1EAvkqDJVdctXEGn7" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:700; padding:10px; border-radius:8px; background:#2563EB; border-color:#3B82F6; color:#FFFFFF;">
             📋 Buka Form Safety Patrol ➔
           </a>
         </div>
 
         <!-- Card: Dasar Hukum & Ruang Lingkup Perusahaan -->
-        <div class="card" style="background:#172033; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="card" style="background:#172033; border:1px solid #29364B; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:flex; flex-direction:column; justify-content:space-between;">
           <div>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
               <span style="font-size:2rem;">⚖️</span>
               <div>
-                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-1);">Dasar Hukum & Ruang Lingkup</h3>
-                <span class="badge" style="background:#1B2940; color:var(--text-2); font-size:0.75rem; font-weight:700;">Legalitas</span>
+                <h3 style="margin:0 0 4px; font-size:1.12rem; font-weight:700; color:#FFFFFF;">Dasar Hukum & Ruang Lingkup</h3>
+                <span class="badge" style="background:#22314A; color:#E2E8F0; border:1px solid #334155; font-size:0.78rem; font-weight:700; padding:3px 9px; border-radius:6px;">Legalitas</span>
               </div>
             </div>
-            <p style="font-size:0.85rem; color:var(--text-2); line-height:1.6; margin-bottom:12px;">
+            <p style="font-size:0.88rem; color:#CBD5E1; line-height:1.6; margin-bottom:12px;">
               SOP ini diterapkan sebagai tata cara Pengelolaan Keamanan Aset Perusahaan di seluruh lokasi Audy Dental Klinik di bawah naungan:
             </p>
-            <ul style="margin:0 0 0 16px; padding:0; font-size:0.84rem; color:var(--text-2); line-height:1.6;">
-              <li><strong>PT. Audy Mandiri Indonesia</strong></li>
-              <li><strong>PT. Kastara Ananta</strong></li>
-              <li><strong>PT. Nara Adidaya</strong></li>
+            <ul style="margin:0 0 0 18px; padding:0; font-size:0.88rem; color:#F8FAFC; line-height:1.7;">
+              <li><strong style="color:#FFFFFF;">PT. Audy Mandiri Indonesia</strong></li>
+              <li><strong style="color:#FFFFFF;">PT. Kastara Ananta</strong></li>
+              <li><strong style="color:#FFFFFF;">PT. Nara Adidaya</strong></li>
             </ul>
           </div>
         </div>
       </div>
 
       <!-- Validasi & Pengesahan SOP -->
-      <div class="card" style="margin-top:20px; padding:20px; background:#172033; border:1px solid var(--border); border-radius:12px;">
-        <h3 style="margin:0 0 14px 0; font-size:1rem; font-weight:700; color:var(--text-1); display:flex; align-items:center; gap:8px;">
+      <div class="card" style="margin-top:20px; padding:20px; background:#172033; border:1px solid #29364B; border-radius:12px;">
+        <h3 style="margin:0 0 14px 0; font-size:1.05rem; font-weight:700; color:#FFFFFF; display:flex; align-items:center; gap:8px;">
           <span>📜</span> Validasi & Pengesahan Dokumen SOP Security
         </h3>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
-          <div style="border-left:3px solid #2563EB; padding-left:12px;">
-            <div style="font-size:0.75rem; color:var(--text-3); font-weight:700; text-transform:uppercase;">Disiapkan Oleh:</div>
-            <div style="font-size:0.95rem; font-weight:700; color:var(--text-1); margin-top:2px;">Berlin Ariansyah</div>
-            <div style="font-size:0.8rem; color:var(--text-2);">Facility Care Supervisor</div>
+          <div style="border-left:3.5px solid #60A5FA; padding-left:12px;">
+            <div style="font-size:0.78rem; color:#CBD5E1; font-weight:700; text-transform:uppercase;">Disiapkan Oleh:</div>
+            <div style="font-size:0.98rem; font-weight:700; color:#FFFFFF; margin-top:2px;">Berlin Ariansyah</div>
+            <div style="font-size:0.84rem; color:#CBD5E1;">Facility Care Supervisor</div>
           </div>
-          <div style="border-left:3px solid #059669; padding-left:12px;">
-            <div style="font-size:0.75rem; color:var(--text-3); font-weight:700; text-transform:uppercase;">Diketahui Oleh:</div>
-            <div style="font-size:0.95rem; font-weight:700; color:var(--text-1); margin-top:2px;">Catur Meiyogo</div>
-            <div style="font-size:0.8rem; color:var(--text-2);">General Support Manager</div>
+          <div style="border-left:3.5px solid #34D399; padding-left:12px;">
+            <div style="font-size:0.78rem; color:#CBD5E1; font-weight:700; text-transform:uppercase;">Diketahui Oleh:</div>
+            <div style="font-size:0.98rem; font-weight:700; color:#FFFFFF; margin-top:2px;">Catur Meiyogo</div>
+            <div style="font-size:0.84rem; color:#CBD5E1;">General Support Manager</div>
           </div>
-          <div style="border-left:3px solid #7C3AED; padding-left:12px;">
-            <div style="font-size:0.75rem; color:var(--text-3); font-weight:700; text-transform:uppercase;">Disetujui Oleh:</div>
-            <div style="font-size:0.95rem; font-weight:700; color:var(--text-1); margin-top:2px;">Drg. Yulita</div>
-            <div style="font-size:0.8rem; color:var(--text-2);">Chief Executive Officer</div>
+          <div style="border-left:3.5px solid #A78BFA; padding-left:12px;">
+            <div style="font-size:0.78rem; color:#CBD5E1; font-weight:700; text-transform:uppercase;">Disetujui Oleh:</div>
+            <div style="font-size:0.98rem; font-weight:700; color:#FFFFFF; margin-top:2px;">Drg. Yulita</div>
+            <div style="font-size:0.84rem; color:#CBD5E1;">Chief Executive Officer</div>
           </div>
         </div>
       </div>
