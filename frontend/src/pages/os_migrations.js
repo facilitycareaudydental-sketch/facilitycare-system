@@ -4,6 +4,7 @@ import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
 import { fetchExportRows } from '../utils/dataCache.js';
+import { sortYearMonthDesc } from '../utils/sorting.js';
 
 const MONTH_NAMES = {
   '2026-09': 'September 2026',
@@ -223,9 +224,9 @@ export async function renderOSMigrations(container) {
       return;
     }
 
-    // Group rows by Vendor, then by Target Month
+    // Group rows by Vendor, then by Target Month (newest first)
     const vendors = ['AEON', 'Triple S'];
-    const months = ['2026-09', '2026-10', '2026-11', '2026-12'];
+    const months = sortYearMonthDesc(Array.from(new Set(rows.map(r => r.target_month).filter(Boolean))));
 
     let html = '';
 
@@ -235,9 +236,9 @@ export async function renderOSMigrations(container) {
       if (vRows.length === 0) return;
 
       const vTotal = vRows.length;
-      const vThemeColor = v === 'AEON' ? '#1E40AF' : '#0F766E';
-      const vBgColor = v === 'AEON' ? '#EFF6FF' : '#F0FDFA';
-      const vBorderColor = v === 'AEON' ? '#BFDBFE' : '#99F6E4';
+      const vThemeColor = v === 'AEON' ? '#93C5FD' : '#5EEAD4';
+      const vBgColor = v === 'AEON' ? 'rgba(59, 130, 246, 0.14)' : 'rgba(20, 184, 166, 0.14)';
+      const vBorderColor = v === 'AEON' ? 'rgba(147, 197, 253, 0.3)' : 'rgba(94, 234, 212, 0.3)';
 
       const activeMonths = months.filter(m => vRows.some(r => r.target_month === m));
 

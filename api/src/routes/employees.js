@@ -1,6 +1,6 @@
 import { authenticate, hasPermission, maskViewerRows, maskViewerData } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, resolveSortOrder, HARD_MAX_PAGE_LIMIT } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy, HARD_MAX_PAGE_LIMIT } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import {
   buildAuditStatement,
@@ -16,9 +16,11 @@ import { checkUploadRateLimit } from '../utils/export.js';
 const OFFICIAL_DIVISIONS = Object.freeze(['FACILITY CARE', 'SECURITY']);
 
 const EMPLOYEE_SORT_MAP = Object.freeze({
+  join_date_desc: buildDateOrderBy('e.join_date', { direction: 'DESC', alias: 'e', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC', allowExcelSerial: true }),
+  join_date_asc: buildDateOrderBy('e.join_date', { direction: 'ASC', alias: 'e', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC', allowExcelSerial: true }),
   name_asc: 'e.full_name ASC, e.id ASC',
   name_desc: 'e.full_name DESC, e.id DESC',
-  newest: 'e.id DESC',
+  newest: buildTimestampOrderBy('e.created_at', { direction: 'DESC', alias: 'e', idDir: 'DESC' }),
 });
 
 export async function handleEmployees(request, env, origin) {
@@ -89,7 +91,7 @@ function buildEmployeesFilter(url, hasArchivedAt = true) {
   const branch_id = (url.searchParams.get('branch_id') || '').trim();
   const division = (url.searchParams.get('division') || '').trim();
   const status = (url.searchParams.get('status') || '').trim();
-  const sort = url.searchParams.get('sort') || 'name_asc';
+  const sort = url.searchParams.get('sort') || 'join_date_desc';
   const showArchived = url.searchParams.get('archived') === 'true';
 
   // Phase 5.66.10A.1 & Phase 3.1 Single Archive: Scope & Archival Filtering
@@ -117,7 +119,7 @@ function buildEmployeesFilter(url, hasArchivedAt = true) {
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
   const countJoin = search ? 'LEFT JOIN branches b ON e.branch_id = b.id' : '';
-  const orderBy = resolveSortOrder(sort, EMPLOYEE_SORT_MAP, 'name_asc');
+  const orderBy = resolveSortOrder(sort, EMPLOYEE_SORT_MAP, 'join_date_desc');
   return { where, values, countJoin, orderBy };
 }
 
@@ -266,7 +268,7 @@ async function getEmployee(id, env, origin, user = null) {
        WHERE c.employee_id = ? AND c.deleted_at IS NULL
          AND c.division IN ('FACILITY CARE', 'SECURITY')
          AND ${getManagementBranchSqlPredicate('b')}
-       ORDER BY c.start_date DESC`
+       ORDER BY ${buildDateOrderBy('c.start_date', { direction: 'DESC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })}`
     ).bind(id).all()
   ]);
   if (!row) return notFound(origin);

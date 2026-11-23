@@ -1,8 +1,10 @@
 import { error, ok, paginated, notFound, forbidden, unauthorized } from '../utils/response.js';
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { sanitizeAuditData } from '../utils/audit.js';
-import { getPagination, HARD_MAX_PAGE_LIMIT } from '../utils/pagination.js';
+import { getPagination, buildTimestampOrderBy, HARD_MAX_PAGE_LIMIT } from '../utils/pagination.js';
 import { getExportPagination } from '../utils/export.js';
+
+const AUDIT_ORDER_BY = buildTimestampOrderBy('created_at', { direction: 'DESC', idDir: 'DESC' });
 
 function sanitizeAuditRow(row) {
   if (!row) return null;
@@ -88,7 +90,7 @@ export async function handleAuditLogs(request, env, origin) {
     try {
       const [countResult, rows] = await Promise.all([
         env.DB.prepare(`SELECT COUNT(*) as total FROM audit_logs ${where}`).bind(...values).first(),
-        env.DB.prepare(`SELECT * FROM audit_logs ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`)
+        env.DB.prepare(`SELECT * FROM audit_logs ${where} ORDER BY ${AUDIT_ORDER_BY} LIMIT ? OFFSET ?`)
           .bind(...values, limit, offset).all()
       ]);
 

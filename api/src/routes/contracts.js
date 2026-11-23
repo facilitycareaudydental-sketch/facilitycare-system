@@ -1,6 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, resolveSortOrder } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination, checkUploadRateLimit } from '../utils/export.js';
 import { runSync } from '../utils/calendar.js';
 import { hasTableColumn } from '../utils/schemaCompat.js';
@@ -11,10 +11,12 @@ import { checkEntityNotArchived, canViewArchivedRecords } from '../utils/archive
 const OFFICIAL_DIVISIONS = Object.freeze(['FACILITY CARE', 'SECURITY']);
 
 const CONTRACT_SORT_MAP = Object.freeze({
-  end_date_asc: "CASE WHEN c.end_date IS NULL OR c.end_date = '' THEN 1 ELSE 0 END, c.end_date ASC, c.id ASC",
-  end_date_desc: "CASE WHEN c.end_date IS NULL OR c.end_date = '' THEN 1 ELSE 0 END, c.end_date DESC, c.id DESC",
+  start_date_desc: buildDateOrderBy('c.start_date', { direction: 'DESC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  start_date_asc: buildDateOrderBy('c.start_date', { direction: 'ASC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  end_date_desc: buildDateOrderBy('c.end_date', { direction: 'DESC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  end_date_asc: buildDateOrderBy('c.end_date', { direction: 'ASC', alias: 'c', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
   name_asc: 'e.full_name ASC, c.id ASC',
-  newest: 'c.id DESC',
+  newest: buildTimestampOrderBy('c.created_at', { direction: 'DESC', alias: 'c', idDir: 'DESC' }),
 });
 
 export async function handleContracts(request, env, origin) {
@@ -64,7 +66,7 @@ function buildContractsFilter(url, hasEmpNameCol = true, hasArchivedAt = false) 
   const status = (url.searchParams.get('status') || '').trim();
   const expiring_days = (url.searchParams.get('expiring_days') || '').trim();
   const month_expiry = (url.searchParams.get('month_expiry') || '').trim();
-  const sort = url.searchParams.get('sort') || 'end_date_asc';
+  const sort = url.searchParams.get('sort') || 'start_date_desc';
   const showArchived = url.searchParams.get('archived') === 'true';
 
   // Phase 5.66.10A.1 & Single Archive: Management Contract Scope Enforcement
@@ -124,7 +126,7 @@ function buildContractsFilter(url, hasEmpNameCol = true, hasArchivedAt = false) 
   const sortMap = hasEmpNameCol
     ? { ...CONTRACT_SORT_MAP, name_asc: 'COALESCE(e.full_name, c.employee_name) ASC, c.id ASC' }
     : CONTRACT_SORT_MAP;
-  const orderBy = resolveSortOrder(sort, sortMap, 'end_date_asc');
+  const orderBy = resolveSortOrder(sort, sortMap, 'start_date_desc');
   return { where, values, countJoin, orderBy };
 }
 

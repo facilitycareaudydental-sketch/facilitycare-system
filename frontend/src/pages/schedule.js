@@ -82,7 +82,7 @@ export async function renderSchedule(container, params) {
     itemLabel: 'Jadwal',
     enableMobileFilterSheet: true,
     defaultFilters: defFilters,
-    defaultSort: 'opening_date_desc',
+    defaultSort: (params && params.get('sort')) || new URLSearchParams(window.location.search).get('sort') || 'opening_date_desc',
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'activity_type', label: 'Kegiatan', render: v => activityTypeBadge(v) },

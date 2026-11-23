@@ -1,15 +1,15 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, resolveSortOrder } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildAuditStatement, buildCreateAuditStatement, executeAtomicDelete } from '../utils/audit.js';
 import { hasTableColumn } from '../utils/schemaCompat.js';
 import { checkEntityNotArchived } from '../utils/archive.js';
 
 const OVERTIME_SORT_MAP = Object.freeze({
-  date_desc: 'o.date DESC, o.id DESC',
-  date_asc: 'o.date ASC, o.id ASC',
-  hours_desc: 'COALESCE(o.total_hours, 0) DESC, o.date DESC, o.id DESC',
+  date_desc: buildDateOrderBy('o.date', { direction: 'DESC', alias: 'o', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_asc: buildDateOrderBy('o.date', { direction: 'ASC', alias: 'o', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  hours_desc: `COALESCE(o.total_hours, 0) DESC, ${buildDateOrderBy('o.date', { direction: 'DESC', alias: 'o', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })}`,
 });
 
 /**

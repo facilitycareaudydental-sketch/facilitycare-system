@@ -124,7 +124,7 @@ export async function renderContracts(container, params) {
   }
 
   function getActiveFilters() {
-    const filters = { sort: 'end_date_asc' };
+    const filters = { sort: 'start_date_desc' };
     if (searchQuery.trim()) filters.search = searchQuery.trim();
     if (selectedBranch && selectedBranch !== 'all') filters.branch_id = selectedBranch;
     if (selectedDivision && selectedDivision !== 'all') filters.division = selectedDivision;

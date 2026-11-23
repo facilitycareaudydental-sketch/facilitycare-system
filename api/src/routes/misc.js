@@ -4,7 +4,12 @@
 // allowlist with size/shape validation and credential-field scanning.
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildTimestampOrderBy } from '../utils/pagination.js';
+
+const MISC_TABLE_SORT_MAP = Object.freeze({
+  created_desc: buildTimestampOrderBy('created_at', { direction: 'DESC', idDir: 'DESC' }),
+  name_asc: 'name ASC, id ASC',
+});
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { FORBIDDEN_PAYLOAD_PATTERNS } from '../utils/sync_mapper.js';
 import {
@@ -97,6 +102,8 @@ async function listTableRows(request, env, origin, table, { isExport = false } =
     return error(`Search/filter parameters exceed maximum length of ${MAX_SEARCH_LENGTH}`, 400, origin);
   }
   const all = url.searchParams.get('all');
+  const sort = url.searchParams.get('sort') || 'created_desc';
+  const orderBy = resolveSortOrder(sort, MISC_TABLE_SORT_MAP, 'created_desc');
   const includeStats = !isExport && url.searchParams.get('include_stats') === '1';
   const hasDeletedAt = await hasTableColumn(env.DB, table, 'deleted_at');
   const baseConditions = hasDeletedAt ? ['deleted_at IS NULL'] : [];
@@ -106,7 +113,7 @@ async function listTableRows(request, env, origin, table, { isExport = false } =
 
   if (!isExport && all === '1') {
     const whereAll = baseCondition ? `WHERE ${baseCondition}` : '';
-    const sql = `SELECT * FROM ${table} ${whereAll} ORDER BY name ASC, id ASC`;
+    const sql = `SELECT * FROM ${table} ${whereAll} ORDER BY ${orderBy}`;
     const rows = await env.DB.prepare(sql).all();
     return ok(rows.results, 200, origin);
   }
@@ -129,7 +136,7 @@ async function listTableRows(request, env, origin, table, { isExport = false } =
 
   const queries = [
     env.DB.prepare(`SELECT COUNT(*) as total FROM ${table} ${where}`).bind(...values).first(),
-    env.DB.prepare(`SELECT * FROM ${table} ${where} ORDER BY name ASC, id ASC LIMIT ? OFFSET ?`).bind(...values, limit, offset).all(),
+    env.DB.prepare(`SELECT * FROM ${table} ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`).bind(...values, limit, offset).all(),
   ];
 
   if (includeStats) {

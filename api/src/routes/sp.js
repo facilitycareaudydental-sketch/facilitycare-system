@@ -1,19 +1,23 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, resolveSortOrder } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildAuditStatement, buildCreateAuditStatement, executeAtomicImportBatch } from '../utils/audit.js';
 import { hasTableColumn } from '../utils/schemaCompat.js';
 import { checkEntityNotArchived } from '../utils/archive.js';
 
-const SP_SORT_MAP = Object.freeze({
-  date_desc: 's.tanggal DESC, s.id DESC',
-  date_asc: 's.tanggal ASC, s.id ASC',
-  name_asc: 's.employee_name ASC, s.id ASC',
-  expiry_asc: "CASE WHEN s.akhir_sp IS NULL OR s.akhir_sp = '' THEN 1 ELSE 0 END, s.akhir_sp ASC, s.id ASC",
-});
+async function getSpOrderBy(db, rawSort) {
+  const includeUpdatedAt = await hasTableColumn(db, 'sp_data', 'updated_at');
+  const sortMap = {
+    date_desc: buildDateOrderBy('s.tanggal', { direction: 'DESC', alias: 's', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+    date_asc: buildDateOrderBy('s.tanggal', { direction: 'ASC', alias: 's', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+    name_asc: 's.employee_name ASC, s.id ASC',
+    expiry_asc: buildDateOrderBy('s.akhir_sp', { direction: 'ASC', alias: 's', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+  };
+  return resolveSortOrder(rawSort, sortMap, 'date_desc');
+}
 
-function buildSPFilter(url) {
+async function buildSPFilter(db, url) {
   const search = (url.searchParams.get('search') || '').trim();
   const branch_id = (url.searchParams.get('branch_id') || '').trim();
   const division = (url.searchParams.get('division') || '').trim();
@@ -47,7 +51,7 @@ function buildSPFilter(url) {
 
   const where = 'WHERE ' + conditions.join(' AND ');
   const countJoin = search ? 'LEFT JOIN branches b ON s.branch_id = b.id' : '';
-  const orderBy = resolveSortOrder(sort, SP_SORT_MAP, 'date_desc');
+  const orderBy = await getSpOrderBy(db, sort);
   return { where, values, countJoin, orderBy };
 }
 
@@ -60,7 +64,7 @@ export async function handleSP(request, env, origin) {
     if (response) return response;
     try {
       const { page, limit, offset } = getExportPagination(request.url);
-      const { where, values, countJoin, orderBy } = buildSPFilter(url);
+      const { where, values, countJoin, orderBy } = await buildSPFilter(env.DB, url);
       const [countRow, { results }] = await Promise.all([
         env.DB.prepare(`SELECT COUNT(*) as total FROM sp_data s ${countJoin} ${where}`).bind(...values).first(),
         env.DB.prepare(`
@@ -89,7 +93,7 @@ export async function handleSP(request, env, origin) {
   if (request.method === 'GET' && (path === '' || path === '/')) {
     try {
       const { page, limit, offset } = getPagination(request.url);
-      const { where, values, countJoin, orderBy } = buildSPFilter(url);
+      const { where, values, countJoin, orderBy } = await buildSPFilter(env.DB, url);
       const includeStats = url.searchParams.get('include_stats') === '1';
 
       const queries = [

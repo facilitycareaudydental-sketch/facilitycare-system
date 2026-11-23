@@ -1,6 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, resolveSortOrder } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildOutboxQuery, buildConditionalOutboxQuery, buildOutboxFromLastInsertQuery } from '../utils/sync_engine.js';
 import { mapDBToPayload } from '../utils/sync_mapper.js';
@@ -8,9 +8,9 @@ import { buildAuditStatement, buildCreateAuditStatement, sanitizeAuditData } fro
 import { executeJournaledImport, extractImportRequestMeta } from '../utils/import_journal.js';
 
 const ISSUE_SORT_MAP = Object.freeze({
-  date_desc: 'i.report_date DESC, i.id DESC',
-  date_asc: 'i.report_date ASC, i.id ASC',
-  newest: 'i.id DESC',
+  date_desc: buildDateOrderBy('i.report_date', { direction: 'DESC', alias: 'i', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_asc: buildDateOrderBy('i.report_date', { direction: 'ASC', alias: 'i', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  newest: buildTimestampOrderBy('i.created_at', { direction: 'DESC', alias: 'i', idDir: 'DESC' }),
 });
 
 export async function handleIssues(request, env, origin) {

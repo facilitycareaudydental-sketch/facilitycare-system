@@ -1,6 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
 import { getExportPagination } from '../utils/export.js';
 import {
   buildAuditStatement,
@@ -74,9 +74,15 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
   const month = url.searchParams.get('month') || '';
   const pic = url.searchParams.get('pic') || '';
   const activity_type = url.searchParams.get('activity_type') || '';
+  const sort = url.searchParams.get('sort') || 'date_desc';
 
   const dateField = table === 'basecamp_reports' ? 'info_date' : 
                     table === 'inspection_reports' ? 'inspection_date' : 'activity_date';
+  const sortMap = {
+    date_desc: buildDateOrderBy(`t.${dateField}`, { direction: 'DESC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+    date_asc: buildDateOrderBy(`t.${dateField}`, { direction: 'ASC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  };
+  const orderBy = resolveSortOrder(sort, sortMap, 'date_desc');
 
   let conditions = ['t.deleted_at IS NULL', ...extraConditions];
   let values = [];
@@ -114,7 +120,7 @@ async function crudList(request, env, origin, table, joinClause = '', extraCondi
     env.DB.prepare(
       `SELECT t.*, b.full_name as branch_name FROM ${table} t
        LEFT JOIN branches b ON t.branch_id = b.id
-       ${where} ORDER BY t.${dateField} DESC, t.id DESC LIMIT ? OFFSET ?`
+       ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
     ).bind(...values, limit, offset).all()
   ]);
 
@@ -655,11 +661,17 @@ async function listBasecamp(request, env, origin, { useExport = false } = {}) {
   if (month) { conditions.push("strftime('%m', t.info_date) = ?"); values.push(month); }
   if (year) { conditions.push("strftime('%Y', t.info_date) = ?"); values.push(year); }
   if (search) { conditions.push('(t.problem LIKE ? OR t.pic LIKE ? OR b.full_name LIKE ?)'); values.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+  const sort = url.searchParams.get('sort') || 'date_desc';
+  const basecampSortMap = {
+    date_desc: buildDateOrderBy('t.info_date', { direction: 'DESC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+    date_asc: buildDateOrderBy('t.info_date', { direction: 'ASC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  };
+  const orderBy = resolveSortOrder(sort, basecampSortMap, 'date_desc');
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
   const countJoin = search ? 'LEFT JOIN branches b ON t.branch_id = b.id' : '';
   const [countResult, rows] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as total FROM basecamp_reports t ${countJoin} ${where}`).bind(...values).first(),
-    env.DB.prepare(`SELECT t.*, b.full_name as branch_name FROM basecamp_reports t LEFT JOIN branches b ON t.branch_id = b.id ${where} ORDER BY t.info_date DESC, t.id DESC LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
+    env.DB.prepare(`SELECT t.*, b.full_name as branch_name FROM basecamp_reports t LEFT JOIN branches b ON t.branch_id = b.id ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`).bind(...values, limit, offset).all()
   ]);
   return paginated(rows.results || [], countResult?.total || 0, page, limit, origin, env?.ENVIRONMENT);
 }

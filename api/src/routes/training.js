@@ -1,13 +1,13 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, resolveSortOrder } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildAuditStatement, buildCreateAuditStatement, executeAtomicImportBatch } from '../utils/audit.js';
 
 const TRAINING_SORT_MAP = Object.freeze({
-  date_desc: 't.training_date DESC, t.id ASC',
-  date_asc: 't.training_date ASC, t.id ASC',
-  score_desc: 'COALESCE(t.score, -1) DESC, t.training_date DESC, t.id ASC',
+  date_desc: buildDateOrderBy('t.training_date', { direction: 'DESC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_asc: buildDateOrderBy('t.training_date', { direction: 'ASC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  score_desc: `COALESCE(t.score, -1) DESC, ${buildDateOrderBy('t.training_date', { direction: 'DESC', alias: 't', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' })}`,
 });
 
 export async function handleTraining(request, env, origin) {

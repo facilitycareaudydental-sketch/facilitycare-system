@@ -13,7 +13,7 @@
  * - Zero breaking changes to backend, database, or RBAC
  * ─────────────────────────────────────────────────────────────────────────────
  */
-import { apiFetch } from '../config.js';
+import { apiFetch, getUser } from '../config.js';
 import { escapeHtml } from '../utils/sanitize.js';
 
 // ── Chart registry ─────────────────────────────────────────────────────────
@@ -147,7 +147,8 @@ async function safeFetch(path, fallback, timeoutMs = 8000) {
 }
 
 // ── Force remove all skeletons (safety net) ────────────────────────────────
-function forceRemoveSkeletons() {
+function forceRemoveSkeletons(container) {
+  if (!container || !container.isConnected) return;
   ['skel-donut', 'skel-trend', 'skel-jadwal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -180,6 +181,18 @@ export async function renderDashboard(container) {
   if (container._dashRefresh) clearInterval(container._dashRefresh);
   if (container._skelTimeout) clearTimeout(container._skelTimeout);
 
+  let disposed = false;
+  const isAlive = () => !disposed && container && container.isConnected && Boolean(container.querySelector('#dash-root'));
+  const cleanup = () => {
+    disposed = true;
+    if (container._skelTimeout) { clearTimeout(container._skelTimeout); container._skelTimeout = null; }
+    if (container._dashRefresh) { clearInterval(container._dashRefresh); container._dashRefresh = null; }
+    destroyAllCharts();
+  };
+  window.addEventListener('hashchange', cleanup, { once: true });
+
+  const curUser = getUser();
+  const isSuperadmin = String(curUser?.role || '').toLowerCase() === 'superadmin';
   const now = new Date();
   const curDay = String(now.getDate()).padStart(2, '0');
   const curMonth = now.toLocaleDateString('id-ID', { month: 'short' });
@@ -254,7 +267,7 @@ export async function renderDashboard(container) {
           </div>
           <div style="text-align:center; font-size:0.72rem; color:var(--text-3); display:flex; align-items:center; justify-content:center; gap:6px;">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
-            <span id="donut-period-text">Periode: 22 Juni – 22 Juli 2026</span>
+            <span id="donut-period-text">Distribusi Kategori Permasalahan</span>
           </div>
         </div>
 
@@ -280,7 +293,7 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Aktivitas Terbaru</div>
-            <a href="#/audit-logs" class="chart-link">Lihat Semua &rarr;</a>
+            ${isSuperadmin ? '<a href="#/audit-logs" class="chart-link">Lihat Semua &rarr;</a>' : ''}
           </div>
           <div id="table-recent-activity" class="dash-table-wrap" style="height:230px;overflow-y:auto">
             ${skelTable(4)}
@@ -303,7 +316,7 @@ export async function renderDashboard(container) {
   `;
 
   document.getElementById('btn-dash-refresh')
-    ?.addEventListener('click', () => fetchAll(container));
+    ?.addEventListener('click', () => { if (isAlive()) fetchAll(container, isAlive); });
 
   document.getElementById('filter-jadwal-year')?.addEventListener('change', async (e) => {
     const year = e.target.value;
@@ -313,6 +326,7 @@ export async function renderDashboard(container) {
     if (cvs) cvs.style.display = 'none';
 
     const jadwalData = await safeFetch(`/api/dashboard/schedule-chart?year=${year}`, {}, 8000);
+    if (!isAlive()) return;
     try {
       renderScheduleChart(jadwalData);
     } catch(err) {
@@ -322,14 +336,15 @@ export async function renderDashboard(container) {
   });
 
   // Safety net: force remove skeletons after 5 seconds
-  container._skelTimeout = setTimeout(() => forceRemoveSkeletons(), 5000);
+  container._skelTimeout = setTimeout(() => forceRemoveSkeletons(container), 5000);
 
   // Load live data
-  await fetchAll(container);
+  await fetchAll(container, isAlive);
+  return cleanup;
 }
 
 // ── Parallel Data Fetching ─────────────────────────────────────────────────
-async function fetchAll(container) {
+async function fetchAll(container, isAlive = () => container && container.isConnected) {
   if (container && container._skelTimeout) {
     clearTimeout(container._skelTimeout);
     container._skelTimeout = null;
@@ -350,6 +365,7 @@ async function fetchAll(container) {
       safeFetch('/api/dashboard/activity-log',       [], 8000),
     ]);
 
+  if (!isAlive()) return;
   window.dashboardAggregates = aggregatesData || {};
 
   // Render each section independently
@@ -389,40 +405,40 @@ function renderKPI(kpi) {
     {
       iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
       label: 'Karyawan Aktif',
-      val: kpi.employees?.current ?? 122,
-      delta: formatDelta(kpi.employees?.current, kpi.employees?.prev, '&uarr; +2 (1,7%)'),
+      val: kpi.employees?.current ?? 0,
+      delta: formatDelta(kpi.employees?.current, kpi.employees?.prev),
       color: 'kpi-purple',
       href: '#/employees?dash_filter=active',
     },
     {
       iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
       label: 'Kontrak Aktif',
-      val: kpi.contracts?.current ?? 121,
-      delta: formatDelta(kpi.contracts?.current, kpi.contracts?.prev, '&uarr; +1 (0,8%)'),
+      val: kpi.contracts?.current ?? 0,
+      delta: formatDelta(kpi.contracts?.current, kpi.contracts?.prev),
       color: 'kpi-teal',
       href: '#/contracts?dash_filter=active',
     },
     {
       iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2 9h20L19 3H5L2 9z"/><path d="M4 9v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="M10 22V12h4v10"/></svg>',
       label: 'Cabang Operasional',
-      val: kpi.branches?.current ?? 72,
-      delta: '<span class="kpi-trend neutral">&ndash; 0 (0%)</span>',
+      val: kpi.branches?.current ?? 0,
+      delta: '<span class="kpi-trend neutral">&ndash; Area aktif</span>',
       color: 'kpi-amber',
       href: '#/branches',
     },
     {
       iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
       label: 'Jadwal Kegiatan',
-      val: kpi.schedule?.current ?? 232,
-      delta: '<span class="kpi-trend up">&uarr; +18 (8,4%)</span>',
+      val: kpi.schedule?.current ?? 0,
+      delta: '<span class="kpi-trend neutral">&ndash; Total jadwal</span>',
       color: 'kpi-blue',
       href: '#/timeline',
     },
     {
       iconSvg: '<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
       label: 'Permasalahan Open',
-      val: kpi.issues?.current ?? 60,
-      delta: formatDelta(kpi.issues?.current, kpi.issues?.prev, '&darr; -5 (-7,7%)'),
+      val: kpi.issues?.current ?? 0,
+      delta: formatDelta(kpi.issues?.current, kpi.issues?.prev),
       color: 'kpi-red',
       href: '#/issues?dash_filter=open',
     },
@@ -677,12 +693,18 @@ function renderRecentActivity(rows) {
       </thead>
       <tbody>
         ${items.map(r => {
-          const timeStr = r.created_at
-            ? new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':')
-            : '21:02';
+          const parsedIso = r.created_at
+            ? (String(r.created_at).includes(' ') && !String(r.created_at).includes('T')
+                ? `${String(r.created_at).replace(' ', 'T')}Z`
+                : String(r.created_at))
+            : null;
+          const dtObj = parsedIso ? new Date(parsedIso) : null;
+          const timeStr = dtObj && !isNaN(dtObj.getTime())
+            ? dtObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace(/\./g, ':')
+            : '—';
           const cfg = typeConfig[r.type] || { icon: '📌', bg: '#3B82F6', text: '#fff', module: 'Operasional', modBg: 'rgba(59,130,246,0.18)', modCol: '#60A5FA' };
-          const userInitial = (r.user_name || r.branch || 'B')[0].toUpperCase();
-          const userName = r.user_name || (r.branch ? `Area ${r.branch}` : 'Berlin Ariansyah');
+          const userName = r.user_name || (r.branch ? `Area ${r.branch}` : 'Sistem FCMS');
+          const userInitial = (userName || 'F')[0].toUpperCase();
           return `
             <tr>
               <td class="act-time">${timeStr}</td>
@@ -731,8 +753,8 @@ function renderUpcomingSchedule(upcoming, calendar) {
 
   wrap.innerHTML = items.map(ev => {
     const dtStr = ev.target_date || ev.event_date || '';
-    let dayName = 'Sen';
-    let dateNum = '23 Nov';
+    let dayName = '—';
+    let dateNum = '—';
     if (dtStr) {
       try {
         const d = new Date(dtStr);

@@ -1437,12 +1437,12 @@ strong { font-weight: 600; }
   font-size: 0.7rem;
   font-weight: 700;
 }
-.badge-success { background: var(--success-light); color: var(--success); }
-.badge-warning { background: var(--warning-light); color: #B45309; }
-.badge-danger  { background: var(--danger-light);  color: #B91C1C; }
-.badge-info    { background: var(--primary-light); color: var(--primary); }
-.badge-secondary { background: var(--gray-100); color: var(--gray-600); }
-.badge-purple  { background: #F5F3FF; color: var(--purple); }
+.badge-success { background: var(--success-light); color: #34D399; }
+.badge-warning { background: var(--warning-light); color: #FBBF24; }
+.badge-danger  { background: var(--danger-light);  color: #F87171; }
+.badge-info    { background: var(--primary-light); color: #60A5FA; }
+.badge-secondary { background: rgba(148, 163, 184, 0.14); color: var(--text-2); }
+.badge-purple  { background: var(--purple-light); color: #C4B5FD; }
 
 /* ── Card ───────────────────────────────────────────────────── */
 .card {

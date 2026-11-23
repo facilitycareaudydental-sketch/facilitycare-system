@@ -1,18 +1,22 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, resolveSortOrder } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildAuditStatement, buildCreateAuditStatement, executeAtomicImportBatch } from '../utils/audit.js';
 import { hasTableColumn } from '../utils/schemaCompat.js';
 import { checkEntityNotArchived } from '../utils/archive.js';
 
-const MUTASI_SORT_MAP = Object.freeze({
-  date_desc: 'm.tanggal DESC, m.id DESC',
-  date_asc: 'm.tanggal ASC, m.id ASC',
-  name_asc: 'm.employee_name ASC, m.id ASC',
-});
+async function getMutasiOrderBy(db, rawSort) {
+  const includeUpdatedAt = await hasTableColumn(db, 'mutasi_data', 'updated_at');
+  const sortMap = {
+    date_desc: buildDateOrderBy('m.tanggal', { direction: 'DESC', alias: 'm', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+    date_asc: buildDateOrderBy('m.tanggal', { direction: 'ASC', alias: 'm', includeUpdatedAt, includeCreatedAt: true, idDir: 'DESC' }),
+    name_asc: 'm.employee_name ASC, m.id ASC',
+  };
+  return resolveSortOrder(rawSort, sortMap, 'date_desc');
+}
 
-function buildMutasiFilter(url) {
+async function buildMutasiFilter(db, url) {
   const search = (url.searchParams.get('search') || '').trim();
   const from_branch_id = (url.searchParams.get('from_branch_id') || '').trim();
   const to_branch_id = (url.searchParams.get('to_branch_id') || '').trim();
@@ -33,7 +37,7 @@ function buildMutasiFilter(url) {
   const countJoin = search
     ? 'LEFT JOIN branches b1 ON m.from_branch_id = b1.id LEFT JOIN branches b2 ON m.to_branch_id = b2.id'
     : '';
-  const orderBy = resolveSortOrder(sort, MUTASI_SORT_MAP, 'date_desc');
+  const orderBy = await getMutasiOrderBy(db, sort);
   return { where, values, countJoin, orderBy };
 }
 
@@ -46,7 +50,7 @@ export async function handleMutasi(request, env, origin) {
     if (response) return response;
     try {
       const { page, limit, offset } = getExportPagination(request.url);
-      const { where, values, countJoin, orderBy } = buildMutasiFilter(url);
+      const { where, values, countJoin, orderBy } = await buildMutasiFilter(env.DB, url);
       const [countRow, { results }] = await Promise.all([
         env.DB.prepare(`SELECT COUNT(*) as total FROM mutasi_data m ${countJoin} ${where}`).bind(...values).first(),
         env.DB.prepare(`
@@ -76,7 +80,7 @@ export async function handleMutasi(request, env, origin) {
   if (request.method === 'GET' && (path === '' || path === '/')) {
     try {
       const { page, limit, offset } = getPagination(request.url);
-      const { where, values, countJoin, orderBy } = buildMutasiFilter(url);
+      const { where, values, countJoin, orderBy } = await buildMutasiFilter(env.DB, url);
       const includeStats = url.searchParams.get('include_stats') === '1';
 
       const queries = [

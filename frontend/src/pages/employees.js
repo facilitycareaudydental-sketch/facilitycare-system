@@ -77,7 +77,7 @@ export async function renderEmployees(container, params) {
   }
 
   function getActiveFilters() {
-    const filters = { sort: 'name_asc' };
+    const filters = { sort: 'join_date_desc' };
     if (searchQuery.trim()) filters.search = searchQuery.trim();
     if (selectedBranch && selectedBranch !== 'all') filters.branch_id = selectedBranch;
     if (selectedDivision && selectedDivision !== 'all') filters.division = selectedDivision;

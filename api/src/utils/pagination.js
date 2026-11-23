@@ -1,6 +1,7 @@
-// Pagination + query helpers
+// Pagination, query, and standardized sorting helpers
+import { hasTableColumn } from './schemaCompat.js';
 
-// Pagination + query helpers
+export { hasTableColumn };
 
 export const DEFAULT_PAGE_LIMIT = 20;
 // Hard upper bound for paginated API responses enforced across all endpoints (E10).
@@ -34,6 +35,101 @@ export function resolveSortOrder(rawSort, sortMap, defaultKey) {
     return sortMap[key];
   }
   return sortMap[defaultKey];
+}
+
+/**
+ * Builds a SQLite CASE expression normalizing heterogeneous date strings into
+ * canonical ISO 'YYYY-MM-DD' text, returning NULL for empty/dash/invalid dates.
+ */
+export function buildNormalizedDateExpr(colExpr, { allowYearMonth = false, allowExcelSerial = true } = {}) {
+  const t = `TRIM(${colExpr})`;
+  const isoSub = `substr(${t}, 1, 10)`;
+  const dmyIso = `(substr(${t}, 7, 4) || '-' || substr(${t}, 4, 2) || '-' || substr(${t}, 1, 2))`;
+  const parts = [
+    `WHEN ${colExpr} IS NULL OR ${t} = '' OR ${t} = '-' THEN NULL`,
+    `WHEN ${t} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*' AND date(${isoSub}) = ${isoSub} THEN ${isoSub}`,
+    `WHEN ${t} GLOB '[0-9][0-9][-/][0-9][0-9][-/][0-9][0-9][0-9][0-9]' AND date(${dmyIso}) = ${dmyIso} THEN ${dmyIso}`,
+  ];
+  if (allowExcelSerial) {
+    parts.push(
+      `WHEN ${t} GLOB '[0-9][0-9][0-9][0-9][0-9]' AND CAST(${t} AS INTEGER) >= 10000 THEN date('1899-12-30', '+' || CAST(${t} AS INTEGER) || ' days')`
+    );
+  }
+  if (allowYearMonth) {
+    parts.push(
+      `WHEN ${t} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]' AND date(${t} || '-01') = (${t} || '-01') THEN (${t} || '-01')`
+    );
+  }
+  return `CASE ${parts.join(' ')} ELSE NULL END`;
+}
+
+/**
+ * Builds a SQLite expression normalizing ISO/SQLite timestamps into
+ * 'YYYY-MM-DD HH:MM:SS.SSS' for accurate chronological sorting across 'T' and space formats.
+ */
+export function buildNormalizedTimestampExpr(colExpr) {
+  const t = `TRIM(${colExpr})`;
+  const dateFallback = buildNormalizedDateExpr(colExpr, { allowYearMonth: false, allowExcelSerial: false });
+  return `CASE WHEN ${colExpr} IS NULL OR ${t} = '' OR ${t} = '-' THEN NULL ELSE COALESCE(strftime('%Y-%m-%d %H:%M:%f', ${t}), datetime(${t}), (${dateFallback})) END`;
+}
+
+/**
+ * Standard FCMS tie-breaker: updated_at DESC (when available), created_at DESC, id DESC.
+ */
+export function buildTieBreaker({
+  alias = '',
+  includeUpdatedAt = true,
+  includeCreatedAt = true,
+  idDir = 'DESC',
+} = {}) {
+  const prefix = alias ? `${alias}.` : '';
+  const dir = String(idDir).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const clauses = [];
+  if (includeUpdatedAt) {
+    const updExpr = buildNormalizedTimestampExpr(`${prefix}updated_at`);
+    clauses.push(`CASE WHEN (${updExpr}) IS NULL THEN 1 ELSE 0 END ASC`, `(${updExpr}) DESC`);
+  }
+  if (includeCreatedAt) {
+    const crExpr = buildNormalizedTimestampExpr(`${prefix}created_at`);
+    clauses.push(`CASE WHEN (${crExpr}) IS NULL THEN 1 ELSE 0 END ASC`, `(${crExpr}) DESC`);
+  }
+  clauses.push(`${prefix}id ${dir}`);
+  return clauses.join(', ');
+}
+
+/**
+ * Builds a canonical SQL ORDER BY clause expression for a date column.
+ * Empty/NULL/dash/invalid dates always sort LAST regardless of ASC or DESC direction.
+ */
+export function buildDateOrderBy(colExpr, {
+  direction = 'DESC',
+  alias = '',
+  includeUpdatedAt = true,
+  includeCreatedAt = true,
+  idDir = 'DESC',
+  allowYearMonth = false,
+  allowExcelSerial = true,
+} = {}) {
+  const dir = String(direction).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const normExpr = buildNormalizedDateExpr(colExpr, { allowYearMonth, allowExcelSerial });
+  const tieBreaker = buildTieBreaker({ alias, includeUpdatedAt, includeCreatedAt, idDir });
+  return `CASE WHEN (${normExpr}) IS NULL THEN 1 ELSE 0 END ASC, (${normExpr}) ${dir}, ${tieBreaker}`;
+}
+
+/**
+ * Builds a canonical SQL ORDER BY clause expression for a timestamp column (e.g. created_at).
+ */
+export function buildTimestampOrderBy(colExpr, {
+  direction = 'DESC',
+  alias = '',
+  includeUpdatedAt = false,
+  includeCreatedAt = false,
+  idDir = 'DESC',
+} = {}) {
+  const dir = String(direction).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const normExpr = buildNormalizedTimestampExpr(colExpr);
+  const tieBreaker = buildTieBreaker({ alias, includeUpdatedAt, includeCreatedAt, idDir });
+  return `CASE WHEN (${normExpr}) IS NULL THEN 1 ELSE 0 END ASC, (${normExpr}) ${dir}, ${tieBreaker}`;
 }
 
 export function getSearchParam(url, key) {

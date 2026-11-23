@@ -264,7 +264,7 @@ async function getStats(env, origin) {
        b.full_name as branch_name
        FROM issues i LEFT JOIN branches b ON i.branch_id = b.id
        WHERE i.deleted_at IS NULL
-       ORDER BY i.created_at DESC LIMIT 5`
+       ORDER BY i.created_at DESC, i.id DESC LIMIT 5`
     ).all(),
     env.DB.prepare(
       `SELECT c.id, c.end_date, c.status, COALESCE(e.full_name, c.employee_name, '—') as emp_name,
@@ -279,14 +279,14 @@ async function getStats(env, origin) {
          AND c.division IN ('FACILITY CARE', 'SECURITY')
          AND ${getManagementBranchSubquery('c.branch_id')}
          AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL))
-       ORDER BY c.end_date ASC LIMIT 10`
+       ORDER BY c.end_date ASC, c.id ASC LIMIT 10`
     ).all(),
     env.DB.prepare(
       `SELECT s.id, s.activity_type, s.target_date, s.status,
        b.full_name as branch_name
        FROM activity_schedule s LEFT JOIN branches b ON s.branch_id = b.id
        WHERE s.status != 'Done' AND s.deleted_at IS NULL AND s.target_date >= date('now')
-       ORDER BY s.target_date ASC LIMIT 7`
+       ORDER BY s.target_date ASC, s.id ASC LIMIT 7`
     ).all()
   ]);
 
@@ -463,7 +463,7 @@ async function getContractsExpiring(env, origin) {
        AND c.division IN ('FACILITY CARE', 'SECURITY')
        AND ${getManagementBranchSubquery('c.branch_id')}
        AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL))
-     ORDER BY c.end_date ASC LIMIT 50`
+     ORDER BY c.end_date ASC, c.id ASC LIMIT 50`
   ).all();
   return ok(rows.results || [], 200, origin);
 }
@@ -478,38 +478,38 @@ async function getActivityLog(env, origin) {
   const [issues, contracts, employees, training, inspection, bRows] =
     await Promise.all([
       env.DB.prepare(
-        `SELECT 'issue' type, COALESCE(complaint,'—') label, created_at,
+        `SELECT id, 'issue' type, COALESCE(complaint,'—') label, created_at,
          branch_id, category info
-         FROM issues WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 5`
+         FROM issues WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'contract' type, ${contractLabelExpr} label, c.created_at,
+        `SELECT c.id, 'contract' type, ${contractLabelExpr} label, c.created_at,
          c.branch_id, c.contract_type info
          FROM contracts c
          LEFT JOIN employees e ON e.id = c.employee_id AND e.deleted_at IS NULL
          WHERE c.deleted_at IS NULL
            AND c.division IN ('FACILITY CARE', 'SECURITY')
            AND ${getManagementBranchSubquery('c.branch_id')}
-         ORDER BY c.created_at DESC LIMIT 5`
+         ORDER BY c.created_at DESC, c.id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'employee' type, e.full_name label, e.created_at,
+        `SELECT e.id, 'employee' type, e.full_name label, e.created_at,
          e.branch_id, e.status info
          FROM employees e 
          WHERE e.deleted_at IS NULL
            AND e.division IN ('FACILITY CARE', 'SECURITY')
            AND ${getManagementBranchSubquery('e.branch_id')}
-         ORDER BY e.created_at DESC LIMIT 5`
+         ORDER BY e.created_at DESC, e.id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'training' type, COALESCE(subject,'Training') label, created_at,
+        `SELECT id, 'training' type, COALESCE(subject,'Training') label, created_at,
          NULL branch_id, trainer info
-         FROM training WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 4`
+         FROM training WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 4`
       ).all(),
       env.DB.prepare(
-        `SELECT 'inspection' type, period label, created_at,
+        `SELECT id, 'inspection' type, period label, created_at,
          branch_id, status info
-         FROM inspection_reports WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 3`
+         FROM inspection_reports WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 3`
       ).all(),
       env.DB.prepare('SELECT id, full_name FROM branches WHERE deleted_at IS NULL').all()
     ]);
@@ -528,7 +528,14 @@ async function getActivityLog(env, origin) {
     branch: r.branch_id ? (branchMap[r.branch_id] || null) : null,
     label:  (r.label && r.label !== '[object Object]') ? String(r.label).slice(0, 80) : '—',
   }))
-  .sort((a,b) => (b.created_at||'').localeCompare(a.created_at||''))
+  .sort((a,b) => {
+    const ta = a.created_at ? new Date(String(a.created_at).includes(' ') && !String(a.created_at).includes('T') ? String(a.created_at).replace(' ', 'T') + 'Z' : String(a.created_at)).getTime() : 0;
+    const tb = b.created_at ? new Date(String(b.created_at).includes(' ') && !String(b.created_at).includes('T') ? String(b.created_at).replace(' ', 'T') + 'Z' : String(b.created_at)).getTime() : 0;
+    const va = Number.isFinite(ta) ? ta : 0;
+    const vb = Number.isFinite(tb) ? tb : 0;
+    if (vb !== va) return vb - va;
+    return Number(b.id || 0) - Number(a.id || 0);
+  })
   .slice(0, 20);
 
   return ok(all, 200, origin);
@@ -851,8 +858,15 @@ async function getNotifications(request, env, origin) {
     });
   });
 
-  // Sort by date descending
-  list.sort((a, b) => b.date.localeCompare(a.date));
+  // Sort by date descending, placing empty/invalid dates last
+  list.sort((a, b) => {
+    const da = parseFlexibleDate(a.date);
+    const db = parseFlexibleDate(b.date);
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return db.localeCompare(da);
+  });
 
   return ok(list, 200, origin);
 }

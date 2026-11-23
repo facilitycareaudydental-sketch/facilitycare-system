@@ -1,6 +1,6 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
-import { getPagination, resolveSortOrder } from '../utils/pagination.js';
+import { getPagination, resolveSortOrder, buildDateOrderBy, buildTimestampOrderBy } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { runSync } from '../utils/calendar.js';
 import { buildOutboxQuery, buildConditionalOutboxQuery, buildOutboxFromLastInsertQuery } from '../utils/sync_engine.js';
@@ -8,9 +8,12 @@ import { mapDBToPayload } from '../utils/sync_mapper.js';
 import { buildAuditStatement, buildCreateAuditStatement, buildCreateAuditFromOutboxStatement, executeAtomicImportBatch } from '../utils/audit.js';
 
 const SCHEDULE_SORT_MAP = Object.freeze({
-  target_date_asc: 's.target_date ASC, s.id DESC',
-  opening_date_desc: "CASE WHEN s.opening_date IS NULL OR s.opening_date = '' OR s.opening_date = '-' THEN 1 ELSE 0 END, substr(s.opening_date, 7, 4) DESC, substr(s.opening_date, 4, 2) DESC, substr(s.opening_date, 1, 2) DESC, s.opening_date DESC, s.id DESC",
-  date_desc: 's.target_date DESC, s.id DESC',
+  opening_date_desc: buildDateOrderBy('s.opening_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  opening_date_asc: buildDateOrderBy('s.opening_date', { direction: 'ASC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  target_date_desc: buildDateOrderBy('s.target_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_desc: buildDateOrderBy('s.opening_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  target_date_asc: buildDateOrderBy('s.target_date', { direction: 'ASC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  newest: buildTimestampOrderBy('s.created_at', { direction: 'DESC', alias: 's', idDir: 'DESC' }),
 });
 
 export async function handleSchedule(request, env, origin) {
@@ -63,7 +66,7 @@ async function listSchedule(request, env, origin, { isExport = false } = {}) {
   const pic = (url.searchParams.get('pic') || '').trim();
   const month = (url.searchParams.get('month') || '').trim();
   const search = (url.searchParams.get('search') || '').trim();
-  const sort = url.searchParams.get('sort') || 'target_date_asc';
+  const sort = url.searchParams.get('sort') || 'opening_date_desc';
 
   const conditions = ['s.deleted_at IS NULL'];
   const values = [];
@@ -94,7 +97,7 @@ async function listSchedule(request, env, origin, { isExport = false } = {}) {
 
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
   const countJoin = search ? 'LEFT JOIN branches b ON s.branch_id = b.id' : '';
-  const orderBy = resolveSortOrder(sort, SCHEDULE_SORT_MAP, 'target_date_asc');
+  const orderBy = resolveSortOrder(sort, SCHEDULE_SORT_MAP, 'opening_date_desc');
 
   const [countResult, rows] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as total FROM activity_schedule s ${countJoin} ${where}`).bind(...values).first(),

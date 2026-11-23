@@ -8,10 +8,15 @@ import {
   buildRevokeAllUserSessionsStatement
 } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated, corsHeaders } from '../utils/response.js';
-import { getPagination, getSearchParam } from '../utils/pagination.js';
+import { getPagination, getSearchParam, resolveSortOrder, buildTimestampOrderBy } from '../utils/pagination.js';
 import { requireExportAccess, getExportPagination } from '../utils/export.js';
 import { buildAuditStatement, sanitizeAuditData } from '../utils/audit.js';
 import { packStatementGroups } from '../utils/import_journal.js';
+
+const USER_SORT_MAP = Object.freeze({
+  created_desc: buildTimestampOrderBy('created_at', { direction: 'DESC', idDir: 'DESC' }),
+  name_asc: 'full_name ASC, id ASC',
+});
 
 const MAX_BULK_USER_IDS = 100;
 export const MAX_ACTIVE_SUPERADMINS = 2;
@@ -170,13 +175,15 @@ async function getRemainingActiveSuperadminCount(env, excludeIds = []) {
 async function listUsers(request, env, origin, { isExport = false } = {}) {
   const { page, limit, offset } = isExport ? getExportPagination(request.url) : getPagination(request.url);
   const search = getSearchParam(request.url, 'search').trim();
+  const sort = new URL(request.url).searchParams.get('sort') || 'created_desc';
+  const orderBy = resolveSortOrder(sort, USER_SORT_MAP, 'created_desc');
 
   let rows, count;
   try {
     if (search) {
       const query = `SELECT id, username, email, full_name, role, is_active, assigned_modules, created_at FROM users 
                      WHERE full_name LIKE ? OR username LIKE ? OR email LIKE ? 
-                     ORDER BY full_name ASC, id ASC LIMIT ? OFFSET ?`;
+                     ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
       const countQuery = `SELECT COUNT(*) as total FROM users WHERE full_name LIKE ? OR username LIKE ? OR email LIKE ?`;
       const s = `%${search}%`;
       [rows, count] = await Promise.all([
@@ -184,7 +191,7 @@ async function listUsers(request, env, origin, { isExport = false } = {}) {
         env.DB.prepare(countQuery).bind(s, s, s).first()
       ]);
     } else {
-      const query = `SELECT id, username, email, full_name, role, is_active, assigned_modules, created_at FROM users ORDER BY full_name ASC, id ASC LIMIT ? OFFSET ?`;
+      const query = `SELECT id, username, email, full_name, role, is_active, assigned_modules, created_at FROM users ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
       const countQuery = `SELECT COUNT(*) as total FROM users`;
       [rows, count] = await Promise.all([
         env.DB.prepare(query).bind(limit, offset).all(),
@@ -202,7 +209,7 @@ async function listUsers(request, env, origin, { isExport = false } = {}) {
       if (search) {
         const query = `SELECT id, username, email, full_name, role, is_active, created_at FROM users 
                        WHERE full_name LIKE ? OR username LIKE ? OR email LIKE ? 
-                       ORDER BY full_name ASC, id ASC LIMIT ? OFFSET ?`;
+                       ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
         const countQuery = `SELECT COUNT(*) as total FROM users WHERE full_name LIKE ? OR username LIKE ? OR email LIKE ?`;
         const s = `%${search}%`;
         [rows, count] = await Promise.all([
@@ -210,7 +217,7 @@ async function listUsers(request, env, origin, { isExport = false } = {}) {
           env.DB.prepare(countQuery).bind(s, s, s).first()
         ]);
       } else {
-        const query = `SELECT id, username, email, full_name, role, is_active, created_at FROM users ORDER BY full_name ASC, id ASC LIMIT ? OFFSET ?`;
+        const query = `SELECT id, username, email, full_name, role, is_active, created_at FROM users ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
         const countQuery = `SELECT COUNT(*) as total FROM users`;
         [rows, count] = await Promise.all([
           env.DB.prepare(query).bind(limit, offset).all(),
