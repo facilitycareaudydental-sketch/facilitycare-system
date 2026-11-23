@@ -1,7 +1,13 @@
-import { apiFetch } from '../config.js';
+import { apiFetch, getUser } from '../config.js';
+import { escapeHtml } from '../utils/sanitize.js';
 import { toastError } from '../components/toast.js';
 
 export async function renderSyncDashboard(mainEl) {
+  const currentUser = getUser();
+  if (!currentUser || String(currentUser.role).toLowerCase() !== 'superadmin' || currentUser.isRestrictedToken === true || Number(currentUser.must_change_password) === 1) {
+    mainEl.innerHTML = '<div class="empty-state"><p class="text-danger">Akses ditolak. Halaman ini hanya untuk Superadmin.</p></div>';
+    return;
+  }
   mainEl.innerHTML = `
     <div class="p-6 max-w-7xl mx-auto space-y-6">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -150,6 +156,24 @@ export async function renderSyncDashboard(mainEl) {
     document.querySelectorAll('.chk-queue').forEach(cb => cb.checked = e.target.checked);
   });
 
+  function showLoading() {
+    if (btnRefresh) {
+      btnRefresh.disabled = true;
+      btnRefresh.textContent = 'Loading...';
+    }
+  }
+  function hideLoading() {
+    if (btnRefresh) {
+      btnRefresh.disabled = false;
+      btnRefresh.textContent = 'Refresh';
+    }
+  }
+
+  /** Unwraps `{ success: true, data }` API envelopes while remaining compatible with flat mock payloads. */
+  const unwrapEnvelope = (data) => (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data && 'success' in data)
+    ? data.data
+    : data;
+
   async function adminAction(action, payload) {
     if (!confirm(`Are you sure you want to execute action: ${action}?`)) return;
     showLoading();
@@ -160,10 +184,11 @@ export async function renderSyncDashboard(mainEl) {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        alert(res.data?.message || 'Success');
+        const body = unwrapEnvelope(res.data);
+        alert(body?.message || res.data?.message || 'Success');
         loadDashboardData();
       } else {
-        toastError(res.error || 'Action failed');
+        toastError(res.data?.error || res.error || 'Action failed');
       }
     } catch(e) {
       toastError(e.message);
@@ -187,9 +212,17 @@ export async function renderSyncDashboard(mainEl) {
   async function loadPerformance() {
     try {
       const res = await apiFetch('/api/sync/performance');
-      if (!res.ok) return;
+      if (!res.ok || !res.data) return;
+      const perf = unwrapEnvelope(res.data);
+      if (!perf || perf.status === 'DATA_UNAVAILABLE' || !perf.webhook) {
+        const histEl = document.getElementById('latencyHistograms');
+        if (histEl) histEl.innerHTML = '<p class="text-gray-500">Belum ada aktivitas sinkronisasi dalam 24 jam terakhir.</p>';
+        const snapEl = document.getElementById('lblSnapshotStatus');
+        if (snapEl) snapEl.innerHTML = 'Status: <b>READY</b><br><span class="text-xs text-gray-500">Siap menjalankan rekonsiliasi & snapshot</span>';
+        return;
+      }
       
-      const { webhook, google_api, d1, queue, throughput } = res.data;
+      const { webhook, google_api, d1, queue, throughput } = perf;
       
       document.getElementById('latencyHistograms').innerHTML = `
         <table class="w-full text-left">
@@ -218,7 +251,8 @@ export async function renderSyncDashboard(mainEl) {
       const res = await apiFetch('/api/sync/health');
       if (!res.ok) return toastError('Failed to fetch sync health');
       
-      const { status, queue, circuit_breaker } = res.data;
+      const health = unwrapEnvelope(res.data) || {};
+      const { status, queue = {}, circuit_breaker } = health;
       
       // Cards
       const cardsHtml = `
@@ -279,7 +313,11 @@ export async function renderSyncDashboard(mainEl) {
       if (!res.ok) return;
       
       const tbody = document.getElementById('queueTableBody');
-      const rows = res.data?.data || res.data || [];
+      const unwrappedQueue = unwrapEnvelope(res.data);
+      const rawRows = (unwrappedQueue && !Array.isArray(unwrappedQueue) && Array.isArray(unwrappedQueue.data))
+        ? unwrappedQueue.data
+        : unwrappedQueue;
+      const rows = Array.isArray(rawRows) ? rawRows : [];
       
       if (rows.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">No events found</td></tr>';
@@ -288,18 +326,18 @@ export async function renderSyncDashboard(mainEl) {
       
       tbody.innerHTML = rows.map(r => `
         <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2"><input type="checkbox" class="chk-queue" value="${r.id}" /></td>
-          <td class="px-4 py-2 font-mono text-xs text-gray-500" title="${r.id}">${r.id.split('-')[0]}...</td>
-          <td class="px-4 py-2 font-medium">${r.entity_name}</td>
+          <td class="px-4 py-2"><input type="checkbox" class="chk-queue" value="${escapeHtml(r.id)}" /></td>
+          <td class="px-4 py-2 font-mono text-xs text-gray-500" title="${escapeHtml(r.id)}">#${escapeHtml(String(r.id).split('-')[0])}</td>
+          <td class="px-4 py-2 font-medium">${escapeHtml(r.entity_name)}</td>
           <td class="px-4 py-2">
-             <span class="px-2 py-0.5 rounded text-xs ${r.action==='INSERT'?'bg-blue-100 text-blue-800':(r.action==='UPDATE'?'bg-purple-100 text-purple-800':'bg-red-100 text-red-800')}">${r.action}</span>
+             <span class="px-2 py-0.5 rounded text-xs ${r.action==='INSERT'?'bg-blue-100 text-blue-800':(r.action==='UPDATE'?'bg-purple-100 text-purple-800':'bg-red-100 text-red-800')}">${escapeHtml(r.action)}</span>
           </td>
           <td class="px-4 py-2">
-             <span class="px-2 py-0.5 rounded text-xs ${r.status==='PENDING'?'bg-yellow-100 text-yellow-800':(r.status==='PROCESSING'?'bg-blue-100 text-blue-800':(r.status==='DEAD_LETTER'?'bg-red-100 text-red-800':'bg-gray-100 text-gray-800'))}">${r.status}</span>
-             ${r.last_error ? `<br><span class="text-xs text-red-500 max-w-xs block truncate" title="${r.last_error}">${r.last_error}</span>` : ''}
+             <span class="px-2 py-0.5 rounded text-xs ${r.status==='PENDING'?'bg-yellow-100 text-yellow-800':(r.status==='PROCESSING'?'bg-blue-100 text-blue-800':(r.status==='DEAD_LETTER'?'bg-red-100 text-red-800':'bg-gray-100 text-gray-800'))}">${escapeHtml(r.status)}</span>
+             ${r.last_error ? `<br><span class="text-xs text-red-500 max-w-xs block truncate" title="${escapeHtml(r.last_error)}">${escapeHtml(r.last_error)}</span>` : ''}
           </td>
-          <td class="px-4 py-2 text-gray-600">${r.retry_count || 0}</td>
-          <td class="px-4 py-2 text-gray-500 whitespace-nowrap">${window.formatDate(r.created_at)} ${new Date(r.created_at).toLocaleTimeString('id-ID')}</td>
+          <td class="px-4 py-2 text-gray-600">${escapeHtml(String(r.retry_count || 0))}</td>
+          <td class="px-4 py-2 text-gray-500 whitespace-nowrap">${escapeHtml(typeof window.formatDate === 'function' ? window.formatDate(r.created_at) : (r.created_at || '-'))}</td>
         </tr>
       `).join('');
     } catch (e) {
@@ -313,7 +351,8 @@ export async function renderSyncDashboard(mainEl) {
       if (!res.ok) return;
       
       const tbody = document.getElementById('metricsTableBody');
-      const rows = res.data || [];
+      const unwrappedMetrics = unwrapEnvelope(res.data);
+      const rows = Array.isArray(unwrappedMetrics) ? unwrappedMetrics : [];
       
       if (rows.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No metrics found in last 24h</td></tr>';
@@ -322,8 +361,8 @@ export async function renderSyncDashboard(mainEl) {
       
       tbody.innerHTML = rows.map(r => `
         <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2 font-medium text-gray-800">${r.module}</td>
-          <td class="px-4 py-2 text-gray-600">${r.total_events}</td>
+          <td class="px-4 py-2 font-medium text-gray-800">${escapeHtml(r.module)}</td>
+          <td class="px-4 py-2 text-gray-600">${escapeHtml(String(r.total_events))}</td>
           <td class="px-4 py-2 text-gray-600">${Math.round(r.avg_webhook_ms || 0)} ms</td>
           <td class="px-4 py-2 text-gray-600">${Math.round(r.avg_d1_ms || 0)} ms</td>
           <td class="px-4 py-2 text-gray-600">${Math.round(r.avg_queue_wait_ms || 0)} ms</td>

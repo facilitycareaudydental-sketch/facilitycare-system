@@ -3,14 +3,22 @@
  */
 
 function sendWebhook(payloadObj) {
+  let webhookSecret;
+  try {
+    webhookSecret = getWebhookSecret();
+  } catch (err) {
+    console.error('Webhook aborted (fail-closed):', err && err.message ? err.message : 'Missing webhook secret');
+    return { ok: false, error: 'Webhook secret not configured' };
+  }
+
   const payloadString = JSON.stringify(payloadObj);
-  const signature = Utils.computeSignature(payloadString, CONFIG.WEBHOOK_SECRET);
+  const signature = Utils.computeSignature(payloadString, webhookSecret);
 
   const options = {
     method: 'post',
     contentType: 'application/json',
     headers: {
-      'Authorization': `Bearer ${CONFIG.WEBHOOK_SECRET}`,
+      'Authorization': `Bearer ${webhookSecret}`,
       'X-FCMS-SIGNATURE': signature
     },
     payload: payloadString,
@@ -19,11 +27,14 @@ function sendWebhook(payloadObj) {
 
   try {
     const response = UrlFetchApp.fetch(CONFIG.API_URL, options);
-    if (response.getResponseCode() !== 200) {
-      console.error('Webhook failed:', response.getContentText());
-      // Logic for Retry Queue could be placed here
+    const statusCode = response.getResponseCode();
+    if (statusCode !== 200) {
+      console.error('Webhook failed with status:', statusCode);
+      return { ok: false, status: statusCode };
     }
+    return { ok: true, status: statusCode };
   } catch (err) {
-    console.error('Fetch error:', err.message);
+    console.error('Fetch error:', err && err.message ? err.message : 'Network error');
+    return { ok: false, error: 'Fetch error' };
   }
 }

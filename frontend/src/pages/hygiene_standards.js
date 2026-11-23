@@ -2,6 +2,73 @@ import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
+import { fetchExportRows } from '../utils/dataCache.js';
+import { escapeHtml } from '../utils/sanitize.js';
+
+function renderHygieneActionButtons(item, canEdit, canDelete, compact = false, mobileCard = false) {
+  if (!canEdit && !canDelete) return '';
+  const id = escapeHtml(String(item.id ?? ''));
+  const name = escapeHtml(item.item_name || 'Parameter Standar');
+  const size = compact ? 14 : 15;
+  const clsSuffix = mobileCard
+    ? ' hyg-mobile-action-btn'
+    : (compact ? ' hygiene-action-btn--compact' : '');
+  const btnWrapClass = mobileCard ? 'hyg-mobile-actions' : '';
+  return `
+    <div class="${btnWrapClass}" style="${mobileCard ? '' : `display:inline-flex; gap:${compact ? 4 : 6}px; align-items:center;`}">
+      ${canEdit ? `
+        <button type="button" class="hygiene-action-btn hygiene-action-edit${clsSuffix} btn-edit-item" data-id="${id}" title="Edit ${name}" aria-label="Edit parameter ${name}">
+          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          ${mobileCard ? '<span>Edit</span>' : ''}
+        </button>
+      ` : ''}
+      ${canDelete ? `
+        <button type="button" class="hygiene-action-btn hygiene-action-delete${clsSuffix} btn-delete-item" data-id="${id}" data-name="${name}" title="Hapus ${name}" aria-label="Hapus parameter ${name}">
+          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+          ${mobileCard ? '<span>Hapus</span>' : ''}
+        </button>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderHygieneMobileCards(items, { includeRoom = true, canEdit = false, canDelete = false } = {}) {
+  return `
+    <div class="hyg-mobile-cards${includeRoom ? '' : ' hyg-mobile-cards--compact'}">
+      ${items.map((item, idx) => {
+        const zInfo = getZoneForRoom(item.room_name);
+        const actionsHtml = renderHygieneActionButtons(item, canEdit, canDelete, false, true);
+        return `
+          <article class="hyg-mobile-card">
+            <div class="hyg-mobile-card-head">
+              <span class="hyg-mobile-num">#${idx + 1}</span>
+              ${includeRoom ? `
+                <div class="hyg-mobile-room-group">
+                  <span class="hyg-room-badge">${escapeHtml(item.room_name)}</span>
+                  <span class="hyg-zone-meta">${escapeHtml(zInfo.zoneName)}</span>
+                </div>
+              ` : ''}
+            </div>
+            <div class="hyg-mobile-item-title">${escapeHtml(item.item_name)}</div>
+            <div class="hyg-std-box hyg-mobile-std-box">
+              <span class="hyg-std-check" aria-hidden="true">✓</span>
+              <span class="hyg-std-text">${escapeHtml(item.cleanliness_standard)}</span>
+            </div>
+            ${actionsHtml ? `<div class="hyg-mobile-card-foot">${actionsHtml}</div>` : ''}
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
 
 // 8 Kategori Zona Standar Kebersihan Fisik FCMS (Audy Dental)
 export const ZONES = {
@@ -78,133 +145,116 @@ export function getZoneForRoom(roomName) {
       return { zoneName, ...zoneData };
     }
   }
-  return { zoneName: 'Lainnya', icon: '📍', bg: '#F1F5F9', color: '#475569', border: '#E2E8F0' };
+  return { zoneName: 'Lainnya', icon: '📍', bg: '#131F36', color: '#94A3B8', border: '#223456' };
 }
 
 export async function renderHygieneStandards(container) {
   const user = getUser();
-  const canEdit = user && (user.role === 'superadmin' || user.role === 'admin');
+  const canEdit = hasPermission(user, 'hygiene_standards', 'write');
+  const canDelete = hasPermission(user, 'hygiene_standards', 'delete');
   const canExport = hasPermission(user, 'export');
 
   container.innerHTML = `
-    <!-- Header Section -->
-    <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
-      <div>
-        <h1 class="page-title" style="display:flex; align-items:center; gap:8px; margin:0 0 6px 0; font-size:1.6rem; font-weight:700; color:var(--text-1);">
-          <span>✨</span> Master Standar Kebersihan Fisik
-        </h1>
-        <p class="page-subtitle" style="margin:0; font-size:0.9rem; color:var(--text-3);">
-          Acuan Standar Kebersihan Fisik Seluruh Area & Ruangan Klinik (Audy Dental · Facility Care)
-        </p>
-      </div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <div class="btn-group" style="background:#F1F5F9; padding:3px; border-radius:8px; display:inline-flex; border:1px solid var(--border);">
-          <button id="view-table-btn" class="btn btn-sm" style="background:#fff; font-weight:600; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05); padding:6px 12px; cursor:pointer;">
-            📋 Tabel Standar
-          </button>
-          <button id="view-zone-btn" class="btn btn-sm btn-ghost" style="font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
-            🗂️ Per Zona Area
-          </button>
-        </div>
-        <button id="btn-print-hygiene" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP Standar Kebersihan">
-          🖨️ Cetak SOP
-        </button>
-        ${canExport ? `
-        <button id="btn-export-hygiene" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-          📥 Export Excel
-        </button>
-        ` : ''}
-        ${canEdit ? `
-        <button id="btn-add-hygiene" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-          + Tambah Parameter
-        </button>
-        ` : ''}
-      </div>
-    </div>
-
-    <!-- KPI Summary Cards -->
-    <div id="hygiene-summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width:48px; height:48px; border-radius:10px; background:#EFF6FF; color:#2563EB; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
-          📋
-        </div>
-        <div>
-          <div style="font-size:0.8rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Total Parameter</div>
-          <div style="font-size:1.6rem; font-weight:800; color:var(--text-1);" id="card-total-params">104</div>
-          <div style="font-size:0.75rem; color:#16A34A; font-weight:500;">✓ Terverifikasi Standar SOP</div>
-        </div>
-      </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width:48px; height:48px; border-radius:10px; background:#F5F3FF; color:#7C3AED; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
-          🏢
-        </div>
-        <div>
-          <div style="font-size:0.8rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Kategori Zona</div>
-          <div style="font-size:1.6rem; font-weight:800; color:var(--text-1);" id="card-total-zones">8</div>
-          <div style="font-size:0.75rem; color:var(--text-3); font-weight:500;">Klinis, Publik, Sanitair, dll.</div>
-        </div>
-      </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width:48px; height:48px; border-radius:10px; background:#ECFDF5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
-          🚪
-        </div>
-        <div>
-          <div style="font-size:0.8rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Ruangan / Lokasi</div>
-          <div style="font-size:1.6rem; font-weight:800; color:var(--text-1);" id="card-total-rooms">35</div>
-          <div style="font-size:0.75rem; color:#059669; font-weight:500;">Termasuk Ruang Tindakan</div>
-        </div>
-      </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="width:48px; height:48px; border-radius:10px; background:#FFFBEB; color:#D97706; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
-          🛡️
-        </div>
-        <div>
-          <div style="font-size:0.8rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Kondisi Fisik</div>
-          <div style="font-size:1.6rem; font-weight:800; color:#16A34A;">100%</div>
-          <div style="font-size:0.75rem; color:var(--text-3); font-weight:500;">Bebas Debu, Kerak & Bau</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Zona Switcher Tabs -->
-    <div style="overflow-x:auto; padding-bottom:8px; margin-bottom:18px;">
-      <div id="hygiene-zone-tabs" style="display:flex; gap:8px; min-width:max-content; border-bottom:2px solid #E2E8F0; padding-bottom:8px;">
-        <button class="zone-tab-btn active" data-zone="all" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.88rem;">
-          🌟 Semua Zona <span class="badge" style="background:rgba(255,255,255,0.25); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">104</span>
-        </button>
-        ${Object.entries(ZONES).map(([name, data]) => `
-          <button class="zone-tab-btn" data-zone="${name}" style="border:none; background:#F1F5F9; color:var(--text-2); font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.88rem;">
-            <span>${data.icon}</span> ${name}
-            <span class="badge" style="background:#CBD5E1; color:#334155; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-${name.replace(/[\s&]+/g, '-')}">-</span>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- Filter Toolbar -->
-    <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
-        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
-          <div style="position:relative; flex:1; min-width:220px; max-width:360px;">
-            <input type="text" id="hygiene-search" class="form-control" placeholder="Cari ruangan, item objek, atau standar kebersihan..." style="padding-left:36px; height:40px; border-radius:8px; font-size:0.9rem; width:100%;">
-            <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:0.95rem;">🔍</span>
+    <div class="hyg-page-shell">
+      <!-- Unified Hero Card (Consistent with Master Karyawan, Kontrak, Master Document) -->
+      <div class="hyg-hero-card">
+        <div class="hyg-hero-top">
+          <div class="hyg-hero-title-group">
+            <h1 class="hyg-hero-title">Master Standar Kebersihan Fisik</h1>
+            <p class="hyg-hero-subtitle">Acuan standar kebersihan fisik seluruh area dan ruangan klinik operasional</p>
           </div>
-          <select id="hygiene-room-filter" class="form-control" style="width:auto; height:40px; border-radius:8px; font-size:0.875rem; min-width:180px;">
+          <div class="hyg-hero-actions">
+            <div class="hyg-view-switch" role="group" aria-label="Mode tampilan standar kebersihan">
+              <button type="button" id="view-table-btn" class="hyg-view-btn active">Tabel Standar</button>
+              <button type="button" id="view-zone-btn" class="hyg-view-btn">Per Zona Area</button>
+            </div>
+            <button type="button" id="btn-print-hygiene" class="btn btn-outline btn-sm" title="Cetak Format SOP Standar Kebersihan">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Cetak SOP
+            </button>
+            ${canExport ? `
+            <button type="button" id="btn-export-hygiene" class="btn btn-outline btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export Excel
+            </button>
+            ` : ''}
+            ${canEdit ? `
+            <button type="button" id="btn-add-hygiene" class="btn btn-primary btn-sm">
+              + Tambah Parameter
+            </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Compact Clean Navy Summary Stats -->
+        <div id="hygiene-summary-cards" class="hyg-stats-grid">
+          <div class="hyg-stat-box">
+            <div class="hyg-stat-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div class="hyg-stat-body">
+              <div class="hyg-stat-val" id="card-total-params">104</div>
+              <div class="hyg-stat-lbl">Total Parameter</div>
+            </div>
+          </div>
+          <div class="hyg-stat-box">
+            <div class="hyg-stat-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </div>
+            <div class="hyg-stat-body">
+              <div class="hyg-stat-val" id="card-total-zones">${Object.keys(ZONES).length}</div>
+              <div class="hyg-stat-lbl">Kategori Zona</div>
+            </div>
+          </div>
+          <div class="hyg-stat-box">
+            <div class="hyg-stat-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="hyg-stat-body">
+              <div class="hyg-stat-val" id="card-total-rooms">35</div>
+              <div class="hyg-stat-lbl">Ruangan / Lokasi</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unified Filter & Scrollable Zone Tabs Card -->
+      <div class="hyg-controls-card">
+        <div class="hyg-controls-row">
+          <div class="hyg-search-wrap">
+            <svg class="hyg-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="hygiene-search" class="form-control hyg-search-input" placeholder="Cari ruangan, item objek, atau standar kebersihan..." aria-label="Cari parameter kebersihan">
+          </div>
+          <select id="hygiene-room-filter" class="form-control hyg-room-select" aria-label="Filter ruangan">
             <option value="">Semua Ruangan</option>
           </select>
-          <button id="btn-reset-filters" class="btn btn-sm btn-ghost" style="color:var(--text-3); font-weight:600; cursor:pointer; padding:6px 10px;">
-            ✕ Reset
+          <button type="button" id="btn-reset-filters" class="btn btn-outline btn-sm hyg-reset-btn">
+            Reset
           </button>
+          <div id="hygiene-stats-text" class="hyg-stats-text">
+            Memuat data...
+          </div>
         </div>
-        <div id="hygiene-stats-text" style="font-size:0.85rem; color:var(--text-3); font-weight:500;">
-          Memuat data...
+
+        <!-- Horizontal Scrollable Zone Tabs (Enhanced with Global Left/Right Arrows) -->
+        <div id="hygiene-zone-tabs" class="hyg-zone-tabs" data-fc-scroll-tabs role="tablist" aria-label="Filter kategori zona kebersihan">
+          <button type="button" class="zone-tab-btn active" data-zone="all" role="tab" aria-selected="true">
+            <span>Semua Zona</span>
+            <span class="badge hyg-tab-count" id="badge-count-all">104</span>
+          </button>
+          ${Object.keys(ZONES).map((name) => `
+            <button type="button" class="zone-tab-btn" data-zone="${escapeHtml(name)}" role="tab" aria-selected="false">
+              <span>${escapeHtml(name)}</span>
+              <span class="badge hyg-tab-count" id="badge-count-${name.replace(/[\s&]+/g, '-')}">-</span>
+            </button>
+          `).join('')}
         </div>
       </div>
-    </div>
 
-    <!-- Main Content Container -->
-    <div id="hygiene-view-container">
-      <div class="skeleton" style="height:320px; border-radius:12px;"></div>
+      <!-- Main Content Container -->
+      <div id="hygiene-view-container">
+        <div class="skeleton" style="height:320px; border-radius:12px;"></div>
+      </div>
     </div>
   `;
 
@@ -229,7 +279,7 @@ export async function renderHygieneStandards(container) {
       const viewContainer = container.querySelector('#hygiene-view-container');
       if (viewContainer) {
         viewContainer.innerHTML = `
-          <div class="empty-state" style="text-align:center; padding:40px; background:#fff; border-radius:12px; border:1px solid var(--border);">
+          <div class="empty-state" style="text-align:center; padding:40px; background:#131F36; border-radius:12px; border:1px solid #223456;">
             <div style="font-size:2.5rem; margin-bottom:12px;">⚠️</div>
             <h3 style="margin:0 0 8px 0; color:var(--text-1);">Gagal Memuat Data</h3>
             <p style="color:var(--text-3); margin-bottom:16px;">${err.message}</p>
@@ -245,6 +295,8 @@ export async function renderHygieneStandards(container) {
     // Total count
     const totalEl = container.querySelector('#badge-count-all');
     if (totalEl) totalEl.textContent = allItems.length;
+    const totalKpi = container.querySelector('#card-total-params');
+    if (totalKpi) totalKpi.textContent = allItems.length;
 
     // Per zone count
     Object.entries(ZONES).forEach(([zoneName, zoneData]) => {
@@ -321,7 +373,7 @@ export async function renderHygieneStandards(container) {
 
     if (filtered.length === 0) {
       viewContainer.innerHTML = `
-        <div class="empty-state" style="text-align:center; padding:50px 20px; background:#fff; border-radius:12px; border:1px solid var(--border);">
+        <div class="empty-state" style="text-align:center; padding:50px 20px; background:#131F36; border-radius:12px; border:1px solid #223456;">
           <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
           <h3 style="margin:0 0 8px 0; color:var(--text-1); font-weight:700;">Tidak Ada Parameter yang Cocok</h3>
           <p style="color:var(--text-3); max-width:400px; margin:0 auto 16px auto; font-size:0.9rem;">
@@ -338,15 +390,10 @@ export async function renderHygieneStandards(container) {
         if (searchInput) searchInput.value = '';
         if (roomSelect) roomSelect.value = '';
         currentZone = 'all';
-        container.querySelectorAll('.zone-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.zone === 'all'));
         container.querySelectorAll('.zone-tab-btn').forEach(b => {
-          if (b.dataset.zone === 'all') {
-            b.style.background = '#2563EB';
-            b.style.color = '#fff';
-          } else {
-            b.style.background = '#F1F5F9';
-            b.style.color = 'var(--text-2)';
-          }
+          const isAll = b.dataset.zone === 'all';
+          b.classList.toggle('active', isAll);
+          b.setAttribute('aria-selected', isAll ? 'true' : 'false');
         });
         populateRoomFilter();
         renderContent();
@@ -363,56 +410,40 @@ export async function renderHygieneStandards(container) {
 
   function renderTableView(viewContainer, items) {
     viewContainer.innerHTML = `
-      <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="overflow-x:auto;">
-          <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem;">
+      <div class="hyg-table-card hyg-table-card--desktop">
+        <div class="table-wrapper">
+          <table class="hyg-table">
             <thead>
-              <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; color:#475569; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.6px;">
-                <th style="padding:14px 16px; width:50px; text-align:center;">No</th>
-                <th style="padding:14px 16px; width:220px;">Ruangan & Zona</th>
-                <th style="padding:14px 16px; width:280px;">Item / Objek Inspeksi</th>
-                <th style="padding:14px 16px;">Standar Kebersihan Fisik</th>
-                ${canEdit ? '<th style="padding:14px 16px; width:100px; text-align:center;">Aksi</th>' : ''}
+              <tr>
+                <th style="width:52px; text-align:center;">No</th>
+                <th style="width:220px;">Ruangan &amp; Zona</th>
+                <th style="width:280px;">Item / Objek Inspeksi</th>
+                <th>Standar Kebersihan Fisik</th>
+                ${canEdit || canDelete ? '<th style="width:96px; text-align:center;">Aksi</th>' : ''}
               </tr>
             </thead>
             <tbody>
               ${items.map((item, idx) => {
                 const zInfo = getZoneForRoom(item.room_name);
                 return `
-                  <tr style="border-bottom:1px solid #F1F5F9; transition:background-color 0.15s ease;" onmouseover="this.style.backgroundColor='#F8FAFC'" onmouseout="this.style.backgroundColor='transparent'">
-                    <td style="padding:14px 16px; text-align:center; color:var(--text-3); font-weight:600; font-size:0.85rem;">
-                      ${idx + 1}
+                  <tr class="hygiene-std-row">
+                    <td class="hyg-col-no">${idx + 1}</td>
+                    <td class="hyg-col-room">
+                      <span class="hyg-room-badge">${escapeHtml(item.room_name)}</span>
+                      <div class="hyg-zone-meta">${escapeHtml(zInfo.zoneName)}</div>
                     </td>
-                    <td style="padding:14px 16px; vertical-align:top;">
-                      <div style="margin-bottom:4px;">
-                        <span style="display:inline-flex; align-items:center; gap:6px; background:${zInfo.bg}; color:${zInfo.color}; border:1px solid ${zInfo.border}; padding:4px 10px; border-radius:6px; font-weight:700; font-size:0.83rem;">
-                          <span>${zInfo.icon}</span> ${item.room_name}
-                        </span>
-                      </div>
-                      <div style="font-size:0.75rem; color:var(--text-3); font-weight:500;">
-                        ${zInfo.zoneName}
-                      </div>
+                    <td class="hyg-col-item">
+                      <div class="hyg-item-title">${escapeHtml(item.item_name)}</div>
                     </td>
-                    <td style="padding:14px 16px; vertical-align:top;">
-                      <div style="font-weight:700; color:var(--text-1); line-height:1.45; font-size:0.9rem;">
-                        ${item.item_name}
+                    <td class="hyg-col-std">
+                      <div class="hyg-std-box">
+                        <span class="hyg-std-check" aria-hidden="true">✓</span>
+                        <span class="hyg-std-text">${escapeHtml(item.cleanliness_standard)}</span>
                       </div>
                     </td>
-                    <td style="padding:14px 16px; vertical-align:top;">
-                      <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-left:3px solid #10B981; border-radius:6px; padding:10px 12px; line-height:1.55; color:#334155; font-size:0.875rem;">
-                        <span style="color:#059669; font-weight:700; margin-right:4px;">✓</span> ${item.cleanliness_standard}
-                      </div>
-                    </td>
-                    ${canEdit ? `
-                      <td style="padding:14px 16px; text-align:center; vertical-align:middle;">
-                        <div style="display:inline-flex; gap:6px;">
-                          <button class="btn btn-sm btn-ghost btn-edit-item" data-id="${item.id}" title="Edit Parameter" style="padding:6px 8px; border-radius:6px; color:#2563EB; cursor:pointer;">
-                            ✏️
-                          </button>
-                          <button class="btn btn-sm btn-ghost btn-delete-item" data-id="${item.id}" data-name="${item.item_name}" title="Hapus Parameter" style="padding:6px 8px; border-radius:6px; color:#DC2626; cursor:pointer;">
-                            🗑️
-                          </button>
-                        </div>
+                    ${canEdit || canDelete ? `
+                      <td class="hyg-col-actions">
+                        ${renderHygieneActionButtons(item, canEdit, canDelete, false)}
                       </td>
                     ` : ''}
                   </tr>
@@ -422,6 +453,7 @@ export async function renderHygieneStandards(container) {
           </table>
         </div>
       </div>
+      ${renderHygieneMobileCards(items, { includeRoom: true, canEdit, canDelete })}
     `;
 
     attachActionButtons(viewContainer);
@@ -442,73 +474,55 @@ export async function renderHygieneStandards(container) {
     });
 
     viewContainer.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:24px;">
+      <div class="hyg-zone-list">
         ${Object.entries(grouped).map(([zoneName, zGroup]) => {
           const totalInZone = Object.values(zGroup.rooms).reduce((acc, arr) => acc + arr.length, 0);
           return `
-            <div class="card" style="background:#fff; border:1px solid ${zGroup.info.border}; border-radius:14px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
-              <!-- Zone Card Header -->
-              <div style="background:${zGroup.info.bg}; border-bottom:1px solid ${zGroup.info.border}; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <span style="font-size:1.4rem;">${zGroup.info.icon}</span>
-                  <div>
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:${zGroup.info.color};">
-                      ${zoneName}
-                    </h3>
-                    <div style="font-size:0.78rem; color:${zGroup.info.color}; opacity:0.85;">
-                      ${Object.keys(zGroup.rooms).length} Ruangan · ${totalInZone} Parameter Standar
-                    </div>
+            <div class="hyg-zone-card">
+              <div class="hyg-zone-card-header">
+                <div>
+                  <h3 class="hyg-zone-card-title">${escapeHtml(zoneName)}</h3>
+                  <div class="hyg-zone-card-sub">
+                    ${Object.keys(zGroup.rooms).length} Ruangan · ${totalInZone} Parameter Standar
                   </div>
                 </div>
-                <span class="badge" style="background:#fff; color:${zGroup.info.color}; border:1px solid ${zGroup.info.border}; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.8rem;">
-                  ${totalInZone} Parameter
-                </span>
+                <span class="badge badge-primary">${totalInZone} Parameter</span>
               </div>
 
-              <!-- Zone Rooms List -->
-              <div style="padding:16px 20px;">
+              <div class="hyg-zone-card-body">
                 ${Object.entries(zGroup.rooms).map(([roomName, rItems]) => `
-                  <div style="margin-bottom:20px; last-child:margin-bottom:0;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                      <h4 style="margin:0; font-size:0.95rem; font-weight:700; color:var(--text-1);">
-                        🚪 ${roomName}
-                      </h4>
-                      <span class="badge badge-sm" style="background:#F1F5F9; color:var(--text-3); font-size:0.75rem;">
-                        ${rItems.length} item
-                      </span>
+                  <div class="hyg-room-block">
+                    <div class="hyg-room-block-head">
+                      <h4 class="hyg-room-block-title">${escapeHtml(roomName)}</h4>
+                      <span class="badge badge-secondary">${rItems.length} item</span>
                     </div>
 
-                    <div style="border:1px solid #E2E8F0; border-radius:8px; overflow:hidden;">
-                      <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
+                    <div class="hyg-zone-table-wrap hyg-zone-table-wrap--desktop">
+                      <table class="hyg-table hyg-table--compact">
                         <thead>
-                          <tr style="background:#F8FAFC; border-bottom:1px solid #E2E8F0; color:#475569; font-size:0.75rem; text-transform:uppercase;">
-                            <th style="padding:8px 12px; width:40px; text-align:center;">No</th>
-                            <th style="padding:8px 12px; width:260px;">Item / Objek Inspeksi</th>
-                            <th style="padding:8px 12px;">Standar Kebersihan Fisik</th>
-                            ${canEdit ? '<th style="padding:8px 12px; width:80px; text-align:center;">Aksi</th>' : ''}
+                          <tr>
+                            <th style="width:44px; text-align:center;">No</th>
+                            <th style="width:260px;">Item / Objek Inspeksi</th>
+                            <th>Standar Kebersihan Fisik</th>
+                            ${canEdit || canDelete ? '<th style="width:86px; text-align:center;">Aksi</th>' : ''}
                           </tr>
                         </thead>
                         <tbody>
                           ${rItems.map((item, idx) => `
-                            <tr style="border-bottom:1px solid #F1F5F9;">
-                              <td style="padding:10px 12px; text-align:center; color:var(--text-3); font-size:0.8rem;">
-                                ${idx + 1}
+                            <tr class="hygiene-std-row">
+                              <td class="hyg-col-no">${idx + 1}</td>
+                              <td class="hyg-col-item">
+                                <div class="hyg-item-title">${escapeHtml(item.item_name)}</div>
                               </td>
-                              <td style="padding:10px 12px; font-weight:600; color:var(--text-1); vertical-align:top;">
-                                ${item.item_name}
-                              </td>
-                              <td style="padding:10px 12px; vertical-align:top; color:#334155;">
-                                <div style="display:flex; align-items:flex-start; gap:6px;">
-                                  <span style="color:#10B981; font-weight:700;">✓</span>
-                                  <span>${item.cleanliness_standard}</span>
+                              <td class="hyg-col-std">
+                                <div class="hyg-std-inline">
+                                  <span class="hyg-std-check" aria-hidden="true">✓</span>
+                                  <span class="hyg-std-text">${escapeHtml(item.cleanliness_standard)}</span>
                                 </div>
                               </td>
-                              ${canEdit ? `
-                                <td style="padding:10px 12px; text-align:center; vertical-align:middle;">
-                                  <div style="display:inline-flex; gap:4px;">
-                                    <button class="btn btn-sm btn-ghost btn-edit-item" data-id="${item.id}" title="Edit" style="padding:4px 6px; cursor:pointer;">✏️</button>
-                                    <button class="btn btn-sm btn-ghost btn-delete-item" data-id="${item.id}" data-name="${item.item_name}" title="Hapus" style="padding:4px 6px; color:#DC2626; cursor:pointer;">🗑️</button>
-                                  </div>
+                              ${canEdit || canDelete ? `
+                                <td class="hyg-col-actions">
+                                  ${renderHygieneActionButtons(item, canEdit, canDelete, true)}
                                 </td>
                               ` : ''}
                             </tr>
@@ -516,6 +530,7 @@ export async function renderHygieneStandards(container) {
                         </tbody>
                       </table>
                     </div>
+                    ${renderHygieneMobileCards(rItems, { includeRoom: false, canEdit, canDelete })}
                   </div>
                 `).join('')}
               </div>
@@ -541,6 +556,10 @@ export async function renderHygieneStandards(container) {
     // Delete item
     viewContainer.querySelectorAll('.btn-delete-item').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (!canDelete) {
+          toastError('Hanya Superadmin yang dapat menghapus parameter standar.');
+          return;
+        }
         const id = btn.dataset.id;
         const name = btn.dataset.name;
         confirmDialog(`Yakin ingin menghapus parameter standar <strong>"${name}"</strong>?`, async () => {
@@ -570,9 +589,9 @@ export async function renderHygieneStandards(container) {
       <form id="form-hygiene-item" style="display:flex; flex-direction:column; gap:16px;">
         <div>
           <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-1); margin-bottom:6px;">
-            Ruangan / Lokasi <span style="color:#DC2626;">*</span>
+            Ruangan / Lokasi <span class="required">*</span>
           </label>
-          <input type="text" id="modal-room-name" list="room-suggestions" class="form-control" placeholder="Contoh: Ruang Tindakan, Lobby 1, Toilet 1..." value="${item?.room_name || ''}" required style="width:100%; height:40px; border-radius:8px;">
+          <input type="text" id="modal-room-name" list="room-suggestions" class="form-control" value="${item?.room_name || ''}" required style="width:100%; height:40px; border-radius:8px;">
           <datalist id="room-suggestions">
             ${allRooms.map(r => `<option value="${r}">`).join('')}
           </datalist>
@@ -580,15 +599,15 @@ export async function renderHygieneStandards(container) {
         </div>
         <div>
           <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-1); margin-bottom:6px;">
-            Item / Objek Inspeksi <span style="color:#DC2626;">*</span>
+            Item / Objek Inspeksi <span class="required">*</span>
           </label>
-          <input type="text" id="modal-item-name" class="form-control" placeholder="Contoh: Eksterior Dental Unit & Kursi, Lantai & Sudut..." value="${item?.item_name || ''}" required style="width:100%; height:40px; border-radius:8px;">
+          <input type="text" id="modal-item-name" class="form-control" value="${item?.item_name || ''}" required style="width:100%; height:40px; border-radius:8px;">
         </div>
         <div>
           <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-1); margin-bottom:6px;">
-            Standar Kebersihan Fisik <span style="color:#DC2626;">*</span>
+            Standar Kebersihan Fisik <span class="required">*</span>
           </label>
-          <textarea id="modal-standard" class="form-control" rows="4" placeholder="Deskripsi kondisi fisik kebersihan yang dipersyaratkan..." required style="width:100%; border-radius:8px; line-height:1.5;">${item?.cleanliness_standard || ''}</textarea>
+          <textarea id="modal-standard" class="form-control" rows="4" required style="width:100%; border-radius:8px; line-height:1.5;">${item?.cleanliness_standard || ''}</textarea>
           <span style="font-size:0.75rem; color:var(--text-3); margin-top:4px; display:block;">Jelaskan kriteria fisik: bebas debu kasat mata, steril, tidak licin, tidak berbau, dll.</span>
         </div>
       </form>
@@ -676,7 +695,8 @@ export async function renderHygieneStandards(container) {
       <body>
         <div class="no-print" style="background:#fef3c7; border:1px solid #f59e0b; padding:10px 14px; border-radius:6px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
           <span style="font-size:9pt; color:#92400e;">💡 <strong>Format Cetak SOP Standar Kebersihan Fisik FCMS</strong>. Siap dicetak untuk display janitor atau arsip operasional.</span>
-          <button onclick="window.print()" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">Cetak Sekarang</button>
+          <button id="hygiene-print-now-btn" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">Cetak Sekarang</button>
+          <script>document.getElementById('hygiene-print-now-btn')?.addEventListener('click', function(){ window.print(); });</script>
         </div>
 
         <div class="header">
@@ -753,21 +773,26 @@ export async function renderHygieneStandards(container) {
     printWindow.document.close();
   }
 
-  function exportExcel() {
-    const data = allItems.map((item, idx) => {
-      const zInfo = getZoneForRoom(item.room_name);
-      return {
-        'No': idx + 1,
-        'Kategori Zona': zInfo.zoneName,
-        'Ruangan / Lokasi': item.room_name,
-        'Item / Objek Inspeksi': item.item_name,
-        'Standar Kebersihan Fisik': item.cleanliness_standard
-      };
-    });
+  async function exportExcel() {
+    try {
+      const rows = await fetchExportRows('/api/hygiene-standards/export', {});
+      const data = rows.map((item, idx) => {
+        const zInfo = getZoneForRoom(item.room_name);
+        return {
+          'No': idx + 1,
+          'Kategori Zona': zInfo.zoneName,
+          'Ruangan / Lokasi': item.room_name,
+          'Item / Objek Inspeksi': item.item_name,
+          'Standar Kebersihan Fisik': item.cleanliness_standard
+        };
+      });
 
-    const dateStr = new Date().toISOString().slice(0, 10);
-    downloadExcel(data, `Master_Standar_Kebersihan_FCMS_${dateStr}`);
-    toastSuccess('Data master kebersihan berhasil diekspor ke Excel');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadExcel(data, `Master_Standar_Kebersihan_FCMS_${dateStr}`);
+      toastSuccess('Data master kebersihan berhasil diekspor ke Excel');
+    } catch (err) {
+      toastError('Gagal mengekspor data: ' + err.message);
+    }
   }
 
   // Event Listeners
@@ -788,23 +813,7 @@ export async function renderHygieneStandards(container) {
       container.querySelectorAll('.zone-tab-btn').forEach(b => {
         const isActive = b.dataset.zone === currentZone;
         b.classList.toggle('active', isActive);
-        if (isActive) {
-          b.style.background = '#2563EB';
-          b.style.color = '#fff';
-          const badge = b.querySelector('.badge');
-          if (badge) {
-            badge.style.background = 'rgba(255,255,255,0.25)';
-            badge.style.color = '#fff';
-          }
-        } else {
-          b.style.background = '#F1F5F9';
-          b.style.color = 'var(--text-2)';
-          const badge = b.querySelector('.badge');
-          if (badge) {
-            badge.style.background = '#CBD5E1';
-            badge.style.color = '#334155';
-          }
-        }
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
       populateRoomFilter();
       renderContent();
@@ -817,19 +826,15 @@ export async function renderHygieneStandards(container) {
 
   viewTableBtn?.addEventListener('click', () => {
     currentView = 'table';
-    viewTableBtn.style.background = '#fff';
-    viewTableBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-    viewZoneBtn.style.background = 'transparent';
-    viewZoneBtn.style.boxShadow = 'none';
+    viewTableBtn.classList.add('active');
+    viewZoneBtn?.classList.remove('active');
     renderContent();
   });
 
   viewZoneBtn?.addEventListener('click', () => {
     currentView = 'zone';
-    viewZoneBtn.style.background = '#fff';
-    viewZoneBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-    viewTableBtn.style.background = 'transparent';
-    viewTableBtn.style.boxShadow = 'none';
+    viewZoneBtn.classList.add('active');
+    viewTableBtn?.classList.remove('active');
     renderContent();
   });
 

@@ -1,20 +1,18 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
-import { getCachedBranches, getCachedEmployees } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployees, fetchAllPaginated, fetchExportRows, clearDataCache } from '../utils/dataCache.js';
 import { createModal } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel, parseExcel } from '../utils/excel.js';
+import { createPagination } from '../components/table.js';
+import { parseValidRowVersion, resolveModalRowVersion, handleOccSaveResponse } from '../utils/occ.js';
+import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
+import { formatDateIndo as sharedFormatDateIndo } from '../utils/sorting.js';
 
 // Helper format tanggal lokal Indonesia
 function formatDateIndo(dateStr) {
   if (!dateStr || dateStr === '-') return '-';
   if (String(dateStr).startsWith('2099')) return 'Tetap / PKWTT';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
+  return sharedFormatDateIndo(dateStr, '-');
 }
 
 // Cek apakah karyawan tetap (PKWTT)
@@ -54,6 +52,7 @@ export function filterDashboardItem(s, type) {
 }
 
 export async function renderContracts(container, params) {
+  const PAGE_LIMIT = 20;
   let contractsList = [];
   let branchOptions = [];
   let employeeOptions = [];
@@ -64,12 +63,23 @@ export async function renderContracts(container, params) {
   let selectedDivision = 'all';
   let selectedStatus = 'all';
   let selectedExpiring = 'all';
+  let selectedMonthExpiry = '';
+  let currentPage = 1;
+  let totalItems = 0;
+  let totalPages = 1;
+  let statsLoaded = false;
+  let serverStats = { total: 0, active: 0, expiring30: 0, permanent: 0, nonactive: 0 };
+  let searchDebounce = null;
   let isLoading = false;
   let viewMode = localStorage.getItem('fcms_contracts_view_mode') || 'card';
 
   // Handle URL dashboard parameter
   const dashFilter = params ? params.get('dash_filter') : null;
-  if (dashFilter === 'expiring30') {
+  const monthExpiryParam = params ? (params.get('month_expiry') || '').trim() : '';
+  if (monthExpiryParam && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthExpiryParam)) {
+    selectedMonthExpiry = monthExpiryParam;
+    selectedStatus = 'Aktif';
+  } else if (dashFilter === 'expiring30') {
     selectedExpiring = '30';
     selectedStatus = 'Aktif';
   } else if (dashFilter === 'active') {
@@ -87,10 +97,13 @@ export async function renderContracts(container, params) {
       getCachedBranches(),
       getCachedEmployees()
     ]);
-    branchOptions = Array.isArray(branches) ? branches : [];
+    const allBranches = Array.isArray(branches) ? branches : [];
+    branchOptions = allBranches.filter(
+      b => String(b.code || '').trim() === '000' || b.branch_scope === 'hq' || /^(?:cabang\s+)?000\.\s*management$/i.test(String(b.label || b.full_name || '').trim())
+    );
     employeeOptions = Array.isArray(employees) ? employees : [];
 
-    // Map phone numbers for direct WhatsApp links
+    // Map phone numbers if present in selector options (fallback; main list gets employee_phone from API)
     employeeOptions.forEach(emp => {
       const id = emp.value !== undefined ? emp.value : emp.id;
       const name = emp.label || emp.full_name;
@@ -105,84 +118,97 @@ export async function renderContracts(container, params) {
     console.error('Error fetching cache options for contracts:', err);
   }
 
-  // Load Contracts data from API
-  async function loadData() {
+  function getActiveFilters() {
+    const filters = { sort: 'start_date_desc' };
+    if (searchQuery.trim()) filters.search = searchQuery.trim();
+    if (selectedBranch && selectedBranch !== 'all') filters.branch_id = selectedBranch;
+    if (selectedDivision && selectedDivision !== 'all') filters.division = selectedDivision;
+    if (selectedStatus && selectedStatus !== 'all') filters.status = selectedStatus;
+    if (selectedExpiring && selectedExpiring !== 'all') filters.expiring_days = selectedExpiring;
+    if (selectedMonthExpiry) filters.month_expiry = selectedMonthExpiry;
+    return filters;
+  }
+
+  function updateStatsUI() {
+    const set = (id, val) => {
+      const el = container.querySelector(id);
+      if (el) el.textContent = val;
+    };
+    set('#con-stat-total', serverStats.total);
+    set('#con-stat-active', serverStats.active);
+    set('#con-stat-expiring', serverStats.expiring30);
+    set('#con-stat-permanent', serverStats.permanent);
+    set('#con-pill-count-all', serverStats.total);
+    set('#con-pill-count-aktif', serverStats.active);
+    set('#con-pill-count-expiring', serverStats.expiring30);
+    set('#con-pill-count-tetap', serverStats.permanent);
+    set('#con-pill-count-nonaktif', serverStats.nonactive);
+  }
+
+  // Load Contracts data from API (Server-Side Pagination)
+  async function loadData({ refreshStats = true } = {}) {
     isLoading = true;
-    renderUI();
+    const hasShell = Boolean(container.querySelector('#con-list-container'));
+    if (!hasShell) {
+      renderUI();
+    } else {
+      const listEl = container.querySelector('#con-list-container');
+      if (listEl) {
+        listEl.innerHTML = '<div class="con-empty-state"><p style="color:#CBD5E1; margin:0;">Memuat data kontrak...</p></div>';
+      }
+    }
     try {
-      const res = await apiFetch('/api/contracts?limit=10000');
+      const qs = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(PAGE_LIMIT),
+        ...getActiveFilters(),
+      });
+      if (refreshStats || !statsLoaded) {
+        qs.set('include_stats', '1');
+      }
+      const res = await apiFetch(`/api/contracts?${qs.toString()}`);
       if (res.ok) {
-        const raw = res.data?.data || res.data || [];
+        const raw = res.data?.data || [];
         contractsList = Array.isArray(raw) ? raw : [];
+        const pag = res.data?.pagination || {};
+        totalItems = Number(pag.total ?? contractsList.length);
+        totalPages = Math.max(1, Number(pag.pages ?? Math.ceil(totalItems / PAGE_LIMIT)) || 1);
+        currentPage = Math.max(1, Number(pag.page ?? currentPage));
+        if (res.data?.stats) {
+          serverStats = res.data.stats;
+          statsLoaded = true;
+        }
+        if (contractsList.length === 0 && currentPage > totalPages) {
+          currentPage = totalPages;
+          isLoading = false;
+          return loadData({ refreshStats });
+        }
       } else {
         contractsList = [];
+        totalItems = 0;
+        totalPages = 1;
         toastError('Gagal memuat data kontrak dari server.');
       }
     } catch (e) {
       console.error('Error load contracts:', e);
       contractsList = [];
+      totalItems = 0;
+      totalPages = 1;
       toastError('Terjadi kesalahan koneksi saat memuat kontrak.');
     } finally {
       isLoading = false;
-      renderUI();
+      if (container.querySelector('#con-list-container')) {
+        updateStatsUI();
+        renderListContent();
+      } else {
+        renderUI();
+      }
     }
   }
 
-  // Filtered List calculation
+  // Filtered List calculation (server already filters & paginates)
   function getFilteredList() {
-    return contractsList.filter(item => {
-      // 1. Text Search (nama karyawan, no pkwt, cabang, catatan, tipe kontrak)
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const empName = String(item.employee_name || '').toLowerCase();
-        const brName = String(item.branch_name || '').toLowerCase();
-        const pkwt = String(item.pkwt_number || '').toLowerCase();
-        const ctype = String(item.contract_type || '').toLowerCase();
-        const notes = String(item.notes || '').toLowerCase();
-        const matches = empName.includes(q) || brName.includes(q) || pkwt.includes(q) || ctype.includes(q) || notes.includes(q);
-        if (!matches) return false;
-      }
-
-      // 2. Branch Filter
-      if (selectedBranch !== 'all' && String(item.branch_id) !== String(selectedBranch)) {
-        return false;
-      }
-
-      // 3. Division Filter
-      if (selectedDivision !== 'all' && item.division !== selectedDivision) {
-        return false;
-      }
-
-      // 4. Status Filter Pills
-      if (selectedStatus === 'Aktif' && item.status !== 'Aktif') return false;
-      if (selectedStatus === 'Expiring30') {
-        const hasEnd = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
-        if (!hasEnd) return false;
-        const tetap = isTetap(item.end_date);
-        const rem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
-        if (item.status !== 'Aktif' || tetap || rem === null || isNaN(rem) || rem < 0 || rem > 30) {
-          return false;
-        }
-      }
-      if (selectedStatus === 'Tetap') {
-        if (!isTetap(item.end_date) || item.status !== 'Aktif') return false;
-      }
-      if (selectedStatus === 'Nonaktif' && item.status === 'Aktif') return false;
-
-      // 5. Expiring Days Select Filter
-      if (selectedExpiring !== 'all') {
-        const hasEnd = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
-        if (!hasEnd) return false;
-        const limitDays = parseInt(selectedExpiring, 10);
-        const tetap = isTetap(item.end_date);
-        const rem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
-        if (tetap || item.status !== 'Aktif' || rem === null || isNaN(rem) || rem < 0 || rem > limitDays) {
-          return false;
-        }
-      }
-
-      return true;
-    });
+    return contractsList;
   }
 
   // Cek Selisih Karyawan (Karyawan Aktif yang tidak punya Kontrak Aktif)
@@ -192,20 +218,17 @@ export async function renderContracts(container, params) {
       content: `
         <div style="text-align:center; padding:24px 10px;">
           <div style="font-size:2rem; margin-bottom:10px;">⏳</div>
-          <p style="color:#64748B; font-size:0.9rem;">Sedang menyinkronkan data karyawan aktif dengan kontrak aktif di database...</p>
+          <p style="color:#CBD5E1; font-size:0.9rem;">Sedang menyinkronkan data karyawan aktif dengan kontrak aktif di database...</p>
         </div>
       `,
       cancelText: 'Tutup'
     });
 
     try {
-      const [empRes, conRes] = await Promise.all([
-        apiFetch('/api/employees?limit=10000&status=Aktif'),
-        apiFetch('/api/contracts?limit=10000')
+      const [activeEmployees, allContracts] = await Promise.all([
+        fetchAllPaginated('/api/employees/selector', { status: 'Aktif' }),
+        fetchAllPaginated('/api/contracts', {})
       ]);
-
-      const activeEmployees = empRes.ok ? (empRes.data?.data || empRes.data || []) : [];
-      const allContracts = conRes.ok ? (conRes.data?.data || conRes.data || []) : [];
 
       const activeContractEmpIds = new Set(
         allContracts.filter(c => c.status === 'Aktif').map(c => c.employee_id)
@@ -218,8 +241,8 @@ export async function renderContracts(container, params) {
         contentHtml = `
           <div style="text-align:center; padding:20px 10px;">
             <div style="font-size:2.8rem; margin-bottom:10px;">🎉</div>
-            <h4 style="font-size:1.1rem; font-weight:800; color:#10B981; margin:0 0 8px 0;">Semua Karyawan Aktif Memiliki Kontrak!</h4>
-            <p style="font-size:0.86rem; color:#64748B; margin:0;">
+            <h4 style="font-size:1.1rem; font-weight:800; color:#34D399; margin:0 0 8px 0;">Semua Karyawan Aktif Memiliki Kontrak!</h4>
+            <p style="font-size:0.86rem; color:#CBD5E1; margin:0;">
               Total <strong>${activeEmployees.length}</strong> karyawan aktif tercatat memiliki perikatan kontrak aktif yang sah di sistem.
             </p>
           </div>
@@ -227,25 +250,25 @@ export async function renderContracts(container, params) {
       } else {
         contentHtml = `
           <div style="display:flex; flex-direction:column; gap:12px;">
-            <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:12px; font-size:0.84rem; color:#991B1B;">
+            <div style="background:rgba(239,68,68,0.16); border:1px solid rgba(248,113,113,0.35); border-radius:10px; padding:12px; font-size:0.84rem; color:#FCA5A5;">
               Ditemukan <strong>${missing.length}</strong> dari <strong>${activeEmployees.length}</strong> karyawan aktif yang <strong>belum memiliki Kontrak Aktif</strong>.
             </div>
             <div style="max-height:360px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:4px;">
               ${missing.map(m => {
                 const pastContracts = allContracts.filter(c => c.employee_id === m.id);
-                let historyText = '<span style="color:#D97706; font-weight:600;">Belum pernah ada data kontrak</span>';
+                let historyText = '<span style="color:#FCD34D; font-weight:600;">Belum pernah ada data kontrak</span>';
                 if (pastContracts.length > 0) {
                   const last = pastContracts[0];
                   historyText = `Riwayat: Status <strong>${last.status}</strong> (Selesai: ${formatDateIndo(last.end_date)})`;
                 }
                 return `
-                  <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                  <div style="background:#131F36; border:1px solid #223456; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div>
-                      <div style="font-weight:700; font-size:0.88rem; color:#0F172A;">${m.full_name}</div>
-                      <div style="font-size:0.76rem; color:#64748B;">
+                      <div style="font-weight:700; font-size:0.88rem; color:#F8FAFC;">${m.full_name}</div>
+                      <div style="font-size:0.76rem; color:#CBD5E1;">
                         Cabang: ${m.branch_name || '-'} • Divisi: ${m.division || 'FACILITY CARE'}
                       </div>
-                      <div style="font-size:0.75rem; color:#475569; margin-top:2px;">
+                      <div style="font-size:0.75rem; color:#94A3B8; margin-top:2px;">
                         ${historyText}
                       </div>
                     </div>
@@ -336,6 +359,7 @@ export async function renderContracts(container, params) {
       return;
     }
     const isEdit = !!(item && item.id);
+    const editRowVersion = isEdit ? parseValidRowVersion(item?.row_version) : null;
     const modalTitle = isEdit ? `✏️ Edit Kontrak: ${item.employee_name || 'Karyawan'}` : '➕ Tambah Kontrak Karyawan Baru';
 
     const defaultEmpId = item?.employee_id || '';
@@ -372,27 +396,17 @@ export async function renderContracts(container, params) {
 
     const contentHtml = `
       <div style="display:flex; flex-direction:column; gap:14px;">
+        ${isEdit ? `<input type="hidden" id="con-modal-row-version" value="${editRowVersion !== null ? editRowVersion : ''}">` : ''}
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Nama Karyawan <span style="color:#DC2626;">*</span>
             </label>
-            <select id="con-modal-employee" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
-              <option value="">-- Pilih Karyawan --</option>
-              ${employeeOptions.map(e => {
-                const empId = e.value !== undefined ? e.value : e.id;
-                const empName = e.label || e.full_name || 'Karyawan';
-                const extraInfo = (e.division || e.branch_name) ? ` (${e.division || 'FC'} - ${e.branch_name || 'Cabang -'})` : '';
-                return `
-                <option value="${empId}" ${String(defaultEmpId) === String(empId) ? 'selected' : ''}>
-                  ${empName}${extraInfo}
-                </option>
-              `;}).join('')}
-            </select>
+            <div id="con-modal-emp-mount"></div>
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Cabang Penempatan <span style="color:#DC2626;">*</span>
             </label>
             <select id="con-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -408,18 +422,17 @@ export async function renderContracts(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Divisi / Bagian <span style="color:#DC2626;">*</span>
             </label>
             <select id="con-modal-division" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
               <option value="FACILITY CARE" ${defaultDivision === 'FACILITY CARE' ? 'selected' : ''}>FACILITY CARE</option>
               <option value="SECURITY" ${defaultDivision === 'SECURITY' ? 'selected' : ''}>SECURITY</option>
-              <option value="FC - RELIEFER" ${defaultDivision === 'FC - RELIEFER' ? 'selected' : ''}>FC - RELIEFER</option>
             </select>
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Status Kontrak <span style="color:#DC2626;">*</span>
             </label>
             <select id="con-modal-status" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -433,7 +446,7 @@ export async function renderContracts(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tipe / Durasi Kontrak
             </label>
             <select id="con-modal-type" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">
@@ -445,7 +458,7 @@ export async function renderContracts(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tingkat / No. PKWT
             </label>
             <select id="con-modal-pkwt" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">
@@ -462,7 +475,7 @@ export async function renderContracts(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Mulai Kontrak
             </label>
             <input type="date" id="con-modal-start" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -470,14 +483,14 @@ export async function renderContracts(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Selesai Kontrak
             </label>
-            <input type="date" id="con-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; ${defaultIsTetap ? 'opacity:0.5; background-color:#F8FAFC; cursor:not-allowed;' : 'background-color:#FFFFFF;'}" 
+            <input type="date" id="con-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; ${defaultIsTetap ? 'opacity:0.5; background-color:#0E182B; cursor:not-allowed;' : 'background-color:#0E182B;'}" 
               value="${defaultEndDate}" ${defaultIsTetap ? 'disabled' : ''} />
             <div style="margin-top:6px; display:flex; align-items:center; gap:6px;">
               <input type="checkbox" id="con-modal-is-tetap" ${defaultIsTetap ? 'checked' : ''} style="cursor:pointer;" />
-              <label for="con-modal-is-tetap" style="font-size:0.78rem; color:#475569; cursor:pointer; user-select:none;">
+              <label for="con-modal-is-tetap" style="font-size:0.78rem; color:var(--text-2); cursor:pointer; user-select:none;">
                 Karyawan Tetap / PKWTT (Tanpa Batas Tanggal)
               </label>
             </div>
@@ -485,22 +498,53 @@ export async function renderContracts(container, params) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Catatan Tambahan
           </label>
-          <textarea id="con-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; resize:vertical;" 
-            placeholder="Keterangan perpanjangan, klausul khusus, atau nomor SK...">${defaultNotes}</textarea>
+          <textarea id="con-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; resize:vertical;">${defaultNotes}</textarea>
         </div>
       </div>
     `;
 
+    const contentEl = document.createElement('div');
+    contentEl.innerHTML = contentHtml;
+
+    const empCombobox = mountEmployeeCombobox(contentEl.querySelector('#con-modal-emp-mount'), {
+      mode: 'single',
+      inputId: 'con-modal-employee',
+      inputName: 'employee_name',
+      placeholder: '',
+      required: true,
+      allowManual: true,
+      hasEmployeeIdSchema: true,
+      manualBadgeText: 'Belum terhubung ke Master Karyawan',
+      employees: employeeOptions,
+      initialEmployeeId: defaultEmpId || null,
+      initialEmployeeName: item?.employee_name || '',
+      onChange: (sel) => {
+        if (!isEdit && sel?.employee_id) {
+          const empRow = employeeOptions.find(e => Number(e.value ?? e.id) === Number(sel.employee_id));
+          if (empRow) {
+            const branchSel = contentEl.querySelector('#con-modal-branch');
+            const divSel = contentEl.querySelector('#con-modal-division');
+            if (branchSel && !branchSel.value && empRow.branch_id) branchSel.value = String(empRow.branch_id);
+            if (divSel && empRow.division) divSel.value = empRow.division;
+          }
+        }
+      },
+    });
+
+    let isSubmitting = false;
+
     const modalObj = createModal({
       title: modalTitle,
-      content: contentHtml,
+      content: contentEl,
       confirmText: isEdit ? '💾 Simpan Perubahan' : '➕ Tambah Kontrak',
       cancelText: 'Batal',
       onConfirm: async (modalEl, close) => {
-        const empEl = modalEl.querySelector('#con-modal-employee');
+        if (isSubmitting) return;
+        const empSelection = empCombobox.getValue();
+        const empEl = empCombobox.inputEl;
         const branchEl = modalEl.querySelector('#con-modal-branch');
         const divEl = modalEl.querySelector('#con-modal-division');
         const statusEl = modalEl.querySelector('#con-modal-status');
@@ -511,7 +555,8 @@ export async function renderContracts(container, params) {
         const pkwtEl = modalEl.querySelector('#con-modal-pkwt');
         const notesEl = modalEl.querySelector('#con-modal-notes');
 
-        const employee_id = empEl?.value;
+        const employee_id = empSelection.employee_id;
+        const employee_name = (empSelection.employee_name || '').trim();
         const branch_id = branchEl?.value;
         const division = divEl?.value || 'FACILITY CARE';
         const status = statusEl?.value || 'Aktif';
@@ -524,8 +569,8 @@ export async function renderContracts(container, params) {
         const pkwt_number = pkwtEl?.value;
         const notes = notesEl?.value?.trim() || null;
 
-        if (!employee_id) {
-          toastError('Harap pilih nama karyawan!');
+        if (!employee_name) {
+          toastError('Harap pilih atau ketik nama karyawan!');
           empEl?.focus();
           return;
         }
@@ -540,8 +585,18 @@ export async function renderContracts(container, params) {
           return;
         }
 
+        let rowVersion = null;
+        if (isEdit) {
+          rowVersion = resolveModalRowVersion(modalEl, '#con-modal-row-version', item?.row_version);
+          if (rowVersion === null) {
+            toastError('Versi data kontrak (row_version) tidak tersedia. Silakan muat ulang halaman lalu coba lagi.');
+            return;
+          }
+        }
+
         const payload = {
-          employee_id: parseInt(employee_id, 10),
+          employee_id: employee_id ? parseInt(employee_id, 10) : null,
+          employee_name,
           branch_id: parseInt(branch_id, 10),
           division,
           status,
@@ -549,9 +604,11 @@ export async function renderContracts(container, params) {
           end_date,
           contract_type,
           pkwt_number,
-          notes
+          notes,
+          ...(isEdit ? { row_version: rowVersion } : {})
         };
 
+        isSubmitting = true;
         try {
           const url = isEdit ? `/api/contracts/${item.id}` : '/api/contracts';
           const method = isEdit ? 'PUT' : 'POST';
@@ -561,17 +618,24 @@ export async function renderContracts(container, params) {
             body: JSON.stringify(payload)
           });
 
-          if (res.ok) {
-            toastSuccess(isEdit ? 'Data kontrak berhasil diperbarui!' : 'Kontrak baru berhasil ditambahkan!');
-            close();
-            await loadData();
-          } else {
-            const errData = res.data?.error || res.data?.message || 'Gagal menyimpan data kontrak.';
-            toastError(errData);
-          }
+          await handleOccSaveResponse({
+            res,
+            isEdit,
+            item,
+            close,
+            reloadData: async () => {
+              clearDataCache();
+              await loadData();
+            },
+            editSuccessMessage: 'Data kontrak berhasil diperbarui!',
+            createSuccessMessage: 'Kontrak baru berhasil ditambahkan!',
+            defaultErrorMessage: 'Gagal menyimpan data kontrak.',
+          });
         } catch (err) {
           console.error(err);
           toastError('Terjadi kesalahan koneksi ke server.');
+        } finally {
+          isSubmitting = false;
         }
       }
     });
@@ -666,9 +730,9 @@ export async function renderContracts(container, params) {
     createModal({
       title: '🗑️ Hapus Data Kontrak',
       content: `
-        <div style="font-size:0.92rem; color:#334155; line-height:1.5;">
+        <div style="font-size:0.92rem; color:var(--text-1); line-height:1.5;">
           Apakah Anda yakin ingin menghapus catatan kontrak untuk <strong>${item.employee_name || 'karyawan ini'}</strong> (ID #${item.id})?
-          <div style="margin-top:10px; padding:10px; background:#FEF2F2; border-radius:8px; border:1px solid #FECACA; font-size:0.8rem; color:#991B1B;">
+          <div style="margin-top:10px; padding:10px; background:rgba(239,68,68,0.16); border-radius:8px; border:1px solid rgba(248,113,113,0.35); font-size:0.8rem; color:#FCA5A5;">
             ⚠️ Tindakan ini akan menghapus riwayat masa berlaku kontrak terkait dari sistem.
           </div>
         </div>
@@ -693,53 +757,418 @@ export async function renderContracts(container, params) {
     });
   }
 
-  // Ekspor Excel
-  function exportToExcel() {
+  // Ekspor Excel (seluruh hasil filter aktif lintas halaman via /api/contracts/export)
+  async function exportToExcel() {
     if (!hasPermission(currentUser, 'export')) {
       toastError('Anda tidak memiliki izin untuk mengekspor data.');
       return;
     }
-    if (!contractsList.length) {
-      toastError('Belum ada data kontrak untuk diekspor.');
-      return;
+    try {
+      const rows = await fetchExportRows('/api/contracts/export', getActiveFilters());
+      if (!rows.length) {
+        toastError('Belum ada data kontrak untuk diekspor.');
+        return;
+      }
+      const exportData = rows.map(c => {
+        const tetap = isTetap(c.end_date);
+        const hasEnd = Boolean(c.end_date && String(c.end_date).trim() && c.end_date !== '-');
+        const rem = c.days_remaining !== null && c.days_remaining !== undefined && c.days_remaining !== '' ? Number(c.days_remaining) : null;
+        return {
+          'Nama Lengkap': c.employee_name || '',
+          'Cabang': c.branch_name || '',
+          'Divisi': c.division || '',
+          'No. PKWT': c.pkwt_number || '',
+          'Tipe Kontrak': c.contract_type || '',
+          'Tanggal Mulai': c.start_date || '',
+          'Tanggal Selesai': tetap ? 'Tetap / PKWTT' : (hasEnd ? c.end_date : '-'),
+          'Sisa Hari': tetap ? 'Tetap' : (hasEnd && rem !== null && !isNaN(rem) ? rem + ' Hari' : '-'),
+          'Status': c.status || '',
+          'Catatan': c.notes || ''
+        };
+      });
+      downloadExcel(exportData, `Data_Kontrak_Karyawan_${new Date().toISOString().slice(0, 10)}`);
+      toastSuccess('File Excel Data Kontrak berhasil diunduh!');
+    } catch (err) {
+      toastError('Gagal mengekspor data kontrak: ' + err.message);
     }
-    const exportData = contractsList.map(c => {
-      const tetap = isTetap(c.end_date);
-      const hasEnd = Boolean(c.end_date && String(c.end_date).trim() && c.end_date !== '-');
-      const rem = c.days_remaining !== null && c.days_remaining !== undefined && c.days_remaining !== '' ? Number(c.days_remaining) : null;
-      return {
-        'Nama Lengkap': c.employee_name || '',
-        'Cabang': c.branch_name || '',
-        'Divisi': c.division || '',
-        'No. PKWT': c.pkwt_number || '',
-        'Tipe Kontrak': c.contract_type || '',
-        'Tanggal Mulai': c.start_date || '',
-        'Tanggal Selesai': tetap ? 'Tetap / PKWTT' : (hasEnd ? c.end_date : '-'),
-        'Sisa Hari': tetap ? 'Tetap' : (hasEnd && rem !== null && !isNaN(rem) ? rem + ' Hari' : '-'),
-        'Status': c.status || '',
-        'Catatan': c.notes || ''
-      };
-    });
-    downloadExcel(exportData, `Data_Kontrak_Karyawan_${new Date().toISOString().slice(0, 10)}`);
-    toastSuccess('File Excel Data Kontrak berhasil diunduh!');
   }
 
+
+  // Render only the filtered list content HTML (Card / Table / Empty State)
+  function buildListHTML(filtered) {
+    if (filtered.length === 0) {
+      return `
+            <div class="con-empty-state">
+              <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
+              <h3 style="font-size:1.15rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak ada kontrak yang sesuai kriteria</h3>
+              <p style="font-size:0.85rem; color:#94A3B8; margin:0 0 16px 0;">Coba atur ulang kata kunci pencarian, filter cabang, atau filter masa berlaku kontrak.</p>
+              <button id="con-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
+            </div>
+      `;
+    }
+
+    if (viewMode === 'table') {
+      return `
+            <div class="con-table-card">
+              <div class="con-table-responsive">
+                <table class="con-table">
+                  <thead>
+                    <tr>
+                      <th style="width:45px; text-align:center;">No</th>
+                      <th>Nama Karyawan</th>
+                      <th>Cabang & Divisi</th>
+                      <th style="text-align:center;">Tingkat PKWT</th>
+                      <th>Mulai Kontrak</th>
+                      <th>Selesai Kontrak</th>
+                      <th>Masa Berlaku</th>
+                      <th style="text-align:center;">Status</th>
+                      <th style="width:110px; text-align:center;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.map((item, idx) => {
+                      const div = item.division || 'FACILITY CARE';
+                      let divClass = 'con-div-fc';
+                      let avatarClass = '';
+                      if (div === 'SECURITY') {
+                        divClass = 'con-div-sec';
+                        avatarClass = 'sec';
+                      }
+
+                      const hasEndDate = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
+                      const tetap = isTetap(item.end_date);
+                      const isAktif = item.status === 'Aktif';
+                      const rawRem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
+                      const rem = (hasEndDate && !tetap && rawRem !== null && !isNaN(rawRem)) ? rawRem : null;
+
+                      let statusBadgeClass = 'con-status-aktif';
+                      let statusBadgeText = '🟢 Aktif';
+
+                      if (tetap) {
+                        statusBadgeClass = 'con-status-tetap';
+                        statusBadgeText = '🏛️ PKWTT (Tetap)';
+                      } else if (isAktif) {
+                        if (rem !== null) {
+                          if (rem <= 0) {
+                            statusBadgeClass = 'con-status-danger';
+                            statusBadgeText = '⚠️ Habis Hari Ini';
+                          } else if (rem <= 30) {
+                            statusBadgeClass = 'con-status-warning';
+                            statusBadgeText = `⚠️ Sisa ${rem} Hari`;
+                          } else {
+                            statusBadgeClass = 'con-status-aktif';
+                            statusBadgeText = `🟢 Aktif (${rem} Hari)`;
+                          }
+                        } else {
+                          statusBadgeClass = 'con-status-aktif';
+                          statusBadgeText = '🟢 Aktif';
+                        }
+                      } else {
+                        statusBadgeClass = 'con-status-danger';
+                        statusBadgeText = `⚪ ${item.status || 'Nonaktif'}`;
+                      }
+
+                      const phone = item.employee_phone || employeePhoneMap[item.employee_id] || employeePhoneMap[String(item.employee_name || '').toLowerCase()] || '';
+
+                      return `
+                        <tr data-id="${item.id}">
+                          <td style="text-align:center; color:#94A3B8; font-weight:600;">${((currentPage - 1) * PAGE_LIMIT) + idx + 1}</td>
+                          <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                              <div class="con-avatar ${avatarClass}" style="width:34px; height:34px; font-size:0.75rem;">
+                                ${getInitials(item.employee_name)}
+                              </div>
+                              <div style="min-width:0;">
+                                <div style="font-weight:700; color:#F8FAFC; font-size:0.9rem;">${item.employee_name || 'Karyawan Tanpa Nama'}</div>
+                                <div style="font-size: 0.76rem; color:#94A3B8;">ID #${item.id} ${item.pkwt_number ? '• ' + item.pkwt_number : ''}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div style="display:flex; flex-direction:column; gap:3px;">
+                              <span style="font-weight:600; color:#E2E8F0;">${item.branch_name || 'Semua Cabang'}</span>
+                              <span class="con-div-badge ${divClass}" style="align-self:flex-start;">
+                                ${div === 'SECURITY' ? '🛡️' : '🧹'} ${div}
+                              </span>
+                            </div>
+                          </td>
+                          <td style="text-align:center;">
+                            <span class="con-pkwt-badge" style="display:inline-block;">${item.contract_type || 'PKWT'}</span>
+                          </td>
+                          <td style="font-size:0.84rem; color:#E2E8F0;">
+                            ${formatDateIndo(item.start_date)}
+                          </td>
+                          <td style="font-size:0.84rem; color:#E2E8F0;">
+                            ${tetap ? '<span style="color:#A5B4FC; font-weight:600;">PKWTT (Tetap)</span>' : formatDateIndo(item.end_date)}
+                          </td>
+                          <td>
+                            ${tetap ? '<span style="color:#A5B4FC; font-weight:600; font-size:0.82rem;">🏛️ Tidak Berbatas</span>' : (rem !== null ? (rem <= 0 ? '<span style="color:#FCA5A5; font-weight:700; font-size:0.82rem;">⚠️ Habis Hari Ini</span>' : rem <= 30 ? `<span style="color:#FCD34D; font-weight:700; font-size:0.82rem;">⚠️ Sisa ${rem} Hari</span>` : `<span style="color:#6EE7B7; font-weight:600; font-size:0.82rem;">🟢 ${rem} Hari</span>`) : '<span style="color:#94A3B8; font-size:0.82rem;">-</span>')}
+                          </td>
+                          <td style="text-align:center;">
+                            <span class="con-status-badge ${statusBadgeClass}">${statusBadgeText}</span>
+                          </td>
+                          <td style="text-align:center;">
+                            <div class="con-action-btns" style="justify-content:center;">
+                              ${phone ? `
+                                <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" class="con-icon-btn" title="Chat WhatsApp Karyawan" style="color:#16A34A;">
+                                  <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.185 1.564 5.939l-1.564 5.717 5.864-1.538c1.691.924 3.63 1.458 5.698 1.458 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/></svg>
+                                </a>
+                              ` : ''}
+                              ${canEdit ? `
+                                <button class="con-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Kontrak">
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                              ` : ''}
+                              ${canDelete ? `
+                                <button class="con-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Kontrak">
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                </button>
+                              ` : ''}
+                            </div>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+      `;
+    }
+
+    return `
+          <div class="con-cards-grid">
+            ${filtered.map(item => {
+              const div = item.division || 'FACILITY CARE';
+              let divClass = 'con-div-fc';
+              let avatarClass = '';
+              if (div === 'SECURITY') {
+                divClass = 'con-div-sec';
+                avatarClass = 'sec';
+              }
+
+              const hasEndDate = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
+              const tetap = isTetap(item.end_date);
+              const isAktif = item.status === 'Aktif';
+              const rawRem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
+              const rem = (hasEndDate && !tetap && rawRem !== null && !isNaN(rawRem)) ? rawRem : null;
+
+              let statusBadgeClass = 'con-status-aktif';
+              let statusBadgeText = '🟢 Aktif';
+
+              if (tetap) {
+                statusBadgeClass = 'con-status-tetap';
+                statusBadgeText = '🏛️ PKWTT (Tetap)';
+              } else if (isAktif) {
+                if (rem !== null) {
+                  if (rem <= 0) {
+                    statusBadgeClass = 'con-status-danger';
+                    statusBadgeText = '⚠️ Habis Hari Ini';
+                  } else if (rem <= 30) {
+                    statusBadgeClass = 'con-status-warning';
+                    statusBadgeText = `⚠️ Sisa ${rem} Hari`;
+                  } else {
+                    statusBadgeClass = 'con-status-aktif';
+                    statusBadgeText = `🟢 Aktif (${rem} Hari)`;
+                  }
+                } else {
+                  statusBadgeClass = 'con-status-aktif';
+                  statusBadgeText = '🟢 Aktif';
+                }
+              } else {
+                statusBadgeClass = 'con-status-danger';
+                statusBadgeText = `⚪ ${item.status || 'Nonaktif'}`;
+              }
+
+              const phone = item.employee_phone || employeePhoneMap[item.employee_id] || employeePhoneMap[String(item.employee_name || '').toLowerCase()] || '';
+
+              return `
+                <div class="con-card" data-id="${item.id}">
+                  <div class="con-card-top">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                      <span class="con-div-badge ${divClass}">
+                        ${div === 'SECURITY' ? '🛡️' : '🧹'} ${div}
+                      </span>
+                      ${item.pkwt_number ? `
+                        <span class="con-pkwt-badge">
+                          📜 ${item.pkwt_number}
+                        </span>
+                      ` : ''}
+                    </div>
+                    <span class="con-status-badge ${statusBadgeClass}">
+                      ${statusBadgeText}
+                    </span>
+                  </div>
+
+                  <div class="con-profile-box">
+                    <div class="con-avatar ${avatarClass}">
+                      ${getInitials(item.employee_name)}
+                    </div>
+                    <div style="min-width:0; flex:1;">
+                      <div class="con-name">
+                        ${item.employee_name || 'Karyawan Tanpa Nama'}
+                      </div>
+                      <div class="con-subtitle">
+                        Personil ${div} • ${item.contract_type || 'Kontrak Kerja'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="con-info-grid">
+                    <div class="con-info-card">
+                      <div class="con-info-label">Cabang Penempatan</div>
+                      <div class="con-info-val" title="${item.branch_name || '-'}">
+                        🏢 ${item.branch_name || 'Semua Cabang'}
+                      </div>
+                    </div>
+                    <div class="con-info-card">
+                      <div class="con-info-label">Tingkat PKWT</div>
+                      <div class="con-info-val">
+                        📋 ${item.contract_type || 'PKWT 1'}
+                      </div>
+                    </div>
+                    <div class="con-info-card">
+                      <div class="con-info-label">Mulai Kontrak</div>
+                      <div class="con-info-val">
+                        📅 ${formatDateIndo(item.start_date)}
+                      </div>
+                    </div>
+                    <div class="con-info-card">
+                      <div class="con-info-label">Selesai Kontrak</div>
+                      <div class="con-info-val">
+                        ${tetap ? '🏛️ PKWTT (Tetap)' : ('📅 ' + formatDateIndo(item.end_date))}
+                      </div>
+                    </div>
+                  </div>
+
+                  ${tetap ? `
+                    <div style="background:rgba(99,102,241,0.16); border:1px solid rgba(129,140,248,0.35); border-radius:10px; padding:10px 12px; font-size:0.82rem; color:#C7D2FE; display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:1.1rem;">🏛️</span>
+                      <div>
+                        <strong style="color:#E0E7FF;">Karyawan Tetap (PKWTT)</strong>
+                        <div style="font-size:0.75rem; color:#A5B4FC;">Tidak memiliki batas akhir masa berlaku kontrak.</div>
+                      </div>
+                    </div>
+                  ` : rem !== null ? `
+                    <div style="background:${rem <= 0 ? 'rgba(239,68,68,0.15)' : (rem <= 30 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.14)')}; border:1px solid ${rem <= 0 ? 'rgba(248,113,113,0.35)' : (rem <= 30 ? 'rgba(251,191,36,0.35)' : 'rgba(52,211,153,0.32)')}; border-radius:10px; padding:10px 12px; font-size:0.82rem; color:${rem <= 0 ? '#FCA5A5' : (rem <= 30 ? '#FCD34D' : '#6EE7B7')}; display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:1.1rem;">${rem <= 0 ? '⚠️' : (rem <= 30 ? '⏳' : '✅')}</span>
+                      <div>
+                        <strong>${rem <= 0 ? 'Kontrak Telah Berakhir' : `Sisa Waktu Kontrak: ${rem} Hari`}</strong>
+                        <div style="font-size:0.75rem; color:#CBD5E1; margin-top:2px;">
+                          ${rem <= 30 && rem > 0 ? 'Segera lakukan evaluasi perpanjangan kontrak.' : (rem <= 0 ? 'Masa berlaku kontrak telah habis.' : 'Masa kontrak masih aktif dan aman.')}
+                        </div>
+                      </div>
+                    </div>
+                  ` : ''}
+
+                  <div class="con-card-footer">
+                    <div style="font-size:0.75rem; color:#94A3B8;">
+                      ID #${item.id} • ${item.pkwt_number || 'PKWT'}
+                    </div>
+
+                    <div class="con-action-btns">
+                      ${phone ? `
+                        <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" class="con-icon-btn" title="Chat WhatsApp Karyawan" style="color:#16A34A;">
+                          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.185 1.564 5.939l-1.564 5.717 5.864-1.538c1.691.924 3.63 1.458 5.698 1.458 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/></svg>
+                        </a>
+                      ` : ''}
+
+                      ${canEdit ? `
+                        <button class="con-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Kontrak">
+                          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                      ` : ''}
+                      ${canDelete ? `
+                        <button class="con-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Kontrak">
+                          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                        </button>
+                      ` : ''}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+    `;
+  }
+
+  function renderPagination() {
+    const pagEl = container.querySelector('#con-pagination-container');
+    if (!pagEl) return;
+    pagEl.innerHTML = '';
+    const nav = createPagination({
+      page: currentPage,
+      pages: totalPages,
+      total: totalItems,
+      limit: PAGE_LIMIT,
+      onPage: (targetPage) => {
+        currentPage = targetPage;
+        loadData({ refreshStats: false });
+      }
+    });
+    if (nav) pagEl.appendChild(nav);
+  }
+
+  function bindListEvents() {
+    const resetBtn = container.querySelector('#con-reset-filter');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        searchQuery = '';
+        selectedBranch = 'all';
+        selectedDivision = 'all';
+        selectedStatus = 'all';
+        selectedExpiring = 'all';
+        currentPage = 1;
+        const searchInput = container.querySelector('#con-search-input');
+        if (searchInput) searchInput.value = '';
+        const branchFilter = container.querySelector('#con-branch-filter');
+        if (branchFilter) branchFilter.value = 'all';
+        const divisionFilter = container.querySelector('#con-division-filter');
+        if (divisionFilter) divisionFilter.value = 'all';
+        const expiringFilter = container.querySelector('#con-expiring-filter');
+        if (expiringFilter) expiringFilter.value = 'all';
+        container.querySelectorAll('.con-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-status') === 'all');
+        });
+        loadData({ refreshStats: false });
+      });
+    }
+
+    container.querySelectorAll('.con-icon-btn.edit').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
+        const item = contractsList.find(c => c.id === id);
+        if (item) openFormModal(item);
+      });
+    });
+
+    container.querySelectorAll('.con-icon-btn.delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
+        const item = contractsList.find(c => c.id === id);
+        if (item) confirmDelete(item);
+      });
+    });
+  }
+
+  function renderListContent() {
+    const listContainer = container.querySelector('#con-list-container');
+    if (!listContainer) return;
+    const filtered = getFilteredList();
+    listContainer.innerHTML = buildListHTML(filtered);
+    renderPagination();
+    bindListEvents();
+  }
   // Main UI Renderer
   function renderUI() {
     const filtered = getFilteredList();
 
-    // KPI Metrics calculation
-    const totalCount = contractsList.length;
-    const activeCount = contractsList.filter(c => c.status === 'Aktif').length;
-    const expiringCount = contractsList.filter(c => {
-      const hasEnd = Boolean(c.end_date && String(c.end_date).trim() && c.end_date !== '-');
-      if (!hasEnd) return false;
-      const tetap = isTetap(c.end_date);
-      const rem = c.days_remaining !== null && c.days_remaining !== undefined && c.days_remaining !== '' ? Number(c.days_remaining) : null;
-      return c.status === 'Aktif' && !tetap && rem !== null && !isNaN(rem) && rem >= 0 && rem <= 30;
-    }).length;
-    const permanentCount = contractsList.filter(c => isTetap(c.end_date) && c.status === 'Aktif').length;
-    const nonActiveCount = contractsList.filter(c => c.status !== 'Aktif').length;
+    // KPI Metrics from server stats
+    const totalCount = serverStats.total;
+    const activeCount = serverStats.active;
+    const expiringCount = serverStats.expiring30;
+    const permanentCount = serverStats.permanent;
+    const nonActiveCount = serverStats.nonactive;
 
     container.innerHTML = `
       <style>
@@ -756,11 +1185,12 @@ export async function renderContracts(container, params) {
 
         /* Hero Header Card */
         .con-hero-card {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 16px;
           padding: 24px 28px;
-          color: white;
-          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
           position: relative;
           overflow: hidden;
           box-sizing: border-box;
@@ -775,7 +1205,7 @@ export async function renderContracts(container, params) {
           right: -40px;
           width: 220px;
           height: 220px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -842,7 +1272,7 @@ export async function renderContracts(container, params) {
           letter-spacing: -0.02em;
         }
         .con-stat-lbl {
-          font-size: 0.72rem;
+          font-size: 0.76rem;
           text-transform: uppercase;
           color: #94A3B8;
           font-weight: 700;
@@ -852,9 +1282,9 @@ export async function renderContracts(container, params) {
 
         /* Controls / Filter Bar */
         .con-controls-card {
-          background: white;
+          background: #131F36;
           border-radius: 14px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #223456;
           padding: 16px 20px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.03);
           display: flex;
@@ -902,8 +1332,8 @@ export async function renderContracts(container, params) {
           border: 1px solid #CBD5E1;
           border-radius: 10px;
           font-size: 0.9rem;
-          color: #1E293B;
-          background: white;
+          color: #F8FAFC;
+          background: #131F36;
           outline: none;
           min-width: 170px;
           cursor: pointer;
@@ -931,9 +1361,9 @@ export async function renderContracts(container, params) {
           font-size: 0.82rem;
           font-weight: 600;
           cursor: pointer;
-          border: 1px solid #E2E8F0;
-          background: #F8FAFC;
-          color: #64748B;
+          border: 1px solid #223456;
+          background: #0E182B;
+          color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
           align-items: center;
@@ -942,13 +1372,13 @@ export async function renderContracts(container, params) {
           flex-shrink: 0;
         }
         .con-pill:hover {
-          background: #F1F5F9;
-          color: #1E293B;
+          background: #22314A;
+          color: #F8FAFC;
         }
         .con-pill.active {
-          background: #0F172A;
+          background: #2563EB;
           color: white;
-          border-color: #0F172A;
+          border-color: #2563EB;
         }
         .con-pill-dot {
           width: 8px;
@@ -958,11 +1388,12 @@ export async function renderContracts(container, params) {
         .con-pill-count {
           padding: 1px 6px;
           border-radius: 10px;
-          font-size: 0.72rem;
-          background: rgba(0,0,0,0.06);
+          font-size: 0.76rem;
+          background: rgba(255,255,255,0.1);
+          color: #E2E8F0;
         }
         .con-pill.active .con-pill-count {
-          background: rgba(255,255,255,0.2);
+          background: rgba(255,255,255,0.25);
           color: white;
         }
 
@@ -970,10 +1401,10 @@ export async function renderContracts(container, params) {
         .con-view-toggle {
           display: inline-flex;
           align-items: center;
-          background: #F1F5F9;
+          background: #0E182B;
           padding: 3px;
           border-radius: 10px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #223456;
           gap: 3px;
           flex-shrink: 0;
         }
@@ -987,7 +1418,7 @@ export async function renderContracts(container, params) {
           font-weight: 600;
           border: none;
           background: transparent;
-          color: #64748B;
+          color: #CBD5E1;
           cursor: pointer;
           transition: all 0.15s ease;
           height: 34px;
@@ -995,22 +1426,22 @@ export async function renderContracts(container, params) {
           user-select: none;
         }
         .con-view-btn:hover {
-          color: #0F172A;
-          background: rgba(255, 255, 255, 0.5);
+          color: #F8FAFC;
+          background: #22314A;
         }
         .con-view-btn.active {
-          background: #FFFFFF;
-          color: #2563EB;
+          background: #131F36;
+          color: #60A5FA;
           font-weight: 700;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
         }
 
         /* Modern Table View */
         .con-table-card {
-          background: #FFFFFF;
-          border: 1px solid #E2E8F0;
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 14px;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
           overflow: hidden;
         }
         .con-table-responsive {
@@ -1026,24 +1457,24 @@ export async function renderContracts(container, params) {
           min-width: 960px;
         }
         .con-table th {
-          background: #F8FAFC;
-          color: #475569;
+          background: #0E182B;
+          color: #CBD5E1;
           font-size: 0.76rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 13px 16px;
-          border-bottom: 1.5px solid #E2E8F0;
+          border-bottom: 1.5px solid #223456;
           white-space: nowrap;
         }
         .con-table td {
           padding: 13px 16px;
-          border-bottom: 1px solid #F1F5F9;
-          color: #1E293B;
+          border-bottom: 1px solid #223456;
+          color: #F8FAFC;
           vertical-align: middle;
         }
         .con-table tbody tr:hover td {
-          background: #F8FAFC;
+          background: #0E182B;
         }
         .con-table tbody tr:last-child td {
           border-bottom: none;
@@ -1060,9 +1491,9 @@ export async function renderContracts(container, params) {
           box-sizing: border-box;
         }
         .con-card {
-          background: white;
+          background: #131F36;
           border-radius: 14px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #223456;
           padding: 16px 18px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.04);
           display: flex;
@@ -1098,25 +1529,25 @@ export async function renderContracts(container, params) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
           flex-shrink: 0;
           white-space: nowrap;
         }
         .con-div-fc {
-          background: #EFF6FF;
-          color: #2563EB;
-          border: 1px solid #DBEAFE;
+          background: rgba(59, 130, 246, 0.18);
+          color: #93C5FD;
+          border: 1px solid rgba(96, 165, 250, 0.35);
         }
         .con-div-sec {
-          background: #F1F5F9;
-          color: #334155;
-          border: 1px solid #E2E8F0;
+          background: rgba(148, 163, 184, 0.16);
+          color: #E2E8F0;
+          border: 1px solid rgba(148, 163, 184, 0.35);
         }
         .con-div-rel {
-          background: #F5F3FF;
-          color: #7C3AED;
-          border: 1px solid #EDE9FE;
+          background: rgba(139, 92, 246, 0.18);
+          color: #C4B5FD;
+          border: 1px solid rgba(167, 139, 250, 0.35);
         }
 
         .con-pkwt-badge {
@@ -1125,11 +1556,11 @@ export async function renderContracts(container, params) {
           gap: 4px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
-          background: #F5F3FF;
-          color: #6D28D9;
-          border: 1px solid #DDD6FE;
+          background: rgba(139, 92, 246, 0.18);
+          color: #C4B5FD;
+          border: 1px solid rgba(167, 139, 250, 0.35);
           flex-shrink: 0;
           white-space: nowrap;
         }
@@ -1140,30 +1571,30 @@ export async function renderContracts(container, params) {
           gap: 5px;
           padding: 4px 10px;
           border-radius: 20px;
-          font-size: 0.74rem;
+          font-size: 0.76rem;
           font-weight: 700;
           flex-shrink: 0;
           white-space: nowrap;
         }
         .con-status-aktif {
-          background: #DCFCE7;
-          color: #16A34A;
-          border: 1px solid #BBF7D0;
+          background: rgba(16, 185, 129, 0.18);
+          color: #6EE7B7;
+          border: 1px solid rgba(52, 211, 153, 0.35);
         }
         .con-status-warning {
-          background: #FEF3C7;
-          color: #B45309;
-          border: 1px solid #FDE68A;
+          background: rgba(245, 158, 11, 0.18);
+          color: #FCD34D;
+          border: 1px solid rgba(251, 191, 36, 0.35);
         }
         .con-status-danger {
-          background: #FEE2E2;
-          color: #DC2626;
-          border: 1px solid #FCA5A5;
+          background: rgba(239, 68, 68, 0.18);
+          color: #FCA5A5;
+          border: 1px solid rgba(248, 113, 113, 0.35);
         }
         .con-status-tetap {
-          background: #E0E7FF;
-          color: #4338CA;
-          border: 1px solid #C7D2FE;
+          background: rgba(99, 102, 241, 0.2);
+          color: #C7D2FE;
+          border: 1px solid rgba(129, 140, 248, 0.38);
         }
 
         /* Profile Box */
@@ -1179,43 +1610,41 @@ export async function renderContracts(container, params) {
           width: 48px;
           height: 48px;
           border-radius: 12px;
-          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-          color: white;
+          background: #2563EB;
+          color: #FFFFFF;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 800;
           font-size: 1.05rem;
           flex-shrink: 0;
-          box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
         }
         .con-avatar.sec {
-          background: linear-gradient(135deg, #334155 0%, #0F172A 100%);
-          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+          background: #1B2D4F;
+          border: 1px solid #3B82F6;
         }
         .con-avatar.rel {
-          background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
-          box-shadow: 0 4px 10px rgba(124, 58, 237, 0.2);
+          background: #1D4ED8;
         }
         .con-name {
           font-size: 1.02rem;
           font-weight: 800;
-          color: #0F172A;
+          color: #F8FAFC;
           line-height: 1.25;
           word-break: break-word;
           overflow-wrap: anywhere;
         }
         .con-subtitle {
           font-size: 0.76rem;
-          color: #64748B;
+          color: #CBD5E1;
           font-weight: 600;
           margin-top: 3px;
         }
 
         /* Info Container */
         .con-info-card {
-          background: #F8FAFC;
-          border: 1px solid #F1F5F9;
+          background: #0E182B;
+          border: 1px solid #223456;
           border-radius: 10px;
           padding: 11px 12px;
           display: flex;
@@ -1237,7 +1666,7 @@ export async function renderContracts(container, params) {
           box-sizing: border-box;
         }
         .con-info-label {
-          color: #64748B;
+          color: #94A3B8;
           display: inline-flex;
           align-items: center;
           gap: 5px;
@@ -1246,7 +1675,7 @@ export async function renderContracts(container, params) {
           font-size: 0.8rem;
         }
         .con-info-val {
-          color: #0F172A;
+          color: #F8FAFC;
           font-weight: 600;
           text-align: right;
           min-width: 0;
@@ -1259,9 +1688,9 @@ export async function renderContracts(container, params) {
         /* Notes box */
         .con-notes-box {
           font-size: 0.78rem;
-          color: #475569;
-          background: #FFFBEB;
-          border: 1px solid #FEF3C7;
+          color: #FDE68A;
+          background: rgba(245, 158, 11, 0.14);
+          border: 1px solid rgba(251, 191, 36, 0.3);
           border-radius: 8px;
           padding: 8px 10px;
           line-height: 1.4;
@@ -1276,7 +1705,7 @@ export async function renderContracts(container, params) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid #223456;
           padding-top: 11px;
           margin-top: auto;
           gap: 8px;
@@ -1296,9 +1725,9 @@ export async function renderContracts(container, params) {
           width: 34px;
           height: 34px;
           border-radius: 8px;
-          border: 1px solid #E2E8F0;
-          background: white;
-          color: #64748B;
+          border: 1px solid #223456;
+          background: #0E182B;
+          color: #CBD5E1;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1306,21 +1735,21 @@ export async function renderContracts(container, params) {
           transition: all 0.15s ease;
         }
         .con-icon-btn:hover {
-          background: #F1F5F9;
-          color: #0F172A;
-          border-color: #CBD5E1;
+          background: #22314A;
+          color: #F8FAFC;
+          border-color: #475569;
         }
         .con-icon-btn.delete:hover {
-          background: #FEE2E2;
-          color: #DC2626;
-          border-color: #FCA5A5;
+          background: rgba(239, 68, 68, 0.2);
+          color: #FCA5A5;
+          border-color: rgba(248, 113, 113, 0.45);
         }
 
         /* Empty state */
         .con-empty-state {
           grid-column: 1 / -1;
-          background: white;
-          border: 2px dashed #E2E8F0;
+          background: #131F36;
+          border: 2px dashed #223456;
           border-radius: 16px;
           padding: 48px 24px;
           text-align: center;
@@ -1359,39 +1788,32 @@ export async function renderContracts(container, params) {
             width: 100% !important;
             display: flex !important;
             align-items: center !important;
-            gap: 6px !important;
-            flex-wrap: nowrap !important;
-            overflow-x: auto !important;
-            scrollbar-width: none !important;
-            padding-bottom: 2px !important;
+            gap: 8px !important;
+            flex-wrap: wrap !important;
+            overflow-x: visible !important;
           }
           .con-hero-actions::-webkit-scrollbar {
             display: none;
           }
           .con-btn-add {
-            flex: 1 1 auto !important;
+            width: 100% !important;
             justify-content: center !important;
-            padding: 8px 10px !important;
-            font-size: 0.8rem !important;
+            padding: 9px 12px !important;
+            font-size: 0.85rem !important;
             white-space: nowrap !important;
+            height: 40px !important;
           }
           .con-btn-excel {
             flex: 1 1 auto !important;
             justify-content: center !important;
-            padding: 8px 10px !important;
-            font-size: 0.8rem !important;
+            padding: 8px 12px !important;
+            font-size: 0.85rem !important;
             white-space: nowrap !important;
-          }
-          .con-btn-missing {
-            flex: 1 1 auto !important;
-            justify-content: center !important;
-            padding: 8px 10px !important;
-            font-size: 0.8rem !important;
-            white-space: nowrap !important;
+            height: 38px !important;
           }
           .con-btn-refresh {
-            width: 36px !important;
-            height: 36px !important;
+            width: 38px !important;
+            height: 38px !important;
             padding: 0 !important;
             flex-shrink: 0 !important;
             justify-content: center !important;
@@ -1474,12 +1896,7 @@ export async function renderContracts(container, params) {
               </button>
               ` : ''}
 
-              ${canEdit ? `
-              <button id="con-btn-missing" class="btn btn-ghost con-btn-missing" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#FCA5A5; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;" title="Cek Karyawan Aktif yang belum memiliki Kontrak Aktif">
-                <span>🔍</span>
-                <span>Cek Selisih</span>
-              </button>
-              ` : ''}
+              
 
               <button id="con-btn-refresh" class="btn btn-ghost con-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -1494,7 +1911,7 @@ export async function renderContracts(container, params) {
                 📋
               </div>
               <div>
-                <div class="con-stat-val">${totalCount}</div>
+                <div class="con-stat-val" id="con-stat-total">${totalCount}</div>
                 <div class="con-stat-lbl">Total Kontrak</div>
               </div>
             </div>
@@ -1504,7 +1921,7 @@ export async function renderContracts(container, params) {
                 🟢
               </div>
               <div>
-                <div class="con-stat-val" style="color:#34D399;">${activeCount}</div>
+                <div class="con-stat-val" id="con-stat-active" style="color:#34D399;">${activeCount}</div>
                 <div class="con-stat-lbl">Kontrak Aktif</div>
               </div>
             </div>
@@ -1514,7 +1931,7 @@ export async function renderContracts(container, params) {
                 ⚠️
               </div>
               <div>
-                <div class="con-stat-val" style="color:#FBBF24;">${expiringCount}</div>
+                <div class="con-stat-val" id="con-stat-expiring" style="color:#FBBF24;">${expiringCount}</div>
                 <div class="con-stat-lbl">Habis &lt; 30 Hari</div>
               </div>
             </div>
@@ -1524,7 +1941,7 @@ export async function renderContracts(container, params) {
                 🏛️
               </div>
               <div>
-                <div class="con-stat-val" style="color:#A5B4FC;">${permanentCount}</div>
+                <div class="con-stat-val" id="con-stat-permanent" style="color:#A5B4FC;">${permanentCount}</div>
                 <div class="con-stat-lbl">PKWTT (Tetap)</div>
               </div>
             </div>
@@ -1553,7 +1970,6 @@ export async function renderContracts(container, params) {
               <option value="all">Semua Divisi</option>
               <option value="FACILITY CARE" ${selectedDivision === 'FACILITY CARE' ? 'selected' : ''}>FACILITY CARE</option>
               <option value="SECURITY" ${selectedDivision === 'SECURITY' ? 'selected' : ''}>SECURITY</option>
-              <option value="FC - RELIEFER" ${selectedDivision === 'FC - RELIEFER' ? 'selected' : ''}>FC - RELIEFER</option>
             </select>
 
             <select id="con-expiring-filter" class="con-select">
@@ -1580,323 +1996,50 @@ export async function renderContracts(container, params) {
           <div class="con-filter-pills">
             <div class="con-pill ${selectedStatus === 'all' && selectedExpiring === 'all' ? 'active' : ''}" data-status="all">
               <span>Semua Kontrak</span>
-              <span class="con-pill-count">${totalCount}</span>
+              <span class="con-pill-count" id="con-pill-count-all">${totalCount}</span>
             </div>
             <div class="con-pill ${selectedStatus === 'Aktif' && selectedExpiring === 'all' ? 'active' : ''}" data-status="Aktif">
               <span class="con-pill-dot" style="background:#10B981;"></span>
               <span>Aktif</span>
-              <span class="con-pill-count">${activeCount}</span>
+              <span class="con-pill-count" id="con-pill-count-aktif">${activeCount}</span>
             </div>
             <div class="con-pill ${selectedStatus === 'Expiring30' ? 'active' : ''}" data-status="Expiring30">
               <span class="con-pill-dot" style="background:#F59E0B;"></span>
               <span>Akan Habis (&lt;30 Hari)</span>
-              <span class="con-pill-count">${expiringCount}</span>
+              <span class="con-pill-count" id="con-pill-count-expiring">${expiringCount}</span>
             </div>
             <div class="con-pill ${selectedStatus === 'Tetap' ? 'active' : ''}" data-status="Tetap">
               <span class="con-pill-dot" style="background:#6366F1;"></span>
               <span>PKWTT (Tetap)</span>
-              <span class="con-pill-count">${permanentCount}</span>
+              <span class="con-pill-count" id="con-pill-count-tetap">${permanentCount}</span>
             </div>
             <div class="con-pill ${selectedStatus === 'Nonaktif' ? 'active' : ''}" data-status="Nonaktif">
               <span class="con-pill-dot" style="background:#EF4444;"></span>
               <span>Nonaktif / Resign</span>
-              <span class="con-pill-count">${nonActiveCount}</span>
+              <span class="con-pill-count" id="con-pill-count-nonaktif">${nonActiveCount}</span>
             </div>
           </div>
         </div>
 
         <!-- Content Area: Pilihan Kartu atau Tabel -->
         <div id="con-list-container">
-          ${filtered.length === 0 ? `
-            <div class="con-empty-state">
-              <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
-              <h3 style="font-size:1.15rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak ada kontrak yang sesuai kriteria</h3>
-              <p style="font-size:0.85rem; color:#64748B; margin:0 0 16px 0;">Coba atur ulang kata kunci pencarian, filter cabang, atau filter masa berlaku kontrak.</p>
-              <button id="con-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
-            </div>
-          ` : viewMode === 'table' ? `
-            <div class="con-table-card">
-              <div class="con-table-responsive">
-                <table class="con-table">
-                  <thead>
-                    <tr>
-                      <th style="width:45px; text-align:center;">No</th>
-                      <th>Nama Karyawan</th>
-                      <th>Cabang & Divisi</th>
-                      <th style="text-align:center;">Tingkat PKWT</th>
-                      <th>Mulai Kontrak</th>
-                      <th>Selesai Kontrak</th>
-                      <th>Masa Berlaku</th>
-                      <th style="text-align:center;">Status</th>
-                      <th style="width:110px; text-align:center;">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${filtered.map((item, idx) => {
-                      const div = item.division || 'FACILITY CARE';
-                      let divClass = 'con-div-fc';
-                      let avatarClass = '';
-                      if (div === 'SECURITY') {
-                        divClass = 'con-div-sec';
-                        avatarClass = 'sec';
-                      } else if (div === 'FC - RELIEFER') {
-                        divClass = 'con-div-rel';
-                        avatarClass = 'rel';
-                      }
-
-                      const hasEndDate = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
-                      const tetap = isTetap(item.end_date);
-                      const isAktif = item.status === 'Aktif';
-                      const rawRem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
-                      const rem = (hasEndDate && !tetap && rawRem !== null && !isNaN(rawRem)) ? rawRem : null;
-
-                      let statusBadgeClass = 'con-status-aktif';
-                      let statusBadgeText = '🟢 Aktif';
-
-                      if (tetap) {
-                        statusBadgeClass = 'con-status-tetap';
-                        statusBadgeText = '🏛️ PKWTT (Tetap)';
-                      } else if (isAktif) {
-                        if (rem !== null) {
-                          if (rem <= 0) {
-                            statusBadgeClass = 'con-status-danger';
-                            statusBadgeText = '⚠️ Habis Hari Ini';
-                          } else if (rem <= 30) {
-                            statusBadgeClass = 'con-status-warning';
-                            statusBadgeText = `⚠️ Sisa ${rem} Hari`;
-                          } else {
-                            statusBadgeClass = 'con-status-aktif';
-                            statusBadgeText = `🟢 Aktif (${rem} Hari)`;
-                          }
-                        } else {
-                          statusBadgeClass = 'con-status-aktif';
-                          statusBadgeText = '🟢 Aktif';
-                        }
-                      } else {
-                        statusBadgeClass = 'con-status-danger';
-                        statusBadgeText = `⚪ ${item.status || 'Nonaktif'}`;
-                      }
-
-                      const phone = employeePhoneMap[item.employee_id] || employeePhoneMap[String(item.employee_name || '').toLowerCase()] || '';
-
-                      return `
-                        <tr data-id="${item.id}">
-                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${idx + 1}</td>
-                          <td>
-                            <div style="display:flex; align-items:center; gap:10px;">
-                              <div class="con-avatar ${avatarClass}" style="width:36px; height:36px; font-size:0.8rem; border-radius:9px;">
-                                ${getInitials(item.employee_name)}
-                              </div>
-                              <div>
-                                <div style="font-weight:700; color:#0F172A; white-space:nowrap;">${item.employee_name || 'Karyawan Tanpa Nama'}</div>
-                                <div style="font-size:0.74rem; color:#64748B;">${item.contract_type || 'Kontrak Kerja'} • ID #${item.id}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style="white-space:nowrap;">
-                            <div style="font-weight:600; color:#0F172A; font-size:0.84rem; margin-bottom:4px;">📍 ${item.branch_name || 'Cabang Tidak Ditentukan'}</div>
-                            <span class="con-div-badge ${divClass}" style="padding:2px 8px; font-size:0.7rem;">
-                              ${div === 'SECURITY' ? '🛡️' : (div === 'FC - RELIEFER' ? '🔄' : '🧹')} ${div}
-                            </span>
-                          </td>
-                          <td style="text-align:center; white-space:nowrap;">
-                            ${item.pkwt_number ? `
-                              <span class="con-pkwt-badge">
-                                📜 ${item.pkwt_number}
-                              </span>
-                            ` : '<span style="color:#94A3B8;">-</span>'}
-                          </td>
-                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
-                            ${formatDateIndo(item.start_date)}
-                          </td>
-                          <td style="white-space:nowrap; font-weight:600; ${tetap ? 'color:#4338CA; font-weight:700;' : 'color:#1E293B;'}">
-                            ${tetap ? 'Tetap / PKWTT' : (hasEndDate ? formatDateIndo(item.end_date) : '-')}
-                          </td>
-                          <td style="white-space:nowrap; font-size:0.82rem; font-weight:600; ${tetap ? 'color:#15803D;' : (rem !== null && rem <= 30 && isAktif ? 'color:#D97706; font-weight:700;' : 'color:#475569;')}">
-                            ${tetap ? 'Karyawan Tetap (Permanen)' : (rem !== null ? (rem <= 0 ? 'Masa Kontrak Telah Habis' : `${rem} Hari Tersisa`) : '-')}
-                          </td>
-                          <td style="text-align:center; white-space:nowrap;">
-                            <span class="con-status-badge ${statusBadgeClass}">
-                              ${statusBadgeText}
-                            </span>
-                          </td>
-                          <td style="text-align:center; white-space:nowrap;">
-                            <div style="display:inline-flex; align-items:center; gap:6px;">
-                              ${phone ? `
-                                <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" class="con-icon-btn" title="Chat WhatsApp Karyawan" style="color:#16A34A;">
-                                  <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.185 1.564 5.939l-1.564 5.717 5.864-1.538c1.691.924 3.63 1.458 5.698 1.458 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/></svg>
-                                </a>
-                              ` : ''}
-                              ${canEdit ? `
-                                <button class="con-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Kontrak">
-                                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                </button>
-                              ` : ''}
-                              ${canDelete ? `
-                                <button class="con-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Kontrak">
-                                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                                </button>
-                              ` : ''}
-                            </div>
-                          </td>
-                        </tr>
-                      `;
-                    }).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ` : `
-            <div class="con-cards-grid">
-              ${filtered.map(item => {
-            const div = item.division || 'FACILITY CARE';
-            let divClass = 'con-div-fc';
-            let avatarClass = '';
-            if (div === 'SECURITY') {
-              divClass = 'con-div-sec';
-              avatarClass = 'sec';
-            } else if (div === 'FC - RELIEFER') {
-              divClass = 'con-div-rel';
-              avatarClass = 'rel';
-            }
-
-            const hasEndDate = Boolean(item.end_date && String(item.end_date).trim() && item.end_date !== '-');
-            const tetap = isTetap(item.end_date);
-            const isAktif = item.status === 'Aktif';
-            const rawRem = item.days_remaining !== null && item.days_remaining !== undefined && item.days_remaining !== '' ? Number(item.days_remaining) : null;
-            const rem = (hasEndDate && !tetap && rawRem !== null && !isNaN(rawRem)) ? rawRem : null;
-
-            // Determine status badge class and label
-            let statusBadgeClass = 'con-status-aktif';
-            let statusBadgeText = '🟢 Aktif';
-
-            if (tetap) {
-              statusBadgeClass = 'con-status-tetap';
-              statusBadgeText = '🏛️ PKWTT (Tetap)';
-            } else if (isAktif) {
-              if (rem !== null) {
-                if (rem <= 0) {
-                  statusBadgeClass = 'con-status-danger';
-                  statusBadgeText = '⚠️ Habis Hari Ini';
-                } else if (rem <= 30) {
-                  statusBadgeClass = 'con-status-warning';
-                  statusBadgeText = `⚠️ Sisa ${rem} Hari`;
-                } else {
-                  statusBadgeClass = 'con-status-aktif';
-                  statusBadgeText = `🟢 Aktif (${rem} Hari)`;
-                }
-              } else {
-                statusBadgeClass = 'con-status-aktif';
-                statusBadgeText = '🟢 Aktif';
-              }
-            } else {
-              statusBadgeClass = 'con-status-danger';
-              statusBadgeText = `⚪ ${item.status || 'Nonaktif'}`;
-            }
-
-            const phone = employeePhoneMap[item.employee_id] || employeePhoneMap[String(item.employee_name || '').toLowerCase()] || '';
-
-            return `
-              <div class="con-card" data-id="${item.id}">
-                <!-- Top Badges Row -->
-                <div class="con-card-top">
-                  <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                    <span class="con-div-badge ${divClass}">
-                      ${div === 'SECURITY' ? '🛡️' : (div === 'FC - RELIEFER' ? '🔄' : '🧹')} ${div}
-                    </span>
-                    ${item.pkwt_number ? `
-                      <span class="con-pkwt-badge">
-                        📜 ${item.pkwt_number}
-                      </span>
-                    ` : ''}
-                  </div>
-                  <span class="con-status-badge ${statusBadgeClass}">
-                    ${statusBadgeText}
-                  </span>
-                </div>
-
-                <!-- Profile Box -->
-                <div class="con-profile-box">
-                  <div class="con-avatar ${avatarClass}">
-                    ${getInitials(item.employee_name)}
-                  </div>
-                  <div style="min-width:0; flex:1;">
-                    <div class="con-name">
-                      ${item.employee_name || 'Karyawan Tanpa Nama'}
-                    </div>
-                    <div class="con-subtitle">
-                      Personil ${div} • ${item.contract_type || 'Kontrak Kerja'}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Information Grid -->
-                <div class="con-info-card">
-                  <div class="con-info-row">
-                    <span class="con-info-label">📍 Cabang:</span>
-                    <span class="con-info-val">${item.branch_name || 'Cabang Tidak Ditentukan'}</span>
-                  </div>
-                  <div class="con-info-row">
-                    <span class="con-info-label">🗓️ Mulai Kontrak:</span>
-                    <span class="con-info-val">${formatDateIndo(item.start_date)}</span>
-                  </div>
-                  <div class="con-info-row">
-                    <span class="con-info-label">🏁 Selesai Kontrak:</span>
-                    <span class="con-info-val" style="${tetap ? 'color:#4338CA; font-weight:700;' : ''}">
-                      ${tetap ? 'Tetap / PKWTT' : (hasEndDate ? formatDateIndo(item.end_date) : '-')}
-                    </span>
-                  </div>
-                  <div class="con-info-row">
-                    <span class="con-info-label">⏳ Masa Berlaku:</span>
-                    <span class="con-info-val" style="${tetap ? 'color:#15803D;' : (rem !== null && rem <= 30 && isAktif ? 'color:#D97706; font-weight:700;' : '')}">
-                      ${tetap ? 'Karyawan Tetap (Permanen)' : (rem !== null ? (rem <= 0 ? 'Masa Kontrak Telah Habis' : `${rem} Hari Tersisa`) : '-')}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Notes box (if any) -->
-                ${item.notes ? `
-                  <div class="con-notes-box">
-                    📝 <strong>Catatan:</strong> ${item.notes}
-                  </div>
-                ` : ''}
-
-                <!-- Footer Actions -->
-                <div class="con-card-footer">
-                  <div style="font-size:0.75rem; color:#94A3B8;">
-                    ID #${item.id} • ${item.pkwt_number || 'PKWT'}
-                  </div>
-
-                  <div class="con-action-btns">
-                    ${phone ? `
-                      <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" class="con-icon-btn" title="Chat WhatsApp Karyawan" style="color:#16A34A;">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.185 1.564 5.939l-1.564 5.717 5.864-1.538c1.691.924 3.63 1.458 5.698 1.458 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/></svg>
-                      </a>
-                    ` : ''}
-
-                    ${canEdit ? `
-                      <button class="con-icon-btn edit" data-action="edit" data-id="${item.id}" title="Edit Data Kontrak">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                    ` : ''}
-                    ${canDelete ? `
-                      <button class="con-icon-btn delete" data-action="delete" data-id="${item.id}" title="Hapus Kontrak">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                      </button>
-                    ` : ''}
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('')}
-            </div>
-          `}
+          ${buildListHTML(filtered)}
         </div>
+        <div id="con-pagination-container"></div>
 
       </div>
     `;
 
     // Event Listeners
+    const addBtn = container.querySelector('#con-btn-add');
+    if (addBtn) addBtn.addEventListener('click', () => openFormModal());
+
+    const excelBtn = container.querySelector('#con-btn-excel');
+    if (excelBtn) excelBtn.addEventListener('click', () => exportToExcel());
+
+    const refreshBtn = container.querySelector('#con-btn-refresh');
+    if (refreshBtn) refreshBtn.addEventListener('click', () => loadData({ refreshStats: true }));
+
     // 0. View Mode Toggle (Kartu / Tabel)
     container.querySelectorAll('.con-view-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1904,17 +2047,24 @@ export async function renderContracts(container, params) {
         if (mode && mode !== viewMode) {
           viewMode = mode;
           localStorage.setItem('fcms_contracts_view_mode', mode);
-          renderUI();
+          container.querySelectorAll('.con-view-btn').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-view') === mode);
+          });
+          renderListContent();
         }
       });
     });
 
-    // 1. Search Input
+    // 1. Search Input (debounced server search)
     const searchInput = container.querySelector('#con-search-input');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value;
-        renderUI();
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadData({ refreshStats: false });
+        }, 350);
       });
     }
 
@@ -1923,7 +2073,8 @@ export async function renderContracts(container, params) {
     if (branchFilter) {
       branchFilter.addEventListener('change', (e) => {
         selectedBranch = e.target.value;
-        renderUI();
+        currentPage = 1;
+        loadData({ refreshStats: false });
       });
     }
 
@@ -1932,7 +2083,8 @@ export async function renderContracts(container, params) {
     if (divisionFilter) {
       divisionFilter.addEventListener('change', (e) => {
         selectedDivision = e.target.value;
-        renderUI();
+        currentPage = 1;
+        loadData({ refreshStats: false });
       });
     }
 
@@ -1941,7 +2093,20 @@ export async function renderContracts(container, params) {
     if (expiringFilter) {
       expiringFilter.addEventListener('change', (e) => {
         selectedExpiring = e.target.value;
-        renderUI();
+        if (selectedStatus === 'Expiring30' && selectedExpiring !== '30') {
+          selectedStatus = selectedExpiring === 'all' ? 'all' : 'Aktif';
+        }
+        container.querySelectorAll('.con-pill').forEach(p => {
+          const st = p.getAttribute('data-status');
+          const isActive = (st === 'all' && selectedStatus === 'all' && selectedExpiring === 'all') ||
+                           (st === 'Aktif' && selectedStatus === 'Aktif' && selectedExpiring === 'all') ||
+                           (st === 'Expiring30' && selectedStatus === 'Expiring30') ||
+                           (st === 'Tetap' && selectedStatus === 'Tetap') ||
+                           (st === 'Nonaktif' && selectedStatus === 'Nonaktif');
+          p.classList.toggle('active', isActive);
+        });
+        currentPage = 1;
+        loadData({ refreshStats: false });
       });
     }
 
@@ -1950,59 +2115,27 @@ export async function renderContracts(container, params) {
       pill.addEventListener('click', (e) => {
         const status = e.currentTarget.getAttribute('data-status');
         selectedStatus = status;
+        selectedMonthExpiry = '';
         if (status === 'Expiring30') {
           selectedExpiring = '30';
         } else {
           selectedExpiring = 'all';
         }
-        renderUI();
+        const expEl = container.querySelector('#con-expiring-filter');
+        if (expEl) expEl.value = selectedExpiring;
+        container.querySelectorAll('.con-pill').forEach(p => {
+          p.classList.toggle('active', p === e.currentTarget);
+        });
+        currentPage = 1;
+        loadData({ refreshStats: false });
       });
     });
 
-    // 6. Reset Filters Button
-    const resetBtn = container.querySelector('#con-reset-filter');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        searchQuery = '';
-        selectedBranch = 'all';
-        selectedDivision = 'all';
-        selectedStatus = 'all';
-        selectedExpiring = 'all';
-        renderUI();
-      });
-    }
-
-    // 7. Hero Actions
-    const addBtn = container.querySelector('#con-btn-add');
-    if (addBtn) addBtn.addEventListener('click', () => openFormModal());
-
-    const excelBtn = container.querySelector('#con-btn-excel');
-    if (excelBtn) excelBtn.addEventListener('click', exportToExcel);
-
-    const missingBtn = container.querySelector('#con-btn-missing');
-    if (missingBtn) missingBtn.addEventListener('click', checkMissingContracts);
-
-    const refreshBtn = container.querySelector('#con-btn-refresh');
-    if (refreshBtn) refreshBtn.addEventListener('click', () => loadData());
-
-    // 8. Card Action Buttons (Edit / Delete)
-    container.querySelectorAll('.con-icon-btn.edit').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
-        const item = contractsList.find(c => c.id === id);
-        if (item) openFormModal(item);
-      });
-    });
-
-    container.querySelectorAll('.con-icon-btn.delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
-        const item = contractsList.find(c => c.id === id);
-        if (item) confirmDelete(item);
-      });
-    });
+    // Bind pagination & list action events (Reset button, Edit, Delete)
+    renderPagination();
+    bindListEvents();
   }
 
   // Initial load
-  await loadData();
+  await loadData({ refreshStats: true });
 }

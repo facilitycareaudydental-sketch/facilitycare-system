@@ -15,16 +15,15 @@ export const SHEET_MAP = {
   'Master Karyawan':              { module: 'employees',  label: 'Karyawan' },
   'Data Kontrak':                 { module: 'contracts',  label: 'Kontrak' },
   'Permasalahan':                 { module: 'issues',     label: 'Permasalahan' },
-  'One on One':                   { module: 'one_on_one', label: 'One on One' },
   'Time Line':                    { module: 'schedule',   label: 'Jadwal Kegiatan' },
   'Report Inspeksi Hygiene 2026': { module: 'inspection', label: 'Laporan Inspeksi' },
   'Report GC-DC 2026':            { module: 'cleaning',   label: 'Laporan GC/DC' },
   'Report Fogging 2026':          { module: 'fogging',    label: 'Laporan Fogging' },
   'Rekap Laporan Basecamp':       { module: 'basecamp',   label: 'Rekap Basecamp' },
-  'Jadwal Reliefer':              { module: 'relievers',  label: 'Reliefer' },
   'Training':                     { module: 'training',   label: 'Training' },
   'Master Checklist':             { module: 'checklist',  label: 'Checklist' },
-  'Permintaan Chemical':          { module: 'supply',     label: 'Inventory Chemical' },
+  'Data SP':                      { module: 'sp',         label: 'Data SP' },
+  'Data Mutasi':                  { module: 'mutasi',     label: 'Data Mutasi' },
 };
 
 // ─── Date Parsing Helper ─────────────────────────────────────────────────────
@@ -192,16 +191,19 @@ const SCHEMAS = {
   },
   inspection: {
     required: [],
-    map: (row) => ({
-      inspection_date: dateStr(row['Tanggal']),
-      branch_name:     row['Cabang'],
-      period:          row['Periode'],
-      status:        row['Status'] || '',
-      fc_score:        row['Point FC SP'] !== undefined && row['Point FC SP'] !== null ? parseFloat(String(row['Point FC SP']).replace(',', '.')) : null,
-      spv_score:       row['Point SPV'] !== undefined && row['Point SPV'] !== null ? parseFloat(String(row['Point SPV']).replace(',', '.')) : null,
-      document_link:   row['Link'],
-      notes:           '',
-    }),
+    map: (row) => {
+      const rawFc = row['Point FC SP'] !== undefined && row['Point FC SP'] !== null && row['Point FC SP'] !== '' ? row['Point FC SP'] : row['Point FC'];
+      return {
+        inspection_date: dateStr(row['Tanggal']),
+        branch_name:     row['Cabang'],
+        period:          row['Periode'],
+        status:          row['Status'] || '',
+        fc_score:        rawFc !== undefined && rawFc !== null && rawFc !== '' ? parseFloat(String(rawFc).replace(',', '.')) : null,
+        spv_score:       row['Point SPV'] !== undefined && row['Point SPV'] !== null && row['Point SPV'] !== '' ? parseFloat(String(row['Point SPV']).replace(',', '.')) : null,
+        document_link:   row['Link'] || row['Link Dokumen'] || '',
+        notes:           row['Keterangan'] || '',
+      };
+    },
   },
   cleaning: {
     required: [],
@@ -211,8 +213,8 @@ const SCHEMAS = {
       activity_type: row['Jenis Kegiatan'] || 'General Cleaning',
       period:        row['Periode'],
       status:        row['Status'] || '',
-      document_link: row['Link'],
-      notes:         '',
+      document_link: row['Link'] || row['Link Dokumen'] || '',
+      notes:         row['Keterangan'] || '',
     }),
   },
   fogging: {
@@ -222,8 +224,8 @@ const SCHEMAS = {
       branch_name:   row['Cabang'],
       period:        row['Periode'],
       status:        row['Status'] || '',
-      document_link: row['Link'],
-      notes:         '',
+      document_link: row['Link'] || row['Link Dokumen'] || '',
+      notes:         row['Keterangan'] || '',
     }),
   },
   basecamp: {
@@ -286,6 +288,40 @@ const SCHEMAS = {
       chemical_quantity: row['Jumlah Permintaan Chemical'],
       additional_notes:  row['Tambahan  Alat / Chemical Jika Ada Permintaan Diluar List.'],
       status:            row['Status'] || '',
+    }),
+  },
+  sp: {
+    required: [{ key: 'Nama Karyawan', label: 'Nama Karyawan' }],
+    map: (row) => ({
+      tanggal: dateStr(row['Tanggal'] || row['Tanggal Terbit']),
+      employee_name: row['Nama Karyawan'],
+      branch_name: row['Cabang'],
+      sp_type: row['Jenis SP'] || 'SP 1',
+      status: row['Status'] || 'Aktif',
+      document_link: row['Link Dokumen'] || row['Link Document'] || null,
+      notes: row['Keterangan'] || row['Catatan'] || null,
+    }),
+  },
+  mutasi: {
+    required: [{ key: 'Nama Karyawan', label: 'Nama Karyawan' }],
+    map: (row) => ({
+      tanggal: dateStr(row['Tanggal'] || row['Tanggal Efektif']),
+      employee_name: row['Nama Karyawan'],
+      from_branch_name: row['Cabang Asal'] || row['Dari Cabang'],
+      to_branch_name: row['Cabang Tujuan'] || row['Ke Cabang'],
+      status: row['Status'] || 'Selesai',
+      document_link: row['Link Dokumen'] || row['Link SK'] || null,
+      notes: row['Keterangan'] || row['Alasan'] || null,
+    }),
+  },
+  forms: {
+    required: [{ key: 'Nama Form', label: 'Nama Form' }],
+    map: (row) => ({
+      name: row['Nama Form'],
+      category: row['Kategori'] || 'Umum',
+      document_link: row['Link Dokumen'] || row['Link Document'] || null,
+      description: row['Deskripsi'] || row['Keterangan'] || null,
+      is_public: row['Publik'] === 'Ya' || row['Publik'] === 1 || row['Akses Publik'] === 1 ? 1 : 0,
     }),
   },
 };
@@ -369,19 +405,19 @@ export function generateTemplate() {
   const TEMPLATES = {
     'Validasi': [{ 'CABANG': '001. Pondok Bambu', 'PIC': 'Berlin', 'KEGIATAN': 'General Cleaning', 'QUARTAL': 'Q1', 'PIC PELAPOR': 'Berlin', 'KONTRAK': 'PKWT 1', 'MASA PKWT': '1 Tahun' }],
     'SOP': [{ 'Nama SOP': 'SOP Pembersihan Toilet', 'Kategori': 'Cleaning', 'Link Document': 'https://...' }],
-    'Master Karyawan': [{ 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Div / Bagian': 'FACILITY CARE', 'No. Hp': '081234567890', 'Tanggal Masuk': '2024-01-15', 'Status': 'Aktif' }],
-    'Data Kontrak': [{ 'Nama Lengkap': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Div / Bagian': 'FACILITY CARE', 'Tanggal Mulai': '2024-01-01', 'Tanggal Selesai': '2024-12-31', 'Tipe Kontrak': 'PKWT 1', 'PKWT': '001/PKWT/2024', 'Status': 'Aktif', 'keterangan': '' }],
+    'Master Karyawan': [{ 'Nama Lengkap': 'Budi Santoso', 'Cabang': '000. Management', 'Div / Bagian': 'FACILITY CARE', 'No. Hp': '081234567890', 'Tanggal Masuk': '2024-01-15', 'Status': 'Aktif' }],
+    'Data Kontrak': [{ 'Nama Lengkap': 'Budi Santoso', 'Cabang': '000. Management', 'Div / Bagian': 'FACILITY CARE', 'Tanggal Mulai': '2024-01-01', 'Tanggal Selesai': '2024-12-31', 'Tipe Kontrak': 'PKWT 1', 'PKWT': '001/PKWT/2024', 'Status': 'Aktif', 'keterangan': '' }],
     'Permasalahan': [{ 'Tanggal Info': '2024-03-01', 'Cabang': '001. Pondok Bambu', 'Kategori': 'Cleaning', 'Sumber Laporan': 'SPV', 'Keluhan': 'Lantai kotor', 'Nama FC': 'Budi', 'FC Spesialis': 'Fajar', 'Solusi': 'Teguran', 'Status': 'Done', 'Tanggal Selesai': '2024-03-02' }],
-    'One on One': [{ 'Tanggal': '2024-03-05', 'Cabang': '001. Pondok Bambu', 'Nama Karyawan': 'Budi Santoso', 'Pic': 'Berlin', 'Masalah': 'Keterlambatan', 'Solusi': 'Coaching', 'Status': 'Done', 'Tanggal Selesai': '2024-03-06', 'Link Document': '' }],
     'Time Line': [{ 'Cabang': '001. Pondok Bambu', 'Kegiatan': 'General Cleaning', 'Periode': 'Januari', 'Pic': 'Berlin', 'Tanggal Opening': '2024-01-01', 'Tanggal Target': '2024-01-10', 'Tanggal Selesai': '2024-01-09', 'Status': 'Done', 'Keterangan': '' }],
-    'Report Inspeksi Hygiene 2026': [{ 'Tanggal': '2026-01-15', 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Status': 'Done', 'Point FC': '85.5', 'Point SPV': '90.0', 'Link Dokumen': 'https://...' }],
-    'Report GC-DC 2026': [{ 'Tanggal': '2026-01-20', 'Cabang': '001. Pondok Bambu', 'Jenis Kegiatan': 'General Cleaning', 'Periode': 'Q1', 'Status': 'Done', 'Link Dokumen': 'https://...' }],
-    'Report Fogging 2026': [{ 'Tanggal': '2026-01-25', 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Status': 'Done', 'Link Dokumen': 'https://...' }],
+    'Report Inspeksi Hygiene 2026': [{ 'Tanggal': '2026-01-15', 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Status': 'Done', 'Point FC SP': '85.5', 'Point SPV': '90.0', 'Link': 'https://...' }],
+    'Report GC-DC 2026': [{ 'Tanggal': '2026-01-20', 'Cabang': '001. Pondok Bambu', 'Jenis Kegiatan': 'General Cleaning', 'Periode': 'Q1', 'Status': 'Done', 'Link': 'https://...' }],
+    'Report Fogging 2026': [{ 'Tanggal': '2026-01-25', 'Cabang': '001. Pondok Bambu', 'Periode': 'Q1', 'Status': 'Done', 'Link': 'https://...' }],
     'Rekap Laporan Basecamp': [{ 'Tgl Info': '2024-02-01', 'Cabang': '001. Pondok Bambu', 'Permasalahan': 'Lampu mati', 'PIC': 'Berlin', 'Tgl Done': '2024-02-02', 'Status': 'Done', 'Ket': '' }],
-    'Jadwal Reliefer': [{ 'Cabang': '001. Pondok Bambu', 'Nama Facility care': 'Budi Santoso', 'Periode': 'Januari', 'Relifer': 'Agung Septiadi', 'Tanggal Back Up': '2024-03-01', 'Tanggal Selesai': '2024-03-02', 'Keterangan': 'Cuti', 'Shift': 'Pagi', 'Status': 'Done' }],
     'Training': [{ 'Tanggal': '2024-04-10', 'Batch': 'Batch 1', 'Materi': 'Basic Cleaning', 'Peserta': '5', 'Cabang': '001. Pondok Bambu', 'Trainer': 'Fajar', 'Nilai': '85', 'Keterangan': '' }],
     'Master Checklist': [{ 'Master Checklist': 'Checklist Kebersihan Toilet', 'Link Document': 'https://...' }],
-    'Permintaan Chemical': [{ 'Timestamp': '2024-05-01', 'Nama Lengkap': 'Budi Santoso', 'Kebutuhan Untuk Cabang': '001. Pondok Bambu', 'Alat - Alat / Barang': 'Sapu', 'Jumlah Permintaan Alat / Barang': '2', 'Chemical': 'Karbol', 'Jumlah Permintaan Chemical': '1 Liter', 'Tambahan  Alat / Chemical Jika Ada Permintaan Diluar List.': '', 'Status': 'Pending' }],
+    'Data SP': [{ 'Nama Karyawan': 'Budi Santoso', 'Cabang': '001. Pondok Bambu', 'Jenis SP': 'SP 1', 'Tanggal Terbit': '2026-01-10', 'Tanggal Berakhir': '2026-07-10', 'Alasan / Pelanggaran': 'Keterlambatan', 'Status': 'Aktif', 'Link Dokumen': '' }],
+    'Data Mutasi': [{ 'Nama Karyawan': 'Budi Santoso', 'Cabang Asal': '001. Pondok Bambu', 'Cabang Tujuan': '002. Bintaro', 'Tanggal Efektif': '2026-02-01', 'Alasan Mutasi': 'Rotasi Reguler', 'Status': 'Selesai', 'No. SK / Dokumen': 'SK/001/2026' }],
+    'Master Form': [{ 'Nama Form': 'Form Pengajuan Alat', 'Kategori': 'Operasional', 'Link Form': 'https://...', 'Deskripsi': 'Formulir pengajuan alat dan perlengkapan', 'Publik': 'Ya' }],
   };
   Object.entries(TEMPLATES).forEach(([sn, data]) => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), sn);

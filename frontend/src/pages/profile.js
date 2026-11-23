@@ -1,19 +1,19 @@
-import { apiFetch, getUser, setUser } from '../config.js';
+import { apiFetch, getUser, setUser, clearToken } from '../config.js';
 import { toastSuccess, toastError } from '../components/toast.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 export async function renderProfile(container) {
   const user = getUser();
   const initial = (user?.full_name || user?.username || 'U')[0].toUpperCase();
 
   const roleColors = {
-    superadmin: '#7C3AED', admin: '#2563EB', manager: '#0891B2',
-    spv: '#059669', viewer: '#64748B',
+    superadmin: '#60A5FA', fc_specialist_leader: '#38BDF8', editor_khusus: '#38BDF8', viewer: '#34D399',
   };
-  const roleColor = roleColors[user?.role] || '#64748B';
+  const roleColor = roleColors[user?.role] || '#93C5FD';
 
   container.innerHTML = `
     <div class="page-header">
-      <h1 class="page-title">👤 Profil Saya</h1>
+      <h1 class="page-title">Profil Saya</h1>
     </div>
 
     <div class="profile-layout">
@@ -21,14 +21,14 @@ export async function renderProfile(container) {
       <!-- LEFT: Info Card -->
       <div class="chart-card profile-info-card">
         <div class="profile-avatar-wrap">
-          <div class="profile-avatar-xl" style="background:linear-gradient(135deg,${roleColor},${roleColor}99)">
-            ${initial}
+          <div class="profile-avatar-xl" style="background:#2563EB;color:#FFFFFF;border:1px solid #3B82F6;">
+            ${escapeHtml(initial)}
           </div>
           <div class="profile-name-block">
-            <div class="profile-fullname">${user?.full_name || '—'}</div>
-            <div class="profile-username">@${user?.username || '—'}</div>
-            <span class="badge badge-info" style="background:${roleColor}18;color:${roleColor};margin-top:6px">
-              ${(user?.role || 'viewer').toUpperCase()}
+            <div class="profile-fullname">${escapeHtml(user?.full_name || '—')}</div>
+            <div class="profile-username">@${escapeHtml(user?.username || '—')}</div>
+            <span class="badge badge-primary" style="margin-top:6px">
+              ${escapeHtml((user?.role || '-').toUpperCase())}
             </span>
           </div>
         </div>
@@ -37,27 +37,26 @@ export async function renderProfile(container) {
 
         <div class="info-list">
           <div class="info-row">
-            <span class="info-key">📧 Email</span>
-            <span class="info-value">${user?.email || '—'}</span>
+            <span class="info-key">Email</span>
+            <span class="info-value">${escapeHtml(user?.email || '—')}</span>
           </div>
           <div class="info-row">
-            <span class="info-key">👤 Username</span>
-            <span class="info-value">${user?.username || '—'}</span>
+            <span class="info-key">Username</span>
+            <span class="info-value">${escapeHtml(user?.username || '—')}</span>
           </div>
           <div class="info-row">
-            <span class="info-key">🎯 Role</span>
-            <span class="info-value" style="color:${roleColor};font-weight:700">${user?.role || '—'}</span>
+            <span class="info-key">Role</span>
+            <span class="info-value" style="color:${roleColor};font-weight:700">${escapeHtml(user?.role || '—')}</span>
           </div>
         </div>
       </div>
 
       <!-- RIGHT: Change Password -->
       <div class="chart-card">
-        ${user?.role !== 'viewer' ? `
         <div class="chart-card-header">
           <div>
-            <div class="chart-card-title">🔑 Ganti Password</div>
-            <div class="chart-card-subtitle">Gunakan password yang kuat, minimal 6 karakter</div>
+            <div class="chart-card-title">Ganti Password</div>
+            <div class="chart-card-subtitle">Gunakan password yang kuat, minimal 12 karakter</div>
           </div>
         </div>
 
@@ -65,17 +64,17 @@ export async function renderProfile(container) {
           <div class="form-group">
             <label class="form-label">Password Lama <span class="required">*</span></label>
             <input type="password" name="current_password" class="form-control"
-              required placeholder="Masukkan password saat ini" autocomplete="current-password">
+              required autocomplete="current-password">
           </div>
           <div class="form-group">
             <label class="form-label">Password Baru <span class="required">*</span></label>
             <input type="password" name="new_password" class="form-control"
-              required placeholder="Minimal 6 karakter" autocomplete="new-password">
+              required placeholder="Minimal 12 karakter" autocomplete="new-password">
           </div>
           <div class="form-group">
             <label class="form-label">Konfirmasi Password Baru <span class="required">*</span></label>
             <input type="password" name="confirm_password" class="form-control"
-              required placeholder="Ulangi password baru" autocomplete="new-password">
+              required autocomplete="new-password">
           </div>
 
           <div id="pwd-error" class="alert alert-danger" style="display:none"></div>
@@ -89,14 +88,6 @@ export async function renderProfile(container) {
             Simpan Password
           </button>
         </form>
-        ` : `
-        <div class="chart-card-header">
-          <div>
-            <div class="chart-card-title">🔑 Ganti Password</div>
-            <div class="chart-card-subtitle" style="color: #ef4444; font-weight:500;">Perubahan password dinonaktifkan untuk Viewer. Silakan hubungi Administrator.</div>
-          </div>
-        </div>
-        `}
 
         <hr class="profile-divider" style="margin-top:28px">
 
@@ -125,15 +116,10 @@ export async function renderProfile(container) {
     </div>
   `;
 
-  // Session info
-  const token = localStorage.getItem('fm_token');
+  // Session info (HttpOnly cookie-protected; never reads JWT from localStorage)
   const sessEl = document.getElementById('session-info');
-  if (token && sessEl) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const exp = new Date(payload.exp * 1000);
-      sessEl.textContent = `Berakhir: ${exp.toLocaleString('id-ID')}`;
-    } catch { sessEl.textContent = 'Tidak tersedia'; }
+  if (sessEl) {
+    sessEl.textContent = 'Aktif (HttpOnly Cookie + CSRF Terproteksi)';
   }
 
   // Change password
@@ -154,8 +140,8 @@ export async function renderProfile(container) {
       errEl.textContent = '❌ Konfirmasi password tidak cocok.';
       errEl.style.display = 'block'; return;
     }
-    if (new_password.length < 6) {
-      errEl.textContent = '❌ Password baru minimal 6 karakter.';
+    if (new_password.length < 12) {
+      errEl.textContent = '❌ Password baru minimal 12 karakter.';
       errEl.style.display = 'block'; return;
     }
 
@@ -182,9 +168,12 @@ export async function renderProfile(container) {
   });
 
   // Logout
-  document.getElementById('btn-logout')?.addEventListener('click', () => {
+  document.getElementById('btn-logout')?.addEventListener('click', async () => {
     if (confirm('Keluar dari semua sesi? Anda harus login ulang.')) {
-      localStorage.clear();
+      try {
+        await apiFetch('/api/auth/logout?all=true', { method: 'POST' });
+      } catch {}
+      clearToken();
       window.location.reload();
     }
   });

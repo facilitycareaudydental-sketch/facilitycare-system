@@ -5,10 +5,13 @@
   "scripts": {
     "dev": "npx serve dist -p 3000",
     "build": "node build.js",
-    "deploy": "wrangler pages deploy dist --project-name=facilitycare-system"
+    "build:staging": "node build.js --env=staging",
+    "build:production": "node build.js --env=production",
+    "deploy": "node ../scripts/preflight-guard.mjs --env=production && wrangler pages deploy dist --project-name=facilitycare-system",
+    "deploy:staging": "node ../scripts/preflight-guard.mjs --env=staging --config=api/wrangler.staging.toml && node build.js --env=staging && node deploy-staging.js"
   },
   "devDependencies": {
-    "wrangler": "^3.78.0",
-    "serve": "^14.2.3"
+    "wrangler": "3.114.17",
+    "serve": "14.2.6"
   }
 }

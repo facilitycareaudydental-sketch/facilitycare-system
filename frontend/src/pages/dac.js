@@ -2,6 +2,8 @@ import { apiFetch, getUser, hasPermission } from '../config.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError } from '../components/toast.js';
 import { downloadExcel } from '../utils/excel.js';
+import { fetchExportRows } from '../utils/dataCache.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 const CATEGORY_COLORS = {
   'Persiapan': { bg: '#F3E8FF', color: '#6B21A8', border: '#D8B4FE' },
@@ -20,90 +22,90 @@ const CATEGORY_COLORS = {
 
 export async function renderDAC(container) {
   const user = getUser();
-  const canEdit = user && (user.role === 'superadmin' || user.role === 'admin');
+  const canEdit = hasPermission(user, 'dac', 'write');
+  const canDelete = hasPermission(user, 'dac', 'delete');
   const canExport = hasPermission(user, 'export');
 
   container.innerHTML = `
-    <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
-      <div>
-        <h1 class="page-title" style="display:flex; align-items:center; gap:8px; margin:0 0 6px 0; font-size:1.6rem; font-weight:700; color:var(--text-1);">
-          <span>⏱️</span> Master DAC (Daily Activity Cleaning)
-        </h1>
-        <p class="page-subtitle" style="margin:0; font-size:0.9rem; color:var(--text-3);">
-          Standar Acuan Alur Rutinitas Pembersihan Harian Facility Care (Shift Pagi & Shift Siang)
-        </p>
-      </div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <div class="btn-group" style="background:#F1F5F9; padding:3px; border-radius:8px; display:inline-flex; border:1px solid var(--border);">
-          <button id="view-timeline-btn" class="btn btn-sm" style="background:#fff; font-weight:600; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05); padding:6px 12px; cursor:pointer;">
-            ⏱️ Alur Timeline
-          </button>
-          <button id="view-table-btn" class="btn btn-sm btn-ghost" style="font-weight:600; border-radius:6px; padding:6px 12px; cursor:pointer;">
-            📋 Tabel Standar
-          </button>
-        </div>
-        <button id="btn-print-dac" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Cetak Format SOP untuk Ruang Janitor">
-          🖨️ Cetak SOP
-        </button>
-        ${canExport ? `
-        <button id="btn-export-dac" class="btn btn-outline" style="background:#fff; border:1px solid var(--border); font-weight:600; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-          📥 Export Excel
-        </button>
-        ` : ''}
-        ${canEdit ? `
-        <button id="btn-add-dac" class="btn btn-primary" style="font-weight:600; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-          + Tambah Aktivitas
-        </button>
-        ` : ''}
-      </div>
-    </div>
-
-    <!-- Shift Switcher Tabs -->
-    <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:2px solid #E2E8F0; padding-bottom:8px;">
-      <button class="shift-tab-btn active" data-shift="pagi" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
-        🌅 Shift Pagi (08:00 - 17:00) <span class="badge" style="background:rgba(255,255,255,0.25); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-pagi">31</span>
-      </button>
-      <button class="shift-tab-btn" data-shift="siang" style="border:none; background:#F1F5F9; color:var(--text-2); font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
-        🌇 Shift Siang (13:00 - 22:00) <span class="badge" style="background:#CBD5E1; color:#334155; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-siang">33</span>
-      </button>
-      <button class="shift-tab-btn" data-shift="all" style="border:none; background:#F1F5F9; color:var(--text-2); font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
-        📑 Semua Shift <span class="badge" style="background:#CBD5E1; color:#334155; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">64</span>
-      </button>
-    </div>
-
-    <!-- Summary KPI Cards -->
-    <div id="dac-summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
-      <div class="kpi-card skeleton" style="height:90px; border-radius:12px;"></div>
-      <div class="kpi-card skeleton" style="height:90px; border-radius:12px;"></div>
-      <div class="kpi-card skeleton" style="height:90px; border-radius:12px;"></div>
-      <div class="kpi-card skeleton" style="height:90px; border-radius:12px;"></div>
-    </div>
-
-    <!-- Filter Toolbar -->
-    <div class="card" style="padding:14px 18px; margin-bottom:24px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
-        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; flex:1; min-width:280px;">
-          <div style="position:relative; flex:1; min-width:200px; max-width:320px;">
-            <input type="text" id="dac-search" class="form-control" placeholder="Cari lokasi, aktivitas, jam..." style="padding-left:34px; height:38px; border-radius:8px; font-size:0.9rem; width:100%;">
-            <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:0.9rem;">🔍</span>
+    <div class="dac-page-shell">
+      <!-- Unified Hero Card (Consistent with FCMS Clean Navy Modules) -->
+      <div class="dac-hero-card">
+        <div class="dac-hero-top">
+          <div class="dac-hero-title-group">
+            <h1 class="dac-hero-title">Master DAC (Daily Activity Cleaning)</h1>
+            <p class="dac-hero-subtitle">Standar acuan alur rutinitas pembersihan harian Facility Care (Shift Pagi &amp; Shift Siang)</p>
           </div>
-          <select id="dac-category-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:160px;">
+          <div class="dac-hero-actions">
+            <div class="dac-view-switch" role="group" aria-label="Mode tampilan Master DAC">
+              <button type="button" id="view-timeline-btn" class="dac-view-btn active">Alur Timeline</button>
+              <button type="button" id="view-table-btn" class="dac-view-btn">Tabel Standar</button>
+            </div>
+            <button type="button" id="btn-print-dac" class="btn btn-outline btn-sm" title="Cetak Format SOP untuk Ruang Janitor">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Cetak SOP
+            </button>
+            ${canExport ? `
+            <button type="button" id="btn-export-dac" class="btn btn-outline btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export Excel
+            </button>
+            ` : ''}
+            ${canEdit ? `
+            <button type="button" id="btn-add-dac" class="btn btn-primary btn-sm">
+              + Tambah Aktivitas
+            </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Unified Summary Stats Grid -->
+        <div id="dac-summary-cards" class="dac-stats-grid">
+          <div class="dac-stat-box skeleton" style="height:78px;"></div>
+          <div class="dac-stat-box skeleton" style="height:78px;"></div>
+          <div class="dac-stat-box skeleton" style="height:78px;"></div>
+          <div class="dac-stat-box skeleton" style="height:78px;"></div>
+        </div>
+      </div>
+
+      <!-- Unified Filter Toolbar & Shift Switcher Tabs -->
+      <div class="dac-controls-card">
+        <div class="dac-controls-row">
+          <div class="dac-search-wrap">
+            <svg class="dac-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="dac-search" class="form-control dac-search-input" placeholder="Cari lokasi, aktivitas, jam..." aria-label="Cari aktivitas DAC">
+          </div>
+          <select id="dac-category-filter" class="form-control dac-filter-select" aria-label="Filter kategori DAC">
             <option value="">Semua Kategori</option>
           </select>
-          <select id="dac-period-filter" class="form-control" style="width:auto; height:38px; border-radius:8px; font-size:0.875rem; min-width:150px;">
+          <select id="dac-period-filter" class="form-control dac-filter-select" aria-label="Filter periode waktu DAC">
             <option value="">Semua Waktu</option>
             <option value="morning">Sesi Awal (08:00 - 12:00 / 13:00 - 17:00)</option>
             <option value="afternoon">Sesi Lanjutan (12:00 - 17:00 / 17:00 - 22:00)</option>
           </select>
+          <div id="dac-stats-text" class="dac-stats-text">
+            Memuat data...
+          </div>
         </div>
-        <div id="dac-stats-text" style="font-size:0.85rem; color:var(--text-3); font-weight:500;">
-          Memuat data...
+
+        <div id="dac-shift-tabs" class="dac-shift-tabs" data-fc-scroll-tabs role="tablist" aria-label="Filter shift DAC">
+          <button type="button" class="shift-tab-btn active" data-shift="pagi" role="tab" aria-selected="true">
+            <span>Shift Pagi (08:00 - 17:00)</span>
+            <span class="badge dac-tab-count" id="badge-count-pagi">31</span>
+          </button>
+          <button type="button" class="shift-tab-btn" data-shift="siang" role="tab" aria-selected="false">
+            <span>Shift Siang (13:00 - 22:00)</span>
+            <span class="badge dac-tab-count" id="badge-count-siang">33</span>
+          </button>
+          <button type="button" class="shift-tab-btn" data-shift="all" role="tab" aria-selected="false">
+            <span>Semua Shift</span>
+            <span class="badge dac-tab-count" id="badge-count-all">64</span>
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Main Content Container -->
-    <div id="dac-view-container"></div>
+      <!-- Main Content Container (Aligned 100% Width with Shell) -->
+      <div id="dac-view-container" class="dac-view-container"></div>
+    </div>
   `;
 
   let currentShift = 'pagi'; // 'pagi', 'siang', or 'all'
@@ -127,18 +129,20 @@ export async function renderDAC(container) {
       // Populate category filter
       const catSelect = document.getElementById('dac-category-filter');
       const uniqueCats = Array.from(new Set(allItems.map(r => r.category))).sort();
-      catSelect.innerHTML = '<option value="">Semua Kategori</option>' + uniqueCats.map(c => `<option value="${c}">${c}</option>`).join('');
+      catSelect.innerHTML = '<option value="">Semua Kategori</option>' + uniqueCats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
       renderKPIs();
       renderView();
     } catch (err) {
-      document.getElementById('dac-view-container').innerHTML = `
+      const vc = document.getElementById('dac-view-container');
+      vc.innerHTML = `
         <div class="empty-state" style="padding:40px; text-align:center;">
           <div style="font-size:2rem; margin-bottom:8px;">⚠️</div>
-          <p style="color:var(--danger); font-weight:600;">Gagal memuat data DAC: ${err.message}</p>
-          <button class="btn btn-outline btn-sm" onclick="window.location.reload()">Muat Ulang</button>
+          <p style="color:var(--danger); font-weight:600;">Gagal memuat data DAC: ${escapeHtml(err.message)}</p>
+          <button type="button" id="dac-reload-btn" class="btn btn-outline btn-sm">Muat Ulang</button>
         </div>
       `;
+      vc.querySelector('#dac-reload-btn')?.addEventListener('click', () => window.location.reload());
     }
   }
 
@@ -181,28 +185,44 @@ export async function renderDAC(container) {
     const shiftLabel = currentShift === 'pagi' ? 'Shift Pagi' : currentShift === 'siang' ? 'Shift Siang' : 'Semua Shift';
 
     kpiEl.innerHTML = `
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="font-size:0.8rem; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Total Aktivitas (${shiftLabel})</div>
-        <div style="font-size:1.8rem; font-weight:800; color:var(--text-1); line-height:1.2;">${activeList.length} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Aktivitas</span></div>
-        <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Urutan Terjadwal dari Awal s/d Penutup</div>
+      <div class="dac-stat-box">
+        <div class="dac-stat-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="dac-stat-body">
+          <div class="dac-stat-val">${activeList.length}</div>
+          <div class="dac-stat-lbl">Total Aktivitas (${shiftLabel})</div>
+        </div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #2563EB; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="font-size:0.8rem; font-weight:600; color:#1E40AF; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Jam Kerja Standar</div>
-        <div style="font-size:1.5rem; font-weight:800; color:#1E40AF; line-height:1.2;">${shiftHours}</div>
-        <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">9 Jam Operasional (Break 1 Jam)</div>
+      <div class="dac-stat-box">
+        <div class="dac-stat-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="dac-stat-body">
+          <div class="dac-stat-val dac-stat-val--time">${shiftHours}</div>
+          <div class="dac-stat-lbl">Jam Kerja Standar</div>
+        </div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #0D9488; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="font-size:0.8rem; font-weight:600; color:#0F766E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Cakupan Operasional</div>
-        <div style="font-size:1.8rem; font-weight:800; color:#0F766E; line-height:1.2;">12 <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Kategori</span></div>
-        <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Tindakan, Toilet, Area Umum, Medis, dll.</div>
+      <div class="dac-stat-box">
+        <div class="dac-stat-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <div class="dac-stat-body">
+          <div class="dac-stat-val">12</div>
+          <div class="dac-stat-lbl">Cakupan Kategori</div>
+        </div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#fff; border:1px solid var(--border); border-radius:12px; border-left:4px solid #F59E0B; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="font-size:0.8rem; font-weight:600; color:#B45309; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Poin Wajib Harian</div>
-        <div style="font-size:1.1rem; font-weight:700; color:#B45309; line-height:1.4;">Check Sheet & Sampah Medis</div>
-        <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Kontrol mobilitas bertahap & sterilisasi</div>
+      <div class="dac-stat-box">
+        <div class="dac-stat-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="dac-stat-body">
+          <div class="dac-stat-val dac-stat-val--focus">Check Sheet &amp; Medis</div>
+          <div class="dac-stat-lbl">Poin Wajib Harian</div>
+        </div>
       </div>
     `;
   }
@@ -225,63 +245,59 @@ export async function renderDAC(container) {
   function renderTimelineView(targetEl, items) {
     if (!items.length) {
       targetEl.innerHTML = `
-        <div class="empty-state" style="padding:50px; text-align:center; background:#fff; border-radius:12px; border:1px solid var(--border);">
-          <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
-          <p style="font-size:1.05rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">Tidak ada aktivitas yang cocok dengan filter</p>
-          <p style="color:var(--text-3); font-size:0.875rem;">Coba reset kata kunci atau pilihan kategori di atas.</p>
+        <div class="dac-empty-card">
+          <p class="dac-empty-title">Tidak ada aktivitas yang cocok dengan filter</p>
+          <p class="dac-empty-sub">Coba reset kata kunci atau pilihan kategori di atas.</p>
         </div>
       `;
       return;
     }
 
     targetEl.innerHTML = `
-      <div class="timeline-container" style="display:flex; flex-direction:column; gap:12px; max-width:960px; margin:0 auto;">
+      <div class="timeline-container dac-timeline-list">
         ${items.map(item => {
-          const cfg = CATEGORY_COLORS[item.category] || { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' };
-          const shiftBadge = item.shift === 'pagi' ? '🌅 Pagi' : '🌇 Siang';
-          const shiftBadgeBg = item.shift === 'pagi' ? '#FEF3C7' : '#E0E7FF';
-          const shiftBadgeColor = item.shift === 'pagi' ? '#92400E' : '#3730A3';
+          const cfg = CATEGORY_COLORS[item.category] || { bg: 'rgba(148,163,184,0.14)', color: '#E2E8F0', border: 'rgba(148,163,184,0.3)' };
+          const shiftBadge = item.shift === 'pagi' ? 'Pagi' : 'Siang';
 
           return `
-            <div class="dac-timeline-card" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; gap:16px; align-items:flex-start; position:relative;">
+            <div class="dac-timeline-card">
               <!-- Time Column -->
-              <div style="min-width:130px; text-align:center; background:#F8FAFC; border:1px solid var(--border); border-radius:8px; padding:10px 8px;">
-                <div style="font-size:1.1rem; font-weight:800; color:var(--text-1); font-family:monospace;">
-                  ${item.start_time} - ${item.end_time}
+              <div class="dac-time-box">
+                <div class="dac-time-range">
+                  ${escapeHtml(item.start_time)} - ${escapeHtml(item.end_time)}
                 </div>
-                <div style="font-size:0.75rem; color:var(--text-3); font-weight:600; margin-top:4px;">
-                  Item #${item.item_no}
+                <div class="dac-time-itemno">
+                  Item #${escapeHtml(String(item.item_no))}
                 </div>
                 ${currentShift === 'all' ? `
-                  <div style="margin-top:6px;">
-                    <span class="badge" style="background:${shiftBadgeBg}; color:${shiftBadgeColor}; font-size:0.7rem; font-weight:700; padding:2px 6px; border-radius:4px;">
-                      ${shiftBadge}
-                    </span>
+                  <div class="dac-time-shift">
+                    <span class="badge ${item.shift === 'pagi' ? 'badge-warning' : 'badge-primary'}">${shiftBadge}</span>
                   </div>
                 ` : ''}
               </div>
 
               <!-- Content Column -->
-              <div style="flex:1;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
-                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <span class="badge" style="background:${cfg.bg}; color:${cfg.color}; border:1px solid ${cfg.border}; font-weight:700; font-size:0.75rem; padding:3px 10px; border-radius:6px;">
-                      ${item.category}
+              <div class="dac-card-content">
+                <div class="dac-card-head">
+                  <div class="dac-card-meta">
+                    <span class="badge" style="background:${cfg.bg}; color:${cfg.color}; border:1px solid ${cfg.border};">
+                      ${escapeHtml(item.category)}
                     </span>
-                    <span style="font-weight:700; font-size:0.95rem; color:var(--text-1);">
-                      📍 ${item.location}
+                    <span class="dac-card-location">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>${escapeHtml(item.location)}</span>
                     </span>
                   </div>
-                  ${canEdit ? `
-                    <div style="display:flex; gap:4px;">
-                      <button class="btn btn-ghost btn-sm edit-dac-btn" data-id="${item.id}" title="Edit" style="padding:4px 8px; font-size:0.8rem; cursor:pointer;">✏️</button>
-                      <button class="btn btn-ghost btn-sm delete-dac-btn" data-id="${item.id}" data-name="${item.location}" title="Hapus" style="padding:4px 8px; font-size:0.8rem; color:var(--danger); cursor:pointer;">🗑️</button>
+                  ${canEdit || canDelete ? `
+                    <div class="dac-card-actions">
+                      ${canEdit ? `<button type="button" class="fc-action-btn fc-action-edit edit-dac-btn" data-id="${escapeHtml(String(item.id))}" title="Edit ${escapeHtml(item.location)}" aria-label="Edit aktivitas ${escapeHtml(item.location)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>` : ''}
+                      ${canDelete ? `<button type="button" class="fc-action-btn fc-action-del delete-dac-btn" data-id="${escapeHtml(String(item.id))}" data-name="${escapeHtml(item.location)}" title="Hapus ${escapeHtml(item.location)}" aria-label="Hapus aktivitas ${escapeHtml(item.location)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>` : ''}
                     </div>
                   ` : ''}
                 </div>
 
-                <div style="font-size:0.9rem; color:var(--text-2); line-height:1.5; background:#FAFBFD; padding:10px 14px; border-radius:8px; border-left:3px solid ${cfg.color}; margin-top:8px;">
-                  ${item.activity}
+                <div class="dac-activity-desc">
+                  ${escapeHtml(item.activity)}
                 </div>
               </div>
             </div>
@@ -295,60 +311,62 @@ export async function renderDAC(container) {
   function renderTableView(targetEl, items) {
     if (!items.length) {
       targetEl.innerHTML = `
-        <div class="empty-state" style="padding:50px; text-align:center; background:#fff; border-radius:12px; border:1px solid var(--border);">
-          <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
-          <p style="font-size:1.05rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">Tidak ada aktivitas yang cocok dengan filter</p>
+        <div class="dac-empty-card">
+          <p class="dac-empty-title">Tidak ada aktivitas yang cocok dengan filter</p>
+          <p class="dac-empty-sub">Coba reset kata kunci atau pilihan kategori di atas.</p>
         </div>
       `;
       return;
     }
 
     targetEl.innerHTML = `
-      <div class="card" style="background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div class="table-responsive">
-          <table class="table" style="width:100%; border-collapse:collapse;">
+      <div class="dac-table-card">
+        <div class="table-wrapper">
+          <table class="dac-table">
             <thead>
-              <tr style="background:#F8FAFC; border-bottom:1px solid var(--border); text-align:left;">
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:50px;">NO</th>
-                ${currentShift === 'all' ? `<th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3);">SHIFT</th>` : ''}
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:110px;">JAM</th>
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:140px;">KATEGORI</th>
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); width:200px;">LOKASI / AREA</th>
-                <th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3);">AKTIVITAS</th>
-                ${canEdit ? `<th style="padding:12px 14px; font-size:0.8rem; font-weight:700; color:var(--text-3); text-align:right; width:100px;">AKSI</th>` : ''}
+              <tr>
+                <th style="width:52px; text-align:center;">No</th>
+                ${currentShift === 'all' ? '<th style="width:82px;">Shift</th>' : ''}
+                <th style="width:128px;">Jam</th>
+                <th style="width:150px;">Kategori</th>
+                <th style="width:210px;">Lokasi / Area</th>
+                <th>Aktivitas</th>
+                ${canEdit || canDelete ? '<th style="text-align:center; width:96px;">Aksi</th>' : ''}
               </tr>
             </thead>
             <tbody>
               ${items.map(item => {
-                const cfg = CATEGORY_COLORS[item.category] || { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' };
+                const cfg = CATEGORY_COLORS[item.category] || { bg: 'rgba(148,163,184,0.14)', color: '#E2E8F0', border: 'rgba(148,163,184,0.3)' };
                 return `
-                  <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:12px 14px; font-size:0.85rem; color:var(--text-3); font-weight:600;">${item.item_no}</td>
+                  <tr class="dac-table-row">
+                    <td style="text-align:center; color:#A5B4C8; font-weight:600; font-variant-numeric:tabular-nums;">${escapeHtml(String(item.item_no))}</td>
                     ${currentShift === 'all' ? `
-                      <td style="padding:12px 14px;">
-                        <span class="badge" style="background:${item.shift === 'pagi' ? '#FEF3C7' : '#E0E7FF'}; color:${item.shift === 'pagi' ? '#92400E' : '#3730A3'}; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:4px;">
+                      <td>
+                        <span class="badge ${item.shift === 'pagi' ? 'badge-warning' : 'badge-primary'}">
                           ${item.shift === 'pagi' ? 'Pagi' : 'Siang'}
                         </span>
                       </td>
                     ` : ''}
-                    <td style="padding:12px 14px; font-family:monospace; font-weight:700; font-size:0.85rem; color:var(--text-1); white-space:nowrap;">
-                      ${item.start_time} - ${item.end_time}
+                    <td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-weight:700; color:#FFFFFF; white-space:nowrap;">
+                      ${escapeHtml(item.start_time)} - ${escapeHtml(item.end_time)}
                     </td>
-                    <td style="padding:12px 14px;">
-                      <span class="badge" style="background:${cfg.bg}; color:${cfg.color}; border:1px solid ${cfg.border}; font-weight:700; font-size:0.75rem; padding:3px 8px; border-radius:6px; white-space:nowrap;">
-                        ${item.category}
+                    <td>
+                      <span class="badge" style="background:${cfg.bg}; color:${cfg.color}; border:1px solid ${cfg.border}; white-space:nowrap;">
+                        ${escapeHtml(item.category)}
                       </span>
                     </td>
-                    <td style="padding:12px 14px; font-size:0.875rem; font-weight:600; color:var(--text-1);">
-                      ${item.location}
+                    <td style="font-weight:700; color:#F8FAFC;">
+                      ${escapeHtml(item.location)}
                     </td>
-                    <td style="padding:12px 14px; font-size:0.875rem; color:var(--text-2); line-height:1.4;">
-                      ${item.activity}
+                    <td style="color:#E2E8F0; line-height:1.5; white-space:normal; min-width:240px;">
+                      ${escapeHtml(item.activity)}
                     </td>
-                    ${canEdit ? `
-                      <td style="padding:12px 14px; text-align:right; white-space:nowrap;">
-                        <button class="btn btn-outline btn-sm edit-dac-btn" data-id="${item.id}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px; margin-right:4px;">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-dac-btn" data-id="${item.id}" data-name="${item.location}" style="padding:3px 8px; font-size:0.75rem; border-radius:6px;">Hapus</button>
+                    ${canEdit || canDelete ? `
+                      <td style="text-align:center; white-space:nowrap;">
+                        <div class="dac-card-actions" style="justify-content:center;">
+                          ${canEdit ? `<button type="button" class="fc-action-btn fc-action-edit edit-dac-btn" data-id="${escapeHtml(String(item.id))}" title="Edit ${escapeHtml(item.location)}" aria-label="Edit aktivitas ${escapeHtml(item.location)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>` : ''}
+                          ${canDelete ? `<button type="button" class="fc-action-btn fc-action-del delete-dac-btn" data-id="${escapeHtml(String(item.id))}" data-name="${escapeHtml(item.location)}" title="Hapus ${escapeHtml(item.location)}" aria-label="Hapus aktivitas ${escapeHtml(item.location)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>` : ''}
+                        </div>
                       </td>
                     ` : ''}
                   </tr>
@@ -407,9 +425,9 @@ export async function renderDAC(container) {
 
     const contentHtml = `
       <form id="dac-form" style="display:flex; flex-direction:column; gap:14px;">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="form-group">
-            <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Pilih Shift *</label>
+            <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Pilih Shift <span class="required">*</span></label>
             <select name="shift" class="form-control" required style="width:100%; height:38px; border-radius:8px;">
               <option value="pagi" ${item?.shift === 'pagi' || (!item && currentShift === 'pagi') ? 'selected' : ''}>🌅 Shift Pagi (08:00 - 17:00)</option>
               <option value="siang" ${item?.shift === 'siang' || (!item && currentShift === 'siang') ? 'selected' : ''}>🌇 Shift Siang (13:00 - 22:00)</option>
@@ -417,39 +435,39 @@ export async function renderDAC(container) {
           </div>
 
           <div class="form-group">
-            <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Nomor Urut *</label>
-            <input type="number" name="item_no" class="form-control" value="${item?.item_no || ''}" placeholder="Otomatis jika kosong" style="width:100%; height:38px; border-radius:8px;">
+            <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Nomor Urut <span class="required">*</span></label>
+            <input type="number" name="item_no" class="form-control" value="${item?.item_no || ''}" style="width:100%; height:38px; border-radius:8px;">
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="form-group">
-            <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Jam Mulai (HH:MM) *</label>
+            <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Jam Mulai (HH:MM) <span class="required">*</span></label>
             <input type="time" name="start_time" class="form-control" value="${item?.start_time || ''}" required style="width:100%; height:38px; border-radius:8px;">
           </div>
 
           <div class="form-group">
-            <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Jam Selesai (HH:MM) *</label>
+            <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Jam Selesai (HH:MM) <span class="required">*</span></label>
             <input type="time" name="end_time" class="form-control" value="${item?.end_time || ''}" required style="width:100%; height:38px; border-radius:8px;">
           </div>
         </div>
 
         <div class="form-group">
-          <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Kategori *</label>
-          <input list="cat-suggestions" name="category" class="form-control" value="${item?.category || ''}" required placeholder="Pilih atau ketik kategori..." style="width:100%; height:38px; border-radius:8px;">
+          <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Kategori <span class="required">*</span></label>
+          <input list="cat-suggestions" name="category" class="form-control" value="${item?.category || ''}" required style="width:100%; height:38px; border-radius:8px;">
           <datalist id="cat-suggestions">
             ${defaultCategories.map(c => `<option value="${c}">`).join('')}
           </datalist>
         </div>
 
         <div class="form-group">
-          <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Lokasi / Area *</label>
-          <input type="text" name="location" class="form-control" value="${item?.location || ''}" required placeholder="Contoh: Ruang tindakan Du 101, Lobby, Toilet GF" style="width:100%; height:38px; border-radius:8px;">
+          <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Lokasi / Area <span class="required">*</span></label>
+          <input type="text" name="location" class="form-control" value="${item?.location || ''}" required style="width:100%; height:38px; border-radius:8px;">
         </div>
 
         <div class="form-group">
-          <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Aktivitas Detail *</label>
-          <textarea name="activity" class="form-control" rows="3" required placeholder="Deskripsi aktivitas pembersihan..." style="width:100%; border-radius:8px;">${item?.activity || ''}</textarea>
+          <label style="font-weight:600; font-size:0.875rem; margin-bottom:4px; display:block;">Aktivitas Detail <span class="required">*</span></label>
+          <textarea name="activity" class="form-control" rows="3" required style="width:100%; border-radius:8px;">${item?.activity || ''}</textarea>
         </div>
       </form>
     `;
@@ -574,41 +592,35 @@ export async function renderDAC(container) {
     }, 400);
   }
 
-  // Shift tab switchers
+  // Shift tab switchers (Clean Navy .active state)
   document.querySelectorAll('.shift-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.shift-tab-btn').forEach(b => {
-        b.style.background = '#F1F5F9';
-        b.style.color = 'var(--text-2)';
-      });
-      btn.style.background = '#2563EB';
-      btn.style.color = '#fff';
-
       currentShift = btn.dataset.shift;
+      document.querySelectorAll('.shift-tab-btn').forEach(b => {
+        const isActive = b.dataset.shift === currentShift;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
       renderKPIs();
       renderView();
     });
   });
 
-  // View switchers
+  // View switchers (Clean Navy .active state)
   const timelineBtn = document.getElementById('view-timeline-btn');
   const tableBtn = document.getElementById('view-table-btn');
 
-  timelineBtn.addEventListener('click', () => {
+  timelineBtn?.addEventListener('click', () => {
     currentView = 'timeline';
-    timelineBtn.style.background = '#fff';
-    timelineBtn.classList.remove('btn-ghost');
-    tableBtn.style.background = 'transparent';
-    tableBtn.classList.add('btn-ghost');
+    timelineBtn.classList.add('active');
+    tableBtn?.classList.remove('active');
     renderView();
   });
 
-  tableBtn.addEventListener('click', () => {
+  tableBtn?.addEventListener('click', () => {
     currentView = 'table';
-    tableBtn.style.background = '#fff';
-    tableBtn.classList.remove('btn-ghost');
-    timelineBtn.style.background = 'transparent';
-    timelineBtn.classList.add('btn-ghost');
+    tableBtn.classList.add('active');
+    timelineBtn?.classList.remove('active');
     renderView();
   });
 
@@ -632,23 +644,50 @@ export async function renderDAC(container) {
   });
 
   // Export Excel
-  document.getElementById('btn-export-dac')?.addEventListener('click', () => {
-    const items = getFilteredItems();
-    if (!items.length) {
-      toastError('Tidak ada data untuk diexport');
-      return;
+  document.getElementById('btn-export-dac')?.addEventListener('click', async () => {
+    try {
+      const search = (document.getElementById('dac-search')?.value || '').trim();
+      const category = document.getElementById('dac-category-filter')?.value || '';
+      const period = document.getElementById('dac-period-filter')?.value || '';
+
+      const params = {};
+      if (currentShift !== 'all') params.shift = currentShift;
+      if (category) params.category = category;
+      if (search) params.search = search;
+
+      let items = await fetchExportRows('/api/dac/export', params);
+      if (period === 'morning' || period === 'afternoon') {
+        items = items.filter(r => {
+          const startH = parseInt(String(r.start_time || '0').split(':')[0], 10);
+          if (period === 'morning') {
+            if (r.shift === 'pagi' && startH >= 12) return false;
+            if (r.shift === 'siang' && startH >= 17) return false;
+          } else {
+            if (r.shift === 'pagi' && startH < 12) return false;
+            if (r.shift === 'siang' && startH < 17) return false;
+          }
+          return true;
+        });
+      }
+
+      if (!items.length) {
+        toastError('Tidak ada data untuk diexport');
+        return;
+      }
+      const exportData = items.map(r => ({
+        'No': r.item_no,
+        'Shift': r.shift === 'pagi' ? 'Shift Pagi' : 'Shift Siang',
+        'Jam Mulai': r.start_time,
+        'Jam Selesai': r.end_time,
+        'Kategori': r.category,
+        'Lokasi / Area': r.location,
+        'Rincian Aktivitas': r.activity
+      }));
+      downloadExcel(exportData, `DAC_Daily_Activity_Cleaning_${currentShift}_${new Date().toISOString().slice(0, 10)}`);
+      toastSuccess('File Excel berhasil diunduh');
+    } catch (err) {
+      toastError('Gagal mengekspor data DAC: ' + err.message);
     }
-    const exportData = items.map(r => ({
-      'No': r.item_no,
-      'Shift': r.shift === 'pagi' ? 'Shift Pagi' : 'Shift Siang',
-      'Jam Mulai': r.start_time,
-      'Jam Selesai': r.end_time,
-      'Kategori': r.category,
-      'Lokasi / Area': r.location,
-      'Rincian Aktivitas': r.activity
-    }));
-    downloadExcel(exportData, `DAC_Daily_Activity_Cleaning_${currentShift}_${new Date().toISOString().slice(0, 10)}`);
-    toastSuccess('File Excel berhasil diunduh');
   });
 
   // Load initial data

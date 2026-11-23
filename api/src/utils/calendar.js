@@ -1,4 +1,5 @@
 // Calendar Sync Engine Utility for FCMS SSOT Architecture
+import { hasTable } from './schemaCompat.js';
 
 export function getSyncStatements(db, module, referenceId, eventData) {
   const stmts = [];
@@ -204,6 +205,7 @@ export function getSyncStatements(db, module, referenceId, eventData) {
 }
 
 export async function runSync(db, module, referenceId, eventData) {
+  if (!(await hasTable(db, 'calendar_events'))) return;
   const stmts = getSyncStatements(db, module, referenceId, eventData);
   if (stmts.length > 0) {
     await db.batch(stmts);

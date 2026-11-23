@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="FCMS — Facility Care Management System">
   <meta name="theme-color" content="#2563EB">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FCMS">
+  <meta name="application-name" content="FCMS">
+  <meta name="msapplication-TileColor" content="#2563EB">
   <title>FCMS — Facility Care</title>
 
-  <!-- PWA manifest -->
+  <!-- PWA manifest & Icons -->
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/icon-192.png">
@@ -18,12 +24,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/assets/style.css?v=20260811e">
-  <link rel="stylesheet" href="/assets/responsive.css?v=20260811e">
+  <link rel="stylesheet" href="/assets/style.css?v=20261124r4">
+  <link rel="stylesheet" href="/assets/responsive.css?v=20261124r6">
 
   <!-- API Config (injected at build/deploy time) -->
   <script>
-    window.__FM_CONFIG = { API_BASE_URL: '', ENVIRONMENT: 'development' };
+    window.__FM_CONFIG = { API_BASE_URL: 'https://fm-operations-api.facilitycare-audydental.workers.dev', ENVIRONMENT: 'production' };
   </script>
 </head>
 <body>
@@ -37,10 +43,10 @@
   <div id="toast-container"></div>
 
   <!-- SheetJS -->
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous"></script>
   <!-- App -->
-  <script type="module" src="/assets/app-FEYGJXIL.js?v=1793889853781"></script>
+  <script type="module" src="/assets/app-HWM3VRST.js?v=1795459770561"></script>
 </body>
 </html>

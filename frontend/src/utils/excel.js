@@ -70,25 +70,73 @@ export function downloadExcel(data, filename) {
   }
 }
 
+let _excelDropdownListenerRegistered = false;
+
+function ensureExcelDropdownDelegation() {
+  if (_excelDropdownListenerRegistered) return;
+  if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+  _excelDropdownListenerRegistered = true;
+
+  document.addEventListener('click', (event) => {
+    const toggleBtn = event.target?.closest?.('[data-excel-toggle-menu]');
+    if (toggleBtn) {
+      const menuId = toggleBtn.getAttribute('data-excel-toggle-menu');
+      const targetMenu = menuId ? document.getElementById(menuId) : null;
+      document.querySelectorAll('.aksi-menu-content.show-aksi-menu').forEach((menuEl) => {
+        if (menuEl !== targetMenu) menuEl.classList.remove('show-aksi-menu');
+      });
+      if (targetMenu) {
+        targetMenu.classList.toggle('show-aksi-menu');
+      }
+      return;
+    }
+
+    if (!event.target?.closest?.('.excel-actions-dropdown')) {
+      document.querySelectorAll('.aksi-menu-content.show-aksi-menu').forEach((menuEl) => {
+        menuEl.classList.remove('show-aksi-menu');
+      });
+    }
+  });
+}
+
+ensureExcelDropdownDelegation();
+
+export function bindExcelDropdown(moduleName, root = typeof document !== 'undefined' ? document : null) {
+  ensureExcelDropdownDelegation();
+  if (!root || typeof root.querySelector !== 'function') return;
+  const btn = root.querySelector(`#btn-aksi-${moduleName}`);
+  const menu = root.querySelector(`#excel-menu-${moduleName}`);
+  if (btn && menu && !btn.dataset.excelBound) {
+    btn.dataset.excelBound = '1';
+    if (!btn.getAttribute('data-excel-toggle-menu')) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('show-aksi-menu');
+      });
+    }
+  }
+}
+
 /**
- * Renders HTML for Export/Import action buttons
+ * Renders HTML for Export/Import action buttons (CSP-safe without inline onclick)
  * @param {String} moduleName - Name used for ID generation
  * @returns {String} - HTML string
  */
 export function renderExcelButtons(moduleName) {
+  ensureExcelDropdownDelegation();
   return `
     <div class="excel-actions-dropdown" style="position:relative; display:inline-block;">
-      <button class="btn" id="btn-aksi-${moduleName}" style="background:#fff; border:1px solid #E2E8F0; padding:8px 16px; border-radius:8px; font-weight:600; color:#334155; display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="document.getElementById('excel-menu-${moduleName}').classList.toggle('show-aksi-menu')">
+      <button type="button" class="btn" id="btn-aksi-${moduleName}" data-excel-toggle-menu="excel-menu-${moduleName}" style="background:#172033; border:1px solid #334155; padding:8px 16px; border-radius:8px; font-weight:600; color:#F8FAFC; display:flex; align-items:center; gap:6px; cursor:pointer;">
         ⋮ Aksi
       </button>
-      <div id="excel-menu-${moduleName}" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #E2E8F0; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); flex-direction:column; min-width:180px; z-index:999; padding:8px 0;">
-        <button class="dropdown-item" id="btn-export-${moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+      <div id="excel-menu-${moduleName}" class="aksi-menu-content" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#172033; border:1px solid #334155; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.45); flex-direction:column; min-width:180px; z-index:999; padding:8px 0;">
+        <button type="button" class="dropdown-item" id="btn-export-${moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#E2E8F0; display:flex; gap:8px; align-items:center;">
           📥 Export Excel
         </button>
-        <button class="dropdown-item" id="btn-template-${moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; display:flex; gap:8px; align-items:center;">
+        <button type="button" class="dropdown-item" id="btn-template-${moduleName}" style="width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#E2E8F0; display:flex; gap:8px; align-items:center;">
           📄 Download Template
         </button>
-        <label class="dropdown-item" style="display:flex; width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#334155; margin:0; gap:8px; align-items:center;" id="label-import-${moduleName}">
+        <label class="dropdown-item" style="display:flex; width:100%; text-align:left; padding:10px 16px; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#E2E8F0; margin:0; gap:8px; align-items:center;" id="label-import-${moduleName}">
           📤 Import Excel
           <input type="file" id="input-import-${moduleName}" accept=".xlsx, .xls, .csv" style="display:none;">
         </label>
@@ -96,7 +144,7 @@ export function renderExcelButtons(moduleName) {
     </div>
     <style>
       .show-aksi-menu { display: flex !important; }
-      .dropdown-item:hover { background-color: #F8FAFC !important; color: #2563EB !important; }
+      .dropdown-item:hover { background-color: #22314A !important; color: #93C5FD !important; }
     </style>
   `;
 }

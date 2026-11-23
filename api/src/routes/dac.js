@@ -2,6 +2,8 @@
 import { authenticate, hasPermission } from '../utils/auth.js';
 import { ok, error, unauthorized, forbidden, notFound, paginated } from '../utils/response.js';
 import { getPagination } from '../utils/pagination.js';
+import { requireExportAccess, getExportPagination } from '../utils/export.js';
+import { buildAuditStatement, buildCreateAuditStatement } from '../utils/audit.js';
 
 const SEED_PAGI = [
   { item_no: 1, start_time: '08:00', end_time: '08:05', category: 'Persiapan', location: 'Semua area', activity: 'Persiapkan peralatan kerja yang dibutuhkan, pastikan bersih dan proper, rapikan grooming' },
@@ -74,53 +76,88 @@ const SEED_SIANG = [
 ];
 
 let _initialized = false;
+let _initPromise = null;
+
+export function _resetInitializationForTesting() {
+  _initialized = false;
+  _initPromise = null;
+}
+
 async function ensureInitialized(env) {
   if (_initialized) return;
+
+  if (!_initPromise) {
+    _initPromise = (async () => {
+      await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS master_dac_standards (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          shift TEXT NOT NULL,
+          item_no INTEGER NOT NULL,
+          start_time TEXT NOT NULL,
+          end_time TEXT NOT NULL,
+          category TEXT NOT NULL,
+          location TEXT NOT NULL,
+          activity TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `).run();
+
+      await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_dac_shift ON master_dac_standards(shift)`).run();
+      await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_dac_category ON master_dac_standards(category)`).run();
+
+      const countRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM master_dac_standards').first();
+      if (!countRow || countRow.cnt === 0) {
+        const stmts = [];
+        for (const item of SEED_PAGI) {
+          stmts.push(
+            env.DB.prepare(`
+              INSERT INTO master_dac_standards (shift, item_no, start_time, end_time, category, location, activity)
+              VALUES ('pagi', ?, ?, ?, ?, ?, ?)
+            `).bind(item.item_no, item.start_time, item.end_time, item.category, item.location, item.activity)
+          );
+        }
+        for (const item of SEED_SIANG) {
+          stmts.push(
+            env.DB.prepare(`
+              INSERT INTO master_dac_standards (shift, item_no, start_time, end_time, category, location, activity)
+              VALUES ('siang', ?, ?, ?, ?, ?, ?)
+            `).bind(item.item_no, item.start_time, item.end_time, item.category, item.location, item.activity)
+          );
+        }
+        if (stmts.length > 0) {
+          for (let i = 0; i < stmts.length; i += 50) {
+            await env.DB.batch(stmts.slice(i, i + 50));
+          }
+        }
+      }
+      _initialized = true;
+    })().finally(() => {
+      _initPromise = null;
+    });
+  }
+
   try {
-    await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS master_dac_standards (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        shift TEXT NOT NULL,
-        item_no INTEGER NOT NULL,
-        start_time TEXT NOT NULL,
-        end_time TEXT NOT NULL,
-        category TEXT NOT NULL,
-        location TEXT NOT NULL,
-        activity TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-      )
-    `).run();
-
-    await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_dac_shift ON master_dac_standards(shift)`).run();
-    await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_dac_category ON master_dac_standards(category)`).run();
-
-    const countRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM master_dac_standards').first();
-    if (!countRow || countRow.cnt === 0) {
-      for (const item of SEED_PAGI) {
-        await env.DB.prepare(`
-          INSERT INTO master_dac_standards (shift, item_no, start_time, end_time, category, location, activity)
-          VALUES ('pagi', ?, ?, ?, ?, ?, ?)
-        `).bind(item.item_no, item.start_time, item.end_time, item.category, item.location, item.activity).run();
-      }
-      for (const item of SEED_SIANG) {
-        await env.DB.prepare(`
-          INSERT INTO master_dac_standards (shift, item_no, start_time, end_time, category, location, activity)
-          VALUES ('siang', ?, ?, ?, ?, ?, ?)
-        `).bind(item.item_no, item.start_time, item.end_time, item.category, item.location, item.activity).run();
-      }
-    }
-    _initialized = true;
+    await _initPromise;
   } catch (err) {
     console.warn('master_dac_standards initialization warning:', err.message);
   }
 }
 
 export async function handleDAC(request, env, origin) {
-  await ensureInitialized(env);
-
   const url = new URL(request.url);
   const path = url.pathname.replace('/api/dac', '');
+
+  if (request.method === 'GET' && path === '/export') {
+    const { response } = await requireExportAccess(request, env, origin, 'dac');
+    if (response) return response;
+    return listDAC(request, env, origin, { isExport: true });
+  }
+
+  const user = await authenticate(request, env);
+  if (!user) return unauthorized(origin);
+  if (!hasPermission(user, 'dac', 'read')) return forbidden(origin);
+
   const idMatch = path.match(/^\/(\d+)$/);
 
   // GET summary
@@ -133,40 +170,37 @@ export async function handleDAC(request, env, origin) {
     return getDACCategories(request, env, origin);
   }
 
-  // GET list (Public read for all authenticated users)
+  // GET list (for all authenticated users)
   if (request.method === 'GET' && path === '') {
     return listDAC(request, env, origin);
   }
-
-  const user = await authenticate(request, env);
-  if (!user) return unauthorized(origin);
 
   if (idMatch) {
     const id = idMatch[1];
     if (request.method === 'GET') {
       return getDACItem(id, env, origin);
     }
-    if (request.method === 'PUT') {
+    if (request.method === 'PUT' || request.method === 'PATCH') {
       if (!hasPermission(user, 'dac', 'write')) return forbidden(origin);
-      return updateDACItem(id, request, env, origin);
+      return updateDACItem(id, request, env, origin, user);
     }
     if (request.method === 'DELETE') {
       if (!hasPermission(user, 'dac', 'delete')) return forbidden(origin);
-      return deleteDACItem(id, env, origin);
+      return deleteDACItem(id, env, origin, user);
     }
   }
 
   if (request.method === 'POST' && path === '') {
     if (!hasPermission(user, 'dac', 'write')) return forbidden(origin);
-    return createDACItem(request, env, origin);
+    return createDACItem(request, env, origin, user);
   }
 
   return error('Not found', 404, origin);
 }
 
-async function listDAC(request, env, origin) {
+async function listDAC(request, env, origin, { isExport = false } = {}) {
   const url = new URL(request.url);
-  const { page, limit, offset } = getPagination(request.url);
+  const { page, limit, offset } = isExport ? getExportPagination(request.url) : getPagination(request.url);
   const shift = url.searchParams.get('shift') || '';
   const category = url.searchParams.get('category') || '';
   const search = url.searchParams.get('search') || '';
@@ -189,9 +223,9 @@ async function listDAC(request, env, origin) {
   }
 
   const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
-  const baseSelect = `SELECT * FROM master_dac_standards ${whereClause} ORDER BY shift ASC, item_no ASC`;
+  const baseSelect = `SELECT * FROM master_dac_standards ${whereClause} ORDER BY shift ASC, item_no ASC, id ASC`;
 
-  if (all === '1') {
+  if (!isExport && all === '1') {
     const rows = await env.DB.prepare(baseSelect).bind(...values).all();
     return ok(rows.results || [], 200, origin);
   }
@@ -203,11 +237,11 @@ async function listDAC(request, env, origin) {
     env.DB.prepare(countQuery).bind(...values).first()
   ]);
 
-  return paginated(rows.results || [], count?.total || 0, page, limit, origin);
+  return paginated(rows.results || [], count?.total || 0, page, limit, origin, env?.ENVIRONMENT);
 }
 
 async function getDACSummary(request, env, origin) {
-  const rows = (await env.DB.prepare('SELECT * FROM master_dac_standards ORDER BY shift ASC, item_no ASC').all()).results || [];
+  const rows = (await env.DB.prepare('SELECT * FROM master_dac_standards ORDER BY shift ASC, item_no ASC, id ASC').all()).results || [];
   
   const pagi = rows.filter(r => r.shift === 'pagi');
   const siang = rows.filter(r => r.shift === 'siang');
@@ -235,67 +269,117 @@ async function getDACItem(id, env, origin) {
   return ok(row, 200, origin);
 }
 
-async function createDACItem(request, env, origin) {
+async function createDACItem(request, env, origin, user = null) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return error('Payload must be a JSON object', 400, origin);
   try {
-    const body = await request.json();
     const { shift, item_no, start_time, end_time, category, location, activity } = body;
 
     if (!shift || !start_time || !end_time || !category || !location || !activity) {
       return error('Shift, Jam Mulai, Jam Selesai, Kategori, Lokasi, dan Aktivitas wajib diisi', 400, origin);
+    }
+    const cleanShift = String(shift).trim().toLowerCase();
+    if (!['pagi', 'siang'].includes(cleanShift)) {
+      return error('Shift tidak valid (gunakan pagi atau siang)', 400, origin);
+    }
+    const timeRe = /^([01]?\d|2[0-3]):[0-5]\d$/;
+    if (!timeRe.test(String(start_time).trim()) || !timeRe.test(String(end_time).trim())) {
+      return error('Format jam mulai/selesai tidak valid (gunakan HH:MM)', 400, origin);
     }
 
     // Auto calculate item_no if not provided
     let num = item_no;
     if (!num) {
-      const last = await env.DB.prepare('SELECT MAX(item_no) as max_no FROM master_dac_standards WHERE shift = ?').bind(shift).first();
+      const last = await env.DB.prepare('SELECT MAX(item_no) as max_no FROM master_dac_standards WHERE shift = ?').bind(cleanShift).first();
       num = (last?.max_no || 0) + 1;
     }
 
-    const res = await env.DB.prepare(`
-      INSERT INTO master_dac_standards (shift, item_no, start_time, end_time, category, location, activity)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(shift, num, start_time, end_time, category, location, activity).run();
+    const newSnapshot = { shift: cleanShift, item_no: num, start_time: String(start_time).trim(), end_time: String(end_time).trim(), category, location, activity };
+    const batchRes = await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO master_dac_standards (shift, item_no, start_time, end_time, category, location, activity)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(cleanShift, num, newSnapshot.start_time, newSnapshot.end_time, category, location, activity),
+      buildCreateAuditStatement(env, user, 'dac', 'new', newSnapshot)
+    ]);
 
-    const created = await env.DB.prepare('SELECT * FROM master_dac_standards WHERE id = ?').bind(res.meta.last_row_id).first();
-    return ok(created, 201, origin);
+    const created = await env.DB.prepare('SELECT * FROM master_dac_standards WHERE id = ?').bind(batchRes?.[0]?.meta?.last_row_id).first();
+    return ok(created, 201, origin, undefined, { 'X-Audit-Batched': 'true' });
   } catch (err) {
-    return error(`Gagal menambahkan item DAC: ${err.message}`, 500, origin);
+    console.error('createDACItem error:', err);
+    return error('Gagal menambahkan item DAC', 500, origin);
   }
 }
 
-async function updateDACItem(id, request, env, origin) {
+async function updateDACItem(id, request, env, origin, user = null) {
+  let body;
+  try { body = await request.json(); } catch { return error('Invalid JSON', 400, origin); }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return error('Payload must be a JSON object', 400, origin);
   try {
-    const body = await request.json();
     const { shift, item_no, start_time, end_time, category, location, activity } = body;
 
-    const existing = await env.DB.prepare('SELECT id FROM master_dac_standards WHERE id = ?').bind(id).first();
+    const existing = await env.DB.prepare('SELECT * FROM master_dac_standards WHERE id = ?').bind(id).first();
     if (!existing) return notFound(origin);
 
-    if (!shift || !start_time || !end_time || !category || !location || !activity) {
+    const finalShift = String(shift || existing.shift || '').trim().toLowerCase();
+    const finalItemNo = item_no || existing.item_no || 1;
+    const finalStartTime = String(start_time || existing.start_time || '').trim();
+    const finalEndTime = String(end_time || existing.end_time || '').trim();
+    const finalCategory = category || existing.category;
+    const finalLocation = location || existing.location;
+    const finalActivity = activity || existing.activity;
+
+    if (!finalShift || !finalStartTime || !finalEndTime || !finalCategory || !finalLocation || !finalActivity) {
       return error('Shift, Jam Mulai, Jam Selesai, Kategori, Lokasi, dan Aktivitas wajib diisi', 400, origin);
     }
+    if (!['pagi', 'siang'].includes(finalShift)) {
+      return error('Shift tidak valid (gunakan pagi atau siang)', 400, origin);
+    }
+    const timeRe = /^([01]?\d|2[0-3]):[0-5]\d$/;
+    if (!timeRe.test(finalStartTime) || !timeRe.test(finalEndTime)) {
+      return error('Format jam mulai/selesai tidak valid (gunakan HH:MM)', 400, origin);
+    }
 
-    await env.DB.prepare(`
-      UPDATE master_dac_standards
-      SET shift = ?, item_no = ?, start_time = ?, end_time = ?, category = ?, location = ?, activity = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).bind(shift, item_no || 1, start_time, end_time, category, location, activity, id).run();
+    const afterSnapshot = {
+      ...existing,
+      shift: finalShift,
+      item_no: finalItemNo,
+      start_time: finalStartTime,
+      end_time: finalEndTime,
+      category: finalCategory,
+      location: finalLocation,
+      activity: finalActivity
+    };
+
+    await env.DB.batch([
+      env.DB.prepare(`
+        UPDATE master_dac_standards
+        SET shift = ?, item_no = ?, start_time = ?, end_time = ?, category = ?, location = ?, activity = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `).bind(finalShift, finalItemNo, finalStartTime, finalEndTime, finalCategory, finalLocation, finalActivity, id),
+      buildAuditStatement(env, user, 'UPDATE', 'dac', id, existing, afterSnapshot, null, 'SUCCESS', true)
+    ]);
 
     const updated = await env.DB.prepare('SELECT * FROM master_dac_standards WHERE id = ?').bind(id).first();
-    return ok(updated, 200, origin);
+    return ok(updated, 200, origin, undefined, { 'X-Audit-Batched': 'true' });
   } catch (err) {
-    return error(`Gagal memperbarui item DAC: ${err.message}`, 500, origin);
+    console.error('updateDACItem error:', err);
+    return error('Gagal memperbarui item DAC', 500, origin);
   }
 }
 
-async function deleteDACItem(id, env, origin) {
+async function deleteDACItem(id, env, origin, user = null) {
   try {
-    const existing = await env.DB.prepare('SELECT id FROM master_dac_standards WHERE id = ?').bind(id).first();
+    const existing = await env.DB.prepare('SELECT * FROM master_dac_standards WHERE id = ?').bind(id).first();
     if (!existing) return notFound(origin);
 
-    await env.DB.prepare('DELETE FROM master_dac_standards WHERE id = ?').bind(id).run();
-    return ok({ message: 'Item DAC berhasil dihapus' }, 200, origin);
+    const delStmt = env.DB.prepare('DELETE FROM master_dac_standards WHERE id = ?').bind(id);
+    const { executeAtomicDelete } = await import('../utils/audit.js');
+    await executeAtomicDelete(env, user, delStmt, 'dac', id, existing);
+    return ok({ message: 'Item DAC berhasil dihapus' }, 200, origin, undefined, { 'X-Audit-Batched': 'true' });
   } catch (err) {
-    return error(`Gagal menghapus item DAC: ${err.message}`, 500, origin);
+    console.error('deleteDACItem error:', err);
+    return error('Gagal menghapus item DAC', 500, origin);
   }
 }

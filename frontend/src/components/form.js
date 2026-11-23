@@ -1,35 +1,36 @@
 // Form builder helper
+import { escapeHtml } from '../utils/sanitize.js';
+
 export function buildFormHTML(fields) {
   return fields.map(field => {
-    if (field.type === 'hidden') return `<input type="hidden" name="${field.name}" value="${field.value || ''}">`;
+    if (field.type === 'hidden') return `<input type="hidden" name="${escapeHtml(field.name)}" value="${escapeHtml(field.value ?? '')}">`;
     if (field.type === 'html') return field.html || '';
     if (field.type === 'row') return `<div class="form-row">${buildFormHTML(field.fields)}</div>`;
 
     const required = field.required ? 'required' : '';
-    const label = field.label ? `<label class="form-label">${field.label}${field.required ? ' <span class="required">*</span>' : ''}</label>` : '';
+    const label = field.label ? `<label class="form-label">${escapeHtml(field.label)}${field.required ? ' <span class="required">*</span>' : ''}</label>` : '';
     let input = '';
 
     switch (field.type) {
       case 'textarea':
-        input = `<textarea name="${field.name}" class="form-control" placeholder="${field.placeholder || ''}" ${required} rows="${field.rows || 3}">${field.value || ''}</textarea>`;
+        input = `<textarea name="${escapeHtml(field.name)}" class="form-control" placeholder="${escapeHtml(field.placeholder || '')}" ${required} rows="${field.rows || 3}">${escapeHtml(field.value ?? '')}</textarea>`;
         break;
       case 'select':
         const opts = (field.options || []).map(o => {
           const val = typeof o === 'object' ? o.value : o;
           const lbl = typeof o === 'object' ? o.label : o;
           const selected = field.value == val ? 'selected' : '';
-          return `<option value="${val}" ${selected}>${lbl}</option>`;
+          return `<option value="${escapeHtml(val ?? '')}" ${selected}>${escapeHtml(lbl ?? '')}</option>`;
         }).join('');
-        input = `<select name="${field.name}" class="form-control" ${required}><option value="">-- Pilih ${field.label || ''} --</option>${opts}</select>`;
+        input = `<select name="${escapeHtml(field.name)}" class="form-control" ${required}><option value="">-- Pilih ${escapeHtml(field.label || '')} --</option>${opts}</select>`;
         break;
       case 'combobox':
-        const dlId = `dl-${field.name}-${Math.random().toString(36).substring(7)}`;
+        const dlId = `dl-${escapeHtml(field.name)}-${Math.random().toString(36).substring(7)}`;
         const cbOpts = (field.options || []).map(o => {
-          const val = typeof o === 'object' ? o.value : o;
           let lbl = typeof o === 'object' ? (o.label || o.value || '') : (o || '');
           if (lbl === 'undefined' || lbl === '[object Object]' || lbl === 'null') lbl = '';
           if (!lbl) return '';
-          return `<option value="${lbl}"></option>`;
+          return `<option value="${escapeHtml(lbl)}"></option>`;
         }).join('');
         let displayVal = field.value || '';
         if (field.value) {
@@ -42,40 +43,44 @@ export function buildFormHTML(fields) {
             }
         }
         input = `
-          <input type="text" name="${field.name}" list="${dlId}" class="form-control" value="${displayVal}" placeholder="Pilih atau ketik baru..." ${required} autocomplete="off">
+          <input type="text" name="${escapeHtml(field.name)}" list="${dlId}" class="form-control" value="${escapeHtml(displayVal)}" ${required} autocomplete="off">
           <datalist id="${dlId}">${cbOpts}</datalist>
         `;
         break;
+      case 'employee-combobox': {
+        input = `<div class="fc-crud-emp-mount" data-emp-mount="${escapeHtml(field.name)}" data-init-name="${escapeHtml(field.value || '')}"></div>`;
+        break;
+      }
       case 'checkbox':
-        input = `<label class="checkbox-label"><input type="checkbox" name="${field.name}" value="1" ${field.value ? 'checked' : ''}> ${field.checkLabel || field.label}</label>`;
+        input = `<label class="checkbox-label"><input type="checkbox" name="${escapeHtml(field.name)}" value="1" ${field.value ? 'checked' : ''}> ${escapeHtml(field.checkLabel || field.label)}</label>`;
         break;
       case 'date':
         const safeVal = (window.parseFlexibleDate && field.value) ? window.parseFlexibleDate(field.value) : (field.value || '');
-        input = `<input type="date" name="${field.name}" class="form-control" value="${safeVal}" ${required}>`;
+        input = `<input type="date" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(safeVal)}" ${required}>`;
         break;
       case 'month':
         const safeMonth = field.value ? String(field.value).slice(0, 7) : '';
-        input = `<input type="month" name="${field.name}" class="form-control" value="${safeMonth}" ${required}>`;
+        input = `<input type="month" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(safeMonth)}" ${required}>`;
         break;
       case 'number':
         const roNum = field.readonly ? 'readonly' : '';
-        input = `<input type="number" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" min="${field.min || ''}" max="${field.max || ''}" step="${field.step || '1'}" ${required} ${roNum}>`;
+        input = `<input type="number" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || '')}" min="${escapeHtml(field.min ?? '')}" max="${escapeHtml(field.max ?? '')}" step="${escapeHtml(field.step || '1')}" ${required} ${roNum}>`;
         break;
       case 'email':
-        input = `<input type="email" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required} autocomplete="${field.autocomplete || 'off'}">`;
+        input = `<input type="email" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || '')}" ${required} autocomplete="${escapeHtml(field.autocomplete || 'off')}">`;
         break;
       case 'password':
-        input = `<input type="password" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required} autocomplete="${field.autocomplete || 'new-password'}">`;
+        input = `<input type="password" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || '')}" ${required} autocomplete="${escapeHtml(field.autocomplete || 'new-password')}">`;
         break;
       case 'url':
-        input = `<input type="url" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || 'https://...'}" ${required}>`;
+        input = `<input type="url" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || '')}" ${required}>`;
         break;
       default:
-        input = `<input type="${field.type || 'text'}" name="${field.name}" class="form-control" value="${field.value || ''}" placeholder="${field.placeholder || ''}" ${required} autocomplete="${field.autocomplete || 'off'}">`;
+        input = `<input type="${escapeHtml(field.type || 'text')}" name="${escapeHtml(field.name)}" class="form-control" value="${escapeHtml(field.value ?? '')}" placeholder="${escapeHtml(field.placeholder || '')}" ${required} autocomplete="${escapeHtml(field.autocomplete || 'off')}">`;
     }
 
-    const hint = field.hint ? `<div class="form-hint">${field.hint}</div>` : '';
-    return `<div class="form-group ${field.class || ''}">${label}${input}${hint}</div>`;
+    const hint = field.hint ? `<div class="form-hint">${escapeHtml(field.hint)}</div>` : '';
+    return `<div class="form-group ${escapeHtml(field.class || '')}">${label}${input}${hint}</div>`;
   }).join('');
 }
 
@@ -107,7 +112,7 @@ export function populateForm(form, data) {
   Object.entries(data).forEach(([key, val]) => {
     const el = form.querySelector(`[name="${key}"]`);
     if (!el) return;
-    if (el.hasAttribute('list')) return; // Do not overwrite combobox display labels with raw IDs
+    if (el.hasAttribute('list') || el.classList.contains('fc-emp-input')) return; // Do not overwrite combobox display labels with raw IDs
     if (el.type === 'checkbox') el.checked = !!val;
     else if (el.type === 'date' && val && window.parseFlexibleDate) el.value = window.parseFlexibleDate(val);
     else if (el.type === 'month' && val) el.value = String(val).slice(0, 7);

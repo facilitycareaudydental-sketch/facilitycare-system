@@ -16,24 +16,27 @@ export const SYNC_MAPPER = {
     columns: {
       'FCMS_ID': 'id',
       'Nama Lengkap': 'full_name',
-      'No Karyawan': 'employee_id',
       'Area Penempatan': 'branch_id',
-      'Status Karyawan': 'employee_status',
-      'No KTP': 'id_card',
-      'No Telpon / HP': 'phone_number',
-      'Nama Rekening': 'bank_account_name',
-      'No Rekening': 'bank_account_number',
-      'Tempat Lahir': 'birth_place',
-      'Tanggal Lahir': 'birth_date',
-      'Alamat Sesuai KTP': 'address',
-      'Nama Ibu Kandung': 'mother_name',
-      'Kontak Darurat (Keluarga/Kerabat)': 'emergency_contact',
-      'No HP Darurat': 'emergency_phone',
+      'Status Karyawan': 'status',
+      'No Telpon / HP': 'phone',
       'Divisi (Wajib Diisi)': 'division',
-      'Golongan Darah': 'blood_type',
       'LAST_SYNC_SOURCE': 'last_sync_source',
       'ROW_VERSION': 'row_version'
-    }
+    },
+    // Recognized external Google Sheets HR/PII columns intentionally excluded from D1 persistence
+    external_fields: [
+      'No Karyawan',
+      'No KTP',
+      'Nama Rekening',
+      'No Rekening',
+      'Tempat Lahir',
+      'Tanggal Lahir',
+      'Alamat Sesuai KTP',
+      'Nama Ibu Kandung',
+      'Kontak Darurat (Keluarga/Kerabat)',
+      'No HP Darurat',
+      'Golongan Darah'
+    ]
   },
   
   // Phase 3: Data Cabang
@@ -46,8 +49,8 @@ export const SYNC_MAPPER = {
     schema_version: '1.0',
     columns: {
       'FCMS_ID': 'id',
-      'ID Cabang (Kode)': 'branch_code',
-      'Nama Cabang': 'branch_name',
+      'ID Cabang (Kode)': 'code',
+      'Nama Cabang': 'name',
       'LAST_SYNC_SOURCE': 'last_sync_source',
       'ROW_VERSION': 'row_version'
     }
@@ -375,15 +378,29 @@ export function mapPayloadToDB(sheetName, excelPayload, payloadVersion) {
   }
   
   const dbObject = {};
+  const externalFields = new Set(mapDefinition.external_fields || []);
+
   for (const [excelCol, val] of Object.entries(excelPayload)) {
     if (!excelCol || excelCol.trim() === '') continue; // Ignore empty headers
     
     const dbCol = mapDefinition.columns[excelCol];
-    if (!dbCol) {
+    if (dbCol) {
+      dbObject[dbCol] = val;
+    } else if (externalFields.has(excelCol)) {
+      // Recognized external sheet column (e.g. HR PII) - safely excluded from D1 persistence
+      continue;
+    } else {
       throw new Error(`MappingError: Unknown column header '${excelCol}' in sheet '${sheetName}'. Update SYNC_MAPPER or delete the column in Google Sheets.`);
     }
-    dbObject[dbCol] = val;
   }
+
+  // Required field validation for Master Karyawan
+  if (sheetName === 'Master Karyawan') {
+    if (dbObject.full_name !== undefined && (dbObject.full_name === null || String(dbObject.full_name).trim() === '')) {
+      throw new Error("ValidationError: Required field 'Nama Lengkap' (full_name) is missing or empty in sheet 'Master Karyawan'");
+    }
+  }
+
   return {
     table: mapDefinition.table,
     delete_strategy: mapDefinition.delete_strategy,
@@ -405,4 +422,95 @@ export function mapDBToPayload(sheetName, dbRecord) {
     payload[excelCol] = dbRecord[dbCol] !== undefined && dbRecord[dbCol] !== null ? dbRecord[dbCol] : '';
   }
   return payload;
+}
+
+export const FORBIDDEN_PAYLOAD_PATTERNS = [
+  /password/i,
+  /password_hash/i,
+  /^jwt$/i,
+  /refresh_token/i,
+  /session_token/i,
+  /api_key/i,
+  /secret/i,
+  /hmac/i,
+  /signature/i,
+  /authorization/i,
+  /credential/i,
+  /\btoken\b/i
+];
+
+export function hasForbiddenPayloadKey(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  for (const [key, val] of Object.entries(obj)) {
+    if (FORBIDDEN_PAYLOAD_PATTERNS.some((re) => re.test(key))) {
+      return key;
+    }
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      const nested = hasForbiddenPayloadKey(val);
+      if (nested) return `${key}.${nested}`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Validates an outbound payload against the SYNC_MAPPER whitelist and security rules.
+ * Ensures zero sensitive fields and strict column allowlisting before delivery.
+ */
+export function validateOutboundPayload(entityName, payload, envelope = null) {
+  const mapDefinition = SYNC_MAPPER[entityName];
+  if (!mapDefinition) {
+    return { valid: false, code: 'SCHEMA_MISMATCH', error: `Unknown sync entity: ${entityName}` };
+  }
+  if (!mapDefinition.enabled) {
+    return { valid: false, code: 'SYNC_DISABLED', error: `Sync is disabled for entity: ${entityName}` };
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { valid: false, code: 'INVALID_PAYLOAD', error: 'Outbound payload must be a plain object' };
+  }
+
+  const forbiddenKey = hasForbiddenPayloadKey(payload);
+  if (forbiddenKey) {
+    return { valid: false, code: 'FORBIDDEN_FIELD', error: `Forbidden sensitive field in payload: ${forbiddenKey}` };
+  }
+
+  const allowedCols = new Set(Object.keys(mapDefinition.columns));
+  for (const key of Object.keys(payload)) {
+    if (!allowedCols.has(key)) {
+      return { valid: false, code: 'SCHEMA_MISMATCH', error: `Non-whitelisted column in outbound payload: ${key}` };
+    }
+  }
+
+  if (envelope !== null) {
+    if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) {
+      return { valid: false, code: 'INVALID_PAYLOAD', error: 'Outbound envelope must be an object' };
+    }
+    if (!envelope.event_id || typeof envelope.event_id !== 'string' || envelope.event_id.trim() === '') {
+      return { valid: false, code: 'INVALID_PAYLOAD', error: 'Missing event_id in outbound envelope' };
+    }
+    if (!envelope.source || typeof envelope.source !== 'string') {
+      return { valid: false, code: 'INVALID_PAYLOAD', error: 'Missing source marker in outbound envelope' };
+    }
+    if (!['INSERT', 'UPDATE', 'DELETE'].includes(envelope.action)) {
+      return { valid: false, code: 'INVALID_PAYLOAD', error: `Invalid outbound action: ${envelope.action}` };
+    }
+    if (envelope.entity_id === undefined || envelope.entity_id === null || String(envelope.entity_id).trim() === '') {
+      return { valid: false, code: 'INVALID_PAYLOAD', error: 'Missing entity_id in outbound envelope' };
+    }
+    if (!envelope.timestamp || Number.isNaN(new Date(envelope.timestamp).getTime())) {
+      return { valid: false, code: 'INVALID_PAYLOAD', error: 'Invalid or missing timestamp in outbound envelope' };
+    }
+    if (envelope.row_version !== undefined && envelope.row_version !== null && envelope.row_version !== '') {
+      const rv = Number(envelope.row_version);
+      if (!Number.isInteger(rv) || rv < 0) {
+        return { valid: false, code: 'INVALID_PAYLOAD', error: 'Invalid row_version in outbound envelope' };
+      }
+    }
+    const envForbidden = hasForbiddenPayloadKey(envelope);
+    if (envForbidden) {
+      return { valid: false, code: 'FORBIDDEN_FIELD', error: `Forbidden sensitive field in envelope: ${envForbidden}` };
+    }
+  }
+
+  return { valid: true };
 }

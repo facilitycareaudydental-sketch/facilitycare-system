@@ -8,12 +8,29 @@
  * - Avoiding SELECT * on large tables
  * - strftime for date grouping (uses index on date columns)
  */
-import { authenticate } from '../utils/auth.js';
-import { ok, unauthorized, error } from '../utils/response.js';
+import { authenticate, hasPermission } from '../utils/auth.js';
+import { ok, unauthorized, error, forbidden } from '../utils/response.js';
+import { sweepExpiredContracts } from '../utils/contract_sweeper.js';
+import { isOperationalBranchCode, extractBranchCodeFromLabel, getManagementBranchSubquery, getManagementBranchSqlPredicate } from '../utils/branchMaster.js';
+import { hasTableColumn } from '../utils/schemaCompat.js';
 
+function isExcludedDashboardBranch(label) {
+  const s = String(label || '').trim();
+  if (!s) return false;
+  if (/^(TEST_|\[UAT-|T\d+B?-)/i.test(s)) return true;
+  const code = extractBranchCodeFromLabel(s);
+  if (!code) return false;
+  return !isOperationalBranchCode(code);
+}
+
+// Phase 5.48: Dashboard is internal authenticated data, not a public surface.
+// Read authorization is enforced per request; visibility is uniform across the five
+// official roles (all hold module-level read), while input_lembur (overtime-only
+// legacy role) and restricted tokens are denied, matching their permission sets.
 export async function handleDashboard(request, env, origin) {
   const user = await authenticate(request, env);
   if (!user) return unauthorized(origin);
+  if (!hasPermission(user, 'dashboard', 'read')) return forbidden(origin);
 
   const url  = new URL(request.url);
   const path = url.pathname.replace('/api/dashboard', '');
@@ -24,18 +41,34 @@ export async function handleDashboard(request, env, origin) {
   if (path === '/issues-trend')      return getIssuesTrend(env, origin);
   if (path === '/contracts-chart')   return getContractsChart(env, origin);
   if (path === '/issues-summary')    return getIssuesSummary(env, origin);
-  if (path === '/inspection-bar')    return getInspectionBar(request, env, origin);
+  if (path === '/inspection-bar')    return guarded(getInspectionBar, request, env, origin, [
+    ['month', INSPECTION_MONTH_PATTERN, 'Invalid month format. Expected two-digit month (01-12).']]);
   if (path === '/inspection-months') return getInspectionMonths(env, origin);
   if (path === '/contracts-expiring') return getContractsExpiring(env, origin);
   if (path === '/activity-log')      return getActivityLog(env, origin);
-  if (path === '/calendar')          return getCalendarEvents(request, env, origin);
-  if (path === '/schedule-chart')    return getScheduleChart(request, env, origin);
+  if (path === '/calendar')          return guarded(getCalendarEvents, request, env, origin, [
+    ['month', CALENDAR_MONTH_PATTERN, 'Invalid month format. Expected YYYY-MM.']]);
+  if (path === '/schedule-chart')    return guarded(getScheduleChart, request, env, origin, [
+    ['year', YEAR_PATTERN, 'Invalid year format. Expected YYYY.']]);
   if (path === '/activity-by-period') return getActivityByPeriod(env, origin);
-  if (path === '/inspection-scores') return getInspectionScores(request, env, origin);
+  if (path === '/inspection-scores') return guarded(getInspectionScores, request, env, origin, [
+    ['period', /^.{0,32}$/, 'Invalid period filter. Maximum 32 characters.']]);
   if (path === '/notifications')      return getNotifications(request, env, origin);
-  if (path === '/reliefer-summary')   return getRelieferSummary(request, env, origin);
 
   return error('Not found', 404, origin);
+}
+
+// Wraps an endpoint with Phase 5.48 parameter validation; malformed input -> 400.
+function guarded(fn, request, env, origin, specs) {
+  try {
+    const url = new URL(request.url);
+    for (const [name, pattern, message] of specs) {
+      getValidatedParam(url, name, pattern, message);
+    }
+    return fn(request, env, origin);
+  } catch (e) {
+    return error(e.message, 400, origin);
+  }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -81,159 +114,197 @@ function futureMonthLabels(count = 6) {
   return labels;
 }
 
-// ─── /kpi — 12 counters + prev-month trend ───────────────────────────────────
-// All queries use indexed columns. COUNT(*) is fastest in SQLite.
+// ─── Phase 5.48: query parameter validation ──────────────────────────────────
+// All dashboard parameters are bound (no injection surface), but malformed values
+// must be rejected consistently instead of silently degrading into empty charts.
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;      // YYYY-MM
+const CALENDAR_MONTH_PATTERN = MONTH_PATTERN;      // YYYY-MM (01-12)
+const INSPECTION_MONTH_PATTERN = /^(0[1-9]|1[0-2])$/; // two-digit month (strftime('%m') contract)
+const YEAR_PATTERN = /^\d{4}$/;                       // YYYY
+
+function getValidatedParam(url, name, pattern, message) {
+  const raw = url.searchParams.get(name);
+  if (raw === null || raw === '') return null;
+  if (!pattern.test(raw)) throw new Error(message);
+  return raw;
+}
+
+// ─── /kpi — active module counters + prev-month trend ────────────────────────
+// Consolidated single-pass per table to minimize D1 round-trips and table scans.
 async function getKPI(env, origin) {
+  // Opportunistic background sweep for expired contracts (throttled)
+  sweepExpiredContracts(env).catch(() => {});
+
   const curM  = curMonthStr();
   const prevM = prevMonthStr();
+  const hasEmpArchived = await hasTableColumn(env.DB, 'employees', 'archived_at');
+  const empArchiveClause = hasEmpArchived ? 'AND e.archived_at IS NULL' : '';
 
-  // All 16 counts run in parallel — no sequential blocking
   const [
-    empActive, empPrevMonth,
-    contractActive, contractPrev, contractExp30,
-    issuesOpen, issuesPrevOpen,
-    oo1Open, oo1PrevOpen,
-    schedPending,
-    supplyPending,
+    empAgg,
+    contractAgg,
+    issuesAgg,
+    schedAgg,
     totalBranches,
     trainingCur,
-    inspCur,
-    cleanCur,
-    fogCur,
-    relieverDoneCur,
-    allRelieversRes
+    fogCur
   ] = await Promise.all([
-    // Uses idx_employees_status
-    env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
-    // Uses idx_employees_status + strftime filter
-    env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
+    // Single pass on active employees (replaces 2 separate queries) — Phase 5.66.10A.1: Management scope
+    env.DB.prepare(
+      `SELECT
+         COUNT(*) as active_cur,
+         SUM(CASE WHEN strftime('%Y-%m', e.created_at) = ? THEN 1 ELSE 0 END) as active_prev
+       FROM employees e
+       WHERE e.status = 'Aktif' AND e.deleted_at IS NULL
+         ${empArchiveClause}
+         AND e.division IN ('FACILITY CARE', 'SECURITY')
+         AND ${getManagementBranchSubquery('e.branch_id')}`
+    ).bind(prevM).first(),
 
-    // Uses idx_contracts_status
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif'").first(),
+    // Single pass on active contracts (aligned with /api/contracts & /notifications for manual-name and linked contracts)
+    env.DB.prepare(
+      `SELECT
+         COUNT(*) as active_cur,
+         SUM(CASE WHEN strftime('%Y-%m', c.created_at) = ? THEN 1 ELSE 0 END) as active_prev,
+         SUM(CASE WHEN c.end_date IS NOT NULL AND c.end_date != '' AND c.end_date != '-' AND c.end_date NOT LIKE '2099%' AND CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER) BETWEEN 0 AND 30 THEN 1 ELSE 0 END) as exp30
+       FROM contracts c
+       LEFT JOIN employees e ON c.employee_id = e.id
+       WHERE c.status = 'Aktif' 
+         AND c.deleted_at IS NULL
+         AND c.division IN ('FACILITY CARE', 'SECURITY')
+         AND ${getManagementBranchSubquery('c.branch_id')}
+         AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL ${empArchiveClause} AND e.division IN ('FACILITY CARE', 'SECURITY') AND ${getManagementBranchSubquery('e.branch_id')}))`
+    ).bind(prevM).first(),
 
-    // Uses idx_contracts_created
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND strftime('%Y-%m',created_at)=?").bind(prevM).first(),
+    // Single pass on open issues (replaces 2 separate queries)
+    env.DB.prepare(
+      `SELECT
+         COUNT(*) as open_cur,
+         SUM(CASE WHEN strftime('%Y-%m', report_date) = ? THEN 1 ELSE 0 END) as open_prev
+       FROM issues
+       WHERE status != 'Done' AND deleted_at IS NULL`
+    ).bind(prevM).first(),
 
-    // Uses idx_contracts_status_end (covering index)
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date BETWEEN date('now') AND date('now','+30 days')").first(),
+    // Single pass on activity_schedule (replaces 3 separate queries)
+    env.DB.prepare(
+      `SELECT
+         COUNT(*) as total_sched,
+         SUM(CASE WHEN activity_type = 'Inspeksi Hygiene' AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m', COALESCE(completion_date, target_date)) = ? THEN 1 ELSE 0 END) as insp_cur,
+         SUM(CASE WHEN activity_type IN ('General Cleaning', 'Deep Cleaning') AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m', COALESCE(completion_date, target_date)) = ? THEN 1 ELSE 0 END) as clean_cur
+       FROM activity_schedule
+       WHERE deleted_at IS NULL`
+    ).bind(curM, curM).first(),
 
-    // Uses idx_issues_status
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status!='Done'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status!='Done' AND strftime('%Y-%m',report_date)=?").bind(prevM).first(),
-
-    // Uses idx_oo1_status
-    env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status!='Done' AND strftime('%Y-%m',meeting_date)=?").bind(prevM).first(),
-
-    // Matches total data in schedule table
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule").first(),
-
-    // Uses idx_supply_status
-    env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status='Pending'").first(),
-
-    // branches is tiny table
-    env.DB.prepare("SELECT COUNT(*) c FROM branches WHERE is_active=1").first(),
-
-    // Uses total count for training to match the module view
-    env.DB.prepare("SELECT COUNT(*) c FROM training").first(),
-
-    // Matches activity_schedule: Inspeksi Hygiene Done in current month
-    env.DB.prepare("SELECT COUNT(*) as c FROM activity_schedule WHERE activity_type = 'Inspeksi Hygiene' AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m', COALESCE(completion_date, target_date)) = ?").bind(curM).first(),
-
-    // Matches activity_schedule: General Cleaning & Deep Cleaning Done in current month
-    env.DB.prepare("SELECT COUNT(*) as c FROM activity_schedule WHERE activity_type IN ('General Cleaning', 'Deep Cleaning') AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m', COALESCE(completion_date, target_date)) = ?").bind(curM).first(),
-
-    // Uses idx_fogging_date & Done status
-    env.DB.prepare("SELECT COUNT(*) as c FROM fogging_reports WHERE LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m',activity_date)=?").bind(curM).first(),
-
-    // Matches relievers Done in current month
-    env.DB.prepare("SELECT COUNT(*) as c FROM relievers WHERE LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m',backup_date)=?").bind(curM).first(),
-
-    // Count active reliever employees
-    env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif' AND division='FC - RELIEFER'").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM branches WHERE is_active=1 AND deleted_at IS NULL AND TRIM(code) BETWEEN '001' AND '070' AND LENGTH(TRIM(code)) = 3").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM training WHERE deleted_at IS NULL").first(),
+    env.DB.prepare("SELECT COUNT(*) as c FROM fogging_reports WHERE deleted_at IS NULL AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND strftime('%Y-%m',activity_date)=?").bind(curM).first(),
   ]);
 
-  const relieverCount = allRelieversRes?.c || 0;
-
-
   return ok({
-    employees:       { current: empActive?.c||0,       prev: empPrevMonth?.c||0 },
-    contracts:       { current: contractActive?.c||0,  prev: contractPrev?.c||0 },
-    expiring30:      { current: contractExp30?.c||0 },
-    issues:          { current: issuesOpen?.c||0,      prev: issuesPrevOpen?.c||0 },
-    one_on_one:      { current: oo1Open?.c||0,         prev: oo1PrevOpen?.c||0 },
-    schedule:        { current: schedPending?.c||0 },
-    supply:          { current: supplyPending?.c||0 },
-    branches:        { current: totalBranches?.c||0 },
-    training_month:  { current: trainingCur?.c||0 },
-    inspection_month:{ current: inspCur?.c||0 },
-    cleaning_month:  { current: cleanCur?.c||0 },
-    fogging_month:   { current: fogCur?.c||0 },
-    reliever_completed:{ current: relieverDoneCur?.c||0 },
-    reliever_total:  { current: relieverCount },
-    checklist_comp:  { current: 98.5, prev: 96.4 }, // Mocked for now to match UI until module is built
+    employees:          { current: empAgg?.active_cur || 0,       prev: empAgg?.active_prev || 0 },
+    contracts:          { current: contractAgg?.active_cur || 0,  prev: contractAgg?.active_prev || 0 },
+    expiring30:         { current: contractAgg?.exp30 || 0 },
+    issues:             { current: issuesAgg?.open_cur || 0,      prev: issuesAgg?.open_prev || 0 },
+    schedule:           { current: schedAgg?.total_sched || 0 },
+    branches:           { current: totalBranches?.c || 0 },
+    training_month:     { current: trainingCur?.c || 0 },
+    inspection_month:   { current: schedAgg?.insp_cur || 0 },
+    cleaning_month:     { current: schedAgg?.clean_cur || 0 },
+    fogging_month:      { current: fogCur?.c || 0 },
   }, 200, origin);
 }
 
 // ─── /stats — backward-compat + expiring list + recent issues ────────────────
 async function getStats(env, origin) {
   const [
-    totalEmployees, totalBranches, activeContracts,
-    expiringContracts, openIssues, openOneOnOne,
-    pendingSchedule, pendingSupply, doneIssues, totalTraining
+    totalEmployees,
+    totalBranches,
+    contractAgg,
+    issuesAgg,
+    openOneOnOne,
+    pendingSchedule,
+    pendingSupply,
+    totalTraining,
+    recentIssues,
+    expiringList,
+    upcomingSchedule
   ] = await Promise.all([
-    env.DB.prepare("SELECT COUNT(*) c FROM employees WHERE status='Aktif'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM branches WHERE is_active=1").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM contracts WHERE status='Aktif' AND end_date BETWEEN date('now') AND date('now','+30 days')").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status != 'Done'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status != 'Done'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE status = 'Pending'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status = 'Pending'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM issues WHERE status = 'Done'").first(),
-    env.DB.prepare("SELECT COUNT(*) c FROM training").first(),
+    env.DB.prepare(
+      `SELECT COUNT(*) c FROM employees e 
+       WHERE e.status='Aktif' AND e.deleted_at IS NULL
+         AND e.division IN ('FACILITY CARE', 'SECURITY')
+         AND ${getManagementBranchSubquery('e.branch_id')}`
+    ).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM branches WHERE is_active=1 AND deleted_at IS NULL AND TRIM(code) BETWEEN '001' AND '070' AND LENGTH(TRIM(code)) = 3").first(),
+    env.DB.prepare(
+      `SELECT
+         COUNT(*) as active_c,
+         SUM(CASE WHEN c.end_date IS NOT NULL AND c.end_date != '' AND c.end_date != '-' AND c.end_date NOT LIKE '2099%' AND CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER) BETWEEN 0 AND 30 THEN 1 ELSE 0 END) as expiring_c
+       FROM contracts c
+       LEFT JOIN employees e ON c.employee_id = e.id
+       WHERE c.status = 'Aktif' 
+         AND c.deleted_at IS NULL
+         AND c.division IN ('FACILITY CARE', 'SECURITY')
+         AND ${getManagementBranchSubquery('c.branch_id')}
+         AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL AND e.division IN ('FACILITY CARE', 'SECURITY') AND ${getManagementBranchSubquery('e.branch_id')}))`
+    ).first(),
+    env.DB.prepare(
+      `SELECT
+         SUM(CASE WHEN status != 'Done' THEN 1 ELSE 0 END) as open_c,
+         SUM(CASE WHEN status = 'Done' THEN 1 ELSE 0 END) as done_c
+       FROM issues
+       WHERE deleted_at IS NULL`
+    ).first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM one_on_one WHERE status != 'Done' AND deleted_at IS NULL").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM activity_schedule WHERE status = 'Pending' AND deleted_at IS NULL").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM supply_requests WHERE status = 'Pending' AND deleted_at IS NULL").first(),
+    env.DB.prepare("SELECT COUNT(*) c FROM training WHERE deleted_at IS NULL").first(),
+    env.DB.prepare(
+      `SELECT i.id, i.report_date, i.category, i.complaint, i.status,
+       b.full_name as branch_name
+       FROM issues i LEFT JOIN branches b ON i.branch_id = b.id
+       WHERE i.deleted_at IS NULL
+       ORDER BY i.created_at DESC, i.id DESC LIMIT 5`
+    ).all(),
+    env.DB.prepare(
+      `SELECT c.id, c.end_date, c.status, COALESCE(e.full_name, c.employee_name, '—') as emp_name,
+       b.full_name as branch_name,
+       CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER) as days_remaining
+       FROM contracts c 
+       LEFT JOIN employees e ON c.employee_id = e.id
+       LEFT JOIN branches b ON c.branch_id = b.id
+       WHERE c.status='Aktif' AND c.deleted_at IS NULL
+         AND c.end_date IS NOT NULL AND c.end_date != '' AND c.end_date != '-' AND c.end_date NOT LIKE '2099%'
+         AND CAST(julianday(c.end_date) - julianday(date('now', '+7 hours')) AS INTEGER) BETWEEN 0 AND 30
+         AND c.division IN ('FACILITY CARE', 'SECURITY')
+         AND ${getManagementBranchSubquery('c.branch_id')}
+         AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL))
+       ORDER BY c.end_date ASC, c.id ASC LIMIT 10`
+    ).all(),
+    env.DB.prepare(
+      `SELECT s.id, s.activity_type, s.target_date, s.status,
+       b.full_name as branch_name
+       FROM activity_schedule s LEFT JOIN branches b ON s.branch_id = b.id
+       WHERE s.status != 'Done' AND s.deleted_at IS NULL AND s.target_date >= date('now')
+       ORDER BY s.target_date ASC, s.id ASC LIMIT 7`
+    ).all()
   ]);
-
-  const recentIssues = await env.DB.prepare(
-    `SELECT i.id, i.report_date, i.category, i.complaint, i.status,
-     b.full_name as branch_name
-     FROM issues i LEFT JOIN branches b ON i.branch_id = b.id
-     ORDER BY i.created_at DESC LIMIT 5`
-  ).all();
-
-  const expiringList = await env.DB.prepare(
-    `SELECT c.id, c.end_date, c.status, e.full_name as emp_name,
-     b.full_name as branch_name,
-     CAST(julianday(c.end_date) - julianday('now') AS INTEGER) as days_remaining
-     FROM contracts c LEFT JOIN branches b ON c.branch_id = b.id
-     LEFT JOIN employees e ON c.employee_id = e.id
-     WHERE c.status='Aktif' AND c.end_date BETWEEN date('now') AND date('now','+30 days')
-     ORDER BY c.end_date ASC LIMIT 10`
-  ).all();
-
-  const upcomingSchedule = await env.DB.prepare(
-    `SELECT s.id, s.activity_type, s.target_date, s.status,
-     b.full_name as branch_name
-     FROM activity_schedule s LEFT JOIN branches b ON s.branch_id = b.id
-     WHERE s.status != 'Done' AND s.target_date >= date('now')
-     ORDER BY s.target_date ASC LIMIT 7`
-  ).all();
 
   return ok({
     stats: {
-      total_employees:        totalEmployees?.c || 0,
-      active_contracts:       activeContracts?.c || 0,
-      expiring_contracts:     expiringContracts?.c || 0,
-      open_issues:            openIssues?.c || 0,
-      open_one_on_one:        openOneOnOne?.c || 0,
-      pending_schedule:       pendingSchedule?.c || 0,
-      pending_supply_requests:pendingSupply?.c || 0,
-      total_branches:         totalBranches?.c || 0,
-      resolved_issues:        doneIssues?.c || 0,
-      total_training:         totalTraining?.c || 0,
+      total_employees:         totalEmployees?.c || 0,
+      active_contracts:        contractAgg?.active_c || 0,
+      expiring_contracts:      contractAgg?.expiring_c || 0,
+      open_issues:             issuesAgg?.open_c || 0,
+      open_one_on_one:         openOneOnOne?.c || 0,
+      pending_schedule:        pendingSchedule?.c || 0,
+      pending_supply_requests: pendingSupply?.c || 0,
+      total_branches:          totalBranches?.c || 0,
+      resolved_issues:         issuesAgg?.done_c || 0,
+      total_training:          totalTraining?.c || 0,
     },
-    recent_issues:      recentIssues.results   || [],
-    expiring_contracts: expiringList.results   || [],
+    recent_issues:      recentIssues.results    || [],
+    expiring_contracts: expiringList.results    || [],
     upcoming_schedule:  upcomingSchedule.results || [],
   }, 200, origin);
 }
@@ -249,13 +320,13 @@ async function getIssuesTrend(env, origin) {
     env.DB.prepare(
       `SELECT strftime('%Y-%m', report_date) m, COUNT(*) c
        FROM issues
-       WHERE report_date >= ? AND status != 'Done'
+       WHERE report_date >= ? AND status != 'Done' AND deleted_at IS NULL
        GROUP BY m ORDER BY m`
     ).bind(since).all(),
     env.DB.prepare(
       `SELECT strftime('%Y-%m', completion_date) m, COUNT(*) c
        FROM issues
-       WHERE completion_date >= ? AND status = 'Done'
+       WHERE completion_date >= ? AND status = 'Done' AND deleted_at IS NULL
        GROUP BY m ORDER BY m`
     ).bind(since).all(),
   ]);
@@ -275,9 +346,15 @@ async function getIssuesTrend(env, origin) {
 // Uses idx_contracts_status_end
 async function getContractsChart(env, origin) {
   const rows = await env.DB.prepare(
-    `SELECT strftime('%Y-%m', end_date) m, COUNT(*) c
-     FROM contracts
-     WHERE status='Aktif' AND end_date >= date('now') AND end_date <= date('now','+6 months')
+    `SELECT strftime('%Y-%m', c.end_date) m, COUNT(*) c
+     FROM contracts c
+     LEFT JOIN employees e ON c.employee_id = e.id
+     WHERE c.status='Aktif' AND c.deleted_at IS NULL
+       AND c.end_date IS NOT NULL AND c.end_date != '' AND c.end_date != '-' AND c.end_date NOT LIKE '2099%'
+       AND c.end_date >= date('now', '+7 hours') AND c.end_date <= date('now', '+7 hours', '+6 months')
+       AND c.division IN ('FACILITY CARE', 'SECURITY')
+       AND ${getManagementBranchSubquery('c.branch_id')}
+       AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL))
      GROUP BY m ORDER BY m`
   ).all();
 
@@ -293,14 +370,15 @@ async function getIssuesSummary(env, origin) {
   const [byCategory, byStatus, byBranch] = await Promise.all([
     env.DB.prepare(
       `SELECT COALESCE(category,'Lainnya') category, COUNT(*) c
-       FROM issues GROUP BY category ORDER BY c DESC LIMIT 10`
+       FROM issues WHERE deleted_at IS NULL GROUP BY category ORDER BY c DESC LIMIT 10`
     ).all(),
     env.DB.prepare(
-      "SELECT COALESCE(status,'Tidak Diketahui') status, COUNT(*) c FROM issues GROUP BY status"
+      "SELECT COALESCE(status,'Tidak Diketahui') status, COUNT(*) c FROM issues WHERE deleted_at IS NULL GROUP BY status"
     ).all(),
     env.DB.prepare(
       `SELECT b.full_name branch_name, COUNT(*) c
        FROM issues i LEFT JOIN branches b ON i.branch_id=b.id
+       WHERE i.deleted_at IS NULL
        GROUP BY i.branch_id ORDER BY c DESC LIMIT 10`
     ).all(),
   ]);
@@ -308,7 +386,9 @@ async function getIssuesSummary(env, origin) {
   return ok({
     by_category: (byCategory.results||[]).map(r=>({ category: r.category||'Lainnya', count: r.c||0 })),
     by_status:   (byStatus.results||[]).map(r=>({ status: r.status||'—', count: r.c||0 })),
-    by_branch:   (byBranch.results||[]).map(r=>({ branch_name: r.branch_name||'Tidak diketahui', count: r.c||0 })),
+    by_branch:   (byBranch.results||[])
+      .filter(r => !isExcludedDashboardBranch(r.branch_name))
+      .map(r=>({ branch_name: r.branch_name||'Tidak diketahui', count: r.c||0 })),
   }, 200, origin);
 }
 
@@ -318,6 +398,7 @@ async function getInspectionMonths(env, origin) {
   const rows = await env.DB.prepare(
     `SELECT DISTINCT strftime('%Y-%m', inspection_date) mo
      FROM inspection_reports
+     WHERE deleted_at IS NULL
      ORDER BY mo`
   ).all();
   return ok((rows.results||[]).map(r => r.mo), 200, origin);
@@ -331,14 +412,14 @@ async function getInspectionBar(request, env, origin) {
   let whereClause, bindVals;
   if (month) {
     const currentYear = new Date().getFullYear().toString();
-    whereClause = "WHERE strftime('%m', r.inspection_date) = ? AND strftime('%Y', r.inspection_date) = ?";
+    whereClause = "WHERE r.deleted_at IS NULL AND strftime('%m', r.inspection_date) = ? AND strftime('%Y', r.inspection_date) = ?";
     bindVals = [month, currentYear];
   } else {
     const since = (() => {
       const d = new Date(); d.setMonth(d.getMonth()-11);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
     })();
-    whereClause = "WHERE r.inspection_date >= ?";
+    whereClause = "WHERE r.deleted_at IS NULL AND r.inspection_date >= ?";
     bindVals = [since];
   }
 
@@ -354,7 +435,7 @@ async function getInspectionBar(request, env, origin) {
      ORDER BY avg_fc DESC LIMIT 15`
   ).bind(...bindVals).all();
 
-  const results = rows.results || [];
+  const results = (rows.results || []).filter(r => !isExcludedDashboardBranch(r.branch_name));
   return ok({
     labels:  results.map(r => r.branch_name || 'N/A'),
     fc:      results.map(r => r.avg_fc  || 0),
@@ -366,81 +447,80 @@ async function getInspectionBar(request, env, origin) {
 // ─── /contracts-expiring — full list sorted by end_date ──────────────────────
 // Uses idx_contracts_status_end
 async function getContractsExpiring(env, origin) {
+  const hasConEmpName = await hasTableColumn(env.DB, 'contracts', 'employee_name');
+  const empNameExpr = hasConEmpName ? "COALESCE(e.full_name, c.employee_name, '—')" : "COALESCE(e.full_name, '—')";
   const rows = await env.DB.prepare(
     `SELECT c.id, c.end_date, c.status, c.contract_type, c.pkwt_number,
-     COALESCE(e.full_name, '—') emp_name,
+     ${empNameExpr} emp_name,
      b.full_name branch_name,
-     CAST(julianday(c.end_date)-julianday('now') AS INTEGER) days_remaining
+     CAST(julianday(c.end_date)-julianday(date('now', '+7 hours')) AS INTEGER) days_remaining
      FROM contracts c
-     LEFT JOIN employees e ON c.employee_id=e.id
+     LEFT JOIN employees e ON c.employee_id = e.id
      LEFT JOIN branches b ON c.branch_id=b.id
-     WHERE c.status='Aktif' AND c.end_date >= date('now')
-     ORDER BY c.end_date ASC LIMIT 50`
+     WHERE c.status='Aktif' AND c.deleted_at IS NULL
+       AND c.end_date IS NOT NULL AND c.end_date != '' AND c.end_date != '-' AND c.end_date NOT LIKE '2099%'
+       AND c.end_date >= date('now', '+7 hours')
+       AND c.division IN ('FACILITY CARE', 'SECURITY')
+       AND ${getManagementBranchSubquery('c.branch_id')}
+       AND (c.employee_id IS NULL OR (e.status = 'Aktif' AND e.deleted_at IS NULL))
+     ORDER BY c.end_date ASC, c.id ASC LIMIT 50`
   ).all();
   return ok(rows.results || [], 200, origin);
 }
 
 // ─── /activity-log — recent activity across all modules ──────────────────────
-// Each sub-query uses its own created_at DESC index, LIMIT 5 each
+// All sub-queries + branches lookup run in a single parallel batch
 async function getActivityLog(env, origin) {
-  const [issues, contracts, employees, oo1, training, supply, relievers, inspection] =
+  const hasConEmpName = await hasTableColumn(env.DB, 'contracts', 'employee_name');
+  const contractLabelExpr = hasConEmpName
+    ? "COALESCE(e.full_name, c.employee_name, 'Karyawan')"
+    : "COALESCE(e.full_name, 'Karyawan')";
+  const [issues, contracts, employees, training, inspection, bRows] =
     await Promise.all([
       env.DB.prepare(
-        `SELECT 'issue' type, COALESCE(complaint,'—') label, created_at,
+        `SELECT id, 'issue' type, COALESCE(complaint,'—') label, created_at,
          branch_id, category info
-         FROM issues ORDER BY created_at DESC LIMIT 5`
+         FROM issues WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'contract' type, COALESCE((SELECT full_name FROM employees WHERE id=contracts.employee_id),'Karyawan') label, created_at,
-         branch_id, contract_type info
-         FROM contracts ORDER BY created_at DESC LIMIT 5`
+        `SELECT c.id, 'contract' type, ${contractLabelExpr} label, c.created_at,
+         c.branch_id, c.contract_type info
+         FROM contracts c
+         LEFT JOIN employees e ON e.id = c.employee_id AND e.deleted_at IS NULL
+         WHERE c.deleted_at IS NULL
+           AND c.division IN ('FACILITY CARE', 'SECURITY')
+           AND ${getManagementBranchSubquery('c.branch_id')}
+         ORDER BY c.created_at DESC, c.id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'employee' type, full_name label, created_at,
-         branch_id, status info
-         FROM employees ORDER BY created_at DESC LIMIT 5`
+        `SELECT e.id, 'employee' type, e.full_name label, e.created_at,
+         e.branch_id, e.status info
+         FROM employees e 
+         WHERE e.deleted_at IS NULL
+           AND e.division IN ('FACILITY CARE', 'SECURITY')
+           AND ${getManagementBranchSubquery('e.branch_id')}
+         ORDER BY e.created_at DESC, e.id DESC LIMIT 5`
       ).all(),
       env.DB.prepare(
-        `SELECT 'one_on_one' type, COALESCE(employee_name,'—') label, created_at,
-         branch_id, status info
-         FROM one_on_one ORDER BY created_at DESC LIMIT 4`
-      ).all(),
-      env.DB.prepare(
-        `SELECT 'training' type, COALESCE(subject,'Training') label, created_at,
+        `SELECT id, 'training' type, COALESCE(subject,'Training') label, created_at,
          NULL branch_id, trainer info
-         FROM training ORDER BY created_at DESC LIMIT 4`
+         FROM training WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 4`
       ).all(),
       env.DB.prepare(
-        `SELECT 'supply' type, COALESCE(submitter_name,'Pemohon') label,
-         submitted_at created_at, NULL branch_id, status info
-         FROM supply_requests ORDER BY submitted_at DESC LIMIT 4`
-      ).all(),
-      env.DB.prepare(
-        `SELECT 'reliever' type, COALESCE(reliever_name,'Reliefer') label, created_at,
-         branch_id, reason info
-         FROM relievers 
-         WHERE LOWER(TRIM(status)) = 'done'
-         ORDER BY created_at DESC LIMIT 3`
-      ).all(),
-      env.DB.prepare(
-        `SELECT 'inspection' type, period label, created_at,
+        `SELECT id, 'inspection' type, period label, created_at,
          branch_id, status info
-         FROM inspection_reports ORDER BY created_at DESC LIMIT 3`
+         FROM inspection_reports WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 3`
       ).all(),
+      env.DB.prepare('SELECT id, full_name FROM branches WHERE deleted_at IS NULL').all()
     ]);
 
-  // Resolve branch names once — branches table is tiny
-  const bRows = await env.DB.prepare('SELECT id, full_name FROM branches').all();
   const branchMap = Object.fromEntries((bRows.results||[]).map(b=>[b.id, b.full_name]));
 
   const all = [
     ...(issues.results||[]),
     ...(contracts.results||[]),
     ...(employees.results||[]),
-    ...(oo1.results||[]),
     ...(training.results||[]),
-    ...(supply.results||[]),
-    ...(relievers.results||[]),
     ...(inspection.results||[]),
   ]
   .map(r => ({
@@ -448,7 +528,14 @@ async function getActivityLog(env, origin) {
     branch: r.branch_id ? (branchMap[r.branch_id] || null) : null,
     label:  (r.label && r.label !== '[object Object]') ? String(r.label).slice(0, 80) : '—',
   }))
-  .sort((a,b) => (b.created_at||'').localeCompare(a.created_at||''))
+  .sort((a,b) => {
+    const ta = a.created_at ? new Date(String(a.created_at).includes(' ') && !String(a.created_at).includes('T') ? String(a.created_at).replace(' ', 'T') + 'Z' : String(a.created_at)).getTime() : 0;
+    const tb = b.created_at ? new Date(String(b.created_at).includes(' ') && !String(b.created_at).includes('T') ? String(b.created_at).replace(' ', 'T') + 'Z' : String(b.created_at)).getTime() : 0;
+    const va = Number.isFinite(ta) ? ta : 0;
+    const vb = Number.isFinite(tb) ? tb : 0;
+    if (vb !== va) return vb - va;
+    return Number(b.id || 0) - Number(a.id || 0);
+  })
   .slice(0, 20);
 
   return ok(all, 200, origin);
@@ -459,75 +546,62 @@ async function getCalendarEvents(request, env, origin) {
   const url   = new URL(request.url);
   const curM  = url.searchParams.get('month') || curMonthStr();
   const bind  = [curM];
+  const hasConEmpName = await hasTableColumn(env.DB, 'contracts', 'employee_name');
+  const contractEmpExpr = hasConEmpName ? "COALESCE(e.full_name, c.employee_name, '?')" : "COALESCE(e.full_name, '?')";
 
   const dateFilter = (col) => `strftime('%Y-%m',${col})=?`;
 
   const [
-    sched, issR, relR, trainR, oneR, cleanR, inspR, fogR, baseR, supplyR, contrList
+    sched, issR, trainR, cleanR, inspR, fogR, baseR, contrList
   ] = await Promise.all([
     env.DB.prepare(
       `SELECT s.id, s.target_date, s.opening_date, s.completion_date,
        s.activity_type, s.period, s.pic, s.status, s.notes,
        b.full_name branch_name
-       FROM activity_schedule s LEFT JOIN branches b ON s.branch_id=b.id`
+       FROM activity_schedule s LEFT JOIN branches b ON s.branch_id=b.id
+       WHERE s.deleted_at IS NULL`
     ).all(),
     env.DB.prepare(
       `SELECT i.id,'issue' type,i.report_date event_date,i.category title,
        i.status,b.full_name branch_name,'red' color
        FROM issues i LEFT JOIN branches b ON i.branch_id=b.id
-       WHERE ${dateFilter('i.report_date')}`
-    ).bind(...bind).all(),
-    env.DB.prepare(
-      `SELECT r.id,'reliever' type,r.backup_date event_date,r.reliever_name title,
-       r.status,b.full_name branch_name,'teal' color
-       FROM relievers r LEFT JOIN branches b ON r.branch_id=b.id
-       WHERE ${dateFilter('r.backup_date')} AND LOWER(TRIM(r.status)) = 'done'`
+       WHERE i.deleted_at IS NULL AND ${dateFilter('i.report_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
       `SELECT t.id,'training' type,t.training_date event_date,t.subject title,
        'Done' status,'' branch_name,'indigo' color
-       FROM training t WHERE ${dateFilter('t.training_date')}`
-    ).bind(...bind).all(),
-    env.DB.prepare(
-      `SELECT o.id,'one_on_one' type,o.meeting_date event_date,'One on One: ' || o.employee_name title,
-       o.status,b.full_name branch_name,'pink' color
-       FROM one_on_one o LEFT JOIN branches b ON o.branch_id=b.id
-       WHERE ${dateFilter('o.meeting_date')}`
+       FROM training t WHERE t.deleted_at IS NULL AND ${dateFilter('t.training_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
       `SELECT c.id,'cleaning' type,c.activity_date event_date,c.activity_type || ': ' || b.full_name title,
        c.status,b.full_name branch_name,'green' color
        FROM cleaning_reports c LEFT JOIN branches b ON c.branch_id=b.id
-       WHERE ${dateFilter('c.activity_date')}`
+       WHERE c.deleted_at IS NULL AND ${dateFilter('c.activity_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
       `SELECT r.id,'inspection' type,r.inspection_date event_date,'Inspeksi: ' || b.full_name title,
        r.status,b.full_name branch_name,'blue' color
        FROM inspection_reports r LEFT JOIN branches b ON r.branch_id=b.id
-       WHERE ${dateFilter('r.inspection_date')}`
+       WHERE r.deleted_at IS NULL AND ${dateFilter('r.inspection_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
       `SELECT f.id,'fogging' type,f.activity_date event_date,'Fogging: ' || b.full_name title,
        f.status,b.full_name branch_name,'orange' color
        FROM fogging_reports f LEFT JOIN branches b ON f.branch_id=b.id
-       WHERE ${dateFilter('f.activity_date')}`
+       WHERE f.deleted_at IS NULL AND ${dateFilter('f.activity_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
       `SELECT bp.id,'basecamp' type,bp.info_date event_date,'Basecamp: ' || bp.problem title,
        bp.status,b.full_name branch_name,'purple' color
        FROM basecamp_reports bp LEFT JOIN branches b ON bp.branch_id=b.id
-       WHERE ${dateFilter('bp.info_date')}`
+       WHERE bp.deleted_at IS NULL AND ${dateFilter('bp.info_date')}`
     ).bind(...bind).all(),
     env.DB.prepare(
-      `SELECT s.id,'supply' type,strftime('%Y-%m-%d',s.submitted_at) event_date,'Permintaan: ' || s.submitter_name title,
-       s.status,COALESCE(b.full_name,s.branch_name) branch_name,'brown' color
-       FROM supply_requests s LEFT JOIN branches b ON s.branch_id=b.id
-       WHERE strftime('%Y-%m',s.submitted_at)=?`
-    ).bind(...bind).all(),
-    env.DB.prepare(
-      `SELECT c.id, c.end_date, COALESCE(e.full_name,'?') emp_name
+      `SELECT c.id, c.end_date, ${contractEmpExpr} emp_name
        FROM contracts c LEFT JOIN employees e ON c.employee_id=e.id
-       WHERE c.status='Aktif'`
+       WHERE c.status='Aktif' AND c.deleted_at IS NULL
+         AND c.division IN ('FACILITY CARE', 'SECURITY')
+         AND ${getManagementBranchSubquery('c.branch_id')}`
     ).all()
   ]);
 
@@ -633,13 +707,12 @@ async function getCalendarEvents(request, env, origin) {
 
   const events = [
     ...schedEvents,
-    ...(relR.results||[]).map(r => ({ ...r, event_date: parseFlexibleDate(r.event_date) })),
     ...(cleanR.results||[]).map(c => ({ ...c, event_date: parseFlexibleDate(c.event_date) })),
     ...(inspR.results||[]).map(i => ({ ...i, event_date: parseFlexibleDate(i.event_date) })),
     ...(fogR.results||[]).map(f => ({ ...f, event_date: parseFlexibleDate(f.event_date) })),
+    ...(baseR.results||[]).map(bp => ({ ...bp, event_date: parseFlexibleDate(bp.event_date) })),
     ...(issR.results||[]).map(i => ({ ...i, event_date: parseFlexibleDate(i.event_date) })),
     ...(trainR.results||[]).map(t => ({ ...t, event_date: parseFlexibleDate(t.event_date) })),
-    ...(oneR.results||[]).map(o => ({ ...o, event_date: parseFlexibleDate(o.event_date) })),
     ...contractEvents
   ].filter(e => e.event_date && e.event_date.startsWith(curM))
    .sort((a,b)=>(a.event_date||'').localeCompare(b.event_date||''));
@@ -651,7 +724,9 @@ async function getActivityByPeriod(env, origin) {
   const rows = await env.DB.prepare(
     `SELECT activity_type,period,COUNT(*) total,
      SUM(CASE WHEN status='Done' THEN 1 ELSE 0 END) done
-     FROM activity_schedule GROUP BY activity_type,period`
+     FROM activity_schedule
+     WHERE deleted_at IS NULL
+     GROUP BY activity_type,period`
   ).all();
   return ok(rows.results||[], 200, origin);
 }
@@ -664,7 +739,7 @@ async function getScheduleChart(request, env, origin) {
   const rows = await env.DB.prepare(
     `SELECT activity_type, strftime('%m', target_date) as month, COUNT(*) as count 
      FROM activity_schedule 
-     WHERE strftime('%Y', target_date) = ?
+     WHERE deleted_at IS NULL AND strftime('%Y', target_date) = ?
      GROUP BY activity_type, month`
   ).bind(year).all();
 
@@ -694,7 +769,7 @@ async function getScheduleChart(request, env, origin) {
 async function getInspectionScores(request, env, origin) {
   const url  = new URL(request.url);
   const period = url.searchParams.get('period')||'';
-  const where  = period ? 'WHERE r.period=?' : '';
+  const where  = period ? 'WHERE r.deleted_at IS NULL AND r.period=?' : 'WHERE r.deleted_at IS NULL';
   const bind   = period ? [period] : [];
   const rows   = await env.DB.prepare(
     `SELECT r.id,r.inspection_date,r.period,r.fc_score,r.spv_score,r.status,
@@ -706,20 +781,23 @@ async function getInspectionScores(request, env, origin) {
 }
 
 async function getNotifications(request, env, origin) {
-  const [contracts, pendingSched, openIssues, pendingSupply] = await Promise.all([
+  const hasConEmpName = await hasTableColumn(env.DB, 'contracts', 'employee_name');
+  const contractEmpExpr = hasConEmpName ? "COALESCE(e.full_name, c.employee_name, '?')" : "COALESCE(e.full_name, '?')";
+  const [contracts, pendingSched, openIssues] = await Promise.all([
     env.DB.prepare(
-      `SELECT c.id, c.end_date, COALESCE(e.full_name, '?') as emp_name
+      `SELECT c.id, c.end_date, ${contractEmpExpr} as emp_name
        FROM contracts c LEFT JOIN employees e ON c.employee_id = e.id
-       WHERE c.status = 'Aktif'`
+       WHERE c.status = 'Aktif'
+         AND c.deleted_at IS NULL
+         AND c.division IN ('FACILITY CARE', 'SECURITY')
+         AND ${getManagementBranchSubquery('c.branch_id')}
+         AND (c.employee_id IS NULL OR (e.deleted_at IS NULL AND e.division IN ('FACILITY CARE', 'SECURITY') AND ${getManagementBranchSubquery('e.branch_id')}))`
     ).all(),
     env.DB.prepare(
-      `SELECT id, activity_type, target_date FROM activity_schedule WHERE status = 'Pending' LIMIT 50`
+      `SELECT id, activity_type, target_date FROM activity_schedule WHERE status = 'Pending' AND deleted_at IS NULL LIMIT 50`
     ).all(),
     env.DB.prepare(
-      `SELECT id, category, report_date FROM issues WHERE status != 'Done' LIMIT 50`
-    ).all(),
-    env.DB.prepare(
-      `SELECT id, submitter_name, submitted_at FROM supply_requests WHERE status = 'Pending' LIMIT 50`
+      `SELECT id, category, report_date FROM issues WHERE status != 'Done' AND deleted_at IS NULL LIMIT 50`
     ).all()
   ]);
 
@@ -780,82 +858,34 @@ async function getNotifications(request, env, origin) {
     });
   });
 
-  // 4. Pending Supply Requests
-  (pendingSupply.results || []).forEach(s => {
-    list.push({
-      id: `supply-${s.id}`,
-      title: `Permintaan Barang pending: ${s.submitter_name}`,
-      type: 'supply',
-      date: String(s.submitted_at).slice(0, 10),
-      severity: 'info'
-    });
+  // Sort by date descending, placing empty/invalid dates last
+  list.sort((a, b) => {
+    const da = parseFlexibleDate(a.date);
+    const db = parseFlexibleDate(b.date);
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return db.localeCompare(da);
   });
-
-  // Sort by date descending
-  list.sort((a, b) => b.date.localeCompare(a.date));
 
   return ok(list, 200, origin);
 }
 
-// ─── /reliefer-summary ───────────────────────────────────────────────────────
-async function getRelieferSummary(request, env, origin) {
-  const url = new URL(request.url);
-  const curM = url.searchParams.get('month') || curMonthStr();
-  
-  const mParts = curM.split('-');
-  const y = mParts[0];
-  const mIdx = parseInt(mParts[1], 10) - 1;
-  const indoMonth = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][mIdx];
-  const engMonth = ['January','February','March','April','May','June','July','August','September','October','November','December'][mIdx];
-
-  const bind = [
-    curM,
-    `%${curM}%`,
-    `%${indoMonth}%${y}%`,
-    `%${engMonth}%${y}%`,
-    `%${mParts[1]}%${y}%`
-  ];
-
-  const [doneRow, totalRow] = await Promise.all([
-    env.DB.prepare(`
-      SELECT COUNT(*) c FROM relievers 
-      WHERE LOWER(TRIM(status))='done' AND (
-        strftime('%Y-%m', backup_date) = ? OR 
-        backup_date LIKE ? OR 
-        backup_date LIKE ? OR 
-        backup_date LIKE ? OR 
-        backup_date LIKE ?
-      )`).bind(...bind).first(),
-      
-    env.DB.prepare(`
-      SELECT COUNT(*) c FROM relievers 
-      WHERE (
-        strftime('%Y-%m', backup_date) = ? OR 
-        backup_date LIKE ? OR 
-        backup_date LIKE ? OR 
-        backup_date LIKE ? OR 
-        backup_date LIKE ?
-      )`).bind(...bind).first()
-  ]);
-
-  const done = doneRow?.c || 0;
-  const total = totalRow?.c || 0;
-  const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
-
-  return ok({
-    month: curM,
-    done,
-    total,
-    percentage
-  }, 200, origin);
-}
-
 async function getDropdownAggregates(env, origin) {
-  const [relieverRows, inspeksiRows, gcdcRows, foggingRows, scheduleQRows] = await Promise.all([
-    env.DB.prepare("SELECT strftime('%Y-%m', backup_date) as month, COUNT(*) as c FROM relievers WHERE LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND backup_date IS NOT NULL GROUP BY month").all(),
-    env.DB.prepare("SELECT strftime('%Y-%m', COALESCE(completion_date, target_date)) as month, COUNT(*) as c FROM activity_schedule WHERE activity_type = 'Inspeksi Hygiene' AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND COALESCE(completion_date, target_date) IS NOT NULL GROUP BY month").all(),
-    env.DB.prepare("SELECT strftime('%Y-%m', COALESCE(completion_date, target_date)) as month, COUNT(*) as c FROM activity_schedule WHERE activity_type IN ('General Cleaning', 'Deep Cleaning') AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND COALESCE(completion_date, target_date) IS NOT NULL GROUP BY month").all(),
-    env.DB.prepare("SELECT strftime('%Y-%m', activity_date) as month, COUNT(*) as c FROM fogging_reports WHERE LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND activity_date IS NOT NULL GROUP BY month").all(),
+  const [schedMonthRows, foggingRows, scheduleQRows] = await Promise.all([
+    env.DB.prepare(
+      `SELECT
+         strftime('%Y-%m', COALESCE(completion_date, target_date)) as month,
+         SUM(CASE WHEN activity_type = 'Inspeksi Hygiene' THEN 1 ELSE 0 END) as insp_c,
+         SUM(CASE WHEN activity_type IN ('General Cleaning', 'Deep Cleaning') THEN 1 ELSE 0 END) as gcdc_c
+       FROM activity_schedule
+       WHERE deleted_at IS NULL
+         AND activity_type IN ('Inspeksi Hygiene', 'General Cleaning', 'Deep Cleaning')
+         AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed')
+         AND COALESCE(completion_date, target_date) IS NOT NULL
+       GROUP BY month`
+    ).all(),
+    env.DB.prepare("SELECT strftime('%Y-%m', activity_date) as month, COUNT(*) as c FROM fogging_reports WHERE deleted_at IS NULL AND LOWER(TRIM(status)) IN ('done', 'selesai', 'completed') AND activity_date IS NOT NULL GROUP BY month").all(),
     env.DB.prepare(`
       SELECT 
         period,
@@ -865,24 +895,30 @@ async function getDropdownAggregates(env, origin) {
         SUM(CASE WHEN activity_type = 'Deep Cleaning' THEN 1 ELSE 0 END) as dc,
         SUM(CASE WHEN activity_type = 'Fogging' THEN 1 ELSE 0 END) as fog
       FROM (
-        SELECT period, activity_type FROM activity_schedule WHERE period IS NOT NULL AND period LIKE 'Q%'
+        SELECT period, activity_type FROM activity_schedule WHERE deleted_at IS NULL AND period IS NOT NULL AND period LIKE 'Q%'
         UNION ALL
-        SELECT period, 'Fogging' as activity_type FROM fogging_reports WHERE period IS NOT NULL AND period LIKE 'Q%'
+        SELECT period, 'Fogging' as activity_type FROM fogging_reports WHERE deleted_at IS NULL AND period IS NOT NULL AND period LIKE 'Q%'
       )
       GROUP BY period
     `).all()
   ]);
 
   const toMap = (rows) => Object.fromEntries((rows.results || []).map(r => [r.month || r.period, r.c || 0]));
+  const inspeksiByMonth = {};
+  const gcdcByMonth = {};
+  for (const r of (schedMonthRows.results || [])) {
+    if (!r.month) continue;
+    if (r.insp_c > 0) inspeksiByMonth[r.month] = r.insp_c;
+    if (r.gcdc_c > 0) gcdcByMonth[r.month] = r.gcdc_c;
+  }
   const scheduleDetails = Object.fromEntries((scheduleQRows.results || []).map(r => [
     r.period, 
     { total: r.c || 0, insp: r.insp || 0, gc: r.gc || 0, dc: r.dc || 0, fog: r.fog || 0 }
   ]));
 
   return ok({
-    relievers_by_month: toMap(relieverRows),
-    inspeksi_by_month: toMap(inspeksiRows),
-    gcdc_by_month: toMap(gcdcRows),
+    inspeksi_by_month: inspeksiByMonth,
+    gcdc_by_month: gcdcByMonth,
     fogging_by_month: toMap(foggingRows),
     schedule_by_quarter: toMap(scheduleQRows),
     schedule_quarter_details: scheduleDetails

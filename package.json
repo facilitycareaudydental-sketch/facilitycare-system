@@ -8,12 +8,16 @@
   ],
   "scripts": {
     "build": "node build-root.js",
+    "build:staging": "node build-root.js --env=staging",
+    "build:production": "node build-root.js --env=production",
     "dev:api": "npm run dev --workspace=api",
     "dev:frontend": "npm run dev --workspace=frontend",
-    "deploy:api": "node scripts/preflight-guard.mjs && npm run deploy --workspace=api",
-    "deploy:frontend": "node scripts/preflight-guard.mjs && npm run deploy --workspace=frontend",
-    "db:migrate": "wrangler d1 execute fm-operations-db --file=schema/migrations.sql",
-    "db:migrate:remote": "wrangler d1 execute fm-operations-db --remote --file=schema/migrations.sql"
+    "deploy:api": "node scripts/preflight-guard.mjs --env=production && npm run deploy --workspace=api",
+    "deploy:api:staging": "node scripts/preflight-guard.mjs --env=staging --config=api/wrangler.staging.toml && npm run deploy:staging --workspace=api",
+    "deploy:frontend": "node scripts/preflight-guard.mjs --env=production && npm run deploy --workspace=frontend",
+    "deploy:frontend:staging": "node scripts/preflight-guard.mjs --env=staging --config=api/wrangler.staging.toml && npm run deploy:staging --workspace=frontend",
+    "db:migrate": "node -e \"console.error('ERROR: Legacy db:migrate is disabled. Use scripts/d1-migrator.mjs with explicit target verification.'); process.exit(1)\"",
+    "db:migrate:remote": "node -e \"console.error('ERROR: Legacy db:migrate:remote is disabled. Use scripts/d1-migrator.mjs with explicit target verification.'); process.exit(1)\""
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

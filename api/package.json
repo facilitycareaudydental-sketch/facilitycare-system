@@ -2,10 +2,12 @@
   "name": "fm-operations-api",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "echo 'No build step required for API'",
     "dev": "wrangler dev --port 8787",
-    "deploy": "node ../scripts/preflight-guard.mjs && wrangler deploy",
+    "deploy": "node ../scripts/preflight-guard.mjs --env=production && wrangler deploy",
+    "deploy:staging": "node ../scripts/preflight-guard.mjs --env=staging --config=api/wrangler.staging.toml && wrangler deploy -c wrangler.staging.toml",
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {

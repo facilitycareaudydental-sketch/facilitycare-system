@@ -1,4 +1,6 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
+import { fetchExportRows } from '../utils/dataCache.js';
+import { createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 
@@ -38,13 +40,6 @@ const INITIAL_DOCUMENTS = [
     category: 'Kegiatan General Cleaning',
     document_link: 'https://docs.google.com/spreadsheets/d/1example_general_cleaning',
     description: 'Standar checklist kebersihan harian/mingguan seluruh ruangan, lobby, toilet, dan koridor.'
-  },
-  {
-    id: 6,
-    name: 'Form Aktivity Reliefer',
-    category: 'Form Operasional',
-    document_link: 'https://forms.gle/1example_reliefer',
-    description: 'Formulir pencatatan absensi dan penugasan harian reliefer Facility Care di cabang pengganti.'
   },
   {
     id: 7,
@@ -108,6 +103,16 @@ export async function renderChecklist(container) {
   let documents = [];
   let activeCategory = 'all';
   let searchQuery = '';
+  let currentPage = 1;
+  const PAGE_LIMIT = 20;
+  let totalItems = 0;
+  let totalPages = 1;
+  let serverStats = {
+    categoryCounts: { all: 0 },
+    linkedCount: 0
+  };
+  let searchDebounce = null;
+  let hasRendered = false;
 
   // Inject Custom Styles
   const styleId = 'fcms-master-doc-styles';
@@ -122,11 +127,12 @@ export async function renderChecklist(container) {
         font-family: inherit;
       }
       .doc-hero-card {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 18px;
         padding: 28px 32px;
-        color: #ffffff;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+        color: #FFFFFF;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
         margin-bottom: 24px;
         position: relative;
         overflow: hidden;
@@ -138,7 +144,7 @@ export async function renderChecklist(container) {
         top: -60px;
         width: 240px;
         height: 240px;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
         border-radius: 50%;
         pointer-events: none;
       }
@@ -220,8 +226,8 @@ export async function renderChecklist(container) {
         font-weight: 600;
       }
       .doc-controls-panel {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 16px;
         padding: 18px 20px;
         margin-bottom: 24px;
@@ -257,13 +263,13 @@ export async function renderChecklist(container) {
         border: 1.5px solid #CBD5E1;
         border-radius: 10px;
         font-size: 0.9rem;
-        background: #F8FAFC;
+        background: #0E182B;
         transition: all 0.2s ease;
       }
       .doc-search-input:focus {
         outline: none;
         border-color: #2563EB;
-        background: #FFFFFF;
+        background: #131F36;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
       .doc-filter-pills {
@@ -273,9 +279,9 @@ export async function renderChecklist(container) {
         align-items: center;
       }
       .doc-pill {
-        border: 1px solid #E2E8F0;
-        background: #F8FAFC;
-        color: #475569;
+        border: 1px solid #223456;
+        background: #0E182B;
+        color: #CBD5E1;
         font-size: 0.82rem;
         font-weight: 600;
         padding: 6px 14px;
@@ -287,8 +293,9 @@ export async function renderChecklist(container) {
         gap: 6px;
       }
       .doc-pill:hover {
-        background: #EEF2F6;
-        border-color: #CBD5E1;
+        background: #22314A;
+        color: #F8FAFC;
+        border-color: #475569;
       }
       .doc-pill.active {
         background: #2563EB;
@@ -297,7 +304,8 @@ export async function renderChecklist(container) {
         box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
       }
       .doc-pill-count {
-        background: rgba(0, 0, 0, 0.08);
+        background: rgba(255, 255, 255, 0.1);
+        color: #E2E8F0;
         padding: 1px 7px;
         border-radius: 12px;
         font-size: 0.75rem;
@@ -313,8 +321,8 @@ export async function renderChecklist(container) {
         gap: 20px;
       }
       .doc-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 16px;
         padding: 22px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -343,7 +351,7 @@ export async function renderChecklist(container) {
         gap: 6px;
         padding: 4px 10px;
         border-radius: 6px;
-        font-size: 0.74rem;
+        font-size: 0.76rem;
         font-weight: 700;
         letter-spacing: 0.02em;
         text-transform: uppercase;
@@ -352,22 +360,23 @@ export async function renderChecklist(container) {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-size: 0.74rem;
+        font-size: 0.76rem;
         font-weight: 600;
-        color: #64748B;
-        background: #F1F5F9;
+        color: #CBD5E1;
+        background: #0E182B;
+        border: 1px solid #223456;
         padding: 3px 8px;
         border-radius: 6px;
       }
       .doc-card-title {
         font-size: 1.08rem;
         font-weight: 700;
-        color: #0F172A;
+        color: #F8FAFC;
         margin: 0 0 8px 0;
         line-height: 1.4;
       }
       .doc-card-desc {
-        color: #64748B;
+        color: #CBD5E1;
         font-size: 0.85rem;
         line-height: 1.5;
         margin: 0 0 18px 0;
@@ -379,7 +388,7 @@ export async function renderChecklist(container) {
       }
       .doc-card-footer {
         padding-top: 14px;
-        border-top: 1px solid #F1F5F9;
+        border-top: 1px solid #223456;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -405,7 +414,7 @@ export async function renderChecklist(container) {
         color: #FFFFFF;
       }
       .doc-btn-open.disabled {
-        background: #E2E8F0;
+        background: #22314A;
         color: #94A3B8;
         pointer-events: none;
       }
@@ -415,9 +424,9 @@ export async function renderChecklist(container) {
         gap: 4px;
       }
       .doc-icon-btn {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        color: #64748B;
+        background: #0E182B;
+        border: 1px solid #223456;
+        color: #CBD5E1;
         width: 34px;
         height: 34px;
         border-radius: 8px;
@@ -428,21 +437,21 @@ export async function renderChecklist(container) {
         transition: all 0.15s ease;
       }
       .doc-icon-btn:hover {
-        background: #EDF2F7;
-        color: #1E293B;
-        border-color: #CBD5E1;
+        background: #22314A;
+        color: #F8FAFC;
+        border-color: #475569;
       }
       .doc-icon-btn.delete:hover {
-        background: #FEE2E2;
-        color: #DC2626;
-        border-color: #FECACA;
+        background: rgba(239, 68, 68, 0.2);
+        color: #FCA5A5;
+        border-color: rgba(248, 113, 113, 0.45);
       }
       /* Table View */
       .doc-table-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         overflow: hidden;
       }
       .doc-table {
@@ -451,31 +460,31 @@ export async function renderChecklist(container) {
         text-align: left;
       }
       .doc-table th {
-        background: #F8FAFC;
+        background: #0E182B;
         padding: 14px 18px;
         font-size: 0.78rem;
         font-weight: 700;
-        color: #475569;
+        color: #CBD5E1;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        border-bottom: 1.5px solid #E2E8F0;
+        border-bottom: 1.5px solid #223456;
       }
       .doc-table td {
         padding: 16px 18px;
         font-size: 0.88rem;
-        color: #1E293B;
-        border-bottom: 1px solid #F1F5F9;
+        color: #F8FAFC;
+        border-bottom: 1px solid #223456;
         vertical-align: middle;
       }
       .doc-table tr:hover td {
-        background: #F8FAFC;
+        background: #22314A;
       }
       .doc-empty-state {
         text-align: center;
         padding: 60px 20px;
-        background: #FFFFFF;
+        background: #131F36;
         border-radius: 16px;
-        border: 1px dashed #CBD5E1;
+        border: 1px dashed #223456;
       }
 
       /* ── TAMPILAN RESPONSIVE HP / MOBILE (≤ 768px) ─────────────────── */
@@ -556,7 +565,7 @@ export async function renderChecklist(container) {
           font-size: 1.15rem !important;
         }
         .doc-stat-label {
-          font-size: 0.68rem !important;
+          font-size: 0.76rem !important;
         }
         .doc-controls-panel {
           padding: 14px 12px !important;
@@ -633,76 +642,157 @@ export async function renderChecklist(container) {
     document.head.appendChild(styleEl);
   }
 
+  function getActiveFilters() {
+    const params = {};
+    if (searchQuery && searchQuery.trim()) params.search = searchQuery.trim();
+    if (activeCategory && activeCategory !== 'all') params.category = activeCategory;
+    return params;
+  }
+
+  function buildCategoryPillsHTML() {
+    const stats = getCategoryStats();
+    const uniqueCats = Object.keys(stats).filter(k => k !== 'all');
+    return `
+      <button class="doc-pill ${activeCategory === 'all' ? 'active' : ''}" data-cat="all">
+        <span>Semua Dokumen</span>
+        <span class="doc-pill-count">${stats.all || 0}</span>
+      </button>
+      ${uniqueCats.map(cat => {
+        const meta = getCategoryMeta(cat);
+        const isActive = activeCategory === cat;
+        const safeCat = String(cat).replace(/"/g, '&quot;');
+        return `
+          <button class="doc-pill ${isActive ? 'active' : ''}" data-cat="${safeCat}">
+            <span>${meta.icon}</span>
+            <span>${cat}</span>
+            <span class="doc-pill-count">${stats[cat] || 0}</span>
+          </button>
+        `;
+      }).join('')}
+    `;
+  }
+
+  function bindCategoryPills() {
+    container.querySelectorAll('.doc-pill').forEach(pill => {
+      pill.onclick = () => {
+        activeCategory = pill.getAttribute('data-cat') || 'all';
+        container.querySelectorAll('.doc-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-cat') === activeCategory);
+        });
+        currentPage = 1;
+        loadDocuments({ refreshStats: false });
+      };
+    });
+  }
+
+  function updateStatsUI() {
+    const stats = getCategoryStats();
+    const uniqueCats = Object.keys(stats).filter(k => k !== 'all');
+    const totalDocs = Number(stats.all ?? 0);
+    const linkedCount = Number(serverStats.linkedCount ?? 0);
+
+    const set = (sel, val) => {
+      const el = container.querySelector(sel);
+      if (el) el.textContent = String(val ?? 0);
+    };
+    set('#doc-stat-total', totalDocs);
+    set('#doc-stat-categories', uniqueCats.length);
+    set('#doc-stat-linked', linkedCount);
+    set('#doc-stat-linked-total', totalDocs);
+
+    const pillsContainer = container.querySelector('#doc-filter-pills');
+    if (pillsContainer) {
+      pillsContainer.innerHTML = buildCategoryPillsHTML();
+      bindCategoryPills();
+    }
+  }
+
   // Fetch Documents from API
-  async function loadDocuments() {
+  async function loadDocuments({ refreshStats = true } = {}) {
     try {
-      const res = await apiFetch('/api/checklist?limit=1000');
-      if (res.ok && res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-        documents = res.data.data;
-        localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
-      } else {
-        const cached = localStorage.getItem('fcms_master_doc_cache');
-        if (cached) {
-          documents = JSON.parse(cached);
-        } else {
-          documents = [...INITIAL_DOCUMENTS];
-          localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
+      const filters = getActiveFilters();
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(PAGE_LIMIT),
+        ...filters
+      });
+      if (refreshStats) params.set('include_stats', '1');
+
+      const res = await apiFetch('/api/checklist?' + params.toString());
+      if (res.ok && res.data && Array.isArray(res.data.data)) {
+        const pg = res.data.pagination || {};
+        totalItems = Number(pg.total ?? res.data.data.length);
+        totalPages = Math.max(1, Number(pg.pages || pg.totalPages || Math.ceil(totalItems / PAGE_LIMIT) || 1));
+        if (res.data.data.length === 0 && currentPage > totalPages) {
+          currentPage = totalPages;
+          return loadDocuments({ refreshStats });
         }
+        documents = res.data.data;
+        if (res.data.stats) {
+          serverStats = {
+            categoryCounts: res.data.stats.categoryCounts || { all: totalItems },
+            linkedCount: Number(res.data.stats.linkedCount ?? 0)
+          };
+        }
+      } else {
+        documents = [];
+        totalItems = 0;
+        totalPages = 1;
+        if (!res.ok) toastError(res.data?.error || 'Gagal memuat dokumen dari server');
       }
     } catch (err) {
-      console.warn('Fallback loading documents from cache/seed:', err);
-      const cached = localStorage.getItem('fcms_master_doc_cache');
-      documents = cached ? JSON.parse(cached) : [...INITIAL_DOCUMENTS];
+      console.warn('Error loading documents:', err);
+      documents = [];
+      totalItems = 0;
+      totalPages = 1;
+      toastError('Gagal memuat dokumen: ' + err.message);
     }
-    renderUI();
+
+    if (!hasRendered) {
+      hasRendered = true;
+      renderUI();
+    } else {
+      if (refreshStats) updateStatsUI();
+      renderListContent();
+    }
   }
 
-  // Filter & Search Logic
+  // Server-filtered page data
   function getFilteredDocuments() {
-    return documents.filter(doc => {
-      const matchCat = activeCategory === 'all' || doc.category === activeCategory;
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch = !q || 
-        (doc.name || '').toLowerCase().includes(q) ||
-        (doc.category || '').toLowerCase().includes(q) ||
-        (doc.description || '').toLowerCase().includes(q);
-      return matchCat && matchSearch;
-    });
+    return documents;
   }
 
-  // Collect unique categories with counts
+  // Collect unique categories with global counts
   function getCategoryStats() {
-    const stats = { all: documents.length };
-    documents.forEach(d => {
-      const cat = d.category || 'Lainnya';
-      stats[cat] = (stats[cat] || 0) + 1;
-    });
-    return stats;
+    return serverStats.categoryCounts || { all: 0 };
   }
 
   // Add / Edit Modal Form
   function openDocumentModal(item = null) {
     if (!canEdit) return;
     const isEdit = !!item;
-    const existingCats = Array.from(new Set(documents.map(d => d.category).filter(Boolean)));
+    const existingCats = Array.from(new Set([
+      ...Object.keys(serverStats.categoryCounts || {}).filter(k => k !== 'all' && k !== 'Lainnya'),
+      ...documents.map(d => d.category).filter(Boolean)
+    ]));
     
     const content = document.createElement('div');
     content.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:16px;">
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:6px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Nama Dokumen / Checklist <span style="color:#DC2626;">*</span>
           </label>
           <input type="text" id="doc-modal-name" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Contoh: Checklist Pembersihan Wastafel & Toilet" value="${item?.name ? String(item.name).replace(/"/g, '&quot;') : ''}" required />
+            value="${item?.name ? String(item.name).replace(/"/g, '&quot;') : ''}" required />
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:6px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Kategori Dokumen <span style="color:#DC2626;">*</span>
           </label>
           <input type="text" id="doc-modal-category" list="doc-categories-list" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Pilih atau ketik kategori baru..." value="${item?.category ? String(item.category).replace(/"/g, '&quot;') : ''}" required />
+            value="${item?.category ? String(item.category).replace(/"/g, '&quot;') : ''}" required />
           <datalist id="doc-categories-list">
             ${existingCats.map(c => `<option value="${c}">${c}</option>`).join('')}
             <option value="Berita Acara">Berita Acara</option>
@@ -715,22 +805,21 @@ export async function renderChecklist(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:6px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Tautan / Link Dokumen (Google Drive, Docs, Sheets, atau Forms)
           </label>
           <input type="url" id="doc-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="https://docs.google.com/..." value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
-          <span style="font-size:0.75rem; color:#64748B; margin-top:4px; display:block;">
+            value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
+          <span style="font-size:0.75rem; color:var(--text-3); margin-top:4px; display:block;">
             Bisa berupa tautan Google Forms untuk inspeksi harian, atau link Google Sheets / Docs sebagai acuan.
           </span>
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:6px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Deskripsi / Petunjuk Penggunaan
           </label>
-          <textarea id="doc-modal-desc" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Tuliskan keterangan singkat mengenai tujuan dan instruksi pengisian dokumen ini...">${item?.description || ''}</textarea>
+          <textarea id="doc-modal-desc" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">${item?.description || ''}</textarea>
         </div>
       </div>
     `;
@@ -771,34 +860,25 @@ export async function renderChecklist(container) {
               method: 'PUT',
               body: JSON.stringify(payload)
             });
-            if (res.ok) {
-              const idx = documents.findIndex(d => d.id === item.id);
-              if (idx !== -1) documents[idx] = { ...documents[idx], ...payload };
-              toastSuccess('Dokumen berhasil diperbarui');
-            } else {
-              // Local fallback
-              const idx = documents.findIndex(d => d.id === item.id);
-              if (idx !== -1) documents[idx] = { ...documents[idx], ...payload };
-              toastSuccess('Dokumen disimpan secara lokal');
+            if (!res.ok) {
+              toastError(res.data?.error || 'Gagal memperbarui dokumen');
+              return;
             }
+            toastSuccess('Dokumen berhasil diperbarui');
           } else {
             const res = await apiFetch('/api/checklist', {
               method: 'POST',
               body: JSON.stringify(payload)
             });
-            if (res.ok && res.data?.id) {
-              documents.unshift({ id: res.data.id, ...payload });
-              toastSuccess('Dokumen baru berhasil ditambahkan');
-            } else {
-              // Local fallback
-              const newId = Date.now();
-              documents.unshift({ id: newId, ...payload });
-              toastSuccess('Dokumen baru ditambahkan secara lokal');
+            if (!res.ok) {
+              toastError(res.data?.error || 'Gagal menambahkan dokumen');
+              return;
             }
+            currentPage = 1;
+            toastSuccess('Dokumen baru berhasil ditambahkan');
           }
-          localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
           close();
-          renderUI();
+          await loadDocuments({ refreshStats: true });
         } catch (err) {
           console.error('Error saving document:', err);
           toastError('Gagal menyimpan dokumen: ' + err.message);
@@ -809,21 +889,23 @@ export async function renderChecklist(container) {
 
   // Delete Document
   function deleteDocument(doc) {
+    if (!canDelete) {
+      toastError('Anda tidak memiliki izin untuk menghapus dokumen.');
+      return;
+    }
     confirmDialog(
       `Apakah Anda yakin ingin menghapus dokumen <strong>"${doc.name}"</strong>?`,
       async () => {
         try {
           const res = await apiFetch(`/api/checklist/${doc.id}`, { method: 'DELETE' });
-          if (!res.ok) console.warn('API delete warning:', res);
-          documents = documents.filter(d => d.id !== doc.id);
-          localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
+          if (!res.ok) {
+            toastError(res.data?.error || 'Gagal menghapus dokumen');
+            return;
+          }
           toastSuccess(`Dokumen "${doc.name}" berhasil dihapus`);
-          renderUI();
+          await loadDocuments({ refreshStats: true });
         } catch (err) {
-          documents = documents.filter(d => d.id !== doc.id);
-          localStorage.setItem('fcms_master_doc_cache', JSON.stringify(documents));
-          toastSuccess(`Dokumen "${doc.name}" berhasil dihapus`);
-          renderUI();
+          toastError('Gagal menghapus dokumen: ' + err.message);
         }
       },
       'Hapus Dokumen'
@@ -851,7 +933,8 @@ export async function renderChecklist(container) {
     }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
-      const exportData = documents.map((d, index) => ({
+      const rows = await fetchExportRows('/api/checklist/export', getActiveFilters());
+      const exportData = rows.map((d, index) => ({
         'No': index + 1,
         'Nama Dokumen': d.name || '',
         'Kategori': d.category || '',
@@ -860,116 +943,21 @@ export async function renderChecklist(container) {
         'Deskripsi / Keterangan': d.description || ''
       }));
       downloadExcel(exportData, `Master_Dokumen_FCMS_${new Date().toISOString().slice(0, 10)}`);
-      toastSuccess('Berhasil mengunduh data dokumen ke Excel.');
+      toastSuccess(`Berhasil mengunduh ${rows.length} data dokumen ke Excel.`);
     } catch (err) {
       toastError('Gagal mengekspor data: ' + err.message);
     }
   }
 
-  // Main UI Renderer
-  function renderUI() {
-    const filtered = getFilteredDocuments();
-    const stats = getCategoryStats();
-    const uniqueCats = Object.keys(stats).filter(k => k !== 'all');
-    const linkedCount = documents.filter(d => !!d.document_link).length;
 
-    container.innerHTML = `
-      <div class="doc-page-container">
-        
-        <!-- Hero Header -->
-        <div class="doc-hero-card">
-          <div class="doc-hero-header">
-            <div>
-              <h1 class="doc-hero-title">
-                <span>📋</span> Master Document & Template Standar
-              </h1>
-            </div>
-            <div class="doc-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              ${canEdit ? `
-              <button id="doc-btn-add" class="btn btn-primary" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap; border:none;">
-                <span>➕</span>
-                <span>Tambah Dokumen Baru</span>
-              </button>
-              ` : ''}
-              ${hasPermission(currentUser, "export") ? `<button id="doc-btn-excel" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
-                <span>📥</span>
-                <span>Ekspor Excel</span>
-              </button>` : ''}
-              <button id="doc-btn-refresh" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
-                <span>🔄</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Quick Metrics -->
-          <div class="doc-stats-grid">
-            <div class="doc-stat-box">
-              <div class="doc-stat-icon">📄</div>
-              <div>
-                <div class="doc-stat-value">${documents.length}</div>
-                <div class="doc-stat-label">Total Dokumen</div>
-              </div>
-            </div>
-            <div class="doc-stat-box">
-              <div class="doc-stat-icon">🗂️</div>
-              <div>
-                <div class="doc-stat-value">${uniqueCats.length}</div>
-                <div class="doc-stat-label">Kategori Dokumen</div>
-              </div>
-            </div>
-            <div class="doc-stat-box">
-              <div class="doc-stat-icon" style="background:rgba(16,185,129,0.18); color:#34D399;">🌐</div>
-              <div>
-                <div class="doc-stat-value">${linkedCount} <span style="font-size:0.8rem; font-weight:400; color:#94A3B8;">/ ${documents.length}</span></div>
-                <div class="doc-stat-label">Tautan Online</div>
-              </div>
-            </div>
-            <div class="doc-stat-box">
-              <div class="doc-stat-icon" style="background:rgba(168,85,247,0.18); color:#C084FC;">⚡</div>
-              <div>
-                <div class="doc-stat-value">Aktif</div>
-                <div class="doc-stat-label">Status Repositori</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Controls: Search, View Switch, Category Pills -->
-        <div class="doc-controls-panel">
-          <div class="doc-controls-top">
-            <div class="doc-search-wrapper" style="width:100%;">
-              <span class="doc-search-icon">🔍</span>
-              <input type="text" id="doc-search-input" class="doc-search-input" placeholder="Cari nama dokumen, kategori, atau deskripsi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
-            </div>
-          </div>
-
-          <!-- Category Pills -->
-          <div class="doc-filter-pills">
-            <button class="doc-pill ${activeCategory === 'all' ? 'active' : ''}" data-cat="all">
-              <span>Semua Dokumen</span>
-              <span class="doc-pill-count">${stats.all || 0}</span>
-            </button>
-            ${uniqueCats.map(cat => {
-              const meta = getCategoryMeta(cat);
-              const isActive = activeCategory === cat;
-              return `
-                <button class="doc-pill ${isActive ? 'active' : ''}" data-cat="${cat}">
-                  <span>${meta.icon}</span>
-                  <span>${cat}</span>
-                  <span class="doc-pill-count">${stats[cat] || 0}</span>
-                </button>
-              `;
-            }).join('')}
-          </div>
-        </div>
-
-        <!-- Documents View Container -->
-        <div id="doc-list-view">
-          ${filtered.length === 0 ? `
+  // Render only dynamic list content HTML (Card / Empty State)
+  function buildDocumentListHTML(filtered) {
+    return `
+    ${filtered.length === 0 ? `
             <div class="doc-empty-state">
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
-              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Dokumen Ditemukan</h3>
-              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Coba sesuaikan kata kunci pencarian atau pilih kategori lain.</p>
+              <h3 style="font-size:1.2rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak Ada Dokumen Ditemukan</h3>
+              <p style="color:#94A3B8; font-size:0.9rem; margin:0 0 20px 0;">Coba sesuaikan kata kunci pencarian atau pilih kategori lain.</p>
               <button id="doc-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
                 Tampilkan Semua Dokumen
               </button>
@@ -1033,58 +1021,26 @@ export async function renderChecklist(container) {
               }).join('')}
             </div>
           `}
-        </div>
-
-      </div>
     `;
-
-    // Event Listeners Binding
-    bindEvents();
   }
 
-  // Bind Listeners
-  function bindEvents() {
-    // Top Buttons
-    const btnAdd = container.querySelector('#doc-btn-add');
-    if (btnAdd) btnAdd.onclick = () => openDocumentModal();
-
-    const btnExcel = container.querySelector('#doc-btn-excel');
-    if (btnExcel) btnExcel.onclick = () => exportToExcel();
-
-    const btnRefresh = container.querySelector('#doc-btn-refresh');
-    if (btnRefresh) btnRefresh.onclick = () => loadDocuments();
-
+  function bindListEvents() {
+    // Reset Filter Button inside list
     const btnResetFilter = container.querySelector('#doc-btn-reset-filter');
     if (btnResetFilter) {
       btnResetFilter.onclick = () => {
         searchQuery = '';
         activeCategory = 'all';
-        renderUI();
+        currentPage = 1;
+        clearTimeout(searchDebounce);
+        const searchInput = container.querySelector('#doc-search-input');
+        if (searchInput) searchInput.value = '';
+        container.querySelectorAll('.doc-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-cat') === 'all');
+        });
+        loadDocuments({ refreshStats: false });
       };
     }
-
-    // Search Input
-    const searchInput = container.querySelector('#doc-search-input');
-    if (searchInput) {
-      searchInput.oninput = (e) => {
-        searchQuery = e.target.value;
-        const filtered = getFilteredDocuments();
-        renderUI();
-        const newSearch = container.querySelector('#doc-search-input');
-        if (newSearch) {
-          newSearch.focus();
-          newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
-        }
-      };
-    }
-
-    // Category Pills
-    container.querySelectorAll('.doc-pill').forEach(pill => {
-      pill.onclick = () => {
-        activeCategory = pill.getAttribute('data-cat') || 'all';
-        renderUI();
-      };
-    });
 
     // Copy Link Buttons
     container.querySelectorAll('.copy-link-btn').forEach(btn => {
@@ -1117,7 +1073,165 @@ export async function renderChecklist(container) {
     });
   }
 
+  function renderPagination() {
+    const pgContainer = container.querySelector('#doc-pagination-container');
+    if (!pgContainer) return;
+    pgContainer.innerHTML = '';
+    const pgEl = createPagination({
+      page: currentPage,
+      pages: totalPages,
+      total: totalItems,
+      limit: PAGE_LIMIT,
+      onPage: (newPage) => {
+        currentPage = newPage;
+        loadDocuments({ refreshStats: false });
+      }
+    });
+    if (pgEl) pgContainer.appendChild(pgEl);
+  }
+
+  function renderListContent() {
+    const listContainer = container.querySelector('#doc-list-view');
+    if (!listContainer) return;
+    const filtered = getFilteredDocuments();
+    listContainer.innerHTML = buildDocumentListHTML(filtered);
+    renderPagination();
+    bindListEvents();
+  }
+
+  // Main UI Renderer
+  function renderUI() {
+    const filtered = getFilteredDocuments();
+    const stats = getCategoryStats();
+    const uniqueCats = Object.keys(stats).filter(k => k !== 'all');
+    const totalDocs = Number(stats.all ?? 0);
+    const linkedCount = Number(serverStats.linkedCount ?? 0);
+
+    container.innerHTML = `
+      <div class="doc-page-container">
+        
+        <!-- Hero Header -->
+        <div class="doc-hero-card">
+          <div class="doc-hero-header">
+            <div>
+              <h1 class="doc-hero-title">
+                <span>📋</span> Master Document & Template Standar
+              </h1>
+            </div>
+            <div class="doc-hero-actions" style="display:flex; align-items:center; gap:8px;">
+              ${canEdit ? `
+              <button id="doc-btn-add" class="btn btn-primary" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap; border:none;">
+                <span>➕</span>
+                <span>Tambah Dokumen Baru</span>
+              </button>
+              ` : ''}
+              ${hasPermission(currentUser, "export") ? `<button id="doc-btn-excel" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                <span>📥</span>
+                <span>Ekspor Excel</span>
+              </button>` : ''}
+              <button id="doc-btn-refresh" class="btn btn-ghost" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+                <span>🔄</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Metrics -->
+          <div class="doc-stats-grid">
+            <div class="doc-stat-box">
+              <div class="doc-stat-icon">📄</div>
+              <div>
+                <div class="doc-stat-value" id="doc-stat-total">${totalDocs}</div>
+                <div class="doc-stat-label">Total Dokumen</div>
+              </div>
+            </div>
+            <div class="doc-stat-box">
+              <div class="doc-stat-icon">🗂️</div>
+              <div>
+                <div class="doc-stat-value" id="doc-stat-categories">${uniqueCats.length}</div>
+                <div class="doc-stat-label">Kategori Dokumen</div>
+              </div>
+            </div>
+            <div class="doc-stat-box">
+              <div class="doc-stat-icon" style="background:rgba(16,185,129,0.18); color:#34D399;">🌐</div>
+              <div>
+                <div class="doc-stat-value"><span id="doc-stat-linked">${linkedCount}</span> <span style="font-size:0.8rem; font-weight:400; color:#94A3B8;">/ <span id="doc-stat-linked-total">${totalDocs}</span></span></div>
+                <div class="doc-stat-label">Tautan Online</div>
+              </div>
+            </div>
+            <div class="doc-stat-box">
+              <div class="doc-stat-icon" style="background:rgba(168,85,247,0.18); color:#C084FC;">⚡</div>
+              <div>
+                <div class="doc-stat-value">Aktif</div>
+                <div class="doc-stat-label">Status Repositori</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls: Search, View Switch, Category Pills -->
+        <div class="doc-controls-panel">
+          <div class="doc-controls-top">
+            <div class="doc-search-wrapper" style="width:100%;">
+              <span class="doc-search-icon">🔍</span>
+              <input type="text" id="doc-search-input" class="doc-search-input" placeholder="Cari nama dokumen, kategori, atau deskripsi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
+            </div>
+          </div>
+
+          <!-- Category Pills -->
+          <div class="doc-filter-pills" id="doc-filter-pills">
+            ${buildCategoryPillsHTML()}
+          </div>
+        </div>
+
+        <!-- Documents View Container -->
+        <div id="doc-list-view">
+          ${buildDocumentListHTML(filtered)}
+        </div>
+
+        <!-- Pagination Container -->
+        <div id="doc-pagination-container"></div>
+
+      </div>
+    `;
+
+    // Event Listeners Binding
+    renderPagination();
+    bindEvents();
+  }
+
+  // Bind Listeners
+  function bindEvents() {
+    // Top Buttons
+    const btnAdd = container.querySelector('#doc-btn-add');
+    if (btnAdd) btnAdd.onclick = () => openDocumentModal();
+
+    const btnExcel = container.querySelector('#doc-btn-excel');
+    if (btnExcel) btnExcel.onclick = () => exportToExcel();
+
+    const btnRefresh = container.querySelector('#doc-btn-refresh');
+    if (btnRefresh) btnRefresh.onclick = () => loadDocuments({ refreshStats: true });
+
+    // Search Input (debounced)
+    const searchInput = container.querySelector('#doc-search-input');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        searchQuery = e.target.value;
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadDocuments({ refreshStats: false });
+        }, 350);
+      };
+    }
+
+    // Category Pills
+    bindCategoryPills();
+
+    // Initial bind of list events
+    bindListEvents();
+  }
+
   // Initial Load
-  await loadDocuments();
+  await loadDocuments({ refreshStats: true });
 }
 

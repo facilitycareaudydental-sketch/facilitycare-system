@@ -1,7 +1,10 @@
 import { apiFetch, getUser, hasPermission } from '../config.js';
-import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployees, fetchExportRows } from '../utils/dataCache.js';
+import { createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
+import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
+import { formatDateIndo } from '../utils/sorting.js';
 
 // ── INITIAL PRE-SEEDED DATA SP (Sesuai Catatan Operasional FCMS) ────────────
 const INITIAL_SP = [
@@ -46,10 +49,10 @@ const INITIAL_SP = [
   }
 ];
 
-// Helper kalkulasi status & sisa hari masa berlaku SP
+// Helper kalkulasi status & sisa hari masa berlaku SP (Dark Navy Glass high-contrast)
 function getSPStatusMeta(akhirSpDateStr) {
   if (!akhirSpDateStr) {
-    return { status: 'Tidak Ditentukan', label: 'Tidak Ada Tanggal', bg: '#F1F5F9', color: '#64748B', border: '#CBD5E1', icon: '⚪', daysLeft: 0, isExpired: false, isExpiringSoon: false };
+    return { status: 'Tidak Ditentukan', label: 'Tidak Ada Tanggal', bg: 'rgba(148, 163, 184, 0.16)', color: '#CBD5E1', border: 'rgba(148, 163, 184, 0.3)', icon: '⚪', daysLeft: 0, isExpired: false, isExpiringSoon: false };
   }
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -65,9 +68,9 @@ function getSPStatusMeta(akhirSpDateStr) {
       status: 'Selesai',
       label: `Masa Sanksi Selesai (${expiredDaysAgo} hari lalu)`,
       shortLabel: 'Selesai',
-      bg: '#DCFCE7',
-      color: '#15803D',
-      border: '#BBF7D0',
+      bg: 'rgba(16, 185, 129, 0.16)',
+      color: '#6EE7B7',
+      border: 'rgba(52, 211, 153, 0.35)',
       icon: '✅',
       daysLeft,
       isExpired: true,
@@ -78,9 +81,9 @@ function getSPStatusMeta(akhirSpDateStr) {
       status: 'Mendekati Berakhir',
       label: `Segera Berakhir (Sisa ${daysLeft} hari)`,
       shortLabel: `Sisa ${daysLeft} hari`,
-      bg: '#FEF3C7',
-      color: '#B45309',
-      border: '#FDE68A',
+      bg: 'rgba(245, 158, 11, 0.16)',
+      color: '#FCD34D',
+      border: 'rgba(251, 191, 36, 0.35)',
       icon: '⚠️',
       daysLeft,
       isExpired: false,
@@ -91,9 +94,9 @@ function getSPStatusMeta(akhirSpDateStr) {
       status: 'Aktif',
       label: `Aktif Berlaku (Sisa ${daysLeft} hari)`,
       shortLabel: `Aktif (${daysLeft} hari)`,
-      bg: '#FEE2E2',
-      color: '#B91C1C',
-      border: '#FECACA',
+      bg: 'rgba(239, 68, 68, 0.18)',
+      color: '#FCA5A5',
+      border: 'rgba(248, 113, 113, 0.38)',
       icon: '🔴',
       daysLeft,
       isExpired: false,
@@ -102,35 +105,25 @@ function getSPStatusMeta(akhirSpDateStr) {
   }
 }
 
-// Helper badge jenis SP
+// Helper badge jenis SP (Dark Navy Glass high-contrast)
 function getSPTypeBadge(spType = '') {
   const t = (spType || '').toUpperCase().trim();
   if (t === 'SP 3') {
-    return { label: 'SP 3 (Terakhir)', bg: '#7F1D1D', color: '#FFFFFF', border: '#991B1B', icon: '🚨' };
+    return { label: 'SP 3 (Terakhir)', bg: 'rgba(220, 38, 38, 0.25)', color: '#FCA5A5', border: 'rgba(248, 113, 113, 0.45)', icon: '🚨' };
   }
   if (t === 'SP 2') {
-    return { label: 'SP 2', bg: '#FEE2E2', color: '#B91C1C', border: '#FECACA', icon: '🛑' };
+    return { label: 'SP 2', bg: 'rgba(239, 68, 68, 0.18)', color: '#FCA5A5', border: 'rgba(248, 113, 113, 0.38)', icon: '🛑' };
   }
   if (t === 'SP 1') {
-    return { label: 'SP 1', bg: '#FEF3C7', color: '#B45309', border: '#FDE68A', icon: '⚠️' };
+    return { label: 'SP 1', bg: 'rgba(245, 158, 11, 0.18)', color: '#FCD34D', border: 'rgba(251, 191, 36, 0.38)', icon: '⚠️' };
   }
   if (t.includes('TEGURAN')) {
-    return { label: 'Teguran Lisan', bg: '#E0F2FE', color: '#0369A1', border: '#BAE6FD', icon: '💬' };
+    return { label: 'Teguran Lisan', bg: 'rgba(56, 189, 248, 0.18)', color: '#7DD3FC', border: 'rgba(56, 189, 248, 0.38)', icon: '💬' };
   }
-  return { label: spType || 'SP', bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', icon: '📜' };
+  return { label: spType || 'SP', bg: 'rgba(148, 163, 184, 0.16)', color: '#E2E8F0', border: 'rgba(148, 163, 184, 0.32)', icon: '📜' };
 }
 
-// Format tanggal lokal Indonesia
-function formatDateIndo(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
+// Standardized Indonesian date helper imported from ../utils/sorting.js
 
 export async function renderSP(container) {
   const currentUser = getUser();
@@ -145,6 +138,16 @@ export async function renderSP(container) {
   let selectedDivision = 'all';
   let searchQuery = '';
   let viewMode = localStorage.getItem('fcms_sp_view_mode') || 'card';
+  let currentPage = 1;
+  const PAGE_LIMIT = 20;
+  let totalItems = 0;
+  let totalPages = 1;
+  let serverStats = {
+    total: 0, active: 0, expiring: 0, expired: 0,
+    sp1: 0, sp2: 0, sp3: 0, teguran: 0, uniqueEmployees: 0
+  };
+  let searchDebounce = null;
+  let hasRendered = false;
 
   // Inject Styles
   const styleId = 'fcms-sp-page-styles';
@@ -163,11 +166,12 @@ export async function renderSP(container) {
         font-family: inherit;
       }
       .sp-hero-card {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 18px;
         padding: 28px 32px;
         color: #FFFFFF;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
         margin-bottom: 24px;
         position: relative;
         overflow: hidden;
@@ -179,7 +183,7 @@ export async function renderSP(container) {
         top: -50px;
         width: 220px;
         height: 220px;
-        background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
         border-radius: 50%;
         pointer-events: none;
       }
@@ -259,7 +263,7 @@ export async function renderSP(container) {
         font-weight: 600;
       }
       .sp-controls-panel {
-        background: #FFFFFF;
+        background: #131F36;
         border: 1px solid #E2E8F0;
         border-radius: 16px;
         padding: 18px 20px;
@@ -296,29 +300,29 @@ export async function renderSP(container) {
         border: 1.5px solid #CBD5E1;
         border-radius: 10px;
         font-size: 0.9rem;
-        background: #F8FAFC;
+        background: #0E182B;
         transition: all 0.2s ease;
       }
       .sp-search-input:focus {
         outline: none;
         border-color: #2563EB;
-        background: #FFFFFF;
+        background: #131F36;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
       .sp-filter-select {
         padding: 9px 14px;
-        border: 1.5px solid #CBD5E1;
+        border: 1.5px solid #223456;
         border-radius: 10px;
         font-size: 0.88rem;
-        background: #F8FAFC;
-        color: #334155;
+        background: #0E182B;
+        color: #F8FAFC;
         font-weight: 500;
         cursor: pointer;
       }
       .sp-filter-select:focus {
         outline: none;
-        border-color: #2563EB;
-        background: #FFFFFF;
+        border-color: #3B82F6;
+        background: #131F36;
       }
       .sp-filter-pills {
         display: flex;
@@ -327,9 +331,9 @@ export async function renderSP(container) {
         align-items: center;
       }
       .sp-pill {
-        border: 1px solid #E2E8F0;
-        background: #F8FAFC;
-        color: #475569;
+        border: 1px solid #223456;
+        background: #0E182B;
+        color: #CBD5E1;
         font-size: 0.82rem;
         font-weight: 600;
         padding: 6px 14px;
@@ -341,8 +345,9 @@ export async function renderSP(container) {
         gap: 6px;
       }
       .sp-pill:hover {
-        background: #EEF2F6;
-        border-color: #CBD5E1;
+        background: #22314A;
+        color: #F8FAFC;
+        border-color: #475569;
       }
       .sp-pill.active {
         background: #2563EB;
@@ -351,7 +356,8 @@ export async function renderSP(container) {
         box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
       }
       .sp-pill-count {
-        background: rgba(0, 0, 0, 0.08);
+        background: rgba(255, 255, 255, 0.1);
+        color: #E2E8F0;
         padding: 1px 7px;
         border-radius: 12px;
         font-size: 0.75rem;
@@ -364,10 +370,10 @@ export async function renderSP(container) {
       .sp-view-toggle {
         display: inline-flex;
         align-items: center;
-        background: #F1F5F9;
+        background: #0E182B;
         padding: 3px;
         border-radius: 10px;
-        border: 1px solid #CBD5E1;
+        border: 1px solid #223456;
         gap: 3px;
         flex-shrink: 0;
       }
@@ -381,7 +387,7 @@ export async function renderSP(container) {
         font-weight: 600;
         border: none;
         background: transparent;
-        color: #64748B;
+        color: #CBD5E1;
         cursor: pointer;
         transition: all 0.15s ease;
         height: 34px;
@@ -389,21 +395,21 @@ export async function renderSP(container) {
         user-select: none;
       }
       .sp-view-btn:hover {
-        color: #0F172A;
-        background: rgba(255, 255, 255, 0.5);
+        color: #F8FAFC;
+        background: #22314A;
       }
       .sp-view-btn.active {
-        background: #FFFFFF;
-        color: #2563EB;
+        background: #131F36;
+        color: #60A5FA;
         font-weight: 700;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
       }
       /* Modern Table View */
       .sp-table-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         overflow: hidden;
       }
       .sp-table-responsive {
@@ -418,25 +424,25 @@ export async function renderSP(container) {
         min-width: 900px;
       }
       .sp-table th {
-        background: #F8FAFC;
+        background: #0E182B;
         padding: 13px 16px;
         font-size: 0.76rem;
         font-weight: 700;
-        color: #475569;
+        color: #CBD5E1;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        border-bottom: 1.5px solid #E2E8F0;
+        border-bottom: 1.5px solid #223456;
         white-space: nowrap;
       }
       .sp-table td {
         padding: 13px 16px;
         font-size: 0.88rem;
-        color: #1E293B;
-        border-bottom: 1px solid #F1F5F9;
+        color: #F8FAFC;
+        border-bottom: 1px solid #223456;
         vertical-align: middle;
       }
       .sp-table tbody tr:hover td {
-        background: #F8FAFC;
+        background: #22314A;
       }
       .sp-table tbody tr:last-child td {
         border-bottom: none;
@@ -448,11 +454,11 @@ export async function renderSP(container) {
         gap: 20px;
       }
       .sp-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 16px;
         padding: 22px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -461,8 +467,8 @@ export async function renderSP(container) {
       }
       .sp-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.1);
-        border-color: #CBD5E1;
+        box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.35);
+        border-color: #475569;
       }
       .sp-status-badge {
         display: inline-flex;
@@ -470,7 +476,7 @@ export async function renderSP(container) {
         gap: 6px;
         padding: 4px 10px;
         border-radius: 20px;
-        font-size: 0.74rem;
+        font-size: 0.76rem;
         font-weight: 700;
         letter-spacing: 0.02em;
       }
@@ -480,15 +486,15 @@ export async function renderSP(container) {
         gap: 4px;
         padding: 4px 9px;
         border-radius: 6px;
-        font-size: 0.74rem;
+        font-size: 0.76rem;
         font-weight: 700;
       }
       .sp-avatar-box {
         width: 42px;
         height: 42px;
         border-radius: 10px;
-        background: #EFF6FF;
-        color: #2563EB;
+        background: rgba(59, 130, 246, 0.2);
+        color: #93C5FD;
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -497,9 +503,9 @@ export async function renderSP(container) {
         flex-shrink: 0;
       }
       .sp-icon-btn {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        color: #64748B;
+        background: #0E182B;
+        border: 1px solid #223456;
+        color: #CBD5E1;
         width: 32px;
         height: 32px;
         border-radius: 8px;
@@ -510,9 +516,9 @@ export async function renderSP(container) {
         transition: all 0.15s ease;
       }
       .sp-icon-btn:hover {
-        background: #EDF2F7;
-        color: #1E293B;
-        border-color: #CBD5E1;
+        background: #22314A;
+        color: #F8FAFC;
+        border-color: #475569;
       }
       .sp-icon-btn.delete:hover {
         background: #FEE2E2;
@@ -522,7 +528,7 @@ export async function renderSP(container) {
       .sp-empty-state {
         text-align: center;
         padding: 60px 20px;
-        background: #FFFFFF;
+        background: #131F36;
         border-radius: 16px;
         border: 1px dashed #CBD5E1;
       }
@@ -605,7 +611,7 @@ export async function renderSP(container) {
           font-size: 1.15rem !important;
         }
         .sp-stat-label {
-          font-size: 0.68rem !important;
+          font-size: 0.76rem !important;
         }
         .sp-controls-panel {
           padding: 14px 12px !important;
@@ -691,106 +697,97 @@ export async function renderSP(container) {
     `;
   }
 
-  // Load Data
-  async function loadData() {
-    try {
-      const [branchRes, empRes] = await Promise.all([
-        getCachedBranches(),
-        getCachedEmployeeNames()
-      ]);
-      branchOptions = branchRes || [];
-      employeeOptions = empRes || [];
+  function getActiveFilters() {
+    const params = { sort: 'date_desc' };
+    if (searchQuery && searchQuery.trim()) params.search = searchQuery.trim();
+    if (selectedBranch && selectedBranch !== 'all') params.branch_id = selectedBranch;
+    if (selectedDivision && selectedDivision !== 'all') params.division = selectedDivision;
+    if (selectedFilter && selectedFilter !== 'all') params.filter = selectedFilter;
+    return params;
+  }
 
-      const res = await apiFetch('/api/sp?limit=1000');
-      if (res.ok && res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
-        spList = res.data.data;
-        localStorage.setItem('fcms_sp_data_cache', JSON.stringify(spList));
-      } else {
-        const cached = localStorage.getItem('fcms_sp_data_cache');
-        if (cached) {
-          spList = JSON.parse(cached);
-        } else {
-          spList = [...INITIAL_SP];
-          localStorage.setItem('fcms_sp_data_cache', JSON.stringify(spList));
+  function updateStatsUI() {
+    const set = (sel, val) => {
+      const el = container.querySelector(sel);
+      if (el) el.textContent = String(val ?? 0);
+    };
+    set('#sp-stat-active', serverStats.active);
+    set('#sp-stat-expiring', serverStats.expiring);
+    set('#sp-stat-expired', serverStats.expired);
+    set('#sp-stat-unique', serverStats.uniqueEmployees);
+    set('#sp-pill-count-all', serverStats.total);
+    set('#sp-pill-count-active', serverStats.active);
+    set('#sp-pill-count-expiring', serverStats.expiring);
+    set('#sp-pill-count-expired', serverStats.expired);
+    set('#sp-pill-count-sp1', serverStats.sp1);
+    set('#sp-pill-count-sp2', serverStats.sp2);
+    set('#sp-pill-count-sp3', serverStats.sp3);
+  }
+
+  // Load Data
+  async function loadData({ refreshStats = true } = {}) {
+    try {
+      if (branchOptions.length === 0 || employeeOptions.length === 0) {
+        const [branchRes, empRes] = await Promise.all([
+          getCachedBranches(),
+          getCachedEmployees()
+        ]);
+        branchOptions = branchRes || [];
+        employeeOptions = empRes || [];
+      }
+
+      const filters = getActiveFilters();
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(PAGE_LIMIT),
+        ...filters
+      });
+      if (refreshStats) params.set('include_stats', '1');
+
+      const res = await apiFetch('/api/sp?' + params.toString());
+      if (res.ok && res.data?.data && Array.isArray(res.data.data)) {
+        const pg = res.data.pagination || {};
+        totalItems = Number(pg.total ?? res.data.data.length);
+        totalPages = Math.max(1, Number(pg.pages || pg.totalPages || Math.ceil(totalItems / PAGE_LIMIT) || 1));
+        if (res.data.data.length === 0 && currentPage > totalPages) {
+          currentPage = totalPages;
+          return loadData({ refreshStats });
         }
+        spList = res.data.data;
+        if (res.data.stats) {
+          serverStats = { ...serverStats, ...res.data.stats };
+        }
+      } else {
+        spList = [];
+        totalItems = 0;
+        totalPages = 1;
+        if (!res.ok) toastError(res.data?.error || 'Gagal memuat data SP dari server');
       }
     } catch (err) {
-      console.warn('Fallback loading SP data from cache/seed:', err);
-      const cached = localStorage.getItem('fcms_sp_data_cache');
-      spList = cached ? JSON.parse(cached) : [...INITIAL_SP];
+      console.warn('Error loading SP data:', err);
+      spList = [];
+      totalItems = 0;
+      totalPages = 1;
+      toastError('Gagal memuat data SP: ' + err.message);
     }
-    renderUI();
+
+    if (!hasRendered) {
+      hasRendered = true;
+      renderUI();
+    } else {
+      if (refreshStats) updateStatsUI();
+      renderListContent();
+    }
   }
 
-  // Filter & Search Logic
+  // Server-filtered page data
   function getFilteredSP() {
-    return spList.filter(item => {
-      // Search
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch = !q ||
-        (item.employee_name || '').toLowerCase().includes(q) ||
-        (item.branch_name || '').toLowerCase().includes(q) ||
-        (item.division || '').toLowerCase().includes(q) ||
-        (item.sp_type || '').toLowerCase().includes(q);
-
-      // Branch filter
-      const matchBranch = selectedBranch === 'all' || String(item.branch_id) === String(selectedBranch);
-
-      // Division filter
-      const matchDiv = selectedDivision === 'all' || item.division === selectedDivision;
-
-      // Status/Level Filter
-      const meta = getSPStatusMeta(item.akhir_sp);
-      let matchFilter = true;
-      if (selectedFilter === 'active') matchFilter = !meta.isExpired;
-      else if (selectedFilter === 'expiring') matchFilter = meta.isExpiringSoon;
-      else if (selectedFilter === 'expired') matchFilter = meta.isExpired;
-      else if (selectedFilter === 'sp1') matchFilter = (item.sp_type || '').toUpperCase() === 'SP 1';
-      else if (selectedFilter === 'sp2') matchFilter = (item.sp_type || '').toUpperCase() === 'SP 2';
-      else if (selectedFilter === 'sp3') matchFilter = (item.sp_type || '').toUpperCase() === 'SP 3';
-      else if (selectedFilter === 'teguran') matchFilter = (item.sp_type || '').toUpperCase().includes('TEGURAN');
-
-      return matchSearch && matchBranch && matchDiv && matchFilter;
-    });
+    return spList;
   }
 
-  // Calculate Metrics
+  // Global metrics from backend stats
   function getMetrics() {
-    let activeCount = 0;
-    let expiringCount = 0;
-    let expiredCount = 0;
-    let sp1Count = 0;
-    let sp2Count = 0;
-    let sp3Count = 0;
-    let teguranCount = 0;
-    const employeeSet = new Set();
-
-    spList.forEach(item => {
-      if (item.employee_name) employeeSet.add(item.employee_name.toLowerCase().trim());
-      const meta = getSPStatusMeta(item.akhir_sp);
-      if (meta.isExpired) expiredCount++;
-      else activeCount++;
-
-      if (meta.isExpiringSoon) expiringCount++;
-
-      const t = (item.sp_type || '').toUpperCase();
-      if (t === 'SP 1') sp1Count++;
-      else if (t === 'SP 2') sp2Count++;
-      else if (t === 'SP 3') sp3Count++;
-      else if (t.includes('TEGURAN')) teguranCount++;
-    });
-
-    return {
-      total: spList.length,
-      active: activeCount,
-      expiring: expiringCount,
-      expired: expiredCount,
-      sp1: sp1Count,
-      sp2: sp2Count,
-      sp3: sp3Count,
-      teguran: teguranCount,
-      uniqueEmployees: employeeSet.size
-    };
+    return serverStats;
   }
 
   // Modal Terbitkan / Edit SP
@@ -820,18 +817,14 @@ export async function renderSP(container) {
       <div style="display:flex; flex-direction:column; gap:14px;">
         <div class="sp-form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Nama Karyawan <span style="color:#DC2626;">*</span>
             </label>
-            <input type="text" id="sp-modal-emp" list="sp-emp-list" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-              placeholder="Pilih atau ketik nama..." value="${item?.employee_name ? String(item.employee_name).replace(/"/g, '&quot;') : ''}" required />
-            <datalist id="sp-emp-list">
-              ${employeeOptions.map(e => `<option value="${e.label}">${e.label}</option>`).join('')}
-            </datalist>
+            <div id="sp-modal-emp-mount"></div>
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Divisi <span style="color:#DC2626;">*</span>
             </label>
             <select id="sp-modal-div" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -843,7 +836,7 @@ export async function renderSP(container) {
 
         <div class="sp-form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Cabang Penempatan <span style="color:#DC2626;">*</span>
             </label>
             <select id="sp-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -853,7 +846,7 @@ export async function renderSP(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tingkat / Jenis SP <span style="color:#DC2626;">*</span>
             </label>
             <select id="sp-modal-type" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -867,7 +860,7 @@ export async function renderSP(container) {
 
         <div class="sp-form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Terbit SP <span style="color:#DC2626;">*</span>
             </label>
             <input type="date" id="sp-modal-tanggal" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -875,7 +868,7 @@ export async function renderSP(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Akhir Masa Berlaku SP <span style="color:#DC2626;">*</span>
             </label>
             <input type="date" id="sp-modal-akhir" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -884,19 +877,18 @@ export async function renderSP(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Link Berkas / Foto BAP / Scan Surat SP
           </label>
           <input type="url" id="sp-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="https://drive.google.com/..." value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
+            value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Kronologi Pelanggaran / Catatan Pembinaan
           </label>
-          <textarea id="sp-modal-notes" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
-            placeholder="Tuliskan ringkasan pelanggaran disiplin kerja yang terjadi...">${item?.notes || item?.description || ''}</textarea>
+          <textarea id="sp-modal-notes" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">${item?.notes || item?.description || ''}</textarea>
         </div>
       </div>
     `;
@@ -912,6 +904,20 @@ export async function renderSP(container) {
       }
     });
 
+    const empCombobox = mountEmployeeCombobox(content.querySelector('#sp-modal-emp-mount'), {
+      mode: 'single',
+      inputId: 'sp-modal-emp',
+      inputName: 'employee_name',
+      placeholder: '',
+      required: true,
+      allowManual: true,
+      hasEmployeeIdSchema: true,
+      manualBadgeText: 'Belum terhubung ke Master Karyawan',
+      employees: employeeOptions,
+      initialEmployeeId: item?.employee_id || null,
+      initialEmployeeName: item?.employee_name || '',
+    });
+
     createModal({
       title: isEdit ? '✏️ Edit Data Surat Peringatan (SP)' : '➕ Terbitkan Surat Peringatan (SP) Baru',
       content,
@@ -919,7 +925,9 @@ export async function renderSP(container) {
       confirmText: isEdit ? 'Simpan Perubahan' : 'Terbitkan SP',
       confirmClass: 'btn-primary',
       onConfirm: async (_, close) => {
-        const employee_name = (content.querySelector('#sp-modal-emp').value || '').trim();
+        const empSelection = empCombobox.getValue();
+        const employee_name = (empSelection.employee_name || '').trim();
+        const employee_id = empSelection.employee_id ?? null;
         const division = content.querySelector('#sp-modal-div').value;
         const branch_id = content.querySelector('#sp-modal-branch').value;
         const sp_type = content.querySelector('#sp-modal-type').value;
@@ -930,6 +938,7 @@ export async function renderSP(container) {
 
         if (!employee_name) {
           toastError('Nama Karyawan wajib diisi');
+          empCombobox.inputEl?.focus();
           return;
         }
         if (!branch_id) {
@@ -946,6 +955,7 @@ export async function renderSP(container) {
 
         const payload = {
           employee_name,
+          employee_id,
           division,
           branch_id: Number(branch_id),
           branch_name,
@@ -954,7 +964,8 @@ export async function renderSP(container) {
           akhir_sp,
           document_link,
           notes,
-          status: getSPStatusMeta(akhir_sp).status
+          status: getSPStatusMeta(akhir_sp).status,
+          ...(isEdit ? { row_version: item?.row_version !== undefined && item?.row_version !== null ? Number(item.row_version) : 1 } : {})
         };
 
         try {
@@ -963,22 +974,32 @@ export async function renderSP(container) {
               method: 'PUT',
               body: JSON.stringify(payload)
             });
-            const idx = spList.findIndex(s => s.id === item.id);
-            if (idx !== -1) spList[idx] = { ...spList[idx], ...payload };
+            if (!res.ok) {
+              if (res.status === 409) {
+                toastError('Konflik OCC: Data telah diubah oleh pengguna lain. Silakan muat ulang halaman.');
+                close();
+                await loadData({ refreshStats: true });
+                return;
+              }
+              toastError(res.data?.error || 'Gagal memperbarui data SP');
+              return;
+            }
             toastSuccess('Data SP berhasil diperbarui');
           } else {
             const res = await apiFetch('/api/sp', {
               method: 'POST',
               body: JSON.stringify(payload)
             });
-            const newId = res.ok && res.data?.id ? res.data.id : Date.now();
-            spList.unshift({ id: newId, ...payload });
+            if (!res.ok) {
+              toastError(res.data?.error || 'Gagal menerbitkan data SP');
+              return;
+            }
+            currentPage = 1;
             toastSuccess('Surat Peringatan baru berhasil diterbitkan');
           }
 
-          localStorage.setItem('fcms_sp_data_cache', JSON.stringify(spList));
           close();
-          renderUI();
+          await loadData({ refreshStats: true });
         } catch (err) {
           console.error('Error saving SP:', err);
           toastError('Gagal menyimpan SP: ' + err.message);
@@ -989,18 +1010,24 @@ export async function renderSP(container) {
 
   // Delete SP
   function deleteSP(item) {
+    if (!canDelete) {
+      toastError('Anda tidak memiliki izin untuk menghapus data SP.');
+      return;
+    }
     confirmDialog(
       `Hapus data Surat Peringatan untuk karyawan <strong>${item.employee_name}</strong> (${item.sp_type})?`,
       async () => {
         try {
-          await apiFetch(`/api/sp/${item.id}`, { method: 'DELETE' });
+          const res = await apiFetch(`/api/sp/${item.id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            toastError(res.data?.error || 'Gagal menghapus data SP dari server');
+            return;
+          }
+          toastSuccess(`Data SP ${item.employee_name} berhasil dihapus`);
+          await loadData({ refreshStats: true });
         } catch (e) {
-          console.warn('API delete error fallback to local:', e);
+          toastError('Gagal menghapus data SP: ' + e.message);
         }
-        spList = spList.filter(s => s.id !== item.id);
-        localStorage.setItem('fcms_sp_data_cache', JSON.stringify(spList));
-        toastSuccess(`Data SP ${item.employee_name} berhasil dihapus`);
-        renderUI();
       },
       'Hapus Data SP'
     );
@@ -1014,32 +1041,32 @@ export async function renderSP(container) {
     const content = document.createElement('div');
     content.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:16px;">
-        <div style="display:flex; align-items:center; gap:14px; padding-bottom:14px; border-bottom:1px solid #E2E8F0;">
+        <div style="display:flex; align-items:center; gap:14px; padding-bottom:14px; border-bottom:1px solid #223456;">
           <div class="sp-avatar-box" style="width:54px; height:54px; font-size:1.2rem;">
             ${item.employee_name.slice(0, 2).toUpperCase()}
           </div>
           <div>
-            <h3 style="margin:0 0 4px 0; font-size:1.15rem; font-weight:700; color:#0F172A;">
+            <h3 style="margin:0 0 4px 0; font-size:1.15rem; font-weight:700; color:#F8FAFC;">
               ${item.employee_name}
             </h3>
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="badge" style="background:#EFF6FF; color:#1D4ED8; font-weight:700;">${item.division || 'FACILITY CARE'}</span>
-              <span style="color:#64748B; font-size:0.85rem;">📍 ${item.branch_name || 'Cabang'}</span>
+              <span class="badge" style="background:rgba(59,130,246,0.18); color:#93C5FD; border:1px solid rgba(96,165,250,0.35); font-weight:700;">${item.division || 'FACILITY CARE'}</span>
+              <span style="color:#CBD5E1; font-size:0.85rem;">📍 ${item.branch_name || 'Cabang'}</span>
             </div>
           </div>
         </div>
 
         <div class="sp-detail-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
-            <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Tingkat Sanksi</div>
+          <div style="background:#0E182B; border:1px solid #223456; border-radius:10px; padding:12px;">
+            <div style="font-size:0.75rem; color:#94A3B8; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Tingkat Sanksi</div>
             <span class="sp-type-badge" style="background:${typeMeta.bg}; color:${typeMeta.color}; border:1px solid ${typeMeta.border}; font-size:0.85rem;">
               <span>${typeMeta.icon}</span>
               <span>${typeMeta.label}</span>
             </span>
           </div>
 
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
-            <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Status Masa Berlaku</div>
+          <div style="background:#0E182B; border:1px solid #223456; border-radius:10px; padding:12px;">
+            <div style="font-size:0.75rem; color:#94A3B8; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Status Masa Berlaku</div>
             <span class="sp-status-badge" style="background:${meta.bg}; color:${meta.color}; border:1px solid ${meta.border}; font-size:0.85rem;">
               <span>${meta.icon}</span>
               <span>${meta.label}</span>
@@ -1048,20 +1075,20 @@ export async function renderSP(container) {
         </div>
 
         <div class="sp-detail-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
-            <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:2px;">Tanggal Terbit SP</div>
-            <div style="font-size:0.95rem; font-weight:700; color:#1E293B;">${formatDateIndo(item.tanggal)}</div>
+          <div style="background:#0E182B; border:1px solid #223456; border-radius:10px; padding:12px;">
+            <div style="font-size:0.75rem; color:#94A3B8; text-transform:uppercase; font-weight:600; margin-bottom:2px;">Tanggal Terbit SP</div>
+            <div style="font-size:0.95rem; font-weight:700; color:#F8FAFC;">${formatDateIndo(item.tanggal)}</div>
           </div>
 
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px;">
-            <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:600; margin-bottom:2px;">Akhir Masa Berlaku</div>
-            <div style="font-size:0.95rem; font-weight:700; color:#1E293B;">${formatDateIndo(item.akhir_sp)}</div>
+          <div style="background:#0E182B; border:1px solid #223456; border-radius:10px; padding:12px;">
+            <div style="font-size:0.75rem; color:#94A3B8; text-transform:uppercase; font-weight:600; margin-bottom:2px;">Akhir Masa Berlaku</div>
+            <div style="font-size:0.95rem; font-weight:700; color:#F8FAFC;">${formatDateIndo(item.akhir_sp)}</div>
           </div>
         </div>
 
         ${item.notes || item.description ? `
-          <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px;">
-            <div style="font-size:0.78rem; font-weight:700; color:#92400E; margin-bottom:4px;">📝 Catatan Pelanggaran / Pembinaan:</div>
+          <div style="background:rgba(245,158,11,0.15); border:1px solid rgba(251,191,36,0.32); border-radius:10px; padding:14px;">
+            <div style="font-size:0.78rem; font-weight:700; color:#FCD34D; margin-bottom:4px;">📝 Catatan Pelanggaran / Pembinaan:</div>
             <div style="font-size:0.88rem; color:#78350F; line-height:1.5;">${item.notes || item.description}</div>
           </div>
         ` : ''}
@@ -1096,7 +1123,8 @@ export async function renderSP(container) {
     }
     try {
       const { downloadExcel } = await import('../utils/excel.js');
-      const exportData = spList.map((s, idx) => {
+      const rows = await fetchExportRows('/api/sp/export', getActiveFilters());
+      const exportData = rows.map((s, idx) => {
         const meta = getSPStatusMeta(s.akhir_sp);
         return {
           'No': idx + 1,
@@ -1113,157 +1141,22 @@ export async function renderSP(container) {
         };
       });
       downloadExcel(exportData, `Data_Surat_Peringatan_FCMS_${new Date().toISOString().slice(0, 10)}`);
-      toastSuccess('Berhasil mengunduh data SP ke format Excel.');
+      toastSuccess(`Berhasil mengunduh ${rows.length} data SP ke format Excel.`);
     } catch (err) {
       toastError('Gagal ekspor: ' + err.message);
     }
   }
 
-  // Render UI Function
-  function renderUI() {
-    const filtered = getFilteredSP();
-    const metrics = getMetrics();
 
-    container.innerHTML = `
-      <div class="sp-page-container">
-        
-        <!-- Hero Header -->
-        <div class="sp-hero-card">
-          <div class="sp-hero-header">
-            <div>
-              <h1 class="sp-hero-title">
-                <span>📜</span> Monitoring Data SP (Surat Peringatan)
-              </h1>
-            </div>
-            <div class="sp-hero-actions" style="display:flex; align-items:center; gap:8px;">
-              ${canAdd ? `
-                <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
-                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  <span>Terbitkan SP</span>
-                </button>
-              ` : ''}
-              
-              ${hasPermission(currentUser, "export") ? `<button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
-                <span>📥</span>
-                <span>Ekspor Excel</span>
-              </button>` : ''}
-
-              <button id="sp-btn-refresh" class="btn btn-ghost sp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Quick Metrics -->
-          <div class="sp-stats-grid">
-            <div class="sp-stat-box">
-              <div class="sp-stat-icon" style="background:rgba(239,68,68,0.2); color:#F87171;">🔴</div>
-              <div>
-                <div class="sp-stat-value">${metrics.active}</div>
-                <div class="sp-stat-label">SP Aktif Berlaku</div>
-              </div>
-            </div>
-
-            <div class="sp-stat-box">
-              <div class="sp-stat-icon" style="background:rgba(245,158,11,0.2); color:#FBBF24;">⚠️</div>
-              <div>
-                <div class="sp-stat-value">${metrics.expiring}</div>
-                <div class="sp-stat-label">Segera Berakhir (&lt;30 Hari)</div>
-              </div>
-            </div>
-
-            <div class="sp-stat-box">
-              <div class="sp-stat-icon" style="background:rgba(16,185,129,0.2); color:#34D399;">✅</div>
-              <div>
-                <div class="sp-stat-value">${metrics.expired}</div>
-                <div class="sp-stat-label">Masa Sanksi Selesai</div>
-              </div>
-            </div>
-
-            <div class="sp-stat-box">
-              <div class="sp-stat-icon" style="background:rgba(59,130,246,0.2); color:#60A5FA;">👥</div>
-              <div>
-                <div class="sp-stat-value">${metrics.uniqueEmployees} <span style="font-size:0.8rem; font-weight:400; color:#94A3B8;">karyawan</span></div>
-                <div class="sp-stat-label">Total Terkena Sanksi</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Controls Panel -->
-        <div class="sp-controls-panel">
-          <div class="sp-controls-top">
-            <div class="sp-search-wrapper">
-              <span class="sp-search-icon">🔍</span>
-              <input type="text" id="sp-search-input" class="sp-search-input" placeholder="Cari nama karyawan, cabang, atau divisi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
-            </div>
-
-            <!-- Branch Dropdown -->
-            <select id="sp-filter-branch" class="sp-filter-select">
-              <option value="all">Semua Cabang (${branchOptions.length})</option>
-              ${branchOptions.map(b => `<option value="${b.value}" ${String(selectedBranch) === String(b.value) ? 'selected' : ''}>${b.label}</option>`).join('')}
-            </select>
-
-            <!-- Division Dropdown -->
-            <select id="sp-filter-division" class="sp-filter-select">
-              <option value="all" ${selectedDivision === 'all' ? 'selected' : ''}>Semua Divisi</option>
-              <option value="FACILITY CARE" ${selectedDivision === 'FACILITY CARE' ? 'selected' : ''}>FACILITY CARE</option>
-              <option value="SECURITY" ${selectedDivision === 'SECURITY' ? 'selected' : ''}>SECURITY</option>
-            </select>
-
-            <div class="sp-view-toggle">
-              <button type="button" class="sp-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card" title="Tampilan Kartu">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                <span>Kartu</span>
-              </button>
-              <button type="button" class="sp-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table" title="Tampilan Tabel">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                <span>Tabel</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Filter Pills -->
-          <div class="sp-filter-pills">
-            <button class="sp-pill ${selectedFilter === 'all' ? 'active' : ''}" data-filter="all">
-              <span>Semua SP</span>
-              <span class="sp-pill-count">${metrics.total}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'active' ? 'active' : ''}" data-filter="active">
-              <span>🔴 SP Aktif</span>
-              <span class="sp-pill-count">${metrics.active}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'expiring' ? 'active' : ''}" data-filter="expiring">
-              <span>⚠️ &lt;30 Hari</span>
-              <span class="sp-pill-count">${metrics.expiring}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'expired' ? 'active' : ''}" data-filter="expired">
-              <span>✅ Selesai</span>
-              <span class="sp-pill-count">${metrics.expired}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'sp1' ? 'active' : ''}" data-filter="sp1">
-              <span>SP 1</span>
-              <span class="sp-pill-count">${metrics.sp1}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'sp2' ? 'active' : ''}" data-filter="sp2">
-              <span>SP 2</span>
-              <span class="sp-pill-count">${metrics.sp2}</span>
-            </button>
-            <button class="sp-pill ${selectedFilter === 'sp3' ? 'active' : ''}" data-filter="sp3">
-              <span>SP 3</span>
-              <span class="sp-pill-count">${metrics.sp3}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Content Area -->
-        <div id="sp-list-container">
+  // Render only the dynamic list content HTML (Card / Table / Empty State)
+  function buildSPListHTML(filtered) {
+    return `
           ${filtered.length === 0 ? `
             <div class="sp-empty-state">
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
-              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Data SP Ditemukan</h3>
-              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
-              <button id="sp-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
+              <h3 style="font-size:1.2rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak Ada Data SP Ditemukan</h3>
+              <p style="color:#94A3B8; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
+              <button id="sp-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #223456; color:#CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
             </div>
@@ -1291,20 +1184,20 @@ export async function renderSP(container) {
                       const typeMeta = getSPTypeBadge(s.sp_type);
                       return `
                         <tr data-id="${s.id}">
-                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${idx + 1}</td>
+                          <td style="text-align:center; color:#94A3B8; font-weight:600; font-size:0.8rem;">${((currentPage - 1) * PAGE_LIMIT) + idx + 1}</td>
                           <td>
                             <div style="display:flex; align-items:center; gap:10px;">
                               <div class="sp-avatar-box" style="width:34px; height:34px; font-size:0.78rem; border-radius:8px;">
                                 ${(s.employee_name || 'SP').slice(0, 2).toUpperCase()}
                               </div>
-                              <div style="font-weight:700; color:#0F172A; white-space:nowrap;">
+                              <div style="font-weight:700; color:#F8FAFC; white-space:nowrap;">
                                 ${s.employee_name}
                               </div>
                             </div>
                           </td>
                           <td style="white-space:nowrap;">
-                            <div style="font-weight:600; color:#334155; font-size:0.84rem;">📍 ${s.branch_name || 'Cabang'}</div>
-                            <div style="font-size:0.74rem; color:#2563EB; font-weight:600; margin-top:2px;">${s.division || 'FACILITY CARE'}</div>
+                            <div style="font-weight:600; color:#E2E8F0; font-size:0.84rem;">📍 ${s.branch_name || 'Cabang'}</div>
+                            <div style="font-size: 0.76rem; color:#93C5FD; font-weight:600; margin-top:2px;">${s.division || 'FACILITY CARE'}</div>
                           </td>
                           <td style="text-align:center; white-space:nowrap;">
                             <span class="sp-type-badge" style="background:${typeMeta.bg}; color:${typeMeta.color}; border:1px solid ${typeMeta.border};">
@@ -1312,10 +1205,10 @@ export async function renderSP(container) {
                               <span>${typeMeta.label}</span>
                             </span>
                           </td>
-                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                          <td style="white-space:nowrap; font-weight:600; color:#F8FAFC;">
                             ${formatDateIndo(s.tanggal)}
                           </td>
-                          <td style="white-space:nowrap; font-weight:700; color:#0F172A;">
+                          <td style="white-space:nowrap; font-weight:700; color:#F8FAFC;">
                             ${formatDateIndo(s.akhir_sp)}
                           </td>
                           <td style="text-align:center; white-space:nowrap;">
@@ -1325,10 +1218,10 @@ export async function renderSP(container) {
                             </span>
                           </td>
                           <td style="max-width:240px;">
-                            <div style="font-size:0.82rem; color:#64748B; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;" title="${String(s.notes || s.description || '').replace(/"/g, '&quot;')}">
+                            <div style="font-size:0.82rem; color:#CBD5E1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;" title="${String(s.notes || s.description || '').replace(/"/g, '&quot;')}">
                               ${s.notes || s.description || 'Pencatatan sanksi peringatan disiplin operasional.'}
                             </div>
-                            <button class="btn btn-sm btn-ghost sp-detail-btn" style="border:1px solid #CBD5E1; border-radius:6px; font-weight:600; font-size:0.74rem; padding:2px 8px;" data-id="${s.id}">
+                            <button class="btn btn-sm btn-ghost sp-detail-btn" style="border:1px solid #223456; color:#93C5FD; border-radius:6px; font-weight:600; font-size: 0.76rem; padding:2px 8px;" data-id="${s.id}">
                               👁️ Rincian BAP
                             </button>
                           </td>
@@ -1383,33 +1276,33 @@ export async function renderSP(container) {
                           ${s.employee_name.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <h3 style="margin:0 0 3px 0; font-size:1.1rem; font-weight:700; color:#0F172A;">
+                          <h3 style="margin:0 0 3px 0; font-size:1.1rem; font-weight:700; color:#F8FAFC;">
                             ${s.employee_name}
                           </h3>
-                          <div style="font-size:0.8rem; color:#64748B;">
-                            📍 ${s.branch_name || 'Cabang'} • <span style="color:#2563EB; font-weight:600;">${s.division || 'FC'}</span>
+                          <div style="font-size:0.8rem; color:#CBD5E1;">
+                            📍 ${s.branch_name || 'Cabang'} • <span style="color:#93C5FD; font-weight:600;">${s.division || 'FC'}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div style="background:#F8FAFC; border-radius:10px; padding:10px 12px; margin-bottom:14px; font-size:0.82rem; display:flex; justify-content:space-between;">
+                      <div style="background:#0E182B; border:1px solid #223456; border-radius:10px; padding:10px 12px; margin-bottom:14px; font-size:0.82rem; display:flex; justify-content:space-between;">
                         <div>
-                          <div style="color:#64748B; font-size:0.72rem; text-transform:uppercase; font-weight:600;">Tanggal Terbit</div>
-                          <div style="font-weight:700; color:#1E293B;">${formatDateIndo(s.tanggal)}</div>
+                          <div style="color:#94A3B8; font-size: 0.76rem; text-transform:uppercase; font-weight:600;">Tanggal Terbit</div>
+                          <div style="font-weight:700; color:#F8FAFC;">${formatDateIndo(s.tanggal)}</div>
                         </div>
                         <div style="text-align:right;">
-                          <div style="color:#64748B; font-size:0.72rem; text-transform:uppercase; font-weight:600;">Akhir SP</div>
-                          <div style="font-weight:700; color:#0F172A;">${formatDateIndo(s.akhir_sp)}</div>
+                          <div style="color:#94A3B8; font-size: 0.76rem; text-transform:uppercase; font-weight:600;">Akhir SP</div>
+                          <div style="font-weight:700; color:#F8FAFC;">${formatDateIndo(s.akhir_sp)}</div>
                         </div>
                       </div>
 
-                      <p style="font-size:0.83rem; color:#64748B; line-height:1.45; margin:0 0 16px 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+                      <p style="font-size:0.83rem; color:#CBD5E1; line-height:1.45; margin:0 0 16px 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
                         ${s.notes || s.description || 'Pencatatan sanksi peringatan disiplin operasional.'}
                       </p>
                     </div>
 
-                    <div style="padding-top:12px; border-top:1px solid #F1F5F9; display:flex; align-items:center; justify-content:space-between;">
-                      <button class="btn btn-sm btn-ghost sp-detail-btn" style="border:1px solid #CBD5E1; border-radius:8px; font-weight:600; font-size:0.82rem; padding:6px 12px;" data-id="${s.id}">
+                    <div style="padding-top:12px; border-top:1px solid #223456; display:flex; align-items:center; justify-content:space-between;">
+                      <button class="btn btn-sm btn-ghost sp-detail-btn" style="border:1px solid #223456; color:#93C5FD; border-radius:8px; font-weight:600; font-size:0.82rem; padding:6px 12px;" data-id="${s.id}">
                         👁️ Rincian BAP
                       </button>
 
@@ -1436,26 +1329,10 @@ export async function renderSP(container) {
               }).join('')}
             </div>
           `}
-        </div>
-
-      </div>
     `;
-
-    bindEvents();
   }
 
-  // Bind Listeners
-  function bindEvents() {
-    // Top Buttons
-    const btnAdd = container.querySelector('#sp-btn-add');
-    if (btnAdd) btnAdd.onclick = () => openSPModal();
-
-    const btnExcel = container.querySelector('#sp-btn-excel');
-    if (btnExcel) btnExcel.onclick = () => exportToExcel();
-
-    const btnRefresh = container.querySelector('#sp-btn-refresh');
-    if (btnRefresh) btnRefresh.onclick = () => loadData();
-
+  function bindListEvents() {
     const btnReset = container.querySelector('#sp-btn-reset-filter');
     if (btnReset) {
       btnReset.onclick = () => {
@@ -1463,62 +1340,20 @@ export async function renderSP(container) {
         selectedBranch = 'all';
         selectedDivision = 'all';
         selectedFilter = 'all';
-        renderUI();
+        currentPage = 1;
+        clearTimeout(searchDebounce);
+        const searchInput = container.querySelector('#sp-search-input');
+        if (searchInput) searchInput.value = '';
+        const branchFilter = container.querySelector('#sp-filter-branch');
+        if (branchFilter) branchFilter.value = 'all';
+        const divFilter = container.querySelector('#sp-filter-division');
+        if (divFilter) divFilter.value = 'all';
+        container.querySelectorAll('.sp-pill').forEach(p => {
+          p.classList.toggle('active', p.getAttribute('data-filter') === 'all');
+        });
+        loadData({ refreshStats: false });
       };
     }
-
-    // Search Input
-    const searchInput = container.querySelector('#sp-search-input');
-    if (searchInput) {
-      searchInput.oninput = (e) => {
-        searchQuery = e.target.value;
-        renderUI();
-        const newSearch = container.querySelector('#sp-search-input');
-        if (newSearch) {
-          newSearch.focus();
-          newSearch.setSelectionRange(newSearch.value.length, newSearch.value.length);
-        }
-      };
-    }
-
-    // Branch Filter
-    const branchFilter = container.querySelector('#sp-filter-branch');
-    if (branchFilter) {
-      branchFilter.onchange = (e) => {
-        selectedBranch = e.target.value;
-        renderUI();
-      };
-    }
-
-    // Division Filter
-    const divFilter = container.querySelector('#sp-filter-division');
-    if (divFilter) {
-      divFilter.onchange = (e) => {
-        selectedDivision = e.target.value;
-        renderUI();
-      };
-    }
-
-
-    // Filter Pills
-    container.querySelectorAll('.sp-pill').forEach(pill => {
-      pill.onclick = () => {
-        selectedFilter = pill.getAttribute('data-filter') || 'all';
-        renderUI();
-      };
-    });
-
-    // View Mode Switcher (Kartu vs Tabel)
-    container.querySelectorAll('.sp-view-btn').forEach(btn => {
-      btn.onclick = () => {
-        const mode = btn.getAttribute('data-view');
-        if (mode && mode !== viewMode) {
-          viewMode = mode;
-          localStorage.setItem('fcms_sp_view_mode', mode);
-          renderUI();
-        }
-      };
-    });
 
     // Detail Buttons / Links
     container.querySelectorAll('.sp-detail-btn, .sp-view-detail-link').forEach(el => {
@@ -1551,7 +1386,254 @@ export async function renderSP(container) {
     });
   }
 
+  function renderPagination() {
+    const pgContainer = container.querySelector('#sp-pagination-container');
+    if (!pgContainer) return;
+    pgContainer.innerHTML = '';
+    const pgEl = createPagination({
+      page: currentPage,
+      pages: totalPages,
+      total: totalItems,
+      limit: PAGE_LIMIT,
+      onPage: (newPage) => {
+        currentPage = newPage;
+        loadData({ refreshStats: false });
+      }
+    });
+    if (pgEl) pgContainer.appendChild(pgEl);
+  }
+
+  function renderListContent() {
+    const listContainer = container.querySelector('#sp-list-container');
+    if (!listContainer) return;
+    const filtered = getFilteredSP();
+    listContainer.innerHTML = buildSPListHTML(filtered);
+    renderPagination();
+    bindListEvents();
+  }
+  // Render UI Function
+  function renderUI() {
+    const filtered = getFilteredSP();
+    const metrics = getMetrics();
+
+    container.innerHTML = `
+      <div class="sp-page-container">
+        
+        <!-- Hero Header -->
+        <div class="sp-hero-card">
+          <div class="sp-hero-header">
+            <div>
+              <h1 class="sp-hero-title">
+                <span>📜</span> Monitoring Data SP (Surat Peringatan)
+              </h1>
+            </div>
+            <div class="sp-hero-actions" style="display:flex; align-items:center; gap:8px;">
+              ${canAdd ? `
+                <button id="sp-btn-add" class="btn btn-primary sp-btn-add" style="background:#2563EB; height:38px; padding:0 16px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3); white-space:nowrap;">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Terbitkan SP</span>
+                </button>
+              ` : ''}
+              
+              ${hasPermission(currentUser, "export") ? `<button id="sp-btn-excel" class="btn btn-ghost sp-btn-excel" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; height:38px; padding:0 14px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                <span>📥</span>
+                <span>Ekspor Excel</span>
+              </button>` : ''}
+
+              <button id="sp-btn-refresh" class="btn btn-ghost sp-btn-refresh" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; width:38px; height:38px; padding:0; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" title="Muat Ulang Data">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Metrics -->
+          <div class="sp-stats-grid">
+            <div class="sp-stat-box">
+              <div class="sp-stat-icon" style="background:rgba(239,68,68,0.2); color:#F87171;">🔴</div>
+              <div>
+                <div class="sp-stat-value" id="sp-stat-active">${metrics.active}</div>
+                <div class="sp-stat-label">SP Aktif Berlaku</div>
+              </div>
+            </div>
+
+            <div class="sp-stat-box">
+              <div class="sp-stat-icon" style="background:rgba(245,158,11,0.2); color:#FBBF24;">⚠️</div>
+              <div>
+                <div class="sp-stat-value" id="sp-stat-expiring">${metrics.expiring}</div>
+                <div class="sp-stat-label">Segera Berakhir (&lt;30 Hari)</div>
+              </div>
+            </div>
+
+            <div class="sp-stat-box">
+              <div class="sp-stat-icon" style="background:rgba(16,185,129,0.2); color:#34D399;">✅</div>
+              <div>
+                <div class="sp-stat-value" id="sp-stat-expired">${metrics.expired}</div>
+                <div class="sp-stat-label">Masa Sanksi Selesai</div>
+              </div>
+            </div>
+
+            <div class="sp-stat-box">
+              <div class="sp-stat-icon" style="background:rgba(59,130,246,0.2); color:#60A5FA;">👥</div>
+              <div>
+                <div class="sp-stat-value"><span id="sp-stat-unique">${metrics.uniqueEmployees}</span> <span style="font-size:0.8rem; font-weight:400; color:#94A3B8;">karyawan</span></div>
+                <div class="sp-stat-label">Total Terkena Sanksi</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="sp-controls-panel">
+          <div class="sp-controls-top">
+            <div class="sp-search-wrapper">
+              <span class="sp-search-icon">🔍</span>
+              <input type="text" id="sp-search-input" class="sp-search-input" placeholder="Cari nama karyawan, cabang, atau divisi..." value="${searchQuery ? searchQuery.replace(/"/g, '&quot;') : ''}" />
+            </div>
+
+            <!-- Branch Dropdown -->
+            <select id="sp-filter-branch" class="sp-filter-select">
+              <option value="all">Semua Cabang (${branchOptions.length})</option>
+              ${branchOptions.map(b => `<option value="${b.value}" ${String(selectedBranch) === String(b.value) ? 'selected' : ''}>${b.label}</option>`).join('')}
+            </select>
+
+            <!-- Division Dropdown -->
+            <select id="sp-filter-division" class="sp-filter-select">
+              <option value="all" ${selectedDivision === 'all' ? 'selected' : ''}>Semua Divisi</option>
+              <option value="FACILITY CARE" ${selectedDivision === 'FACILITY CARE' ? 'selected' : ''}>FACILITY CARE</option>
+              <option value="SECURITY" ${selectedDivision === 'SECURITY' ? 'selected' : ''}>SECURITY</option>
+            </select>
+
+            <div class="sp-view-toggle">
+              <button type="button" class="sp-view-btn ${viewMode === 'card' ? 'active' : ''}" data-view="card" title="Tampilan Kartu">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Kartu</span>
+              </button>
+              <button type="button" class="sp-view-btn ${viewMode === 'table' ? 'active' : ''}" data-view="table" title="Tampilan Tabel">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                <span>Tabel</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Pills -->
+          <div class="sp-filter-pills">
+            <button class="sp-pill ${selectedFilter === 'all' ? 'active' : ''}" data-filter="all">
+              <span>Semua SP</span>
+              <span class="sp-pill-count" id="sp-pill-count-all">${metrics.total}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'active' ? 'active' : ''}" data-filter="active">
+              <span>🔴 SP Aktif</span>
+              <span class="sp-pill-count" id="sp-pill-count-active">${metrics.active}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'expiring' ? 'active' : ''}" data-filter="expiring">
+              <span>⚠️ &lt;30 Hari</span>
+              <span class="sp-pill-count" id="sp-pill-count-expiring">${metrics.expiring}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'expired' ? 'active' : ''}" data-filter="expired">
+              <span>✅ Selesai</span>
+              <span class="sp-pill-count" id="sp-pill-count-expired">${metrics.expired}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'sp1' ? 'active' : ''}" data-filter="sp1">
+              <span>SP 1</span>
+              <span class="sp-pill-count" id="sp-pill-count-sp1">${metrics.sp1}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'sp2' ? 'active' : ''}" data-filter="sp2">
+              <span>SP 2</span>
+              <span class="sp-pill-count" id="sp-pill-count-sp2">${metrics.sp2}</span>
+            </button>
+            <button class="sp-pill ${selectedFilter === 'sp3' ? 'active' : ''}" data-filter="sp3">
+              <span>SP 3</span>
+              <span class="sp-pill-count" id="sp-pill-count-sp3">${metrics.sp3}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="sp-list-container">
+          ${buildSPListHTML(filtered)}
+        </div>
+
+        <!-- Pagination Container -->
+        <div id="sp-pagination-container"></div>
+
+      </div>
+    `;
+
+    renderPagination();
+    bindEvents();
+  }
+
+  // Bind Listeners
+  function bindEvents() {
+    // Top Buttons
+    const btnAdd = container.querySelector('#sp-btn-add');
+    if (btnAdd) btnAdd.onclick = () => openSPModal();
+
+    const btnExcel = container.querySelector('#sp-btn-excel');
+    if (btnExcel) btnExcel.onclick = () => exportToExcel();
+
+    const btnRefresh = container.querySelector('#sp-btn-refresh');
+    if (btnRefresh) btnRefresh.onclick = () => loadData({ refreshStats: true });
+
+    const searchInput = container.querySelector('#sp-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          currentPage = 1;
+          loadData({ refreshStats: false });
+        }, 350);
+      });
+    }
+
+    const branchFilter = container.querySelector('#sp-filter-branch');
+    if (branchFilter) {
+      branchFilter.addEventListener('change', (e) => {
+        selectedBranch = e.target.value;
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      });
+    }
+
+    const divFilter = container.querySelector('#sp-filter-division');
+    if (divFilter) {
+      divFilter.addEventListener('change', (e) => {
+        selectedDivision = e.target.value;
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      });
+    }
+
+    container.querySelectorAll('.sp-view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-view');
+        if (!mode || mode === viewMode) return;
+        viewMode = mode;
+        localStorage.setItem('fcms_sp_view_mode', viewMode);
+        container.querySelectorAll('.sp-view-btn').forEach(b => {
+          b.classList.toggle('active', b === btn);
+        });
+        renderListContent();
+      });
+    });
+
+    container.querySelectorAll('.sp-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        selectedFilter = pill.getAttribute('data-filter') || 'all';
+        container.querySelectorAll('.sp-pill').forEach(p => {
+          p.classList.toggle('active', p === pill);
+        });
+        currentPage = 1;
+        loadData({ refreshStats: false });
+      });
+    });
+
+    // Initial bind of list events
+    bindListEvents();
+  }
+
   // Initial Load
-  await loadData();
+  await loadData({ refreshStats: true });
 }
 

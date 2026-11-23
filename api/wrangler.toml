@@ -8,15 +8,21 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB"
 database_name = "fcms-production-db"
 database_id = "62b4b6e5-a718-40bc-9aab-6a700b82a9c9"
+# IMPORTANT: Production is LEGACY_V1; before running raw wrangler D1 migrations
+# (and never without explicit Owner Cutover approval), execute PRAGMA-guarded
+# remediation via schema/migrations/production_remediation_runner.mjs.
+migrations_dir = "../schema/migrations"
 
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "4acb3038c5b042b8ad3c87473d02a434"
 
 [vars]
-JWT_SECRET = "FacilityCare-AudyDental-FM-Ops-S3cr3t-K3y-2026!@#$"
+ENVIRONMENT = "production"
+SYNC_MODE = "DRY_RUN"
 CORS_ORIGIN = "https://facilitycare-system.pages.dev"
-SYNC_WEBHOOK_SECRET = "Rahasia-Sync-FCMS-2026-A1B2C3D4"
+# Note: Confidential secrets (JWT_SECRET, SYNC_WEBHOOK_SECRET) are provisioned
+# securely via Cloudflare Encrypted Secrets ('wrangler secret put <KEY>').
 
 [dev]
 port = 8787
@@ -24,3 +30,21 @@ local_protocol = "http"
 
 [triggers]
 crons = ["0 17 * * *", "*/1 * * * *"] # Midnight + Every 1 minute for sync sweeper
+
+# Hardened Staging Environment Guard: prevents accidental binding to fcms-production-db
+# if `wrangler deploy --env staging` is invoked without `--config wrangler.staging.toml`.
+[env.staging]
+name = "fm-operations-api-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "fcms-staging-db"
+database_id = "7ecb4668-c2b9-48ef-93a6-f59a3672e8df"
+migrations_dir = "../schema/migrations_v2"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+CORS_ORIGIN = "https://staging.facilitycare-system-staging.pages.dev,https://facilitycare-system-staging.pages.dev"
+SYNC_MODE = "DRY_RUN"
+GOOGLE_SPREADSHEET_ID = "UNASSIGNED_STAGING_SPREADSHEET_ID"
+

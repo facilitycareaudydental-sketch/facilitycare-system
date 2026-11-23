@@ -1,9 +1,11 @@
 import { buildCrudPage } from './_crud.js';
+import { buildMobileDataCard } from '../components/table.js';
 import { apiFetch } from '../config.js';
 import { notifyCalendar } from '../utils/calendarBus.js';
-import { getCachedBranches, getCachedEmployeeNames } from '../utils/dataCache.js';
+import { getCachedBranches, getCachedEmployeeNames, fetchExportRows } from '../utils/dataCache.js';
 import { statusBadge, activityTypeBadge, periodBadge } from '../components/badges.js';
 import { downloadExcel } from '../utils/excel.js';
+import { submitJournaledImport } from '../utils/import_client.js';
 
 let branchOptions = [];
 let picOptions = [];
@@ -44,17 +46,12 @@ export async function renderSchedule(container, params) {
     return picOptions;
   };
   
-  const schedRes = await apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
-
   const formatDate = (d) => {
     if (!d || d === '-' || String(d).trim() === '') return '';
     const p = String(d).split('-');
     if (p.length === 3 && p[0].length === 4) return `${p[2]}-${p[1]}-${p[0]}`;
     return d;
   };
-
-  const scheduleData = schedRes.data?.data || [];
-  const activePeriod = getActivePeriod(scheduleData);
   
   const dashFilter = params ? params.get('dash_filter') : null;
   const now = new Date();
@@ -63,9 +60,9 @@ export async function renderSchedule(container, params) {
   let defFilters = {};
   const targetMonth = params && params.get('month') ? params.get('month') : null;
   if (dashFilter === 'inspeksi') {
-    defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', month: targetMonth };
+    defFilters = { status: 'Done', activity_type: 'Inspeksi Hygiene', ...(targetMonth ? { month: targetMonth } : {}) };
   } else if (dashFilter === 'gcdc') {
-    defFilters = { status: 'Done', activity_type: 'GCDC', month: targetMonth };
+    defFilters = { status: 'Done', activity_type: 'GCDC', ...(targetMonth ? { month: targetMonth } : {}) };
   } else if (dashFilter && dashFilter.startsWith('period_')) {
     defFilters = { period: dashFilter.replace('period_', '').toUpperCase() };
   }
@@ -82,19 +79,11 @@ export async function renderSchedule(container, params) {
     title: 'Jadwal Kegiatan',
     icon: '📅',
     apiPath: '/api/schedule',
-    bulkDelete: true,
+    bulkDelete: false, // Disabled to prevent D1 vs Google Sheets outbox sync mismatch
     itemLabel: 'Jadwal',
-    paginationMode: 'client',
     enableMobileFilterSheet: true,
     defaultFilters: defFilters,
-    onDataLoaded: (items) => {
-      // Sort descending by opening_date, so newest year/date is first
-      return items.sort((a, b) => {
-        const da = a.opening_date ? new Date(a.opening_date).getTime() : 0;
-        const db = b.opening_date ? new Date(b.opening_date).getTime() : 0;
-        return db - da;
-      });
-    },
+    defaultSort: (params && params.get('sort')) || new URLSearchParams(window.location.search).get('sort') || 'opening_date_desc',
     columns: [
       { key: 'branch_name', label: 'Cabang' },
       { key: 'activity_type', label: 'Kegiatan', render: v => activityTypeBadge(v) },
@@ -105,7 +94,25 @@ export async function renderSchedule(container, params) {
       { key: 'completion_date', label: 'Tgl Selesai', nowrap: true, render: v => formatDate(v) },
       { key: 'status', label: 'Status', render: v => statusBadge(v) },
     ],
+    mobileCardRenderer: (row, handlers) => buildMobileDataCard({
+      title: row.branch_name || '-',
+      headerRight: statusBadge(row.status),
+      badges: [
+        row.activity_type ? activityTypeBadge(row.activity_type) : '',
+        row.period ? periodBadge(row.period) : '',
+      ],
+      meta: [
+        { label: 'Tgl Opening', value: formatDate(row.opening_date) || '-' },
+        { label: 'Tgl Target', value: formatDate(row.target_date) || '-' },
+        { label: 'Tgl Selesai', value: formatDate(row.completion_date) || '-' },
+        ...(row.pic ? [{ label: 'PIC', value: row.pic }] : []),
+      ],
+      notes: row.notes,
+      row,
+      handlers,
+    }),
     filterFields: [
+      { type: 'search', placeholder: 'Cari cabang, kegiatan, PIC, catatan...' },
       { type: 'select', name: 'branch_id', label: 'Cabang', options: branchOptions },
       { type: 'select', name: 'activity_type', label: 'Kegiatan', options: [
         { value: 'Inspeksi Hygiene', label: 'Inspeksi Hygiene' },
@@ -150,21 +157,19 @@ export async function renderSchedule(container, params) {
     ],
     exportOptions: {
       moduleName: 'schedule',
-      onExport: async () => {
-        const res = await apiFetch(`/api/schedule${window.location.search ? window.location.search + '&' : '?'}limit=10000`);
-        if (res.ok) {
-          const data = res.data.data.map(d => ({
-            'Cabang': d.branch_name || '',
-            'Kegiatan': d.activity_type || '',
-            'Periode': d.period || '',
-            'PIC': d.pic || '',
-            'Tgl Opening': d.opening_date || '',
-            'Tgl Target': d.target_date || '',
-            'Tgl Selesai': d.completion_date || '',
-            'Status': d.status || ''
-          }));
-          downloadExcel(data, 'Data_Jadwal_Kegiatan');
-        } else throw new Error('Gagal mengambil data');
+      onExport: async (filters) => {
+        const rows = await fetchExportRows('/api/schedule/export', filters);
+        const data = rows.map(d => ({
+          'Cabang': d.branch_name || '',
+          'Kegiatan': d.activity_type || '',
+          'Periode': d.period || '',
+          'PIC': d.pic || '',
+          'Tgl Opening': d.opening_date || '',
+          'Tgl Target': d.target_date || '',
+          'Tgl Selesai': d.completion_date || '',
+          'Status': d.status || ''
+        }));
+        downloadExcel(data, 'Data_Jadwal_Kegiatan');
       },
       onTemplate: () => {
         const template = [
@@ -172,7 +177,7 @@ export async function renderSchedule(container, params) {
         ];
         downloadExcel(template, 'Template_Import_Jadwal');
       },
-      onImport: async (json) => {
+      onImport: async (json, importCtx = {}) => {
         const bRes = await apiFetch('/api/branches?all=1');
         const rawBranches = bRes.data?.data || [];
         
@@ -223,13 +228,16 @@ export async function renderSchedule(container, params) {
           notes: String(row['Catatan'] || row['Keterangan'] || '').trim(),
         })).filter(row => row.activity_type && row.period);
         
-        const res = await apiFetch('/api/import/schedule', {
-          method: 'POST',
-          body: JSON.stringify({ rows: payload, onDuplicate: 'update' })
+        const importRes = await submitJournaledImport({
+          module: 'schedule',
+          label: 'Jadwal Kegiatan',
+          endpoint: '/api/import/schedule',
+          body: { rows: payload, onDuplicate: 'update' },
+          idempotencyKey: importCtx?.idempotencyKey,
+          recover: Boolean(importCtx?.recover),
         });
-        if (!res.ok) throw new Error(res.data?.error || 'Import gagal');
         notifyCalendar('schedule');
-        return res.data;
+        return importRes;
       }
     }
   });
