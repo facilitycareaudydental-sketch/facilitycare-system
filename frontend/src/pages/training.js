@@ -4,6 +4,7 @@ import { createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 import { mountEmployeeCombobox, parseParticipantList } from '../components/employeeCombobox.js';
+import { formatDateIndo } from '../utils/sorting.js';
 
 // Pre-seeded fallback data training jika API offline / inisialisasi awal
 const INITIAL_TRAINING = [
@@ -19,17 +20,7 @@ const INITIAL_TRAINING = [
 const BATCH_LIST = ['Batch 1', 'Batch 2', 'Batch 3', 'Batch 4', 'Batch 5'];
 const TRAINER_LIST = ['Berlin Ariansyah', 'Ade Surahman', 'Mizwar', 'Fajar', 'Ade', 'Berlin'];
 
-// Format tanggal lokal Indonesia
-function formatDateIndo(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
+// Standardized Indonesian date helper imported from ../utils/sorting.js (supports ISO, DD/MM/YYYY, Excel serial)
 
 // Helper ekstraksi nama peserta
 function formatParticipants(raw) {
@@ -215,7 +206,7 @@ export async function renderTraining(container) {
       <div style="display:flex; flex-direction:column; gap:16px;">
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Training <span style="color:#DC2626;">*</span>
             </label>
             <input type="date" id="tr-modal-date" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -223,7 +214,7 @@ export async function renderTraining(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Batch Pelatihan <span style="color:#DC2626;">*</span>
             </label>
             <select id="tr-modal-batch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -235,7 +226,7 @@ export async function renderTraining(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Materi / Topik Pelatihan <span style="color:#DC2626;">*</span>
           </label>
           <input type="text" id="tr-modal-subject" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -244,7 +235,7 @@ export async function renderTraining(container) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Cabang Klinik <span style="color:#DC2626;">*</span>
             </label>
             <select id="tr-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -258,7 +249,7 @@ export async function renderTraining(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Trainer / Instruktur <span style="color:#DC2626;">*</span>
             </label>
             <input list="tr-trainer-options" id="tr-modal-trainer" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -270,7 +261,7 @@ export async function renderTraining(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Nama Peserta Pelatihan <span style="color:#DC2626;">*</span>
           </label>
           <div id="tr-modal-participants-mount"></div>
@@ -278,7 +269,7 @@ export async function renderTraining(container) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Nilai / Score Evaluasi (0 - 100)
             </label>
             <input type="number" min="0" max="100" step="1" id="tr-modal-score" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -286,7 +277,7 @@ export async function renderTraining(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Link Dokumen / Sertifikat (Opsional)
             </label>
             <input type="url" id="tr-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -295,7 +286,7 @@ export async function renderTraining(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Catatan Pelatihan
           </label>
           <textarea id="tr-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -419,9 +410,9 @@ export async function renderTraining(container) {
     ${filtered.length === 0 ? `
             <div class="training-empty-state">
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
-              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Data Training Ditemukan</h3>
-              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
-              <button id="tr-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
+              <h3 style="font-size:1.2rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak Ada Data Training Ditemukan</h3>
+              <p style="color:#94A3B8; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
+              <button id="tr-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #29364B; color:#CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
             </div>
@@ -435,26 +426,26 @@ export async function renderTraining(container) {
                   <div class="training-card" data-id="${t.id}">
                     <div>
                       <!-- Card Header: Batch & Nilai/Tanggal -->
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
                         <span class="training-batch-badge">
                           <span>🎓</span>
                           <span>${t.batch || 'Reguler'}</span>
                         </span>
-                        <div style="display:flex; align-items:center; gap:6px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
                           ${t.score != null ? `
                             <span class="training-score-badge">
                               <span>⭐</span>
                               <span>${t.score}</span>
                             </span>
                           ` : ''}
-                          <span style="font-size:0.8rem; font-weight:600; color:#64748B;">
+                          <span style="font-size:0.8rem; font-weight:600; color:#CBD5E1;">
                             🗓️ ${formatDateIndo(t.training_date)}
                           </span>
                         </div>
                       </div>
 
                       <!-- Subject / Materi Title -->
-                      <h4 style="margin:0 0 10px 0; font-size:1.05rem; font-weight:700; color:#0F172A; line-height:1.4;">
+                      <h4 style="margin:0 0 12px 0; font-size:1.05rem; font-weight:700; color:#F8FAFC; line-height:1.4;">
                         ${t.subject || 'Materi Pelatihan'}
                       </h4>
 
@@ -464,8 +455,8 @@ export async function renderTraining(container) {
                           ${initials}
                         </div>
                         <div style="min-width:0;">
-                          <div style="font-size:0.72rem; text-transform:uppercase; font-weight:700; color:#94A3B8; margin-bottom:1px;">Peserta Training</div>
-                          <div style="font-size:0.95rem; font-weight:700; color:#1E293B; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${participantsText}">
+                          <div style="font-size:0.72rem; text-transform:uppercase; font-weight:700; color:#94A3B8; margin-bottom:2px; letter-spacing:0.04em;">Peserta Training</div>
+                          <div style="font-size:0.95rem; font-weight:700; color:#F8FAFC; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${participantsText}">
                             ${participantsText}
                           </div>
                         </div>
@@ -473,28 +464,28 @@ export async function renderTraining(container) {
 
                       <!-- Detail Box: Cabang & Trainer -->
                       <div class="training-info-box">
-                        <div style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:#334155;">
+                        <div style="display:flex; align-items:center; gap:6px; font-size:0.83rem; color:#E2E8F0;">
                           <span>📍</span>
-                          <span style="font-weight:600;">${t.branch_name || 'Cabang Belum Ditentukan'}</span>
+                          <span style="font-weight:600; color:#F8FAFC;">${t.branch_name || 'Cabang Belum Ditentukan'}</span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:#64748B;">
+                        <div style="display:flex; align-items:center; gap:6px; font-size:0.83rem; color:#CBD5E1;">
                           <span>👨‍🏫</span>
-                          <span>Trainer: <strong style="color:#0F172A;">${t.trainer || '-'}</strong></span>
+                          <span>Trainer: <strong style="color:#FFFFFF;">${t.trainer || '-'}</strong></span>
                         </div>
                       </div>
 
                       ${t.notes ? `
-                        <div style="font-size:0.78rem; color:#64748B; font-style:italic; line-height:1.4; margin-bottom:8px;">
+                        <div style="font-size:0.8rem; color:#CBD5E1; font-style:italic; line-height:1.4; margin-bottom:8px;">
                           📝 ${t.notes}
                         </div>
                       ` : ''}
                     </div>
 
                     <!-- Card Footer: Dokumen & Aksi -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #F1F5F9; margin-top:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #29364B; margin-top:8px;">
                       <div>
                         ${t.document_link ? `
-                          <a href="${t.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #CBD5E1; border-radius:6px; font-size:0.78rem; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                          <a href="${t.document_link}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost" style="border:1px solid #29364B; color:#93C5FD; background:rgba(59,130,246,0.12); border-radius:6px; font-size:0.78rem; padding:4px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
                             <span>📄 Materi / Sertifikat</span>
                           </a>
                         ` : `
@@ -726,29 +717,31 @@ export async function renderTraining(container) {
         .training-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 1px solid #CBD5E1;
+          background: #1B2940;
+          color: #F8FAFC;
+          border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
           outline: none;
           transition: border-color 0.15s ease;
         }
         .training-search-input:focus {
-          border-color: #2563EB;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+          border-color: #3B82F6;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
         .training-select {
           padding: 10px 14px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #172033;
+          background: #1B2940;
           outline: none;
           min-width: 180px;
           cursor: pointer;
         }
         .training-select:focus {
-          border-color: #2563EB;
+          border-color: #3B82F6;
         }
 
         /* Swipeable Pills */
@@ -772,7 +765,7 @@ export async function renderTraining(container) {
           cursor: pointer;
           border: 1px solid #29364B;
           background: #1B2940;
-          color: #64748B;
+          color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
           align-items: center;
@@ -781,7 +774,7 @@ export async function renderTraining(container) {
           flex-shrink: 0;
         }
         .training-pill:hover {
-          background: #111827;
+          background: #22314A;
           color: #F8FAFC;
         }
         .training-pill.active {
@@ -802,7 +795,7 @@ export async function renderTraining(container) {
           border: 1px solid #29364B;
           border-radius: 14px;
           padding: 18px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
           transition: transform 0.15s ease, box-shadow 0.15s ease;
           display: flex;
           flex-direction: column;
@@ -811,8 +804,8 @@ export async function renderTraining(container) {
         }
         .training-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 18px rgba(0,0,0,0.06);
-          border-color: #CBD5E1;
+          box-shadow: 0 8px 18px rgba(0,0,0,0.32);
+          border-color: #475569;
         }
         .training-avatar-box {
           width: 44px;
@@ -836,9 +829,9 @@ export async function renderTraining(container) {
           border-radius: 20px;
           font-size: 0.76rem;
           font-weight: 700;
-          background: #F3E8FF;
-          color: #7E22CE;
-          border: 1px solid #E9D5FF;
+          background: rgba(139, 92, 246, 0.18);
+          color: #C4B5FD;
+          border: 1px solid rgba(167, 139, 250, 0.35);
         }
         .training-score-badge {
           display: inline-flex;
@@ -848,9 +841,9 @@ export async function renderTraining(container) {
           border-radius: 20px;
           font-size: 0.76rem;
           font-weight: 700;
-          background: #DCFCE7;
-          color: #15803D;
-          border: 1px solid #BBF7D0;
+          background: rgba(16, 185, 129, 0.16);
+          color: #6EE7B7;
+          border: 1px solid rgba(52, 211, 153, 0.35);
         }
         .training-info-box {
           background: #1B2940;
@@ -867,8 +860,8 @@ export async function renderTraining(container) {
           height: 32px;
           border-radius: 8px;
           border: 1px solid #29364B;
-          background: #172033;
-          color: #64748B;
+          background: #1B2940;
+          color: #CBD5E1;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -876,14 +869,14 @@ export async function renderTraining(container) {
           transition: all 0.15s ease;
         }
         .training-icon-btn:hover {
-          background: #111827;
-          color: #0F172A;
-          border-color: #CBD5E1;
+          background: #22314A;
+          color: #F8FAFC;
+          border-color: #475569;
         }
         .training-icon-btn.delete:hover {
-          background: #FEE2E2;
-          color: #DC2626;
-          border-color: #FCA5A5;
+          background: rgba(239, 68, 68, 0.2);
+          color: #FCA5A5;
+          border-color: rgba(248, 113, 113, 0.45);
         }
 
         /* Empty state */

@@ -308,6 +308,14 @@ async function runTests() {
   const schManualDesc = await callRoute(handleSchedule, env, token, '/api/schedule?sort=target_date_desc');
   assert.equal(schManualDesc.body.data[0].id, 1);
 
+  // General Cleaning (all opening_date empty/NULL) must sort chronologically by target_date DESC!
+  const schGc = await callRoute(handleSchedule, env, token, '/api/schedule?activity_type=General%20Cleaning&limit=20');
+  // row 6 has opening='-', target_date=+2d; row 2 has opening='15-08-2026', target='2099-01-01' -> row 2 has opening_date so tier 0 MUST beat row 6 (no opening_date)!
+  assert.deepEqual(schGc.body.data.map(x => x.id), [2, 6], 'Valid opening_date must stay above empty opening_date even for General Cleaning');
+  // Now check pure empty opening_date rows (Fogging / General Cleaning mix: rows 5, 6, 7 have empty/invalid opening_date and distinct target_dates: row 7='2026-12-31' > row 6=+2d > row 5=+1d)
+  const schAllEmptyTail = r.body.data.slice(-3).map(x => x.id);
+  assert.deepEqual(schAllEmptyTail, [7, 6, 5], 'Rows without opening_date must still stay below opening_date rows and sort DESC by target_date');
+
   // Master Karyawan (/api/employees) - join_date DESC across Excel serial + DMY + ISO + empty/invalid
   r = await callRoute(handleEmployees, env, token, '/api/employees?limit=20');
   assert.equal(r.status, 200);

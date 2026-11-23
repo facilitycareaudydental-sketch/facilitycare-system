@@ -4,6 +4,7 @@ import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 import { createPagination } from '../components/table.js';
 import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
+import { formatDateIndo } from '../utils/sorting.js';
 
 // Pre-seeded fallback data jika API offline / inisialisasi awal
 const INITIAL_MUTASI = [
@@ -14,17 +15,7 @@ const INITIAL_MUTASI = [
   { id: 5, tanggal: '2026-06-22', employee_name: 'Ahmad Farhan', from_branch_id: 1, from_branch_name: '001. Pondok Bambu', to_branch_id: 62, to_branch_name: '062. Summarecon Bekasi', status: 'Selesai', document_link: '' }
 ];
 
-// Helper format tanggal lokal Indonesia
-function formatDateIndo(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
+// Standardized Indonesian date helper imported from ../utils/sorting.js
 
 export async function renderMutasi(container) {
   const PAGE_LIMIT = 20;
@@ -91,7 +82,7 @@ export async function renderMutasi(container) {
     } else {
       const listEl = container.querySelector('#mutasi-list-container');
       if (listEl) {
-        listEl.innerHTML = '<div class="mutasi-empty-state"><p style="color:#64748B; margin:0;">Memuat data mutasi...</p></div>';
+        listEl.innerHTML = '<div class="mutasi-empty-state"><p style="color:var(--text-3); margin:0;">Memuat data mutasi...</p></div>';
       }
     }
     try {
@@ -215,7 +206,7 @@ export async function renderMutasi(container) {
       <div style="display:flex; flex-direction:column; gap:16px;">
         <div class="form-row" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Mutasi <span style="color:#DC2626;">*</span>
             </label>
             <input type="date" id="mutasi-modal-tanggal" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -223,7 +214,7 @@ export async function renderMutasi(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Status Mutasi <span style="color:#DC2626;">*</span>
             </label>
             <select id="mutasi-modal-status" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -234,7 +225,7 @@ export async function renderMutasi(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Nama Karyawan <span style="color:#DC2626;">*</span>
           </label>
           <div id="mutasi-modal-emp-mount"></div>
@@ -242,7 +233,7 @@ export async function renderMutasi(container) {
 
         <div class="form-row" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Cabang Asal <span style="color:#DC2626;">*</span>
             </label>
             <select id="mutasi-modal-from" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -256,7 +247,7 @@ export async function renderMutasi(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Cabang Tujuan <span style="color:#DC2626;">*</span>
             </label>
             <select id="mutasi-modal-to" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -271,7 +262,7 @@ export async function renderMutasi(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Link Berkas SK Mutasi / Dokumen (Opsional)
           </label>
           <input type="url" id="mutasi-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -395,8 +386,8 @@ export async function renderMutasi(container) {
           ${filtered.length === 0 ? `
             <div class="mutasi-empty-state">
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
-              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Data Mutasi Ditemukan</h3>
-              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
+              <h3 style="font-size:1.2rem; font-weight:700; color:var(--text-1); margin:0 0 6px 0;">Tidak Ada Data Mutasi Ditemukan</h3>
+              <p style="color:var(--text-3); font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
               <button id="mutasi-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
@@ -430,22 +421,22 @@ export async function renderMutasi(container) {
                                 ${initials}
                               </div>
                               <div>
-                                <div style="font-weight:700; color:#0F172A; white-space:nowrap;">${m.employee_name}</div>
-                                <div style="font-size:0.72rem; color:#64748B;">ID Mutasi: #${m.id}</div>
+                                <div style="font-weight:700; color:#F8FAFC; white-space:nowrap;">${m.employee_name}</div>
+                                <div style="font-size:0.72rem; color:#94A3B8;">ID Mutasi: #${m.id}</div>
                               </div>
                             </div>
                           </td>
-                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                          <td style="white-space:nowrap; font-weight:600; color:#F8FAFC;">
                             🗓️ ${formatDateIndo(m.tanggal)}
                           </td>
                           <td style="white-space:nowrap;">
-                            <div style="font-weight:600; color:#334155; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;">
+                            <div style="font-weight:600; color:#CBD5E1; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;">
                               <span>📍</span>
                               <span>${m.from_branch_name || '-'}</span>
                             </div>
                           </td>
                           <td style="white-space:nowrap;">
-                            <div style="font-weight:700; color:#2563EB; font-size:0.85rem; display:inline-flex; align-items:center; gap:5px;">
+                            <div style="font-weight:700; color:#93C5FD; font-size:0.85rem; display:inline-flex; align-items:center; gap:5px;">
                               <span>➔</span>
                               <span>${m.to_branch_name || '-'}</span>
                             </div>
@@ -502,7 +493,7 @@ export async function renderMutasi(container) {
                           <span>${isSelesai ? '✅' : '⏳'}</span>
                           <span>${m.status || 'Proses'}</span>
                         </span>
-                        <span style="font-size:0.8rem; font-weight:600; color:#64748B; display:inline-flex; align-items:center; gap:4px;">
+                        <span style="font-size:0.8rem; font-weight:600; color:#CBD5E1; display:inline-flex; align-items:center; gap:4px;">
                           <span>🗓️</span>
                           <span>${formatDateIndo(m.tanggal)}</span>
                         </span>
@@ -514,10 +505,10 @@ export async function renderMutasi(container) {
                           ${initials}
                         </div>
                         <div style="min-width:0;">
-                          <h4 style="margin:0 0 3px 0; font-size:1.02rem; font-weight:700; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                          <h4 style="margin:0 0 3px 0; font-size:1.02rem; font-weight:700; color:#F8FAFC; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                             ${m.employee_name}
                           </h4>
-                          <div style="font-size:0.75rem; color:#64748B;">
+                          <div style="font-size:0.75rem; color:#94A3B8;">
                             ID Mutasi: #${m.id}
                           </div>
                         </div>
@@ -538,7 +529,7 @@ export async function renderMutasi(container) {
 
                         <div class="mutasi-route-node mutasi-to-node">
                           <div class="mutasi-route-label">Cabang Tujuan</div>
-                          <div class="mutasi-route-branch" style="color:#2563EB;" title="${m.to_branch_name || '-'}">
+                          <div class="mutasi-route-branch" style="color:#93C5FD;" title="${m.to_branch_name || '-'}">
                             ${m.to_branch_name || '-'}
                           </div>
                         </div>
@@ -824,8 +815,8 @@ export async function renderMutasi(container) {
           font-weight: 600;
           cursor: pointer;
           border: 1px solid #29364B;
-          background: #111827;
-          color: #64748B;
+          background: #1B2940;
+          color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
           align-items: center;
@@ -865,7 +856,7 @@ export async function renderMutasi(container) {
           font-weight: 600;
           border: none;
           background: transparent;
-          color: #64748B;
+          color: #CBD5E1;
           cursor: pointer;
           transition: all 0.15s ease;
           height: 34px;
@@ -874,13 +865,13 @@ export async function renderMutasi(container) {
         }
         .mutasi-view-btn:hover {
           color: #F8FAFC;
-          background: rgba(255, 255, 255, 0.5);
+          background: #22314A;
         }
         .mutasi-view-btn.active {
           background: #172033;
-          color: #2563EB;
+          color: #60A5FA;
           font-weight: 700;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
         }
 
         /* Modern Table View */
@@ -888,7 +879,7 @@ export async function renderMutasi(container) {
           background: #172033;
           border: 1px solid #29364B;
           border-radius: 14px;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
           overflow: hidden;
         }
         .mutasi-table-responsive {
@@ -905,13 +896,13 @@ export async function renderMutasi(container) {
         }
         .mutasi-table th {
           background: #111827;
-          color: #475569;
+          color: #CBD5E1;
           font-size: 0.76rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 13px 16px;
-          border-bottom: 1.5px solid #E2E8F0;
+          border-bottom: 1.5px solid #29364B;
           white-space: nowrap;
         }
         .mutasi-table td {
@@ -921,7 +912,7 @@ export async function renderMutasi(container) {
           vertical-align: middle;
         }
         .mutasi-table tbody tr:hover td {
-          background: #111827;
+          background: #22314A;
         }
         .mutasi-table tbody tr:last-child td {
           border-bottom: none;
@@ -1008,8 +999,8 @@ export async function renderMutasi(container) {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: #EFF6FF;
-          color: #2563EB;
+          background: rgba(59, 130, 246, 0.18);
+          color: #93C5FD;
           font-size: 1rem;
           flex-shrink: 0;
         }
@@ -1023,22 +1014,22 @@ export async function renderMutasi(container) {
           font-weight: 700;
         }
         .mutasi-status-badge.selesai {
-          background: #DCFCE7;
-          color: #15803D;
-          border: 1px solid #BBF7D0;
+          background: rgba(16, 185, 129, 0.18);
+          color: #6EE7B7;
+          border: 1px solid rgba(52, 211, 153, 0.35);
         }
         .mutasi-status-badge.proses {
-          background: #FEF3C7;
-          color: #B45309;
-          border: 1px solid #FDE68A;
+          background: rgba(245, 158, 11, 0.18);
+          color: #FCD34D;
+          border: 1px solid rgba(251, 191, 36, 0.35);
         }
         .mutasi-icon-btn {
           width: 32px;
           height: 32px;
           border-radius: 8px;
           border: 1px solid #29364B;
-          background: #172033;
-          color: #64748B;
+          background: #1B2940;
+          color: #CBD5E1;
           display: inline-flex;
           align-items: center;
           justify-content: center;

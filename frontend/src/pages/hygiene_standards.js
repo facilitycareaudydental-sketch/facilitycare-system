@@ -506,7 +506,7 @@ export async function renderHygieneStandards(container) {
                               <td style="padding:10px 12px; font-weight:600; color:var(--text-1); vertical-align:top;">
                                 ${item.item_name}
                               </td>
-                              <td style="padding:10px 12px; vertical-align:top; color:#334155;">
+                              <td style="padding:10px 12px; vertical-align:top; color:var(--text-2);">
                                 <div style="display:flex; align-items:flex-start; gap:6px;">
                                   <span style="color:#10B981; font-weight:700;">✓</span>
                                   <span>${item.cleanliness_standard}</span>

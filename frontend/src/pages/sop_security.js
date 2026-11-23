@@ -897,7 +897,7 @@ export async function renderSOPSecurity(container) {
                     </td>
                     <td style="padding:10px 14px; font-weight:700; color:var(--text-1);">${escapeHtml(item.item)}</td>
                     <td style="padding:10px 14px; color:var(--text-2);">${escapeHtml(item.description)}</td>
-                    <td style="padding:10px 14px; font-weight:600; color:#1E40AF;">${escapeHtml(item.pic || '-')}</td>
+                    <td style="padding:10px 14px; font-weight:600; color:#93C5FD;">${escapeHtml(item.pic || '-')}</td>
                     <td style="padding:10px 14px; text-align:center;">
                     ${canEdit ? `
                       <button class="btn btn-sm btn-ghost btn-edit-asset" data-no="${item.no}" title="Edit Aset" style="padding:4px 6px; cursor:pointer;">✏️</button>

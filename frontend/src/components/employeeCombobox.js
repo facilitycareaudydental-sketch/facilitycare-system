@@ -312,13 +312,13 @@ function ensureComboboxStyles() {
       font-size: 14px;
       line-height: 1;
       cursor: pointer;
-      color: #64748B;
+      color: #CBD5E1;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
     .fc-emp-chip-remove:hover {
-      color: #EF4444;
+      color: #FCA5A5;
     }
     @media (max-width: 640px) {
       .fc-emp-input {

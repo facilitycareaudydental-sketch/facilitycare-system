@@ -280,7 +280,7 @@ export async function renderChecklist(container) {
       .doc-pill {
         border: 1px solid #29364B;
         background: #1B2940;
-        color: #475569;
+        color: #CBD5E1;
         font-size: 0.82rem;
         font-weight: 600;
         padding: 6px 14px;
@@ -292,8 +292,9 @@ export async function renderChecklist(container) {
         gap: 6px;
       }
       .doc-pill:hover {
-        background: #EEF2F6;
-        border-color: #CBD5E1;
+        background: #22314A;
+        color: #F8FAFC;
+        border-color: #475569;
       }
       .doc-pill.active {
         background: #2563EB;
@@ -302,7 +303,8 @@ export async function renderChecklist(container) {
         box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
       }
       .doc-pill-count {
-        background: rgba(0, 0, 0, 0.08);
+        background: rgba(255, 255, 255, 0.1);
+        color: #E2E8F0;
         padding: 1px 7px;
         border-radius: 12px;
         font-size: 0.75rem;
@@ -359,20 +361,21 @@ export async function renderChecklist(container) {
         gap: 4px;
         font-size: 0.74rem;
         font-weight: 600;
-        color: #64748B;
-        background: #111827;
+        color: #CBD5E1;
+        background: #1B2940;
+        border: 1px solid #29364B;
         padding: 3px 8px;
         border-radius: 6px;
       }
       .doc-card-title {
         font-size: 1.08rem;
         font-weight: 700;
-        color: #0F172A;
+        color: #F8FAFC;
         margin: 0 0 8px 0;
         line-height: 1.4;
       }
       .doc-card-desc {
-        color: #64748B;
+        color: #CBD5E1;
         font-size: 0.85rem;
         line-height: 1.5;
         margin: 0 0 18px 0;
@@ -384,7 +387,7 @@ export async function renderChecklist(container) {
       }
       .doc-card-footer {
         padding-top: 14px;
-        border-top: 1px solid #F1F5F9;
+        border-top: 1px solid #29364B;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -422,7 +425,7 @@ export async function renderChecklist(container) {
       .doc-icon-btn {
         background: #1B2940;
         border: 1px solid #29364B;
-        color: #64748B;
+        color: #CBD5E1;
         width: 34px;
         height: 34px;
         border-radius: 8px;
@@ -433,21 +436,21 @@ export async function renderChecklist(container) {
         transition: all 0.15s ease;
       }
       .doc-icon-btn:hover {
-        background: #EDF2F7;
-        color: #1E293B;
-        border-color: #CBD5E1;
+        background: #22314A;
+        color: #F8FAFC;
+        border-color: #475569;
       }
       .doc-icon-btn.delete:hover {
-        background: #FEE2E2;
-        color: #DC2626;
-        border-color: #FECACA;
+        background: rgba(239, 68, 68, 0.2);
+        color: #FCA5A5;
+        border-color: rgba(248, 113, 113, 0.45);
       }
       /* Table View */
       .doc-table-card {
         background: #172033;
         border: 1px solid #29364B;
         border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         overflow: hidden;
       }
       .doc-table {
@@ -460,20 +463,20 @@ export async function renderChecklist(container) {
         padding: 14px 18px;
         font-size: 0.78rem;
         font-weight: 700;
-        color: #475569;
+        color: #CBD5E1;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        border-bottom: 1.5px solid #E2E8F0;
+        border-bottom: 1.5px solid #29364B;
       }
       .doc-table td {
         padding: 16px 18px;
         font-size: 0.88rem;
-        color: #1E293B;
-        border-bottom: 1px solid #F1F5F9;
+        color: #F8FAFC;
+        border-bottom: 1px solid #29364B;
         vertical-align: middle;
       }
       .doc-table tr:hover td {
-        background: #1B2940;
+        background: #22314A;
       }
       .doc-empty-state {
         text-align: center;
@@ -776,7 +779,7 @@ export async function renderChecklist(container) {
     content.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:16px;">
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:6px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Nama Dokumen / Checklist <span style="color:#DC2626;">*</span>
           </label>
           <input type="text" id="doc-modal-name" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -784,7 +787,7 @@ export async function renderChecklist(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:6px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Kategori Dokumen <span style="color:#DC2626;">*</span>
           </label>
           <input type="text" id="doc-modal-category" list="doc-categories-list" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -801,18 +804,18 @@ export async function renderChecklist(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:6px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Tautan / Link Dokumen (Google Drive, Docs, Sheets, atau Forms)
           </label>
           <input type="url" id="doc-modal-link" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
             placeholder="https://docs.google.com/..." value="${item?.document_link ? String(item.document_link).replace(/"/g, '&quot;') : ''}" />
-          <span style="font-size:0.75rem; color:#64748B; margin-top:4px; display:block;">
+          <span style="font-size:0.75rem; color:var(--text-3); margin-top:4px; display:block;">
             Bisa berupa tautan Google Forms untuk inspeksi harian, atau link Google Sheets / Docs sebagai acuan.
           </span>
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:6px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:6px;">
             Deskripsi / Petunjuk Penggunaan
           </label>
           <textarea id="doc-modal-desc" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -953,8 +956,8 @@ export async function renderChecklist(container) {
     ${filtered.length === 0 ? `
             <div class="doc-empty-state">
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
-              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Dokumen Ditemukan</h3>
-              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Coba sesuaikan kata kunci pencarian atau pilih kategori lain.</p>
+              <h3 style="font-size:1.2rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak Ada Dokumen Ditemukan</h3>
+              <p style="color:#94A3B8; font-size:0.9rem; margin:0 0 20px 0;">Coba sesuaikan kata kunci pencarian atau pilih kategori lain.</p>
               <button id="doc-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
                 Tampilkan Semua Dokumen
               </button>

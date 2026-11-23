@@ -109,3 +109,22 @@ export function sortYearMonthDesc(months) {
     return String(b || '').localeCompare(String(a || ''));
   });
 }
+
+/**
+ * Formats ISO YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, or Excel 5-digit serial into Indonesian short date.
+ */
+export function formatDateIndo(dateStr, fallback = '-') {
+  if (dateStr === null || dateStr === undefined || String(dateStr).trim() === '' || String(dateStr).trim() === '-') {
+    return fallback;
+  }
+  const ms = parseSortableDateMs(dateStr, { allowYearMonth: false });
+  if (ms !== null) {
+    return new Date(ms).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+  }
+  return String(dateStr);
+}

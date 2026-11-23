@@ -6,18 +6,13 @@ import { downloadExcel, parseExcel } from '../utils/excel.js';
 import { createPagination } from '../components/table.js';
 import { parseValidRowVersion, resolveModalRowVersion, handleOccSaveResponse } from '../utils/occ.js';
 import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
+import { formatDateIndo as sharedFormatDateIndo } from '../utils/sorting.js';
 
 // Helper format tanggal lokal Indonesia
 function formatDateIndo(dateStr) {
   if (!dateStr || dateStr === '-') return '-';
   if (String(dateStr).startsWith('2099')) return 'Tetap / PKWTT';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
+  return sharedFormatDateIndo(dateStr, '-');
 }
 
 // Cek apakah karyawan tetap (PKWTT)
@@ -159,7 +154,7 @@ export async function renderContracts(container, params) {
     } else {
       const listEl = container.querySelector('#con-list-container');
       if (listEl) {
-        listEl.innerHTML = '<div class="con-empty-state"><p style="color:#64748B; margin:0;">Memuat data kontrak...</p></div>';
+        listEl.innerHTML = '<div class="con-empty-state"><p style="color:#CBD5E1; margin:0;">Memuat data kontrak...</p></div>';
       }
     }
     try {
@@ -223,7 +218,7 @@ export async function renderContracts(container, params) {
       content: `
         <div style="text-align:center; padding:24px 10px;">
           <div style="font-size:2rem; margin-bottom:10px;">⏳</div>
-          <p style="color:#64748B; font-size:0.9rem;">Sedang menyinkronkan data karyawan aktif dengan kontrak aktif di database...</p>
+          <p style="color:#CBD5E1; font-size:0.9rem;">Sedang menyinkronkan data karyawan aktif dengan kontrak aktif di database...</p>
         </div>
       `,
       cancelText: 'Tutup'
@@ -246,8 +241,8 @@ export async function renderContracts(container, params) {
         contentHtml = `
           <div style="text-align:center; padding:20px 10px;">
             <div style="font-size:2.8rem; margin-bottom:10px;">🎉</div>
-            <h4 style="font-size:1.1rem; font-weight:800; color:#10B981; margin:0 0 8px 0;">Semua Karyawan Aktif Memiliki Kontrak!</h4>
-            <p style="font-size:0.86rem; color:#64748B; margin:0;">
+            <h4 style="font-size:1.1rem; font-weight:800; color:#34D399; margin:0 0 8px 0;">Semua Karyawan Aktif Memiliki Kontrak!</h4>
+            <p style="font-size:0.86rem; color:#CBD5E1; margin:0;">
               Total <strong>${activeEmployees.length}</strong> karyawan aktif tercatat memiliki perikatan kontrak aktif yang sah di sistem.
             </p>
           </div>
@@ -255,25 +250,25 @@ export async function renderContracts(container, params) {
       } else {
         contentHtml = `
           <div style="display:flex; flex-direction:column; gap:12px;">
-            <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:12px; font-size:0.84rem; color:#991B1B;">
+            <div style="background:rgba(239,68,68,0.16); border:1px solid rgba(248,113,113,0.35); border-radius:10px; padding:12px; font-size:0.84rem; color:#FCA5A5;">
               Ditemukan <strong>${missing.length}</strong> dari <strong>${activeEmployees.length}</strong> karyawan aktif yang <strong>belum memiliki Kontrak Aktif</strong>.
             </div>
             <div style="max-height:360px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:4px;">
               ${missing.map(m => {
                 const pastContracts = allContracts.filter(c => c.employee_id === m.id);
-                let historyText = '<span style="color:#D97706; font-weight:600;">Belum pernah ada data kontrak</span>';
+                let historyText = '<span style="color:#FCD34D; font-weight:600;">Belum pernah ada data kontrak</span>';
                 if (pastContracts.length > 0) {
                   const last = pastContracts[0];
                   historyText = `Riwayat: Status <strong>${last.status}</strong> (Selesai: ${formatDateIndo(last.end_date)})`;
                 }
                 return `
-                  <div style="background:#111827; border:1px solid #29364B; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                  <div style="background:#172033; border:1px solid #29364B; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div>
-                      <div style="font-weight:700; font-size:0.88rem; color:#0F172A;">${m.full_name}</div>
-                      <div style="font-size:0.76rem; color:#64748B;">
+                      <div style="font-weight:700; font-size:0.88rem; color:#F8FAFC;">${m.full_name}</div>
+                      <div style="font-size:0.76rem; color:#CBD5E1;">
                         Cabang: ${m.branch_name || '-'} • Divisi: ${m.division || 'FACILITY CARE'}
                       </div>
-                      <div style="font-size:0.75rem; color:#475569; margin-top:2px;">
+                      <div style="font-size:0.75rem; color:#94A3B8; margin-top:2px;">
                         ${historyText}
                       </div>
                     </div>
@@ -404,14 +399,14 @@ export async function renderContracts(container, params) {
         ${isEdit ? `<input type="hidden" id="con-modal-row-version" value="${editRowVersion !== null ? editRowVersion : ''}">` : ''}
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Nama Karyawan <span style="color:#DC2626;">*</span>
             </label>
             <div id="con-modal-emp-mount"></div>
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Cabang Penempatan <span style="color:#DC2626;">*</span>
             </label>
             <select id="con-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -427,7 +422,7 @@ export async function renderContracts(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Divisi / Bagian <span style="color:#DC2626;">*</span>
             </label>
             <select id="con-modal-division" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -437,7 +432,7 @@ export async function renderContracts(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Status Kontrak <span style="color:#DC2626;">*</span>
             </label>
             <select id="con-modal-status" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -451,7 +446,7 @@ export async function renderContracts(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tipe / Durasi Kontrak
             </label>
             <select id="con-modal-type" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">
@@ -463,7 +458,7 @@ export async function renderContracts(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tingkat / No. PKWT
             </label>
             <select id="con-modal-pkwt" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">
@@ -480,7 +475,7 @@ export async function renderContracts(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Mulai Kontrak
             </label>
             <input type="date" id="con-modal-start" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -488,14 +483,14 @@ export async function renderContracts(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Selesai Kontrak
             </label>
             <input type="date" id="con-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; ${defaultIsTetap ? 'opacity:0.5; background-color:#1B2940; cursor:not-allowed;' : 'background-color:#1B2940;'}" 
               value="${defaultEndDate}" ${defaultIsTetap ? 'disabled' : ''} />
             <div style="margin-top:6px; display:flex; align-items:center; gap:6px;">
               <input type="checkbox" id="con-modal-is-tetap" ${defaultIsTetap ? 'checked' : ''} style="cursor:pointer;" />
-              <label for="con-modal-is-tetap" style="font-size:0.78rem; color:#475569; cursor:pointer; user-select:none;">
+              <label for="con-modal-is-tetap" style="font-size:0.78rem; color:var(--text-2); cursor:pointer; user-select:none;">
                 Karyawan Tetap / PKWTT (Tanpa Batas Tanggal)
               </label>
             </div>
@@ -503,7 +498,7 @@ export async function renderContracts(container, params) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Catatan Tambahan
           </label>
           <textarea id="con-modal-notes" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px; resize:vertical;" 
@@ -736,9 +731,9 @@ export async function renderContracts(container, params) {
     createModal({
       title: '🗑️ Hapus Data Kontrak',
       content: `
-        <div style="font-size:0.92rem; color:#334155; line-height:1.5;">
+        <div style="font-size:0.92rem; color:var(--text-1); line-height:1.5;">
           Apakah Anda yakin ingin menghapus catatan kontrak untuk <strong>${item.employee_name || 'karyawan ini'}</strong> (ID #${item.id})?
-          <div style="margin-top:10px; padding:10px; background:#FEF2F2; border-radius:8px; border:1px solid #FECACA; font-size:0.8rem; color:#991B1B;">
+          <div style="margin-top:10px; padding:10px; background:rgba(239,68,68,0.16); border-radius:8px; border:1px solid rgba(248,113,113,0.35); font-size:0.8rem; color:#FCA5A5;">
             ⚠️ Tindakan ini akan menghapus riwayat masa berlaku kontrak terkait dari sistem.
           </div>
         </div>
@@ -806,8 +801,8 @@ export async function renderContracts(container, params) {
       return `
             <div class="con-empty-state">
               <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
-              <h3 style="font-size:1.15rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak ada kontrak yang sesuai kriteria</h3>
-              <p style="font-size:0.85rem; color:#64748B; margin:0 0 16px 0;">Coba atur ulang kata kunci pencarian, filter cabang, atau filter masa berlaku kontrak.</p>
+              <h3 style="font-size:1.15rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak ada kontrak yang sesuai kriteria</h3>
+              <p style="font-size:0.85rem; color:#94A3B8; margin:0 0 16px 0;">Coba atur ulang kata kunci pencarian, filter cabang, atau filter masa berlaku kontrak.</p>
               <button id="con-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
             </div>
       `;
@@ -885,14 +880,14 @@ export async function renderContracts(container, params) {
                                 ${getInitials(item.employee_name)}
                               </div>
                               <div style="min-width:0;">
-                                <div style="font-weight:700; color:#1E293B; font-size:0.9rem;">${item.employee_name || 'Karyawan Tanpa Nama'}</div>
-                                <div style="font-size:0.74rem; color:#64748B;">ID #${item.id} ${item.pkwt_number ? '• ' + item.pkwt_number : ''}</div>
+                                <div style="font-weight:700; color:#F8FAFC; font-size:0.9rem;">${item.employee_name || 'Karyawan Tanpa Nama'}</div>
+                                <div style="font-size:0.74rem; color:#94A3B8;">ID #${item.id} ${item.pkwt_number ? '• ' + item.pkwt_number : ''}</div>
                               </div>
                             </div>
                           </td>
                           <td>
                             <div style="display:flex; flex-direction:column; gap:3px;">
-                              <span style="font-weight:600; color:#334155;">${item.branch_name || 'Semua Cabang'}</span>
+                              <span style="font-weight:600; color:#E2E8F0;">${item.branch_name || 'Semua Cabang'}</span>
                               <span class="con-div-badge ${divClass}" style="align-self:flex-start;">
                                 ${div === 'SECURITY' ? '🛡️' : '🧹'} ${div}
                               </span>
@@ -901,14 +896,14 @@ export async function renderContracts(container, params) {
                           <td style="text-align:center;">
                             <span class="con-pkwt-badge" style="display:inline-block;">${item.contract_type || 'PKWT'}</span>
                           </td>
-                          <td style="font-size:0.84rem; color:#475569;">
+                          <td style="font-size:0.84rem; color:#E2E8F0;">
                             ${formatDateIndo(item.start_date)}
                           </td>
-                          <td style="font-size:0.84rem; color:#475569;">
-                            ${tetap ? '<span style="color:#6366F1; font-weight:600;">PKWTT (Tetap)</span>' : formatDateIndo(item.end_date)}
+                          <td style="font-size:0.84rem; color:#E2E8F0;">
+                            ${tetap ? '<span style="color:#A5B4FC; font-weight:600;">PKWTT (Tetap)</span>' : formatDateIndo(item.end_date)}
                           </td>
                           <td>
-                            ${tetap ? '<span style="color:#6366F1; font-weight:600; font-size:0.82rem;">🏛️ Tidak Berbatas</span>' : (rem !== null ? (rem <= 0 ? '<span style="color:#DC2626; font-weight:700; font-size:0.82rem;">⚠️ Habis Hari Ini</span>' : rem <= 30 ? `<span style="color:#D97706; font-weight:700; font-size:0.82rem;">⚠️ Sisa ${rem} Hari</span>` : `<span style="color:#16A34A; font-weight:600; font-size:0.82rem;">🟢 ${rem} Hari</span>`) : '<span style="color:#94A3B8; font-size:0.82rem;">-</span>')}
+                            ${tetap ? '<span style="color:#A5B4FC; font-weight:600; font-size:0.82rem;">🏛️ Tidak Berbatas</span>' : (rem !== null ? (rem <= 0 ? '<span style="color:#FCA5A5; font-weight:700; font-size:0.82rem;">⚠️ Habis Hari Ini</span>' : rem <= 30 ? `<span style="color:#FCD34D; font-weight:700; font-size:0.82rem;">⚠️ Sisa ${rem} Hari</span>` : `<span style="color:#6EE7B7; font-weight:600; font-size:0.82rem;">🟢 ${rem} Hari</span>`) : '<span style="color:#94A3B8; font-size:0.82rem;">-</span>')}
                           </td>
                           <td style="text-align:center;">
                             <span class="con-status-badge ${statusBadgeClass}">${statusBadgeText}</span>
@@ -1048,19 +1043,19 @@ export async function renderContracts(container, params) {
                   </div>
 
                   ${tetap ? `
-                    <div style="background:#EEF2FF; border:1px solid #E0E7FF; border-radius:10px; padding:10px 12px; font-size:0.82rem; color:#4338CA; display:flex; align-items:center; gap:8px;">
+                    <div style="background:rgba(99,102,241,0.16); border:1px solid rgba(129,140,248,0.35); border-radius:10px; padding:10px 12px; font-size:0.82rem; color:#C7D2FE; display:flex; align-items:center; gap:8px;">
                       <span style="font-size:1.1rem;">🏛️</span>
                       <div>
-                        <strong>Karyawan Tetap (PKWTT)</strong>
-                        <div style="font-size:0.75rem; color:#6366F1;">Tidak memiliki batas akhir masa berlaku kontrak.</div>
+                        <strong style="color:#E0E7FF;">Karyawan Tetap (PKWTT)</strong>
+                        <div style="font-size:0.75rem; color:#A5B4FC;">Tidak memiliki batas akhir masa berlaku kontrak.</div>
                       </div>
                     </div>
                   ` : rem !== null ? `
-                    <div style="background:${rem <= 0 ? '#FEF2F2' : (rem <= 30 ? '#FFFBEB' : '#F0FDF4')}; border:1px solid ${rem <= 0 ? '#FEE2E2' : (rem <= 30 ? '#FEF3C7' : '#DCFCE7')}; border-radius:10px; padding:10px 12px; font-size:0.82rem; color:${rem <= 0 ? '#991B1B' : (rem <= 30 ? '#92400E' : '#166534')}; display:flex; align-items:center; gap:8px;">
+                    <div style="background:${rem <= 0 ? 'rgba(239,68,68,0.15)' : (rem <= 30 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.14)')}; border:1px solid ${rem <= 0 ? 'rgba(248,113,113,0.35)' : (rem <= 30 ? 'rgba(251,191,36,0.35)' : 'rgba(52,211,153,0.32)')}; border-radius:10px; padding:10px 12px; font-size:0.82rem; color:${rem <= 0 ? '#FCA5A5' : (rem <= 30 ? '#FCD34D' : '#6EE7B7')}; display:flex; align-items:center; gap:8px;">
                       <span style="font-size:1.1rem;">${rem <= 0 ? '⚠️' : (rem <= 30 ? '⏳' : '✅')}</span>
                       <div>
                         <strong>${rem <= 0 ? 'Kontrak Telah Berakhir' : `Sisa Waktu Kontrak: ${rem} Hari`}</strong>
-                        <div style="font-size:0.75rem; opacity:0.85;">
+                        <div style="font-size:0.75rem; color:#CBD5E1; margin-top:2px;">
                           ${rem <= 30 && rem > 0 ? 'Segera lakukan evaluasi perpanjangan kontrak.' : (rem <= 0 ? 'Masa berlaku kontrak telah habis.' : 'Masa kontrak masih aktif dan aman.')}
                         </div>
                       </div>
@@ -1368,7 +1363,7 @@ export async function renderContracts(container, params) {
           cursor: pointer;
           border: 1px solid #29364B;
           background: #1B2940;
-          color: #64748B;
+          color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
           align-items: center;
@@ -1377,13 +1372,13 @@ export async function renderContracts(container, params) {
           flex-shrink: 0;
         }
         .con-pill:hover {
-          background: #111827;
+          background: #22314A;
           color: #F8FAFC;
         }
         .con-pill.active {
-          background: #0F172A;
+          background: #2563EB;
           color: white;
-          border-color: #0F172A;
+          border-color: #2563EB;
         }
         .con-pill-dot {
           width: 8px;
@@ -1394,10 +1389,11 @@ export async function renderContracts(container, params) {
           padding: 1px 6px;
           border-radius: 10px;
           font-size: 0.72rem;
-          background: rgba(0,0,0,0.06);
+          background: rgba(255,255,255,0.1);
+          color: #E2E8F0;
         }
         .con-pill.active .con-pill-count {
-          background: rgba(255,255,255,0.2);
+          background: rgba(255,255,255,0.25);
           color: white;
         }
 
@@ -1408,7 +1404,7 @@ export async function renderContracts(container, params) {
           background: #111827;
           padding: 3px;
           border-radius: 10px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           gap: 3px;
           flex-shrink: 0;
         }
@@ -1422,7 +1418,7 @@ export async function renderContracts(container, params) {
           font-weight: 600;
           border: none;
           background: transparent;
-          color: #64748B;
+          color: #CBD5E1;
           cursor: pointer;
           transition: all 0.15s ease;
           height: 34px;
@@ -1430,14 +1426,14 @@ export async function renderContracts(container, params) {
           user-select: none;
         }
         .con-view-btn:hover {
-          color: #0F172A;
-          background: rgba(255, 255, 255, 0.5);
+          color: #F8FAFC;
+          background: #22314A;
         }
         .con-view-btn.active {
           background: #172033;
-          color: #2563EB;
+          color: #60A5FA;
           font-weight: 700;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
         }
 
         /* Modern Table View */
@@ -1445,7 +1441,7 @@ export async function renderContracts(container, params) {
           background: #172033;
           border: 1px solid #29364B;
           border-radius: 14px;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
           overflow: hidden;
         }
         .con-table-responsive {
@@ -1462,18 +1458,18 @@ export async function renderContracts(container, params) {
         }
         .con-table th {
           background: #1B2940;
-          color: #475569;
+          color: #CBD5E1;
           font-size: 0.76rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 13px 16px;
-          border-bottom: 1.5px solid #E2E8F0;
+          border-bottom: 1.5px solid #29364B;
           white-space: nowrap;
         }
         .con-table td {
           padding: 13px 16px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid #29364B;
           color: #F8FAFC;
           vertical-align: middle;
         }
@@ -1539,19 +1535,19 @@ export async function renderContracts(container, params) {
           white-space: nowrap;
         }
         .con-div-fc {
-          background: #EFF6FF;
-          color: #2563EB;
-          border: 1px solid #DBEAFE;
+          background: rgba(59, 130, 246, 0.18);
+          color: #93C5FD;
+          border: 1px solid rgba(96, 165, 250, 0.35);
         }
         .con-div-sec {
-          background: #111827;
-          color: #334155;
-          border: 1px solid #29364B;
+          background: rgba(148, 163, 184, 0.16);
+          color: #E2E8F0;
+          border: 1px solid rgba(148, 163, 184, 0.35);
         }
         .con-div-rel {
-          background: #F5F3FF;
-          color: #7C3AED;
-          border: 1px solid #EDE9FE;
+          background: rgba(139, 92, 246, 0.18);
+          color: #C4B5FD;
+          border: 1px solid rgba(167, 139, 250, 0.35);
         }
 
         .con-pkwt-badge {
@@ -1562,9 +1558,9 @@ export async function renderContracts(container, params) {
           border-radius: 20px;
           font-size: 0.74rem;
           font-weight: 700;
-          background: #F5F3FF;
-          color: #6D28D9;
-          border: 1px solid #DDD6FE;
+          background: rgba(139, 92, 246, 0.18);
+          color: #C4B5FD;
+          border: 1px solid rgba(167, 139, 250, 0.35);
           flex-shrink: 0;
           white-space: nowrap;
         }
@@ -1581,24 +1577,24 @@ export async function renderContracts(container, params) {
           white-space: nowrap;
         }
         .con-status-aktif {
-          background: #DCFCE7;
-          color: #16A34A;
-          border: 1px solid #BBF7D0;
+          background: rgba(16, 185, 129, 0.18);
+          color: #6EE7B7;
+          border: 1px solid rgba(52, 211, 153, 0.35);
         }
         .con-status-warning {
-          background: #FEF3C7;
-          color: #B45309;
-          border: 1px solid #FDE68A;
+          background: rgba(245, 158, 11, 0.18);
+          color: #FCD34D;
+          border: 1px solid rgba(251, 191, 36, 0.35);
         }
         .con-status-danger {
-          background: #FEE2E2;
-          color: #DC2626;
-          border: 1px solid #FCA5A5;
+          background: rgba(239, 68, 68, 0.18);
+          color: #FCA5A5;
+          border: 1px solid rgba(248, 113, 113, 0.35);
         }
         .con-status-tetap {
-          background: #E0E7FF;
-          color: #4338CA;
-          border: 1px solid #C7D2FE;
+          background: rgba(99, 102, 241, 0.2);
+          color: #C7D2FE;
+          border: 1px solid rgba(129, 140, 248, 0.38);
         }
 
         /* Profile Box */
@@ -1635,14 +1631,14 @@ export async function renderContracts(container, params) {
         .con-name {
           font-size: 1.02rem;
           font-weight: 800;
-          color: #0F172A;
+          color: #F8FAFC;
           line-height: 1.25;
           word-break: break-word;
           overflow-wrap: anywhere;
         }
         .con-subtitle {
           font-size: 0.76rem;
-          color: #64748B;
+          color: #CBD5E1;
           font-weight: 600;
           margin-top: 3px;
         }
@@ -1650,7 +1646,7 @@ export async function renderContracts(container, params) {
         /* Info Container */
         .con-info-card {
           background: #1B2940;
-          border: 1px solid #F1F5F9;
+          border: 1px solid #29364B;
           border-radius: 10px;
           padding: 11px 12px;
           display: flex;
@@ -1672,7 +1668,7 @@ export async function renderContracts(container, params) {
           box-sizing: border-box;
         }
         .con-info-label {
-          color: #64748B;
+          color: #94A3B8;
           display: inline-flex;
           align-items: center;
           gap: 5px;
@@ -1681,7 +1677,7 @@ export async function renderContracts(container, params) {
           font-size: 0.8rem;
         }
         .con-info-val {
-          color: #0F172A;
+          color: #F8FAFC;
           font-weight: 600;
           text-align: right;
           min-width: 0;
@@ -1694,9 +1690,9 @@ export async function renderContracts(container, params) {
         /* Notes box */
         .con-notes-box {
           font-size: 0.78rem;
-          color: #475569;
-          background: #FFFBEB;
-          border: 1px solid #FEF3C7;
+          color: #FDE68A;
+          background: rgba(245, 158, 11, 0.14);
+          border: 1px solid rgba(251, 191, 36, 0.3);
           border-radius: 8px;
           padding: 8px 10px;
           line-height: 1.4;
@@ -1711,7 +1707,7 @@ export async function renderContracts(container, params) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid #29364B;
           padding-top: 11px;
           margin-top: auto;
           gap: 8px;
@@ -1732,8 +1728,8 @@ export async function renderContracts(container, params) {
           height: 34px;
           border-radius: 8px;
           border: 1px solid #29364B;
-          background: #172033;
-          color: #64748B;
+          background: #1B2940;
+          color: #CBD5E1;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1741,14 +1737,14 @@ export async function renderContracts(container, params) {
           transition: all 0.15s ease;
         }
         .con-icon-btn:hover {
-          background: #111827;
-          color: #0F172A;
-          border-color: #CBD5E1;
+          background: #22314A;
+          color: #F8FAFC;
+          border-color: #475569;
         }
         .con-icon-btn.delete:hover {
-          background: #FEE2E2;
-          color: #DC2626;
-          border-color: #FCA5A5;
+          background: rgba(239, 68, 68, 0.2);
+          color: #FCA5A5;
+          border-color: rgba(248, 113, 113, 0.45);
         }
 
         /* Empty state */

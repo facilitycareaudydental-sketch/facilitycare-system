@@ -4,6 +4,7 @@ import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 import { createPagination } from '../components/table.js';
 import { parseValidRowVersion, resolveModalRowVersion, handleOccSaveResponse } from '../utils/occ.js';
+import { formatDateIndo } from '../utils/sorting.js';
 
 // Fallback kosong bila API offline (mencegah data cabang/PII tertanam di bundle klien)
 const INITIAL_EMPLOYEES = [];
@@ -11,24 +12,7 @@ const INITIAL_EMPLOYEES = [];
 const DIVISION_LIST = ['FACILITY CARE', 'SECURITY'];
 const STATUS_LIST = ['Aktif', 'Tidak Aktif', 'Resign', 'Cut'];
 
-// Helper format tanggal lokal Indonesia (termasuk konversi serial date Excel seperti 45369)
-function formatDateIndo(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    const s = String(dateStr).trim();
-    if (/^\d{5}(\.\d+)?$/.test(s)) {
-      const excelDate = new Date(Math.round((Number(s) - 25569) * 86400 * 1000));
-      if (!isNaN(excelDate.getTime())) {
-        return excelDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-      }
-    }
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return s;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
+// Standardized Indonesian date helper imported from ../utils/sorting.js
 
 // Inisial avatar
 function getInitials(name) {
@@ -114,7 +98,7 @@ export async function renderEmployees(container, params) {
     } else {
       const listEl = container.querySelector('#emp-list-container');
       if (listEl) {
-        listEl.innerHTML = '<div class="emp-empty-state"><p style="color:#64748B; margin:0;">Memuat data karyawan...</p></div>';
+        listEl.innerHTML = '<div class="emp-empty-state"><p style="color:var(--text-3); margin:0;">Memuat data karyawan...</p></div>';
       }
     }
 
@@ -469,7 +453,7 @@ export async function renderEmployees(container, params) {
                               <a href="https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}" target="_blank" rel="noopener" style="color:#34D399; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
                                 <span>📱</span> ${phone}
                               </a>
-                            ` : '<span style="color:#64748B;">-</span>'}
+                            ` : '<span style="color:var(--text-3);">-</span>'}
                           </td>
                           <td style="font-size:0.84rem; color:#94A3B8;">
                             ${item.join_date ? formatDateIndo(item.join_date) : '-'}
@@ -877,7 +861,7 @@ export async function renderEmployees(container, params) {
           left: 14px;
           top: 50%;
           transform: translateY(-50%);
-          color: #64748B;
+          color: #94A3B8;
           pointer-events: none;
         }
         .emp-search-input {
@@ -897,7 +881,7 @@ export async function renderEmployees(container, params) {
           box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
         .emp-search-input::placeholder {
-          color: #64748B;
+          color: #94A3B8;
         }
         .emp-select {
           padding: 10px 14px;

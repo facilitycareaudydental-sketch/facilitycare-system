@@ -4,6 +4,7 @@ import { createPagination } from '../components/table.js';
 import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
+import { formatDateIndo } from '../utils/sorting.js';
 
 // Pre-seeded fallback data lembur jika API offline / inisialisasi awal
 const INITIAL_OVERTIME = [
@@ -38,38 +39,28 @@ function calculateTotalHours(start, end, breakHrs) {
   }
 }
 
-// Helper badge tema warna alasan lembur
+// Helper badge tema warna alasan lembur (Dark Navy Glass high-contrast)
 function getReasonBadge(reason = '') {
   const r = (reason || '').toLowerCase();
   if (r.includes('general')) {
-    return { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE', icon: '🧹' };
+    return { bg: 'rgba(59, 130, 246, 0.16)', color: '#93C5FD', border: 'rgba(96, 165, 250, 0.35)', icon: '🧹' };
   }
   if (r.includes('deep')) {
-    return { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE', icon: '✨' };
+    return { bg: 'rgba(139, 92, 246, 0.18)', color: '#C4B5FD', border: 'rgba(167, 139, 250, 0.35)', icon: '✨' };
   }
   if (r.includes('cover')) {
-    return { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', icon: '👥' };
+    return { bg: 'rgba(16, 185, 129, 0.16)', color: '#6EE7B7', border: 'rgba(52, 211, 153, 0.35)', icon: '👥' };
   }
   if (r.includes('longshift')) {
-    return { bg: '#FFFBEB', color: '#B45309', border: '#FDE68A', icon: '⏳' };
+    return { bg: 'rgba(245, 158, 11, 0.16)', color: '#FCD34D', border: 'rgba(251, 191, 36, 0.35)', icon: '⏳' };
   }
   if (r.includes('urgent')) {
-    return { bg: '#FFF1F2', color: '#BE123C', border: '#FECDD3', icon: '🚨' };
+    return { bg: 'rgba(239, 68, 68, 0.18)', color: '#FCA5A5', border: 'rgba(248, 113, 113, 0.35)', icon: '🚨' };
   }
-  return { bg: '#F8FAFC', color: '#475569', border: '#CBD5E1', icon: '⏱️' };
+  return { bg: 'rgba(148, 163, 184, 0.16)', color: '#E2E8F0', border: 'rgba(148, 163, 184, 0.32)', icon: '⏱️' };
 }
 
-// Format tanggal lokal Indonesia
-function formatDateIndo(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
+// Standardized Indonesian date helper imported from ../utils/sorting.js
 
 export async function renderOvertime(container) {
   let overtimeList = [];
@@ -247,7 +238,7 @@ export async function renderOvertime(container) {
       <div style="display:flex; flex-direction:column; gap:16px;">
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Lembur <span style="color:#DC2626;">*</span>
             </label>
             <input type="date" id="ot-modal-date" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -255,7 +246,7 @@ export async function renderOvertime(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Cabang Penugasan <span style="color:#DC2626;">*</span>
             </label>
             <select id="ot-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -270,7 +261,7 @@ export async function renderOvertime(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Nama Karyawan <span style="color:#DC2626;">*</span>
           </label>
           <div id="ot-modal-emp-mount"></div>
@@ -279,7 +270,7 @@ export async function renderOvertime(container) {
         <!-- Shift & Waktu Lembur -->
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Jam Mulai <span style="color:#DC2626;">*</span>
             </label>
             <input type="time" id="ot-modal-start" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -287,7 +278,7 @@ export async function renderOvertime(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Jam Selesai <span style="color:#DC2626;">*</span>
             </label>
             <input type="time" id="ot-modal-end" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -298,7 +289,7 @@ export async function renderOvertime(container) {
         <!-- Durasi & Istirahat -->
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Istirahat (Jam) <span style="color:#DC2626;">*</span>
             </label>
             <input type="number" step="0.5" min="0" max="10" id="ot-modal-break" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -306,7 +297,7 @@ export async function renderOvertime(container) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Total Jam Lembur <span style="color:#DC2626;">*</span>
             </label>
             <input type="number" step="0.1" min="0" id="ot-modal-total" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #29364B; border-radius:8px; background:#1B2940; color:#38BDF8; font-weight:700; color:#2563EB;" 
@@ -315,7 +306,7 @@ export async function renderOvertime(container) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Alasan / Keterangan Penugasan Lembur <span style="color:#DC2626;">*</span>
           </label>
           <select id="ot-modal-reason" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -467,8 +458,8 @@ export async function renderOvertime(container) {
           ${filtered.length === 0 ? `
             <div class="lembur-empty-state">
               <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
-              <h3 style="font-size:1.2rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak Ada Data Lembur Ditemukan</h3>
-              <p style="color:#64748B; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
+              <h3 style="font-size:1.2rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak Ada Data Lembur Ditemukan</h3>
+              <p style="color:#94A3B8; font-size:0.9rem; margin:0 0 20px 0;">Silakan sesuaikan kata kunci pencarian atau reset filter aktif.</p>
               <button id="lembur-btn-reset-filter" class="btn btn-ghost" style="border:1px solid #CBD5E1; border-radius:8px; padding:8px 16px;">
                 Reset Filter
               </button>
@@ -502,22 +493,22 @@ export async function renderOvertime(container) {
                               <div class="lembur-avatar-box" style="width:34px; height:34px; font-size:0.78rem; border-radius:8px;">
                                 ${initials}
                               </div>
-                              <div style="font-weight:700; color:#0F172A; white-space:nowrap;">
-                                ${o.employee_name}
+                              <div style="font-weight:700; color:#F8FAFC; white-space:nowrap;">
+                                ${o.employee_name || '-'}
                               </div>
                             </div>
                           </td>
                           <td style="white-space:nowrap;">
-                            <div style="font-weight:600; color:#334155; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;">
+                            <div style="font-weight:600; color:#E2E8F0; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;">
                               <span>📍</span>
                               <span>${o.branch_name || 'Cabang'}</span>
                             </div>
                           </td>
-                          <td style="white-space:nowrap; font-weight:600; color:#1E293B;">
+                          <td style="white-space:nowrap; font-weight:600; color:#F8FAFC;">
                             📅 ${formatDateIndo(o.date)}
                           </td>
                           <td style="white-space:nowrap;">
-                            <span style="font-weight:700; color:#2563EB;">⏰ ${o.start_time || '00:00'} - ${o.end_time || '00:00'}</span>
+                            <span style="font-weight:700; color:#93C5FD;">⏰ ${o.start_time || '00:00'} - ${o.end_time || '00:00'}</span>
                           </td>
                           <td style="text-align:center; white-space:nowrap;">
                             <span class="lembur-hours-badge" style="padding:3px 8px; font-size:0.8rem;">
@@ -525,7 +516,7 @@ export async function renderOvertime(container) {
                               <span>${o.total_hours != null ? o.total_hours : 0} Jam</span>
                             </span>
                           </td>
-                          <td style="text-align:center; white-space:nowrap; color:#64748B; font-weight:600; font-size:0.82rem;">
+                          <td style="text-align:center; white-space:nowrap; color:#CBD5E1; font-weight:600; font-size:0.82rem;">
                             ☕ ${o.break_hours != null ? o.break_hours : 0} Jam
                           </td>
                           <td style="white-space:nowrap;">
@@ -571,7 +562,7 @@ export async function renderOvertime(container) {
                           <span>⏱️</span>
                           <span>${o.total_hours != null ? o.total_hours : 0} Jam Lembur</span>
                         </span>
-                        <span style="font-size:0.8rem; font-weight:600; color:#64748B;">
+                        <span style="font-size:0.8rem; font-weight:600; color:#CBD5E1;">
                           ☕ Istirahat: ${o.break_hours != null ? o.break_hours : 0} Jam
                         </span>
                       </div>
@@ -582,12 +573,12 @@ export async function renderOvertime(container) {
                           ${initials}
                         </div>
                         <div style="min-width:0;">
-                          <h4 style="margin:0 0 3px 0; font-size:1.02rem; font-weight:700; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${o.employee_name}
+                          <h4 style="margin:0 0 3px 0; font-size:1.02rem; font-weight:700; color:#F8FAFC; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${o.employee_name || '-'}
                           </h4>
-                          <div style="font-size:0.8rem; color:#64748B; display:flex; align-items:center; gap:4px;">
+                          <div style="font-size:0.8rem; color:#CBD5E1; display:flex; align-items:center; gap:4px;">
                             <span>📍</span>
-                            <span style="font-weight:600; color:#334155;">${o.branch_name || 'Cabang'}</span>
+                            <span style="font-weight:600; color:#E2E8F0;">${o.branch_name || 'Cabang'}</span>
                           </div>
                         </div>
                       </div>
@@ -596,14 +587,14 @@ export async function renderOvertime(container) {
                       <div class="lembur-time-box">
                         <div>
                           <div style="font-size:0.7rem; text-transform:uppercase; font-weight:700; color:#94A3B8; margin-bottom:2px;">Tanggal</div>
-                          <div style="font-size:0.88rem; font-weight:700; color:#1E293B;">
+                          <div style="font-size:0.88rem; font-weight:700; color:#F8FAFC;">
                             🗓️ ${formatDateIndo(o.date)}
                           </div>
                         </div>
 
                         <div style="text-align:right;">
                           <div style="font-size:0.7rem; text-transform:uppercase; font-weight:700; color:#94A3B8; margin-bottom:2px;">Waktu Shift</div>
-                          <div style="font-size:0.88rem; font-weight:700; color:#2563EB;">
+                          <div style="font-size:0.88rem; font-weight:700; color:#93C5FD;">
                             ⏰ ${o.start_time || '00:00'} - ${o.end_time || '00:00'}
                           </div>
                         </div>
@@ -841,8 +832,13 @@ export async function renderOvertime(container) {
           border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
+          background: #111827;
+          color: #F8FAFC;
           outline: none;
           transition: border-color 0.15s ease;
+        }
+        .lembur-search-input::placeholder {
+          color: #94A3B8;
         }
         .lembur-search-input:focus {
           border-color: #2563EB;
@@ -884,7 +880,7 @@ export async function renderOvertime(container) {
           cursor: pointer;
           border: 1px solid #29364B;
           background: #111827;
-          color: #64748B;
+          color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
           align-items: center;
@@ -924,7 +920,7 @@ export async function renderOvertime(container) {
           font-weight: 600;
           border: none;
           background: transparent;
-          color: #64748B;
+          color: #94A3B8;
           cursor: pointer;
           transition: all 0.15s ease;
           height: 34px;
@@ -933,13 +929,13 @@ export async function renderOvertime(container) {
         }
         .lembur-view-btn:hover {
           color: #F8FAFC;
-          background: rgba(255, 255, 255, 0.5);
+          background: rgba(255, 255, 255, 0.08);
         }
         .lembur-view-btn.active {
-          background: #172033;
-          color: #2563EB;
+          background: #1B2940;
+          color: #60A5FA;
           font-weight: 700;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
         }
 
         /* Modern Table View */
@@ -964,13 +960,13 @@ export async function renderOvertime(container) {
         }
         .lembur-table th {
           background: #111827;
-          color: #475569;
+          color: #CBD5E1;
           font-size: 0.76rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 13px 16px;
-          border-bottom: 1.5px solid #E2E8F0;
+          border-bottom: 1.5px solid #29364B;
           white-space: nowrap;
         }
         .lembur-table td {
@@ -980,7 +976,7 @@ export async function renderOvertime(container) {
           vertical-align: middle;
         }
         .lembur-table tbody tr:hover td {
-          background: #111827;
+          background: #22314A;
         }
         .lembur-table tbody tr:last-child td {
           border-bottom: none;
@@ -1041,9 +1037,9 @@ export async function renderOvertime(container) {
           border-radius: 8px;
           font-size: 0.88rem;
           font-weight: 800;
-          background: #EEF2FF;
-          color: #4F46E5;
-          border: 1px solid #C7D2FE;
+          background: rgba(99, 102, 241, 0.2);
+          color: #C7D2FE;
+          border: 1px solid rgba(129, 140, 248, 0.38);
         }
         .lembur-reason-badge {
           display: inline-flex;
@@ -1059,8 +1055,8 @@ export async function renderOvertime(container) {
           height: 32px;
           border-radius: 8px;
           border: 1px solid #29364B;
-          background: #172033;
-          color: #64748B;
+          background: #1B2940;
+          color: #CBD5E1;
           display: inline-flex;
           align-items: center;
           justify-content: center;

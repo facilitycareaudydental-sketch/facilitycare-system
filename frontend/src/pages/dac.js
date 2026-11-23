@@ -192,21 +192,21 @@ export async function renderDAC(container) {
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Urutan Terjadwal dari Awal s/d Penutup</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid #29364B; border-left:4px solid #2563EB; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-        <div style="font-size:0.8rem; font-weight:600; color:#1E40AF; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Jam Kerja Standar</div>
-        <div style="font-size:1.5rem; font-weight:800; color:#1E40AF; line-height:1.2;">${shiftHours}</div>
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid #29364B; border-left:4px solid #3B82F6; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+        <div style="font-size:0.8rem; font-weight:600; color:#93C5FD; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Jam Kerja Standar</div>
+        <div style="font-size:1.5rem; font-weight:800; color:#60A5FA; line-height:1.2;">${shiftHours}</div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">9 Jam Operasional (Break 1 Jam)</div>
       </div>
 
       <div class="card" style="padding:16px 20px; background:#172033; border:1px solid #29364B; border-left:4px solid #14B8A6; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-        <div style="font-size:0.8rem; font-weight:600; color:#0F766E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Cakupan Operasional</div>
-        <div style="font-size:1.8rem; font-weight:800; color:#0F766E; line-height:1.2;">12 <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Kategori</span></div>
+        <div style="font-size:0.8rem; font-weight:600; color:#5EEAD4; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Cakupan Operasional</div>
+        <div style="font-size:1.8rem; font-weight:800; color:#2DD4BF; line-height:1.2;">12 <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Kategori</span></div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Tindakan, Toilet, Area Umum, Medis, dll.</div>
       </div>
 
       <div class="card" style="padding:16px 20px; background:#172033; border:1px solid #29364B; border-left:4px solid #F59E0B; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-        <div style="font-size:0.8rem; font-weight:600; color:#B45309; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Poin Wajib Harian</div>
-        <div style="font-size:1.1rem; font-weight:700; color:#B45309; line-height:1.4;">Check Sheet & Sampah Medis</div>
+        <div style="font-size:0.8rem; font-weight:600; color:#FCD34D; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Poin Wajib Harian</div>
+        <div style="font-size:1.1rem; font-weight:700; color:#FBBF24; line-height:1.4;">Check Sheet & Sampah Medis</div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Kontrol mobilitas bertahap & sterilisasi</div>
       </div>
     `;

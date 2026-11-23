@@ -8,10 +8,10 @@ import { mapDBToPayload } from '../utils/sync_mapper.js';
 import { buildAuditStatement, buildCreateAuditStatement, buildCreateAuditFromOutboxStatement, executeAtomicImportBatch } from '../utils/audit.js';
 
 const SCHEDULE_SORT_MAP = Object.freeze({
-  opening_date_desc: buildDateOrderBy('s.opening_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  opening_date_desc: buildDateOrderBy('s.opening_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC', secondaryDateColumns: ['s.target_date', 's.completion_date'] }),
   opening_date_asc: buildDateOrderBy('s.opening_date', { direction: 'ASC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
   target_date_desc: buildDateOrderBy('s.target_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
-  date_desc: buildDateOrderBy('s.opening_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
+  date_desc: buildDateOrderBy('s.opening_date', { direction: 'DESC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC', secondaryDateColumns: ['s.target_date', 's.completion_date'] }),
   target_date_asc: buildDateOrderBy('s.target_date', { direction: 'ASC', alias: 's', includeUpdatedAt: true, includeCreatedAt: true, idDir: 'DESC' }),
   newest: buildTimestampOrderBy('s.created_at', { direction: 'DESC', alias: 's', idDir: 'DESC' }),
 });

@@ -109,11 +109,21 @@ export function buildDateOrderBy(colExpr, {
   idDir = 'DESC',
   allowYearMonth = false,
   allowExcelSerial = true,
+  secondaryDateColumns = [],
 } = {}) {
   const dir = String(direction).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
   const normExpr = buildNormalizedDateExpr(colExpr, { allowYearMonth, allowExcelSerial });
   const tieBreaker = buildTieBreaker({ alias, includeUpdatedAt, includeCreatedAt, idDir });
-  return `CASE WHEN (${normExpr}) IS NULL THEN 1 ELSE 0 END ASC, (${normExpr}) ${dir}, ${tieBreaker}`;
+  const secList = Array.isArray(secondaryDateColumns) ? secondaryDateColumns.filter(Boolean) : [];
+  if (secList.length === 0) {
+    return `CASE WHEN (${normExpr}) IS NULL THEN 1 ELSE 0 END ASC, (${normExpr}) ${dir}, ${tieBreaker}`;
+  }
+  const secExprs = secList.map(c => buildNormalizedDateExpr(c, { allowYearMonth: false, allowExcelSerial }));
+  const secCoalesce = secExprs.length === 1 ? `(${secExprs[0]})` : `COALESCE(${secExprs.join(', ')})`;
+  // Primary valid date ALWAYS sorts first (tier 0) strictly by normExpr.
+  // Secondary date columns ONLY order rows whose primary date is NULL/empty/invalid (tier 1),
+  // leaving completely dateless rows at tier 2 (absolute bottom).
+  return `CASE WHEN (${normExpr}) IS NOT NULL THEN 0 WHEN (${secCoalesce}) IS NOT NULL THEN 1 ELSE 2 END ASC, (${normExpr}) ${dir}, CASE WHEN (${normExpr}) IS NULL THEN (${secCoalesce}) ELSE NULL END ${dir}, ${tieBreaker}`;
 }
 
 /**

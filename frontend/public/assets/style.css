@@ -33,12 +33,12 @@
   --gray-100: #111827;
   --gray-200: #1E293B;
   --gray-300: #334155;
-  --gray-400: #64748B;
-  --gray-500: #94A3B8;
-  --gray-600: #CBD5E1;
-  --gray-700: #E2E8F0;
-  --gray-800: #F1F5F9;
-  --gray-900: #F8FAFC;
+  --gray-400: #94A3B8;
+  --gray-500: #CBD5E1;
+  --gray-600: #E2E8F0;
+  --gray-700: #F1F5F9;
+  --gray-800: #F8FAFC;
+  --gray-900: #FFFFFF;
 
   /* Official FCMS Color System Tokens — Minimalist Premium Navy Enterprise */
   --bg-page:         #0B0F19;
@@ -53,11 +53,11 @@
   --active-primary:  #2563EB;
   --active-hover:    #1D4ED8;
   --border:          #29364B;
-  --border-subtle:   rgba(255, 255, 255, 0.08);
-  --border-focus:    #2563EB;
+  --border-subtle:   rgba(255, 255, 255, 0.12);
+  --border-focus:    #3B82F6;
   --text-1:          #F8FAFC;
-  --text-2:          #94A3B8;
-  --text-3:          #64748B;
+  --text-2:          #CBD5E1;
+  --text-3:          #94A3B8;
   --success:         #10B981;
   --warning:         #F59E0B;
   --danger:          #EF4444;
@@ -205,7 +205,7 @@ strong { font-weight: 600; }
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: rgba(148,163,184,.45);
+  color: #94A3B8;
   padding: 10px 18px 4px;
   text-transform: uppercase;
 }
@@ -1079,11 +1079,11 @@ strong { font-weight: 600; }
   font-weight: 700;
   white-space: nowrap;
 }
-.pill-success { background: #ECFDF5; color: #059669; }
-.pill-danger  { background: #FEF2F2; color: #DC2626; }
-.pill-warning { background: #FFFBEB; color: #D97706; }
-.pill-info    { background: #EFF6FF; color: #2563EB; }
-.pill-neutral { background: var(--gray-100); color: var(--gray-600); }
+.pill-success { background: rgba(16, 185, 129, 0.16); color: #6EE7B7; border: 1px solid rgba(16, 185, 129, 0.32); }
+.pill-danger  { background: rgba(239, 68, 68, 0.16); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.32); }
+.pill-warning { background: rgba(245, 158, 11, 0.16); color: #FCD34D; border: 1px solid rgba(245, 158, 11, 0.32); }
+.pill-info    { background: rgba(59, 130, 246, 0.18); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.35); }
+.pill-neutral { background: rgba(148, 163, 184, 0.16); color: #E2E8F0; border: 1px solid rgba(148, 163, 184, 0.28); }
 
 /* Days Badge */
 .days-badge {
@@ -1094,10 +1094,10 @@ strong { font-weight: 600; }
   font-size: 0.72rem;
   font-weight: 700;
 }
-.days-critical { background: #FEF2F2; color: #DC2626; }
-.days-warning  { background: #FFFBEB; color: #D97706; }
-.days-soon     { background: #FFF7ED; color: #EA580C; }
-.days-ok       { background: #ECFDF5; color: #059669; }
+.days-critical { background: rgba(239, 68, 68, 0.16); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.32); }
+.days-warning  { background: rgba(245, 158, 11, 0.16); color: #FCD34D; border: 1px solid rgba(245, 158, 11, 0.32); }
+.days-soon     { background: rgba(249, 115, 22, 0.16); color: #FDBA74; border: 1px solid rgba(249, 115, 22, 0.32); }
+.days-ok       { background: rgba(16, 185, 129, 0.16); color: #6EE7B7; border: 1px solid rgba(16, 185, 129, 0.32); }
 
 .category-tag {
   display: inline-block;
@@ -1824,7 +1824,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 /* form-hint */
 .form-hint { font-size: .75rem; color: var(--text-3); margin-top: 4px; }
-.form-error-global { background: var(--danger-light); color: #991B1B; border: 1px solid #FECACA; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; font-size: .875rem; }
+.form-error-global { background: rgba(239, 68, 68, 0.16); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; font-size: .875rem; }
 .required { color: var(--danger); font-weight: 700; }
 
 /* data-table — used by createTable() */
@@ -2366,11 +2366,33 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
-  color: #64748B;
+  color: #CBD5E1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 .fc-emp-chip-remove:hover {
-  color: #EF4444;
+  color: #FCA5A5;
+}
+
+/* Global Dark Input / Select / Placeholder Safety Net Across All Modules */
+.main-content input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+.main-content select,
+.main-content textarea,
+.modal input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+.modal select,
+.modal textarea {
+  background-color: var(--bg-input);
+  color: var(--text-1);
+  border-color: var(--border);
+}
+.main-content input::placeholder,
+.main-content textarea::placeholder,
+.modal input::placeholder,
+.modal textarea::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+.modal label {
+  color: var(--text-2);
 }

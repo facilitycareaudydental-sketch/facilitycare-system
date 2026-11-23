@@ -149,22 +149,22 @@ export async function renderOSMigrations(container) {
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Timeline Periode Sep - Des 2026</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #2563EB; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="font-size:0.8rem; font-weight:600; color:#1E40AF; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor AEON</div>
-        <div style="font-size:1.8rem; font-weight:800; color:#1E40AF; line-height:1.2;">${aeonTotal} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #3B82F6; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+        <div style="font-size:0.8rem; font-weight:600; color:#93C5FD; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor AEON</div>
+        <div style="font-size:1.8rem; font-weight:800; color:#60A5FA; line-height:1.2;">${aeonTotal} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Sep: 9 • Nov: 3 • Des: 8</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #0D9488; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-        <div style="font-size:0.8rem; font-weight:600; color:#0F766E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor Triple S</div>
-        <div style="font-size:1.8rem; font-weight:800; color:#0F766E; line-height:1.2;">${tripleSTotal} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #14B8A6; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+        <div style="font-size:0.8rem; font-weight:600; color:#5EEAD4; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Vendor Triple S</div>
+        <div style="font-size:1.8rem; font-weight:800; color:#2DD4BF; line-height:1.2;">${tripleSTotal} <span style="font-size:0.9rem; font-weight:500; color:var(--text-3);">Cabang</span></div>
         <div style="font-size:0.75rem; color:var(--text-3); margin-top:4px;">Sep: 5 • Okt: 5 • Nov: 5 • Des: 27</div>
       </div>
 
-      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #16A34A; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="card" style="padding:16px 20px; background:#172033; border:1px solid var(--border); border-radius:12px; border-left:4px solid #10B981; box-shadow:0 1px 3px rgba(0,0,0,0.2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <span style="font-size:0.8rem; font-weight:600; color:#15803D; text-transform:uppercase; letter-spacing:0.5px;">Progres Realisasi</span>
-          <span style="font-size:0.85rem; font-weight:700; color:#15803D;">${pct}%</span>
+          <span style="font-size:0.8rem; font-weight:600; color:#6EE7B7; text-transform:uppercase; letter-spacing:0.5px;">Progres Realisasi</span>
+          <span style="font-size:0.85rem; font-weight:700; color:#4ADE80;">${pct}%</span>
         </div>
         <div style="width:100%; height:8px; background:#1B2940; border-radius:4px; overflow:hidden; margin-bottom:8px;">
           <div style="width:${pct}%; height:100%; background:#16A34A; border-radius:4px;"></div>

@@ -4,6 +4,7 @@ import { createModal, confirmDialog } from '../components/modal.js';
 import { toastSuccess, toastError, toastInfo } from '../components/toast.js';
 import { createPagination } from '../components/table.js';
 import { mountEmployeeCombobox } from '../components/employeeCombobox.js';
+import { formatDateIndo } from '../utils/sorting.js';
 
 // Fallback kosong bila API offline (mencegah data keluhan/PII tertanam di bundle klien)
 const INITIAL_ISSUES = [];
@@ -12,17 +13,7 @@ const CATEGORY_LIST = ['SDM', 'Cleaning', 'Aset', 'K3', 'Lainnya'];
 const STATUS_LIST = ['Open', 'In Progress', 'Done'];
 const SOURCE_LIST = ['SPV', 'AM', 'RCP', 'Perawat', 'FC', 'Berlin', 'Ade', 'Pattrel', 'Dentrel'];
 
-// Format tanggal lokal Indonesia
-function formatDateIndo(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
+// Standardized Indonesian date helper imported from ../utils/sorting.js
 
 // Inisial avatar
 function getInitials(name) {
@@ -110,7 +101,7 @@ export async function renderIssues(container, params) {
     } else {
       const listEl = container.querySelector('#issues-list-container');
       if (listEl) {
-        listEl.innerHTML = '<div class="issues-empty-state"><p style="color:#64748B; margin:0;">Memuat data permasalahan...</p></div>';
+        listEl.innerHTML = '<div class="issues-empty-state"><p style="color:#CBD5E1; margin:0;">Memuat data permasalahan...</p></div>';
       }
     }
     try {
@@ -266,7 +257,7 @@ export async function renderIssues(container, params) {
         ${isEdit ? `<input type="hidden" id="iss-modal-row-version" value="${initialRowVersion !== null ? initialRowVersion : ''}" />` : ''}
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Info <span style="color:#DC2626;">*</span>
             </label>
             <input type="date" id="iss-modal-date" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -274,7 +265,7 @@ export async function renderIssues(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Cabang Klinik <span style="color:#DC2626;">*</span>
             </label>
             <select id="iss-modal-branch" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -290,7 +281,7 @@ export async function renderIssues(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Kategori <span style="color:#DC2626;">*</span>
             </label>
             <select id="iss-modal-category" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -301,7 +292,7 @@ export async function renderIssues(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Sumber Laporan
             </label>
             <select id="iss-modal-source" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;">
@@ -313,7 +304,7 @@ export async function renderIssues(container, params) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Detail Keluhan / Permasalahan <span style="color:#DC2626;">*</span>
           </label>
           <textarea id="iss-modal-complaint" class="form-control" rows="3" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -322,14 +313,14 @@ export async function renderIssues(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Nama Personil FC / Security
             </label>
             <div id="iss-modal-emp-mount"></div>
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               FC Spesialis / Penanggung Jawab
             </label>
             <input list="iss-spec-options" id="iss-modal-spec" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -341,7 +332,7 @@ export async function renderIssues(container, params) {
         </div>
 
         <div>
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
             Solusi / Tindak Lanjut Penanganan
           </label>
           <textarea id="iss-modal-solution" class="form-control" rows="2" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -350,7 +341,7 @@ export async function renderIssues(container, params) {
 
         <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Status Masalah <span style="color:#DC2626;">*</span>
             </label>
             <select id="iss-modal-status" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" required>
@@ -361,7 +352,7 @@ export async function renderIssues(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Tanggal Selesai
             </label>
             <input type="date" id="iss-modal-completion" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:8px;" 
@@ -369,7 +360,7 @@ export async function renderIssues(container, params) {
           </div>
 
           <div>
-            <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:5px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--text-2); margin-bottom:5px;">
               Durasi (Hari)
             </label>
             <input type="number" id="iss-modal-daycount" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #29364B; border-radius:8px; background:#1B2940; color:#F8FAFC;" 
@@ -565,8 +556,8 @@ export async function renderIssues(container, params) {
       return `
             <div class="issues-empty-state">
               <div style="font-size:2.8rem; margin-bottom:10px;">🔍</div>
-              <h3 style="font-size:1.15rem; font-weight:700; color:#1E293B; margin:0 0 6px 0;">Tidak ada permasalahan yang cocok</h3>
-              <p style="font-size:0.85rem; color:#64748B; margin:0 0 16px 0;">Coba sesuaikan kata kunci pencarian atau filter status yang dipilih.</p>
+              <h3 style="font-size:1.15rem; font-weight:700; color:#F8FAFC; margin:0 0 6px 0;">Tidak ada permasalahan yang cocok</h3>
+              <p style="font-size:0.85rem; color:#94A3B8; margin:0 0 16px 0;">Coba sesuaikan kata kunci pencarian atau filter status yang dipilih.</p>
               <button id="issues-reset-filter" class="btn btn-secondary" style="font-size:0.82rem; padding:7px 16px; border-radius:8px;">Reset Semua Filter</button>
             </div>
       `;
@@ -605,32 +596,32 @@ export async function renderIssues(container, params) {
           </div>
 
           <div>
-            <div class="issues-title">${item.complaint || 'Tidak ada uraian permasalahan'}</div>
-            <div style="font-size:0.75rem; color:#94A3B8; margin-top:2px;">
-              ID #${item.id} • Sumber: ${item.source || '-'}
+            <div class="issues-title" style="color:#F8FAFC; font-weight:700; font-size:0.96rem; line-height:1.45;">${item.complaint || 'Tidak ada uraian permasalahan'}</div>
+            <div style="font-size:0.78rem; color:#CBD5E1; margin-top:4px;">
+              ID #${item.id} • Sumber: <strong style="color:#E2E8F0;">${item.source || '-'}</strong>
             </div>
           </div>
 
           <div class="issues-details-grid">
             <div class="issues-detail-item">
               <span>🏢</span>
-              <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.branch_name || '-'}">
+              <span style="font-weight:600; color:#F8FAFC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.branch_name || '-'}">
                 ${item.branch_name || 'Semua Cabang'}
               </span>
             </div>
             <div class="issues-detail-item">
               <span>📅</span>
-              <span>${item.report_date ? formatDateIndo(item.report_date) : '-'}</span>
+              <span style="color:#E2E8F0; font-weight:600;">${item.report_date ? formatDateIndo(item.report_date) : '-'}</span>
             </div>
             <div class="issues-detail-item">
               <span>👤</span>
-              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.employee_name || '-'}">
+              <span style="color:#F8FAFC; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.employee_name || '-'}">
                 ${item.employee_name || '-'}
               </span>
             </div>
             <div class="issues-detail-item">
               <span>🕒</span>
-              <span>${item.created_at ? item.created_at.slice(0, 10) : '-'}</span>
+              <span style="color:#CBD5E1;">${item.completion_date ? formatDateIndo(item.completion_date) : (item.created_at ? formatDateIndo(item.created_at.slice(0, 10)) : '-')}</span>
             </div>
           </div>
 
@@ -902,29 +893,31 @@ export async function renderIssues(container, params) {
         .issues-search-input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 1px solid #CBD5E1;
+          background: #1B2940;
+          color: #F8FAFC;
+          border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
           outline: none;
           transition: border-color 0.15s ease;
         }
         .issues-search-input:focus {
-          border-color: #2563EB;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+          border-color: #3B82F6;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
         .issues-select {
           padding: 10px 14px;
-          border: 1px solid #CBD5E1;
+          border: 1px solid #29364B;
           border-radius: 10px;
           font-size: 0.9rem;
           color: #F8FAFC;
-          background: #172033;
+          background: #1B2940;
           outline: none;
           min-width: 160px;
           cursor: pointer;
         }
         .issues-select:focus {
-          border-color: #2563EB;
+          border-color: #3B82F6;
         }
 
         /* Swipeable Pills */
@@ -948,7 +941,7 @@ export async function renderIssues(container, params) {
           cursor: pointer;
           border: 1px solid #29364B;
           background: #1B2940;
-          color: #64748B;
+          color: #CBD5E1;
           transition: all 0.15s ease;
           display: inline-flex;
           align-items: center;
@@ -957,13 +950,13 @@ export async function renderIssues(container, params) {
           flex-shrink: 0;
         }
         .issues-pill:hover {
-          background: #111827;
+          background: #22314A;
           color: #F8FAFC;
         }
         .issues-pill.active {
-          background: #0F172A;
-          color: white;
-          border-color: #0F172A;
+          background: #2563EB;
+          color: #FFFFFF;
+          border-color: #2563EB;
         }
         .issues-pill-dot {
           width: 8px;
@@ -974,10 +967,11 @@ export async function renderIssues(container, params) {
           padding: 1px 6px;
           border-radius: 10px;
           font-size: 0.72rem;
-          background: rgba(0,0,0,0.06);
+          background: rgba(255,255,255,0.1);
+          color: #E2E8F0;
         }
         .issues-pill.active .issues-pill-count {
-          background: rgba(255,255,255,0.2);
+          background: rgba(255,255,255,0.25);
           color: white;
         }
 
@@ -992,7 +986,7 @@ export async function renderIssues(container, params) {
           border-radius: 14px;
           border: 1px solid #29364B;
           padding: 18px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
           display: flex;
           flex-direction: column;
           gap: 14px;
@@ -1000,8 +994,8 @@ export async function renderIssues(container, params) {
         }
         .issues-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-          border-color: #CBD5E1;
+          box-shadow: 0 6px 16px rgba(0,0,0,0.32);
+          border-color: #475569;
         }
         .issues-card-top {
           display: flex;
@@ -1019,29 +1013,29 @@ export async function renderIssues(container, params) {
           font-weight: 700;
         }
         .issues-category-sdm {
-          background: #EEF2FF;
-          color: #4F46E5;
-          border: 1px solid #E0E7FF;
+          background: rgba(99, 102, 241, 0.18);
+          color: #A5B4FC;
+          border: 1px solid rgba(129, 140, 248, 0.35);
         }
         .issues-category-cleaning {
-          background: #ECFEFF;
-          color: #0891B2;
-          border: 1px solid #CFFAFE;
+          background: rgba(20, 184, 166, 0.16);
+          color: #5EEAD4;
+          border: 1px solid rgba(45, 212, 191, 0.35);
         }
         .issues-category-aset {
-          background: #F5F3FF;
-          color: #7C3AED;
-          border: 1px solid #EDE9FE;
+          background: rgba(139, 92, 246, 0.18);
+          color: #C4B5FD;
+          border: 1px solid rgba(167, 139, 250, 0.35);
         }
         .issues-category-k3 {
-          background: #FEF3C7;
-          color: #D97706;
-          border: 1px solid #FDE68A;
+          background: rgba(245, 158, 11, 0.18);
+          color: #FCD34D;
+          border: 1px solid rgba(251, 191, 36, 0.35);
         }
         .issues-category-lainnya {
-          background: #111827;
-          color: #475569;
-          border: 1px solid #29364B;
+          background: rgba(148, 163, 184, 0.16);
+          color: #E2E8F0;
+          border: 1px solid rgba(148, 163, 184, 0.3);
         }
 
         .issues-status-badge {
@@ -1054,19 +1048,20 @@ export async function renderIssues(container, params) {
           font-weight: 700;
         }
         .issues-status-open {
-          background: #FEF3C7;
-          color: #B45309;
-          border: 1px solid #FDE68A;
+          background: rgba(245, 158, 11, 0.18);
+          color: #FCD34D;
+          border: 1px solid rgba(251, 191, 36, 0.38);
         }
-        .issues-status-inprogress {
-          background: #DBEAFE;
-          color: #1D4ED8;
-          border: 1px solid #BFDBFE;
+        .issues-status-inprogress,
+        .issues-status-progress {
+          background: rgba(59, 130, 246, 0.18);
+          color: #93C5FD;
+          border: 1px solid rgba(96, 165, 250, 0.38);
         }
         .issues-status-done {
-          background: #DCFCE7;
-          color: #15803D;
-          border: 1px solid #BBF7D0;
+          background: rgba(16, 185, 129, 0.18);
+          color: #6EE7B7;
+          border: 1px solid rgba(52, 211, 153, 0.38);
         }
 
         /* Complaint Quote Box */
@@ -1076,7 +1071,7 @@ export async function renderIssues(container, params) {
           border-radius: 0 10px 10px 0;
           padding: 12px 14px;
           font-size: 0.92rem;
-          color: #0F172A;
+          color: #F8FAFC;
           line-height: 1.5;
           font-weight: 600;
         }
@@ -1090,7 +1085,7 @@ export async function renderIssues(container, params) {
         /* Person / Location Box */
         .issues-person-box {
           background: #1B2940;
-          border: 1px solid #F1F5F9;
+          border: 1px solid #29364B;
           border-radius: 10px;
           padding: 12px;
           display: flex;
@@ -1113,11 +1108,11 @@ export async function renderIssues(container, params) {
         .issues-person-name {
           font-size: 0.95rem;
           font-weight: 800;
-          color: #0F172A;
+          color: #F8FAFC;
         }
         .issues-person-sub {
           font-size: 0.74rem;
-          color: #64748B;
+          color: #94A3B8;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.04em;
@@ -1129,7 +1124,7 @@ export async function renderIssues(container, params) {
           grid-template-columns: 1fr 1fr;
           gap: 8px 12px;
           font-size: 0.82rem;
-          color: #334155;
+          color: #E2E8F0;
           padding: 2px 4px;
         }
         .issues-detail-item {
@@ -1140,20 +1135,21 @@ export async function renderIssues(container, params) {
 
         /* Solution box */
         .issues-solution-box {
-          background: #F0FDF4;
-          border: 1px solid #DCFCE7;
+          background: rgba(16, 185, 129, 0.12);
+          border: 1px solid rgba(52, 211, 153, 0.28);
           border-radius: 10px;
           padding: 10px 12px;
-          font-size: 0.82rem;
-          color: #166534;
-          line-height: 1.45;
+          font-size: 0.83rem;
+          color: #E2E8F0;
+          line-height: 1.5;
         }
         .issues-solution-title {
           font-weight: 700;
+          color: #6EE7B7;
           display: flex;
           align-items: center;
           gap: 6px;
-          margin-bottom: 3px;
+          margin-bottom: 4px;
         }
 
         /* Card footer */
@@ -1161,7 +1157,7 @@ export async function renderIssues(container, params) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid #29364B;
           padding-top: 12px;
           margin-top: auto;
           gap: 8px;
@@ -1176,8 +1172,8 @@ export async function renderIssues(container, params) {
           height: 34px;
           border-radius: 8px;
           border: 1px solid #29364B;
-          background: #172033;
-          color: #64748B;
+          background: #1B2940;
+          color: #CBD5E1;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1185,14 +1181,14 @@ export async function renderIssues(container, params) {
           transition: all 0.15s ease;
         }
         .issues-icon-btn:hover {
-          background: #111827;
-          color: #0F172A;
-          border-color: #CBD5E1;
+          background: #22314A;
+          color: #F8FAFC;
+          border-color: #475569;
         }
         .issues-icon-btn.delete:hover {
-          background: #FEE2E2;
-          color: #DC2626;
-          border-color: #FCA5A5;
+          background: rgba(239, 68, 68, 0.2);
+          color: #FCA5A5;
+          border-color: rgba(248, 113, 113, 0.45);
         }
         .issues-quick-btn {
           font-size: 0.76rem;
@@ -1207,28 +1203,31 @@ export async function renderIssues(container, params) {
           transition: all 0.15s ease;
         }
         .issues-quick-btn.start {
-          background: #EFF6FF;
-          color: #2563EB;
-          border-color: #BFDBFE;
+          background: rgba(59, 130, 246, 0.16);
+          color: #93C5FD;
+          border-color: rgba(96, 165, 250, 0.35);
         }
         .issues-quick-btn.start:hover {
-          background: #DBEAFE;
+          background: rgba(59, 130, 246, 0.26);
+          color: #FFFFFF;
         }
         .issues-quick-btn.complete {
-          background: #F0FDF4;
-          color: #16A34A;
-          border-color: #BBF7D0;
+          background: rgba(16, 185, 129, 0.16);
+          color: #6EE7B7;
+          border-color: rgba(52, 211, 153, 0.35);
         }
         .issues-quick-btn.complete:hover {
-          background: #DCFCE7;
+          background: rgba(16, 185, 129, 0.26);
+          color: #FFFFFF;
         }
         .issues-quick-btn.reopen {
-          background: #FFFBEB;
-          color: #D97706;
-          border-color: #FDE68A;
+          background: rgba(245, 158, 11, 0.16);
+          color: #FCD34D;
+          border-color: rgba(251, 191, 36, 0.35);
         }
         .issues-quick-btn.reopen:hover {
-          background: #FEF3C7;
+          background: rgba(245, 158, 11, 0.26);
+          color: #FFFFFF;
         }
 
         /* Empty state */
