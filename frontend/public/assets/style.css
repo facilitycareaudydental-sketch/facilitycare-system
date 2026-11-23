@@ -850,8 +850,14 @@ strong { font-weight: 600; }
 .act-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
 }
+.act-table th:nth-child(1),
+.act-table td:nth-child(1) { width: 58px; }
+.act-table th:nth-child(3),
+.act-table td:nth-child(3) { width: 132px; }
+.act-table th:nth-child(4),
+.act-table td:nth-child(4) { width: 140px; }
 .act-table th {
   text-align: left;
   font-size: 0.72rem;
@@ -914,6 +920,13 @@ strong { font-weight: 600; }
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.act-desc > span:last-child,
+.act-user > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 .act-user-avatar {
   width: 22px;
