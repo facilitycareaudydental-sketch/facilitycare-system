@@ -368,9 +368,9 @@ function renderLayout() {
 
         <div class="sidebar-footer">
           <div class="sidebar-user">
-            <div class="sidebar-avatar">${(user?.full_name || user?.username || 'U')[0].toUpperCase()}</div>
+            <div class="sidebar-avatar" data-tooltip="${escapeHtml(user?.full_name || user?.username || 'Profil')}" title="${escapeHtml(user?.full_name || user?.username || 'Profil')}">${(user?.full_name || user?.username || 'U')[0].toUpperCase()}</div>
             <div class="sidebar-user-info">
-              <div class="sidebar-user-name">${user?.full_name || user?.username || 'Guest'}</div>
+              <div class="sidebar-user-name">${escapeHtml(user?.full_name || user?.username || 'Guest')}</div>
               <div class="sidebar-user-role">${escapeHtml(user?.role || '-')}</div>
             </div>
           </div>
@@ -511,7 +511,9 @@ function renderLayout() {
     el.addEventListener('blur', hideTooltip);
   };
   document.querySelectorAll('#sidebar [data-tooltip]').forEach(bindTooltipTarget);
+  const sidebarNav = document.getElementById('sidebar-nav');
   sidebar?.addEventListener('scroll', hideTooltip, { passive: true });
+  sidebarNav?.addEventListener('scroll', hideTooltip, { passive: true });
 
   // Global horizontal scrollable tabs & pills observer across all pages
   initGlobalScrollTabsObserver(document.getElementById('main-content'));
@@ -545,8 +547,12 @@ function renderLayout() {
       profileBtn.classList.toggle('active', baseRoute === '/profile');
     }
     const titleEl = document.getElementById('topbar-title');
-    const active  = document.querySelector('.nav-item.active .nav-label');
+    const activeItem = document.querySelector('.nav-item.active');
+    const active = activeItem?.querySelector('.nav-label');
     if (titleEl && active) titleEl.textContent = active.textContent;
+    if (activeItem && typeof activeItem.scrollIntoView === 'function') {
+      requestAnimationFrame(() => activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+    }
   }
   window.addEventListener('hashchange', updateActiveNav);
   updateActiveNav();
