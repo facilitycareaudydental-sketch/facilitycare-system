@@ -120,7 +120,7 @@ export function buildCrudPage({
           </div>
           <style>
             .show-aksi-menu { display: flex !important; }
-            .dropdown-item:hover { background-color: #22314A !important; color: #38BDF8 !important; }
+            .dropdown-item:hover { background-color: #1A2A48 !important; color: #60A5FA !important; }
           </style>
         ` : ''}
       </div>
@@ -128,20 +128,20 @@ export function buildCrudPage({
     
 
     ${filterFields && filterFields.length > 0 ? `
-    <div class="filter-bar" style="background: #111827; border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; border: 1px solid #29364B; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+    <div class="filter-bar" style="background: #131F36; border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; border: 1px solid #223456; box-shadow: 0 4px 12px rgba(0,0,0,0.22);">
         ${filterFields.filter(f => f.type === 'search').map(f => {
-          return `<div class="filter-search-wrap" style="flex:1; min-width:0;"><input type="search" class="filter-search" placeholder="${escapeHtml(f.placeholder || 'Cari...')}" id="filter-search" value="${escapeHtml(filters.search || '')}" style="width:100%; background: #1B2940; border: 1px solid #29364B; color: #F8FAFC; border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; outline:none;"></div>`;
+          return `<div class="filter-search-wrap" style="flex:1; min-width:0;"><input type="search" class="filter-search" placeholder="${escapeHtml(f.placeholder || 'Cari...')}" id="filter-search" value="${escapeHtml(filters.search || '')}" style="width:100%; background: #0E182B; border: 1px solid #223456; color: #F8FAFC; border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; outline:none;"></div>`;
         }).join('')}
         
         <div class="filter-dropdowns-desktop">
           ${filterFields.filter(f => f.type !== 'search').map(f => {
             if (f.type === 'select' || f.type === 'combobox') {
               const placeholder = (f.label || '').startsWith('Pilih') ? f.label : `Pilih ${f.label || ''}`;
-              return `<select class="filter-select" name="${escapeHtml(f.name)}" id="filter-${escapeHtml(f.name)}" style="background: #172033; border: 1px solid #29364B; border-radius: 8px; padding: 7px 10px; font-size: 0.85rem; color: #F8FAFC; cursor: pointer; outline:none;"><option value="">${escapeHtml(placeholder)}</option>${(f.options || []).map(o => `<option value="${escapeHtml(typeof o === 'object' ? o.value : o)}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${escapeHtml(typeof o === 'object' ? o.label : o)}</option>`).join('')}</select>`;
+              return `<select class="filter-select" name="${escapeHtml(f.name)}" id="filter-${escapeHtml(f.name)}" style="background: #0F1A2E; border: 1px solid #223456; border-radius: 8px; padding: 7px 10px; font-size: 0.85rem; color: #F8FAFC; cursor: pointer; outline:none;"><option value="">${escapeHtml(placeholder)}</option>${(f.options || []).map(o => `<option value="${escapeHtml(typeof o === 'object' ? o.value : o)}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${escapeHtml(typeof o === 'object' ? o.label : o)}</option>`).join('')}</select>`;
             }
             return '';
           }).join('')}
-          <button id="btn-reset-filter" style="background: transparent; border: none; color: #38BDF8; font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 7px 8px; white-space:nowrap;">Reset</button>
+          <button id="btn-reset-filter" style="background: transparent; border: none; color: #60A5FA; font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 7px 8px; white-space:nowrap;">Reset</button>
         </div>
         
         <button id="btn-mobile-filter" class="btn-mobile-filter-trigger">⚙ Filter</button>
@@ -149,16 +149,16 @@ export function buildCrudPage({
         <div class="filter-options-wrapper" id="filter-options-wrapper">
           <div class="bottom-sheet-header">
             <h3 style="margin:0; font-size:1rem; color:#F8FAFC;">Filter Data</h3>
-            <button class="btn-close-sheet" id="btn-close-filter-sheet" style="background:none;border:none;font-size:1.5rem;cursor:pointer;line-height:1;color:#94A3B8;">&times;</button>
+            <button class="btn-close-sheet" id="btn-close-filter-sheet" style="background:none;border:none;font-size:1.5rem;cursor:pointer;line-height:1;color:#A5B4C8;">&times;</button>
           </div>
           ${filterFields.filter(f => f.type !== 'search').map(f => {
             if (f.type === 'select' || f.type === 'combobox') {
               const placeholder = (f.label || '').startsWith('Pilih') ? f.label : `Pilih ${f.label || ''}`;
-              return `<select class="filter-select filter-select-sheet" name="${escapeHtml(f.name)}-sheet" id="filter-sheet-${escapeHtml(f.name)}" style="width:100%; background: #172033; border: 1px solid #29364B; border-radius: 10px; padding: 12px 14px; font-size: 0.9rem; color: #F8FAFC; cursor: pointer; outline:none;"><option value="">${escapeHtml(placeholder)}</option>${(f.options || []).map(o => `<option value="${escapeHtml(typeof o === 'object' ? o.value : o)}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${escapeHtml(typeof o === 'object' ? o.label : o)}</option>`).join('')}</select>`;
+              return `<select class="filter-select filter-select-sheet" name="${escapeHtml(f.name)}-sheet" id="filter-sheet-${escapeHtml(f.name)}" style="width:100%; background: #0F1A2E; border: 1px solid #223456; border-radius: 10px; padding: 12px 14px; font-size: 0.9rem; color: #F8FAFC; cursor: pointer; outline:none;"><option value="">${escapeHtml(placeholder)}</option>${(f.options || []).map(o => `<option value="${escapeHtml(typeof o === 'object' ? o.value : o)}" ${filters[f.name] === (typeof o === 'object' ? o.value : o) ? 'selected' : ''}>${escapeHtml(typeof o === 'object' ? o.label : o)}</option>`).join('')}</select>`;
             }
             return '';
           }).join('')}
-          <button id="btn-reset-filter-sheet" style="background: transparent; border: none; color: #38BDF8; font-weight: 600; font-size: 0.9rem; cursor: pointer; padding: 8px;">Reset</button>
+          <button id="btn-reset-filter-sheet" style="background: transparent; border: none; color: #60A5FA; font-weight: 600; font-size: 0.9rem; cursor: pointer; padding: 8px;">Reset</button>
         </div>
     </div>` : ''}
 

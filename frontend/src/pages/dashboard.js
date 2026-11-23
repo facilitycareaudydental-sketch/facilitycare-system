@@ -66,11 +66,11 @@ function animateCount(el, target, ms = 800) {
   el._animFrame = requestAnimationFrame(tick);
 }
 
-// ── Chart.js Dark Theme Defaults ───────────────────────────────────────────
+// ── Chart.js Clean Navy Blue Defaults ────────────────────────────────────────
 const FONT  = { family: 'Inter', size: 10, weight: '500' };
-const TICK  = '#94A3B8';
-const GRID  = 'rgba(255, 255, 255, 0.06)';
-const DONUT_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+const TICK  = '#CBD5E1';
+const GRID  = 'rgba(148, 163, 184, 0.10)';
+const DONUT_COLORS = ['#2563EB', '#38BDF8', '#60A5FA', '#93C5FD', '#1D4ED8', '#0EA5E9'];
 
 const isMobile = () => window.innerWidth < 768;
 
@@ -245,11 +245,11 @@ export async function renderDashboard(container) {
             <div id="skel-jadwal" class="skeleton" style="position:absolute;inset:0;border-radius:12px"></div>
             <canvas id="chart-jadwal" style="display:none"></canvas>
           </div>
-          <div id="jadwal-legend" style="display:flex;justify-content:center;gap:12px;margin-top:6px;font-size:0.7rem;font-weight:600;color:var(--text-2);flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:#3B82F6"></div> Inspeksi</div>
-            <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:#06B6D4"></div> General Cleaning</div>
-            <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div> Deep Cleaning</div>
-            <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:#A855F7"></div> Fogging</div>
+          <div id="jadwal-legend" style="display:flex;justify-content:center;gap:12px;margin-top:6px;font-size:0.72rem;font-weight:600;color:#CBD5E1;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#2563EB"></div> Inspeksi</div>
+            <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#3B82F6"></div> General Cleaning</div>
+            <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#38BDF8"></div> Deep Cleaning</div>
+            <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#93C5FD"></div> Fogging</div>
           </div>
         </div>
 
@@ -265,7 +265,7 @@ export async function renderDashboard(container) {
             </div>
             <div id="donut-legend" class="donut-legend" style="min-width:110px;"></div>
           </div>
-          <div style="text-align:center; font-size:0.72rem; color:var(--text-3); display:flex; align-items:center; justify-content:center; gap:6px;">
+          <div style="text-align:center; font-size:0.74rem; color:#CBD5E1; display:flex; align-items:center; justify-content:center; gap:6px;">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
             <span id="donut-period-text">Distribusi Kategori Permasalahan</span>
           </div>
@@ -275,9 +275,9 @@ export async function renderDashboard(container) {
         <div class="chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">Tren Permasalahan 12 Bulan</div>
-            <div style="display:flex;align-items:center;gap:12px;font-size:0.7rem;font-weight:600;color:var(--text-2)">
-               <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#EF4444"></div> Open</div>
-               <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#06B6D4"></div> Closed</div>
+            <div style="display:flex;align-items:center;gap:12px;font-size:0.72rem;font-weight:600;color:#CBD5E1">
+               <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#38BDF8"></div> Open</div>
+               <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:#2563EB"></div> Closed</div>
             </div>
           </div>
           <div class="chart-canvas-wrap" style="height:150px;position:relative;margin-top:4px">
@@ -488,10 +488,10 @@ function renderScheduleChart(data) {
     data: {
       labels,
       datasets: [
-        { label: 'Inspeksi',         data: insp, backgroundColor: '#3B82F6', borderRadius: 3 },
-        { label: 'General Cleaning', data: gcl,  backgroundColor: '#06B6D4', borderRadius: 3 },
-        { label: 'Deep Cleaning',    data: dcl,  backgroundColor: '#F59E0B', borderRadius: 3 },
-        { label: 'Fogging',          data: fog,  backgroundColor: '#A855F7', borderRadius: 3 },
+        { label: 'Inspeksi',         data: insp, backgroundColor: '#2563EB', borderRadius: 3 },
+        { label: 'General Cleaning', data: gcl,  backgroundColor: '#3B82F6', borderRadius: 3 },
+        { label: 'Deep Cleaning',    data: dcl,  backgroundColor: '#38BDF8', borderRadius: 3 },
+        { label: 'Fogging',          data: fog,  backgroundColor: '#93C5FD', borderRadius: 3 },
       ]
     },
     options: chartOpts({
@@ -571,8 +571,8 @@ function renderDonut(categories) {
         data: values,
         backgroundColor: DONUT_COLORS,
         borderWidth: 2,
-        borderColor: '#111827',
-        hoverBorderColor: '#111827'
+        borderColor: '#131F36',
+        hoverBorderColor: '#131F36'
       }]
     },
     options: {
@@ -629,25 +629,25 @@ function renderTrend(trend) {
         {
           label: 'Open',
           data: open,
-          borderColor: '#EF4444',
-          backgroundColor: 'rgba(239,68,68,.12)',
+          borderColor: '#38BDF8',
+          backgroundColor: 'rgba(56,189,248,.12)',
           fill: true,
           tension: 0.4,
           pointRadius: 3.5,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#EF4444',
+          pointBackgroundColor: '#38BDF8',
           borderWidth: 2
         },
         {
           label: 'Closed',
           data: closed,
-          borderColor: '#06B6D4',
-          backgroundColor: 'rgba(6,182,212,.12)',
+          borderColor: '#2563EB',
+          backgroundColor: 'rgba(37,99,235,.12)',
           fill: true,
           tension: 0.4,
           pointRadius: 3.5,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#06B6D4',
+          pointBackgroundColor: '#2563EB',
           borderWidth: 2
         },
       ]
@@ -673,12 +673,12 @@ function renderRecentActivity(rows) {
   }
 
   const typeConfig = {
-    issue:      { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', bg: '#EF4444', text: '#FEF2F2', module: 'Permasalahan', modBg: 'rgba(239,68,68,0.18)', modCol: '#F87171' },
-    contract:   { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>', bg: '#06B6D4', text: '#ECFEFF', module: 'Data Kontrak', modBg: 'rgba(6,182,212,0.18)', modCol: '#22D3EE' },
-    employee:   { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>', bg: '#F59E0B', text: '#FFFBEB', module: 'Master Karyawan', modBg: 'rgba(37,99,235,0.18)', modCol: '#60A5FA' },
-    training:   { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>', bg: '#3B82F6', text: '#EFF6FF', module: 'Training', modBg: 'rgba(16,185,129,0.18)', modCol: '#34D399' },
-    inspection: { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', bg: '#10B981', text: '#ECFDF5', module: 'Inspeksi', modBg: 'rgba(245,158,11,0.18)', modCol: '#FBBF24' },
-    schedule:   { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', bg: '#10B981', text: '#ECFDF5', module: 'Jadwal Kegiatan', modBg: 'rgba(99,102,241,0.18)', modCol: '#A5B4FC' },
+    issue:      { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', bg: '#2563EB', text: '#FFFFFF', module: 'Permasalahan', modBg: 'rgba(56,189,248,0.16)', modCol: '#7DD3FC' },
+    contract:   { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>', bg: '#2563EB', text: '#FFFFFF', module: 'Data Kontrak', modBg: 'rgba(37,99,235,0.18)', modCol: '#93C5FD' },
+    employee:   { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>', bg: '#2563EB', text: '#FFFFFF', module: 'Master Karyawan', modBg: 'rgba(37,99,235,0.18)', modCol: '#93C5FD' },
+    training:   { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>', bg: '#2563EB', text: '#FFFFFF', module: 'Training', modBg: 'rgba(56,189,248,0.16)', modCol: '#7DD3FC' },
+    inspection: { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', bg: '#2563EB', text: '#FFFFFF', module: 'Inspeksi', modBg: 'rgba(37,99,235,0.18)', modCol: '#93C5FD' },
+    schedule:   { icon: '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', bg: '#2563EB', text: '#FFFFFF', module: 'Jadwal Kegiatan', modBg: 'rgba(56,189,248,0.16)', modCol: '#7DD3FC' },
   };
 
   wrap.innerHTML = `

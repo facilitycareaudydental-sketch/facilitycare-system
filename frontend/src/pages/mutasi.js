@@ -657,11 +657,12 @@ export async function renderMutasi(container) {
           gap: 20px;
         }
         .mutasi-hero-card {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 16px;
           padding: 24px 28px;
-          color: white;
-          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
           position: relative;
           overflow: hidden;
         }
@@ -672,7 +673,7 @@ export async function renderMutasi(container) {
           right: -40px;
           width: 220px;
           height: 220px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -938,26 +939,25 @@ export async function renderMutasi(container) {
         }
         .mutasi-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 18px rgba(0,0,0,0.06);
-          border-color: #CBD5E1;
+          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+          border-color: #3B82F6;
         }
         .mutasi-avatar-box {
           width: 44px;
           height: 44px;
           border-radius: 10px;
-          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-          color: white;
+          background: #2563EB;
+          color: #FFFFFF;
           font-weight: 700;
           font-size: 1rem;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          box-shadow: 0 3px 6px rgba(37, 99, 235, 0.2);
         }
         .mutasi-route-box {
-          background: #111827;
-          border: 1px dashed #CBD5E1;
+          background: #0E182B;
+          border: 1px dashed #334155;
           border-radius: 10px;
           padding: 12px 14px;
           margin: 12px 0;

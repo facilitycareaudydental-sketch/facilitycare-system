@@ -1059,19 +1059,18 @@ export async function renderEmployees(container, params) {
           width: 48px;
           height: 48px;
           border-radius: 12px;
-          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-          color: white;
+          background: #2563EB;
+          color: #FFFFFF;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 800;
           font-size: 1.05rem;
           flex-shrink: 0;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
         .emp-avatar.sec {
-          background: linear-gradient(135deg, #475569 0%, #1E293B 100%);
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+          background: #1B2D4F;
+          border: 1px solid #3B82F6;
         }
         .emp-name {
           font-size: 1.02rem;
@@ -1346,16 +1345,16 @@ export async function renderEmployees(container, params) {
           <!-- 4 KPI Stat Boxes -->
           <div class="emp-stats-row">
             <div class="emp-stat-box" title="Data karyawan terdaftar di sistem">
-              <div class="emp-stat-icon" style="background:linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color:#FFFFFF;">👥</div>
+              <div class="emp-stat-icon" style="background:rgba(37,99,235,0.18); border:1px solid rgba(59,130,246,0.35); color:#60A5FA;">👥</div>
               <div>
                 <div class="emp-stat-val" id="emp-stat-total">${totalEmployees}</div>
                 <div class="emp-stat-lbl">Karyawan Terdaftar</div>
-                <div id="emp-stat-sub" style="font-size:0.68rem; color:#94A3B8; margin-top:2px;">${activeCount} Aktif • ${countNonactive} Nonaktif</div>
+                <div id="emp-stat-sub" style="font-size:0.68rem; color:#A5B4C8; margin-top:2px;">${activeCount} Aktif • ${countNonactive} Nonaktif</div>
               </div>
             </div>
 
             <div class="emp-stat-box" title="Total Personil Aktif">
-              <div class="emp-stat-icon" style="background:linear-gradient(135deg, #10B981 0%, #059669 100%); color:#FFFFFF;">🟢</div>
+              <div class="emp-stat-icon" style="background:rgba(37,99,235,0.18); border:1px solid rgba(59,130,246,0.35); color:#60A5FA;">🟢</div>
               <div>
                 <div class="emp-stat-val" id="emp-stat-active">${activeCount}</div>
                 <div class="emp-stat-lbl">Personil Aktif</div>
@@ -1364,20 +1363,20 @@ export async function renderEmployees(container, params) {
             </div>
 
             <div class="emp-stat-box" title="Divisi Resmi Facility Care">
-              <div class="emp-stat-icon" style="background:linear-gradient(135deg, #06B6D4 0%, #0891B2 100%); color:#FFFFFF;">🏢</div>
+              <div class="emp-stat-icon" style="background:rgba(37,99,235,0.18); border:1px solid rgba(59,130,246,0.35); color:#60A5FA;">🏢</div>
               <div>
                 <div class="emp-stat-val" id="emp-stat-fc">${fcCount}</div>
                 <div class="emp-stat-lbl">Facility Care</div>
-                <div style="font-size:0.68rem; color:#67E8F9; margin-top:2px;">Aktif Operasional</div>
+                <div style="font-size:0.68rem; color:#93C5FD; margin-top:2px;">Aktif Operasional</div>
               </div>
             </div>
 
             <div class="emp-stat-box" title="Divisi Resmi Security">
-              <div class="emp-stat-icon" style="background:linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); color:#FFFFFF;">🛡️</div>
+              <div class="emp-stat-icon" style="background:rgba(37,99,235,0.18); border:1px solid rgba(59,130,246,0.35); color:#60A5FA;">🛡️</div>
               <div>
                 <div class="emp-stat-val" id="emp-stat-sec">${secCount}</div>
                 <div class="emp-stat-lbl">Security</div>
-                <div style="font-size:0.68rem; color:#C4B5FD; margin-top:2px;">Aktif Operasional</div>
+                <div style="font-size:0.68rem; color:#7DD3FC; margin-top:2px;">Aktif Operasional</div>
               </div>
             </div>
           </div>

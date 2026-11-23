@@ -776,11 +776,12 @@ export async function renderIssues(container, params) {
           gap: 20px;
         }
         .issues-hero-card {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 16px;
           padding: 24px 28px;
-          color: white;
-          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
           position: relative;
           overflow: hidden;
         }
@@ -791,7 +792,7 @@ export async function renderIssues(container, params) {
           right: -40px;
           width: 220px;
           height: 220px;
-          background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }

@@ -166,11 +166,12 @@ export async function renderSP(container) {
         font-family: inherit;
       }
       .sp-hero-card {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        background: #131F36;
+        border: 1px solid #223456;
         border-radius: 18px;
         padding: 28px 32px;
         color: #FFFFFF;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
         margin-bottom: 24px;
         position: relative;
         overflow: hidden;
@@ -182,7 +183,7 @@ export async function renderSP(container) {
         top: -50px;
         width: 220px;
         height: 220px;
-        background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
         border-radius: 50%;
         pointer-events: none;
       }

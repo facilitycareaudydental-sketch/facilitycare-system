@@ -46,13 +46,13 @@ function getReasonBadge(reason = '') {
     return { bg: 'rgba(59, 130, 246, 0.16)', color: '#93C5FD', border: 'rgba(96, 165, 250, 0.35)', icon: '🧹' };
   }
   if (r.includes('deep')) {
-    return { bg: 'rgba(139, 92, 246, 0.18)', color: '#C4B5FD', border: 'rgba(167, 139, 250, 0.35)', icon: '✨' };
+    return { bg: 'rgba(56, 189, 248, 0.16)', color: '#7DD3FC', border: 'rgba(56, 189, 248, 0.35)', icon: '✨' };
   }
   if (r.includes('cover')) {
     return { bg: 'rgba(16, 185, 129, 0.16)', color: '#6EE7B7', border: 'rgba(52, 211, 153, 0.35)', icon: '👥' };
   }
   if (r.includes('longshift')) {
-    return { bg: 'rgba(245, 158, 11, 0.16)', color: '#FCD34D', border: 'rgba(251, 191, 36, 0.35)', icon: '⏳' };
+    return { bg: 'rgba(37, 99, 235, 0.2)', color: '#93C5FD', border: 'rgba(96, 165, 250, 0.38)', icon: '⏳' };
   }
   if (r.includes('urgent')) {
     return { bg: 'rgba(239, 68, 68, 0.18)', color: '#FCA5A5', border: 'rgba(248, 113, 113, 0.35)', icon: '🚨' };
@@ -717,11 +717,12 @@ export async function renderOvertime(container) {
           gap: 20px;
         }
         .lembur-hero-card {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 16px;
           padding: 24px 28px;
-          color: white;
-          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
           position: relative;
           overflow: hidden;
         }
@@ -732,7 +733,7 @@ export async function renderOvertime(container) {
           right: -40px;
           width: 220px;
           height: 220px;
-          background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -1009,19 +1010,18 @@ export async function renderOvertime(container) {
           width: 44px;
           height: 44px;
           border-radius: 10px;
-          background: linear-gradient(135deg, #4F46E5 0%, #3730A3 100%);
-          color: white;
+          background: #2563EB;
+          color: #FFFFFF;
           font-weight: 700;
           font-size: 1rem;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          box-shadow: 0 3px 6px rgba(79, 70, 229, 0.25);
         }
         .lembur-time-box {
-          background: #111827;
-          border: 1px solid #29364B;
+          background: #0E182B;
+          border: 1px solid #223456;
           border-radius: 10px;
           padding: 10px 12px;
           margin: 12px 0;

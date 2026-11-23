@@ -605,11 +605,12 @@ export async function renderTraining(container) {
           gap: 20px;
         }
         .training-hero-card {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 16px;
           padding: 24px 28px;
-          color: white;
-          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
           position: relative;
           overflow: hidden;
         }
@@ -620,7 +621,7 @@ export async function renderTraining(container) {
           right: -40px;
           width: 220px;
           height: 220px;
-          background: radial-gradient(circle, rgba(147, 51, 234, 0.18) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -811,15 +812,14 @@ export async function renderTraining(container) {
           width: 44px;
           height: 44px;
           border-radius: 10px;
-          background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
-          color: white;
+          background: #2563EB;
+          color: #FFFFFF;
           font-weight: 700;
           font-size: 1rem;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          box-shadow: 0 3px 6px rgba(124, 58, 237, 0.25);
         }
         .training-batch-badge {
           display: inline-flex;
@@ -829,9 +829,9 @@ export async function renderTraining(container) {
           border-radius: 20px;
           font-size: 0.76rem;
           font-weight: 700;
-          background: rgba(139, 92, 246, 0.18);
-          color: #C4B5FD;
-          border: 1px solid rgba(167, 139, 250, 0.35);
+          background: rgba(37, 99, 235, 0.18);
+          color: #93C5FD;
+          border: 1px solid rgba(96, 165, 250, 0.35);
         }
         .training-score-badge {
           display: inline-flex;

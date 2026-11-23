@@ -79,8 +79,8 @@ export async function renderUsers(container) {
         {
           type: 'html',
           html: `
-            <div style="margin-top:8px; padding:10px 12px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; font-size:0.8rem; color:#1E3A8A;">
-              <strong>Kebijakan RBAC &amp; Keamanan Password:</strong> Role resmi FCMS hanya <code>superadmin</code> (maks. 2 aktif) dan <code>fc_specialist_leader</code> (maks. 2 aktif). Password wajib minimal 12 karakter (kombinasi huruf besar, huruf kecil, angka, dan simbol).
+            <div style="margin-top:8px; padding:10px 12px; background:rgba(37,99,235,0.14); border:1px solid rgba(59,130,246,0.35); border-radius:8px; font-size:0.8rem; color:#F8FAFC; line-height:1.5;">
+              <strong style="color:#93C5FD;">Kebijakan RBAC &amp; Keamanan Password:</strong> Role resmi FCMS hanya <code style="background:rgba(15,23,42,0.7); color:#93C5FD; padding:1px 5px; border-radius:4px;">superadmin</code> (maks. 2 aktif) dan <code style="background:rgba(15,23,42,0.7); color:#93C5FD; padding:1px 5px; border-radius:4px;">fc_specialist_leader</code> (maks. 2 aktif). Password wajib minimal 12 karakter (kombinasi huruf besar, huruf kecil, angka, dan simbol).
             </div>
           `
         },

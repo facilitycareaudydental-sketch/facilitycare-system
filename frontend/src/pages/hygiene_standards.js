@@ -126,18 +126,18 @@ export async function renderHygieneStandards(container) {
 
     <!-- KPI Summary Cards -->
     <div id="hygiene-summary-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid #29364B; background:#172033; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-        <div style="width:48px; height:48px; border-radius:10px; background:rgba(37,99,235,0.2); color:#60A5FA; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:var(--bg-card); display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.22);">
+        <div style="width:48px; height:48px; border-radius:10px; background:rgba(37,99,235,0.18); border:1px solid rgba(59,130,246,0.35); color:#60A5FA; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
           📋
         </div>
         <div>
           <div style="font-size:0.8rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Total Parameter</div>
           <div style="font-size:1.6rem; font-weight:800; color:var(--text-1);" id="card-total-params">104</div>
-          <div style="font-size:0.75rem; color:#16A34A; font-weight:500;">✓ Terverifikasi Standar SOP</div>
+          <div style="font-size:0.75rem; color:#34D399; font-weight:500;">✓ Terverifikasi Standar SOP</div>
         </div>
       </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid #29364B; background:#172033; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-        <div style="width:48px; height:48px; border-radius:10px; background:rgba(139,92,246,0.2); color:#C084FC; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:var(--bg-card); display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.22);">
+        <div style="width:48px; height:48px; border-radius:10px; background:rgba(37,99,235,0.18); border:1px solid rgba(59,130,246,0.35); color:#60A5FA; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
           🏢
         </div>
         <div>
@@ -146,23 +146,23 @@ export async function renderHygieneStandards(container) {
           <div style="font-size:0.75rem; color:var(--text-3); font-weight:500;">Klinis, Publik, Sanitair, dll.</div>
         </div>
       </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid #29364B; background:#172033; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-        <div style="width:48px; height:48px; border-radius:10px; background:rgba(16,185,129,0.2); color:#34D399; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:var(--bg-card); display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.22);">
+        <div style="width:48px; height:48px; border-radius:10px; background:rgba(37,99,235,0.18); border:1px solid rgba(59,130,246,0.35); color:#60A5FA; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
           🚪
         </div>
         <div>
           <div style="font-size:0.8rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Ruangan / Lokasi</div>
           <div style="font-size:1.6rem; font-weight:800; color:var(--text-1);" id="card-total-rooms">35</div>
-          <div style="font-size:0.75rem; color:#059669; font-weight:500;">Termasuk Ruang Tindakan</div>
+          <div style="font-size:0.75rem; color:#34D399; font-weight:500;">Termasuk Ruang Tindakan</div>
         </div>
       </div>
-      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid #29364B; background:#172033; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-        <div style="width:48px; height:48px; border-radius:10px; background:rgba(245,158,11,0.2); color:#FBBF24; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+      <div class="card" style="padding:16px 20px; border-radius:12px; border:1px solid var(--border); background:var(--bg-card); display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(0,0,0,0.22);">
+        <div style="width:48px; height:48px; border-radius:10px; background:rgba(37,99,235,0.18); border:1px solid rgba(59,130,246,0.35); color:#60A5FA; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
           🛡️
         </div>
         <div>
           <div style="font-size:0.8rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Kondisi Fisik</div>
-          <div style="font-size:1.6rem; font-weight:800; color:#16A34A;">100%</div>
+          <div style="font-size:1.6rem; font-weight:800; color:#34D399;">100%</div>
           <div style="font-size:0.75rem; color:var(--text-3); font-weight:500;">Bebas Debu, Kerak & Bau</div>
         </div>
       </div>
@@ -170,12 +170,12 @@ export async function renderHygieneStandards(container) {
 
     <!-- Zona Switcher Tabs -->
     <div style="overflow-x:auto; padding-bottom:8px; margin-bottom:18px;">
-      <div id="hygiene-zone-tabs" style="display:flex; gap:8px; min-width:max-content; border-bottom:2px solid #29364B; padding-bottom:8px;">
+      <div id="hygiene-zone-tabs" style="display:flex; gap:8px; min-width:max-content; border-bottom:1px solid var(--border); padding-bottom:8px;">
         <button class="zone-tab-btn active" data-zone="all" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.88rem;">
-          🌟 Semua Zona <span class="badge" style="background:rgba(255,255,255,0.25); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">104</span>
+          🌟 Semua Zona <span class="badge" style="background:rgba(15,23,42,0.55); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">104</span>
         </button>
         ${Object.entries(ZONES).map(([name, data]) => `
-          <button class="zone-tab-btn" data-zone="${name}" style="border:1px solid #29364B; background:#172033; color:#94A3B8; font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.88rem;">
+          <button class="zone-tab-btn" data-zone="${name}" style="border:1px solid var(--border); background:var(--bg-card); color:#CBD5E1; font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.88rem;">
             <span>${data.icon}</span> ${name}
             <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-${name.replace(/[\s&]+/g, '-')}">-</span>
           </button>

@@ -1186,11 +1186,12 @@ export async function renderContracts(container, params) {
 
         /* Hero Header Card */
         .con-hero-card {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+          background: #131F36;
+          border: 1px solid #223456;
           border-radius: 16px;
           padding: 24px 28px;
-          color: white;
-          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
           position: relative;
           overflow: hidden;
           box-sizing: border-box;
@@ -1205,7 +1206,7 @@ export async function renderContracts(container, params) {
           right: -40px;
           width: 220px;
           height: 220px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -1610,23 +1611,21 @@ export async function renderContracts(container, params) {
           width: 48px;
           height: 48px;
           border-radius: 12px;
-          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-          color: white;
+          background: #2563EB;
+          color: #FFFFFF;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 800;
           font-size: 1.05rem;
           flex-shrink: 0;
-          box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
         }
         .con-avatar.sec {
-          background: linear-gradient(135deg, #334155 0%, #0F172A 100%);
-          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+          background: #1B2D4F;
+          border: 1px solid #3B82F6;
         }
         .con-avatar.rel {
-          background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
-          box-shadow: 0 4px 10px rgba(124, 58, 237, 0.2);
+          background: #1D4ED8;
         }
         .con-name {
           font-size: 1.02rem;
