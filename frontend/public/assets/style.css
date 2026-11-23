@@ -1435,8 +1435,8 @@ strong { font-weight: 600; }
 .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
 .btn-danger:hover { background: #DC2626; }
 .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
-.btn-ghost { background: transparent; color: var(--primary); border-color: transparent; }
-.btn-ghost:hover { background: var(--primary-light); }
+.btn-ghost { background: transparent; color: #60A5FA; border-color: transparent; }
+.btn-ghost:hover { background: rgba(96, 165, 250, 0.14); color: #93C5FD; }
 .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
 .btn-lg { padding: 11px 22px; font-size: 1rem; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }

@@ -284,7 +284,7 @@ export async function renderOSMigrations(container) {
                         <div class="branch-card" style="background:#172033; border:1px solid var(--border); border-radius:8px; padding:10px 12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); transition:transform 0.15s, box-shadow 0.15s;">
                           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px; margin-bottom:6px;">
                             <div style="font-weight:700; font-size:0.9rem; color:var(--text-1); line-height:1.3;">
-                              <span style="color:#2563EB; font-family:monospace; margin-right:4px;">${r.branch_code}.</span>${r.branch_name}
+                              <span style="color:#60A5FA; font-family:monospace; margin-right:4px;">${r.branch_code}.</span>${r.branch_name}
                             </div>
                             ${canEdit || canDelete ? `
                               <div style="display:flex; gap:2px;">
@@ -489,7 +489,7 @@ export async function renderOSMigrations(container) {
         display: flex;
         align-items: center;
         gap: 8px;
-        color: ${s.key === currentSt ? '#2563EB' : 'var(--text-1)'};
+        color: ${s.key === currentSt ? '#60A5FA' : 'var(--text-1)'};
         font-weight: ${s.key === currentSt ? '700' : '500'};
       ">
         ${s.label} ${s.key === currentSt ? '✓' : ''}
