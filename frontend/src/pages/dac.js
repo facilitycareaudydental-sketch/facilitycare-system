@@ -62,14 +62,14 @@ export async function renderDAC(container) {
     </div>
 
     <!-- Shift Switcher Tabs -->
-    <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:2px solid #29364B; padding-bottom:8px;">
+    <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:8px;">
       <button class="shift-tab-btn active" data-shift="pagi" style="border:none; background:#2563EB; color:#fff; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
-        🌅 Shift Pagi (08:00 - 17:00) <span class="badge" style="background:rgba(255,255,255,0.25); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-pagi">31</span>
+        🌅 Shift Pagi (08:00 - 17:00) <span class="badge" style="background:rgba(15,23,42,0.55); color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-pagi">31</span>
       </button>
-      <button class="shift-tab-btn" data-shift="siang" style="border:1px solid #29364B; background:#172033; color:#94A3B8; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
+      <button class="shift-tab-btn" data-shift="siang" style="border:1px solid var(--border); background:var(--bg-card); color:#CBD5E1; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
         🌇 Shift Siang (13:00 - 22:00) <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-siang">33</span>
       </button>
-      <button class="shift-tab-btn" data-shift="all" style="border:1px solid #29364B; background:#172033; color:#94A3B8; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
+      <button class="shift-tab-btn" data-shift="all" style="border:1px solid var(--border); background:var(--bg-card); color:#CBD5E1; font-weight:700; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.9rem;">
         📑 Semua Shift <span class="badge" style="background:rgba(255,255,255,0.08); color:#F8FAFC; font-size:0.75rem; padding:2px 6px; border-radius:10px;" id="badge-count-all">64</span>
       </button>
     </div>

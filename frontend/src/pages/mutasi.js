@@ -1296,17 +1296,17 @@ export async function renderMutasi(container) {
           <div class="mutasi-filter-pills">
             <div class="mutasi-pill ${selectedStatus === 'all' ? 'active' : ''}" data-status="all">
               <span>Semua Mutasi</span>
-              <span class="badge" id="mutasi-pill-count-all" style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:10px; font-size:0.75rem;">${totalCount}</span>
+              <span class="badge" id="mutasi-pill-count-all" style="background:rgba(15,23,42,0.55); color:#F8FAFC; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${totalCount}</span>
             </div>
             <div class="mutasi-pill ${selectedStatus === 'Proses' ? 'active' : ''}" data-status="Proses">
-              <span style="color:#D97706;">⏳</span>
+              <span style="color:#FCD34D;">⏳</span>
               <span>Proses</span>
-              <span class="badge" id="mutasi-pill-count-proses" style="background:rgba(217,119,6,0.15); color:#B45309; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${prosesCount}</span>
+              <span class="badge" id="mutasi-pill-count-proses" style="background:rgba(245,158,11,0.18); color:#FCD34D; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${prosesCount}</span>
             </div>
             <div class="mutasi-pill ${selectedStatus === 'Selesai' ? 'active' : ''}" data-status="Selesai">
-              <span style="color:#16A34A;">✅</span>
+              <span style="color:#6EE7B7;">✅</span>
               <span>Selesai</span>
-              <span class="badge" id="mutasi-pill-count-selesai" style="background:rgba(22,163,74,0.15); color:#15803D; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${selesaiCount}</span>
+              <span class="badge" id="mutasi-pill-count-selesai" style="background:rgba(16,185,129,0.18); color:#6EE7B7; padding:2px 6px; border-radius:10px; font-size:0.75rem;">${selesaiCount}</span>
             </div>
           </div>
         </div>

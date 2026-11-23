@@ -2346,3 +2346,33 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .modal label {
   color: var(--text-2);
 }
+
+/* Global Clean Navy WCAG AA Pill Count & Danger Icon Safety Net */
+body .emp-pill.active .emp-pill-count,
+body .con-pill.active .con-pill-count,
+body .issues-pill.active .issues-pill-count,
+body .sp-pill.active .sp-pill-count,
+body .doc-pill.active .doc-pill-count,
+body .training-pill.active .training-pill-count,
+body .lembur-pill.active .lembur-pill-count,
+body .mutasi-pill.active .badge,
+body .shift-tab-btn.active .badge,
+body .zone-tab-btn.active .badge {
+  background: rgba(15, 23, 42, 0.65) !important;
+  color: #FFFFFF !important;
+}
+body .text-danger,
+body .delete-dac-btn {
+  color: #F87171 !important;
+}
+body .con-stat-icon,
+body .emp-stat-icon,
+body .training-stat-icon,
+body .sp-stat-icon,
+body .mutasi-stat-icon,
+body .lembur-stat-icon,
+body .doc-stat-icon {
+  background: rgba(37, 99, 235, 0.16) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: #93C5FD !important;
+}
