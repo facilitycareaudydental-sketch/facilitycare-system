@@ -730,13 +730,25 @@ img, svg, canvas, video, iframe { max-width: 100%; }
   /* DAC Timeline Card Mobile */
   .dac-timeline-card {
     flex-direction: column !important;
-    gap: 10px !important;
+    gap: 12px !important;
     padding: 14px 16px !important;
   }
-  .dac-timeline-card > div:first-child {
-    min-width: 0 !important;
+  .dac-time-box {
     width: 100% !important;
-    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    text-align: left !important;
+    padding: 8px 12px !important;
+  }
+  .dac-time-itemno,
+  .dac-time-shift {
+    margin-top: 0 !important;
+  }
+  .dac-card-content {
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   /* Lembur Time Box Mobile */
