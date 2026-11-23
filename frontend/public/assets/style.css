@@ -1753,7 +1753,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 /* form-hint */
 .form-hint { font-size: .75rem; color: var(--text-3); margin-top: 4px; }
 .form-error-global { background: rgba(239, 68, 68, 0.16); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; font-size: .875rem; }
-.required { color: var(--danger); font-weight: 700; }
+.required { color: #F87171; font-weight: 700; }
 
 /* data-table — used by createTable() */
 .data-table {
